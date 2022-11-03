@@ -1,0 +1,28 @@
+#pragma once
+#include "Board.h"
+#include "Evaluation.h"
+#include <string>
+#include <tuple>
+#include <chrono>
+#include <iostream>
+#include <iomanip>
+#include <thread>
+
+class Engine
+{
+public:
+	Engine();
+	void perft(std::string fen, int depth, bool verbose);
+	void perft(Board b, int depth, bool verbose);
+	int perftRecursive(Board b, int depth);
+	Evaluation Search(Board board, int depth);
+	eval SearchRecursive(Board board, int depth, int level);
+	int StaticEvaluation(Board board);
+	int perft1(Board board, int depth, bool verbose);
+	void Start();
+	void PrintInfo(Evaluation e);
+	void Play();
+
+	int EvaluatedNodes;
+};
+
