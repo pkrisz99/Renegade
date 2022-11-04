@@ -152,103 +152,94 @@ void Engine::Start() {
 		
 		cmd = trimstr(cmd);
 		if (cmd.size() == 0) continue;
+		std::stringstream ss(cmd);
+		std::istream_iterator<std::string> begin(ss);
+		std::istream_iterator<std::string> end;
+		std::vector<std::string> parts(begin, end);
 
 		if (cmd == "quit") break;
 
 		if (cmd == "uci") {
-			cout << "id name Damnchess++" << endl;
+			cout << "id name Damnchess" << endl;
 			cout << "id author Krisz" << endl;
 			cout << "uciok" << endl;
+			continue;
 		}
 
 		if (cmd == "isready") {
 			cout << "readyok" << endl;
+			continue;
 		}
 
-		if (cmd == "ucinewgame") {}
+		if (cmd == "ucinewgame") {
+			continue;
+		}
 
-		if (cmd == "play") Play();
+		if (cmd == "play") {
+			Play();
+			continue;
+		}
 
-		if (startsWith(cmd, "debug ")) {
-			if (cmd == "debug attackmap") board.Draw(board.AttackedSquares);
-			if (cmd == "debug whitepawn") board.Draw(board.WhitePawnBits);
-			if (cmd == "debug whiteking") board.Draw(board.WhiteKingBits);
-			if (cmd == "debug blackpawn") board.Draw(board.BlackPawnBits);
-			if (cmd == "debug blackking") board.Draw(board.BlackKingBits);
-			if (cmd == "debug enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
-			if (cmd == "debug pseudomoves") {
+		// Debug commands
+		if (parts[0] == "debug") {
+			if (parts[1] == "attackmap") board.Draw(board.AttackedSquares);
+			if (parts[1] == "whitepawn") board.Draw(board.WhitePawnBits);
+			if (parts[1] == "whiteking") board.Draw(board.WhiteKingBits);
+			if (parts[1] == "blackpawn") board.Draw(board.BlackPawnBits);
+			if (parts[1] == "blackking") board.Draw(board.BlackKingBits);
+			if (parts[1] == "enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
+			if (parts[1] == "pseudolegal") {
 				std::vector<Move> v = board.GenerateMoves();
 				for (Move m : v) cout << m.ToString() << " ";
 				cout << endl;
 			}
+			continue;
 		}
 
+		// Position command
+		if (parts[0] == "position") {
 
-		if (startsWith(cmd, "position startpos")) {
-			std::string trimmedStr = cmd.substr(17);
-			board = Board(starting_fen);
-			if (startsWith(trimmedStr, " moves ")) {
-				std::string moveStr = trimmedStr.substr(6);
-				std::stringstream ss(moveStr);
-				std::istream_iterator<std::string> begin(ss);
-				std::istream_iterator<std::string> end;
-				std::vector<std::string> parts(begin, end);
-				for (string s : parts) {
-					bool r = board.PushUci(s);
-					if (!r) cout << "!!!!!!!!!!!!!!!!" << endl;
+			if (parts[1] == "startpos") {
+				board = Board(starting_fen);
+				if (parts[2] == "moves") {
+					for (int i = 3; i < parts.size(); i++) {
+						bool r = board.PushUci(parts[i]);
+						if (!r) cout << "!!! Error: invalid pushuci move !!!" << endl;
+					}
 				}
 			}
+
+			if (parts[1] == "fen") {
+				std::string fen = parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " " + parts[6] + " " + parts[7];
+				board = Board(fen);
+				if (parts[8] == "moves") {
+					for (int i = 9; i < parts.size(); i++) {
+						bool r = board.PushUci(parts[i]);
+						if (!r) cout << "!!! Error: invalid pushuci move !!!" << endl;
+					}
+				}
+			}
+
+			continue;
 		}
 
-		if (startsWith(cmd, "position fen ")) {
-			std::string trimmedStr = cmd.substr(13);
+		// Go command
+		if (parts[0] == "go") {
 
-			int pos = trimmedStr.find(" moves ");
-			std::string fenStr = "";
-			bool hasMoves = false;
-			if (pos != std::string::npos) {
-				fenStr = trimmedStr.substr(0, pos);
-				hasMoves = true;
-			}
-			else {
-				fenStr = trimmedStr;
-			}
-			board = Board(fenStr);
-
-			if (hasMoves) {
-				std::string moveStr = trimmedStr.substr(pos + 6);
-				std::stringstream ss(moveStr);
-				std::istream_iterator<std::string> begin(ss);
-				std::istream_iterator<std::string> end;
-				std::vector<std::string> parts(begin, end);
-
-				for (std::string s : parts) {
-					bool r = board.PushUci(s);
-					if (!r) cout << "!!!!!!!!!!!!!!!!" << endl;
-				}
-			}
-		}
-
-		if (startsWith(cmd, "go")) {
-
-			if (startsWith(cmd, "go perft")) {
-				int depth = 4;
-				std::string perftStr = cmd.substr(9);
-				try {
-					depth = stoi(perftStr);
-				}
-				catch (exception e) {}
+			if (parts[1] == "perft") {
+				int depth = stoi(parts[2]);
 				perft(board, depth, true);
-			} else if (startsWith(cmd, "go perfd")) {
-				int depth = 4;
-				std::string perftStr = cmd.substr(9);
-				try {
-					depth = stoi(perftStr);
-				}
-				catch (exception e) {}
+			}
+
+			if (parts[1] == "perfd") {
+				int depth = stoi(parts[2]);
 				perft(board, depth, false);
 			}
+
+			continue;
 		}
+
+		cout << "Unknown command: '" << parts[0] << "'" << endl;
 
 	}
 	cout << "UCI interface ended" << endl;
