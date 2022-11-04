@@ -9,26 +9,9 @@
 
 int main() {
 
-    //Board board = Board("2r3k1/1q1nbppp/r3p3/3pP3/pPpP4/P1Q2N2/2RN1PPP/2R4K b - b3 0 23");
-    Board board = Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    //board.Draw();
-    //board.Test();
-
     Engine engine = Engine();
-    /*
-    for (int i = 1; i < 8; i++) {
-        engine.perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", i);
-    }*/
-
     cout << "Started." << endl;
-
-    
-    //Evaluation result = engine.Search(board, 3);
-    //cout << result.score << " - " << result.move.ToString() << " (" << result.nodes << " nodes, " << result.nps << " nps)" << endl;
-      
-    //engine.Play();
     engine.Start();
-
     return 0;
 }
 

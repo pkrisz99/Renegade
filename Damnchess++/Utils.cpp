@@ -2,41 +2,54 @@
 #include <vector>
 #include <string>
 
-static const int ShortCastle = 1;
-static const int LongCastle = 2;
-static const int PromotionToKnight = 3;
-static const int PromotionToBishop = 4;
-static const int PromotionToRook = 5;
-static const int PromotionToQueen = 6;
-static const int EnPassant = 7;
+namespace MoveFlag {
+	static const int ShortCastle = 1;
+	static const int LongCastle = 2;
+	static const int PromotionToKnight = 3;
+	static const int PromotionToBishop = 4;
+	static const int PromotionToRook = 5;
+	static const int PromotionToQueen = 6;
+	static const int EnPassant = 7;
+}
 
-// Colors
-static const int WhitePiece = 0;
-static const int BlackPiece = 7;
-static const int WhiteTurn = true;
-static const int BlackTurn = false;
-static const int NoneColor = 0;
-static const int WhiteColor = 1;
-static const int BlackColor = 2;
-// Piece types
-static const int Pawn = 1;
-static const int Knight = 2;
-static const int Bishop = 3;
-static const int Rook = 4;
-static const int Queen = 5;
-static const int King = 6;
-static const int WhitePawn = WhitePiece + Pawn;
-static const int WhiteKnight = WhitePiece + Knight;
-static const int WhiteBishop = WhitePiece + Bishop;
-static const int WhiteRook = WhitePiece + Rook;
-static const int WhiteQueen = WhitePiece + Queen;
-static const int WhiteKing = WhitePiece + King;
-static const int BlackPawn = BlackPiece + Pawn;
-static const int BlackKnight = BlackPiece + Knight;
-static const int BlackBishop = BlackPiece + Bishop;
-static const int BlackRook = BlackPiece + Rook;
-static const int BlackQueen = BlackPiece + Queen;
-static const int BlackKing = BlackPiece + King;
+namespace Turn {
+	static const bool White = true;
+	static const bool Black = false;
+}
+
+namespace PieceColor {
+	static const int None = 0;
+	static const int White = 1;
+	static const int Black = 2;
+}
+
+namespace PieceType {
+	static const int None = 0;
+	static const int Pawn = 1;
+	static const int Knight = 2;
+	static const int Bishop = 3;
+	static const int Rook = 4;
+	static const int Queen = 5;
+	static const int King = 6;
+}
+
+namespace Piece {
+	static const int WhitePieceOffset = 0;
+	static const int BlackPieceOffset = 7;
+	static const int None = 0;
+	static const int WhitePawn = WhitePieceOffset + PieceType::Pawn;
+	static const int WhiteKnight = WhitePieceOffset + PieceType::Knight;
+	static const int WhiteBishop = WhitePieceOffset + PieceType::Bishop;
+	static const int WhiteRook = WhitePieceOffset + PieceType::Rook;
+	static const int WhiteQueen = WhitePieceOffset + PieceType::Queen;
+	static const int WhiteKing = WhitePieceOffset + PieceType::King;
+	static const int BlackPawn = BlackPieceOffset + PieceType::Pawn;
+	static const int BlackKnight = BlackPieceOffset + PieceType::Knight;
+	static const int BlackBishop = BlackPieceOffset + PieceType::Bishop;
+	static const int BlackRook = BlackPieceOffset + PieceType::Rook;
+	static const int BlackQueen = BlackPieceOffset + PieceType::Queen;
+	static const int BlackKing = BlackPieceOffset + PieceType::King;
+}
 
 static const __int64 LightSquares = 0b0101010101010101010101010101010101010101010101010101010101010101;
 static const __int64 DarkSquares = 0b1010101010101010101010101010101010101010101010101010101010101010;
@@ -51,6 +64,20 @@ static std::string StateString(GameState s) {
 }
 
 static const std::string starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+
+static void SetBitTrue(__int64& number, __int64 place) {
+	number |= 1ULL << place;
+}
+
+static void SetBitFalse(__int64& number, __int64 place) {
+	number &= ~(1ULL << place);
+}
+
+static bool CheckBit(__int64& number, __int64 place) {
+	return (number >> place) & 1ULL;
+}
+
 
 
 // https://stackoverflow.com/questions/4244274/how-do-i-count-the-number-of-zero-bits-in-an-integer
@@ -77,6 +104,44 @@ static std::string trimstr(const std::string &str) {
 static bool startsWith(std::string big, std::string small) {
 	return big.compare(0, small.length(), small) == 0;
 }
+
+
+// 0: 1st rank ... 7: 8th rank
+static int GetSquareRank(int square) {
+	return square / 8;
+}
+
+// 0: A ... 7: H
+static int GetSquareFile(int square) {
+	return square % 8;
+}
+
+// 0: None, 1: White, 2: Black
+static int ColorOfPiece(int piece) {
+	if (piece == 0) return PieceColor::None;
+	if ((piece > 0) && (piece < 7)) return PieceColor::White;
+	return PieceColor::Black;
+}
+
+static int TypeOfPiece(int piece) {
+	return piece % 7;
+}
+
+static int TurnToPieceColor(bool turn) {
+	if (turn == Turn::White) return PieceColor::White;
+	return PieceColor::Black;
+}
+
+static int Square(int rank, int file) {
+	return rank * 8 + file;
+}
+
+static int SquareToNum(std::string sq) {
+	int file = sq[0] - 'a';
+	int rank = sq[1] - '1';
+	return Square(rank, file);
+}
+
 
 
 const std::vector<std::vector<int>> KnightMoves = { {10,17}, {11,16,18}, {8,12,17,19}, {9,13,18,20}, {10,14,19,21}, {11,15,20,22}, {12,21,23}, {13,22}, {2,18,25}, {3,19,24,26}, {0,4,16,20,25,27}, {1,5,17,21,26,28}, {2,6,18,22,27,29}, {3,7,19,23,28,30}, {4,20,29,31}, {5,21,30}, {1,10,26,33}, {0,2,11,27,32,34}, {1,3,8,12,24,28,33,35}, {2,4,9,13,25,29,34,36}, {3,5,10,14,26,30,35,37}, {4,6,11,15,27,31,36,38}, {5,7,12,28,37,39}, {6,13,29,38}, {9,18,34,41}, {8,10,19,35,40,42}, {9,11,16,20,32,36,41,43}, {10,12,17,21,33,37,42,44}, {11,13,18,22,34,38,43,45}, {12,14,19,23,35,39,44,46}, {13,15,20,36,45,47}, {14,21,37,46}, {17,26,42,49}, {16,18,27,43,48,50}, {17,19,24,28,40,44,49,51}, {18,20,25,29,41,45,50,52}, {19,21,26,30,42,46,51,53}, {20,22,27,31,43,47,52,54}, {21,23,28,44,53,55}, {22,29,45,54}, {25,34,50,57}, {24,26,35,51,56,58}, {25,27,32,36,48,52,57,59}, {26,28,33,37,49,53,58,60}, {27,29,34,38,50,54,59,61}, {28,30,35,39,51,55,60,62}, {29,31,36,52,61,63}, {30,37,53,62}, {33,42,58}, {32,34,43,59}, {33,35,40,44,56,60}, {34,36,41,45,57,61}, {35,37,42,46,58,62}, {36,38,43,47,59,63}, {37,39,44,60}, {38,45,61}, {41,50}, {40,42,51}, {41,43,48,52}, {42,44,49,53}, {43,45,50,54}, {44,46,51,55}, {45,47,52}, {46,53} };

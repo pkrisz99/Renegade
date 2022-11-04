@@ -100,11 +100,11 @@ int Engine::StaticEvaluation(Board board) {
 	// 1. is over?
 	if (board.State == GameState::Draw) return 0;
 	if (board.State == GameState::WhiteVictory) {
-		if (board.Turn == WhiteTurn) return MateEval;
-		if (board.Turn == BlackTurn) return -MateEval;
+		if (board.Turn == Turn::White) return MateEval;
+		if (board.Turn == Turn::Black) return -MateEval;
 	} else if (board.State == GameState::BlackVictory) {
-		if (board.Turn == WhiteTurn) return -MateEval;
-		if (board.Turn == BlackTurn) return MateEval;
+		if (board.Turn == Turn::White) return -MateEval;
+		if (board.Turn == Turn::Black) return MateEval;
 	}
 
 	// 2. Materials
@@ -125,17 +125,17 @@ int Engine::StaticEvaluation(Board board) {
 
 	for (int i = 0; i < 64; i++) {
 		int piece = board.GetPieceAt(i);
-		if (piece == WhitePawn) score += PawnPSQT[i];
-		if (piece == WhiteKnight) score += KnightPSQT[i];
-		if (piece == WhiteBishop) score += BishopPSQT[i];
-		if (piece == WhiteRook) score += RookPSQT[i];
-		if (piece == WhiteQueen) score += QueenPSQT[i];
+		if (piece == Piece::WhitePawn) score += PawnPSQT[i];
+		if (piece == Piece::WhiteKnight) score += KnightPSQT[i];
+		if (piece == Piece::WhiteBishop) score += BishopPSQT[i];
+		if (piece == Piece::WhiteRook) score += RookPSQT[i];
+		if (piece == Piece::WhiteQueen) score += QueenPSQT[i];
 
-		if (piece == BlackPawn) score -= PawnPSQT[63 - i];
-		if (piece == BlackKnight) score -= KnightPSQT[63 - i];
-		if (piece == BlackBishop) score -= BishopPSQT[63 - i];
-		if (piece == BlackRook) score -= RookPSQT[63 - i];
-		if (piece == BlackQueen) score -= QueenPSQT[63 - i];
+		if (piece == Piece::BlackPawn) score -= PawnPSQT[63 - i];
+		if (piece == Piece::BlackKnight) score -= KnightPSQT[63 - i];
+		if (piece == Piece::BlackBishop) score -= BishopPSQT[63 - i];
+		if (piece == Piece::BlackRook) score -= RookPSQT[63 - i];
+		if (piece == Piece::BlackQueen) score -= QueenPSQT[63 - i];
 	}
 
 	if (!board.Turn) score *= -1;
@@ -144,7 +144,7 @@ int Engine::StaticEvaluation(Board board) {
 
 // Start UCI protocol
 void Engine::Start() {
-	cout << "Damnchess++ by Krisz, 2022" << endl;
+	cout << "Damnchess++ by Krisz, 2022  [Build: " << __DATE__ << " " << __TIME__ << "]" << endl;
 	cout << "UCI interface begin" << endl;
 	std::string cmd = "";
 	Board board = Board(starting_fen);
@@ -176,6 +176,11 @@ void Engine::Start() {
 			if (cmd == "debug blackpawn") board.Draw(board.BlackPawnBits);
 			if (cmd == "debug blackking") board.Draw(board.BlackKingBits);
 			if (cmd == "debug enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
+			if (cmd == "debug pseudomoves") {
+				std::vector<Move> v = board.GenerateMoves();
+				for (Move m : v) cout << m.ToString() << " ";
+				cout << endl;
+			}
 		}
 
 

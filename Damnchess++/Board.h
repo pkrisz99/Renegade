@@ -17,39 +17,28 @@ using namespace std;
 
 class Board
 {
+
 public:
 	Board(string fen);
-
+	void Push(Move move);
+	bool PushUci(string ucistr);
+	Board Copy();
 	void Draw(__int64 customBits);
 	int GetPieceAt(int place);
-	int GetPieceColor(int piece);
-	int GetPieceType(int piece);
-	void TryMove(Move move);
-	Board Copy();
 
-	std::vector<Move> GenerateLegalMoves();
-
-	void SetBitTrue(__int64& number, __int64 place);
-	void SetBitFalse(__int64& number, __int64 place);
-	bool CheckBit(__int64& number, __int64 place);
-	bool PushUci(string ucistr);
-	void Push(Move move);
 	bool IsLegalMove(Move m);
-	int SquareToNum(string sq);
+	void TryMove(Move move);
 	std::vector<Move> GenerateMoves();
+	std::vector<Move> GenerateLegalMoves();
+	__int64 CalculateAttackedSquares();
+
 	std::vector<Move> GenerateKnightMoves(int square);
 	std::vector<Move> GenerateCastlingMoves();
-	void Test();
-	int TurnToPieceColor(bool turn);
-	int GetSquareRank(int square);
-	int GetSquareFile(int square);
 	std::vector<Move> GenerateRookMoves(int home);
 	std::vector<Move> GenerateBishopMoves(int home);
-	int Square(int rank, int file);
 	std::vector<Move> GenerateQueenMoves(int home);
 	std::vector<Move> GenerateKingMoves(int home);
 	std::vector<Move> GeneratePawnMoves(int home);
-	__int64 CalculateAttackedSquares();
 
 
 	__int64 WhitePawnBits;
