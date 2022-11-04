@@ -2,6 +2,8 @@
 #include <vector>
 #include <string>
 
+// To do: add squares, files, and ranks
+
 namespace MoveFlag {
 	static const int ShortCastle = 1;
 	static const int LongCastle = 2;
@@ -67,6 +69,9 @@ static const std::string starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQ
 
 
 static void SetBitTrue(__int64& number, __int64 place) {
+	number |= 1ULL << place;
+}
+static void SetBitTrue(unsigned __int64& number, __int64 place) {
 	number |= 1ULL << place;
 }
 

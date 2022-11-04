@@ -60,9 +60,12 @@ Board::Board(string fen) {
 
 	if (parts[1] == "w") Turn = Turn::White;
 	else Turn = Turn::Black;
-	Turn = !Turn;
-	AttackedSquares = CalculateAttackedSquares();
-	Turn = !Turn;
+
+	if (Turn == Turn::White) {
+		AttackedSquares = CalculateAttackedSquares(PieceColor::Black);
+	} else {
+		AttackedSquares = CalculateAttackedSquares(PieceColor::White);
+	}
 
 	for (char f : parts[2]) {
 		switch (f) {
@@ -329,10 +332,13 @@ void Board::Push(Move move) {
 	HalfmoveClock += 1;
 	if (Turn == Turn::White) FullmoveClock += 1;
 
+	if (Turn == Turn::White) {
+		AttackedSquares = CalculateAttackedSquares(PieceColor::Black);
+	} else {
+		AttackedSquares = CalculateAttackedSquares(PieceColor::White);
+	}
+
 	// Get state after
-	Turn = !Turn;
-	AttackedSquares = CalculateAttackedSquares();
-	Turn = !Turn;
 	std::vector<Move> moves = GenerateLegalMoves();
 	int inCheck = 0;
 	if (Turn == Turn::White) inCheck = NonZeros(AttackedSquares & WhiteKingBits);
@@ -385,12 +391,204 @@ void Board::Push(Move move) {
 
 }
 
-std::vector<Move> Board::GenerateKnightMoves(int square) {
-	auto lookup = KnightMoves[square];
+unsigned __int64 Board::GenerateKnightAttacks(int from) {
+	unsigned __int64 squares = 0ULL;
+	for (int sq : KnightMoves[from]) SetBitTrue(squares, sq);
+	return squares;
+}
+
+unsigned __int64 Board::GenerateKingAttacks(int from) {
+	unsigned __int64 squares = 0ULL;
+	for (int sq : KingMoves[from]) SetBitTrue(squares, sq);
+	return squares;
+}
+
+unsigned __int64 Board::GenerateBishopAttacks(int pieceColor, int from) {
+	unsigned __int64 squares = 0ULL;
+	int rank = GetSquareRank(from);
+	int file = GetSquareFile(from);
+	// Go up-left
+	int r = rank;
+	int f = file;
+	while ((r < 7) && (f > 0)) {
+		r++;
+		f--;
+		int pos = Square(r, f);
+		int colorAtPos = ColorOfPiece(GetPieceAt(pos));
+		if (colorAtPos == PieceColor::None) {
+			SetBitTrue(squares, pos);
+			continue;
+		}
+		if (pieceColor == colorAtPos) {
+			break;
+		}
+		if (pieceColor != colorAtPos) {
+			SetBitTrue(squares, pos);
+			break;
+		}
+	}
+	// Go up-right
+	r = rank;
+	f = file;
+	while ((r < 7) && (f < 7)) {
+		r++;
+		f++;
+		int pos = Square(r, f);
+		int colorAtPos = ColorOfPiece(GetPieceAt(pos));
+		if (colorAtPos == PieceColor::None) {
+			SetBitTrue(squares, pos);
+			continue;
+		}
+		if (pieceColor == colorAtPos) {
+			break;
+		}
+		if (pieceColor != colorAtPos) {
+			SetBitTrue(squares, pos);
+			break;
+		}
+	}
+	// Go down-right
+	r = rank;
+	f = file;
+	while ((r > 0) && (f < 7)) {
+		r--;
+		f++;
+		int pos = Square(r, f);
+		int colorAtPos = ColorOfPiece(GetPieceAt(pos));
+		if (colorAtPos == PieceColor::None) {
+			SetBitTrue(squares, pos);
+			continue;
+		}
+		if (pieceColor == colorAtPos) {
+			break;
+		}
+		if (pieceColor != colorAtPos) {
+			SetBitTrue(squares, pos);
+			break;
+		}
+	}
+	// Go down-left
+	r = rank;
+	f = file;
+	while ((r > 0) && (f > 0)) {
+		r--;
+		f--;
+		int pos = Square(r, f);
+		int colorAtPos = ColorOfPiece(GetPieceAt(pos));
+		if (colorAtPos == PieceColor::None) {
+			SetBitTrue(squares, pos);
+			continue;
+		}
+		if (pieceColor == colorAtPos) {
+			break;
+		}
+		if (pieceColor != colorAtPos) {
+			SetBitTrue(squares, pos);
+			break;
+		}
+	}
+	return squares;
+}
+
+unsigned __int64 Board::GenerateRookAttacks(int pieceColor, int from) {
+	unsigned __int64 squares = 0ULL;
+	int rank = GetSquareRank(from);
+	int file = GetSquareFile(from);
+	
+	// Go up
+	for (int i = rank + 1; i < 8; i++) {
+		int pos = Square(i, file);
+		int colorAtPos = ColorOfPiece(GetPieceAt(pos));
+		if (colorAtPos == PieceColor::None) {
+			SetBitTrue(squares, pos);
+			continue;
+		}
+		if (pieceColor == colorAtPos) {
+			break;
+		}
+		if (pieceColor != colorAtPos) {
+			SetBitTrue(squares, pos);
+			break;
+		}
+	}
+	// Go down
+	for (int i = rank - 1; i >= 0; i--) {
+		int pos = Square(i, file);
+		int colorAtPos = ColorOfPiece(GetPieceAt(pos));
+		if (colorAtPos == PieceColor::None) {
+			SetBitTrue(squares, pos);
+			continue;
+		}
+		if (pieceColor == colorAtPos) {
+			break;
+		}
+		if (pieceColor != colorAtPos) {
+			SetBitTrue(squares, pos);
+			break;
+		}
+	}
+	// Go left
+	for (int i = file - 1; i >= 0; i--) {
+		int pos = Square(rank, i);
+		int colorAtPos = ColorOfPiece(GetPieceAt(pos));
+		if (colorAtPos == PieceColor::None) {
+			SetBitTrue(squares, pos);
+			continue;
+		}
+		if (pieceColor == colorAtPos) {
+			break;
+		}
+		if (pieceColor != colorAtPos) {
+			SetBitTrue(squares, pos);
+			break;
+		}
+	}
+	// Go right
+	for (int i = file + 1; i < 8; i++) {
+		int pos = Square(rank, i);
+		int colorAtPos = ColorOfPiece(GetPieceAt(pos));
+		if (colorAtPos == PieceColor::None) {
+			SetBitTrue(squares, pos);
+			continue;
+		}
+		if (pieceColor == colorAtPos) {
+			break;
+		}
+		if (pieceColor != colorAtPos) {
+			SetBitTrue(squares, pos);
+			break;
+		}
+	}
+
+	return squares;
+}
+
+unsigned __int64 Board::GenerateQueenAttacks(int pieceColor, int from) {
+	return GenerateRookAttacks(pieceColor, from) | GenerateBishopAttacks(pieceColor, from);
+}
+
+unsigned __int64 Board::GeneratePawnAttacks(int pieceColor, int from) {
+	unsigned __int64 squares = 0ULL;
+	int rank = GetSquareRank(from);
+	int file = GetSquareFile(from);
+	if (file != 0) {
+		SetBitTrue(squares, (unsigned __int64)from + 7);
+		if (from - 1 == EnPassantSquare) SetBitTrue(squares, (unsigned __int64)from - 1);
+	}
+	if (file != 7) {
+		SetBitTrue(squares, (unsigned __int64)from + 9);
+		if (from + 1 == EnPassantSquare) SetBitTrue(squares, (unsigned __int64)from + 1);
+	}
+	return squares;
+}
+
+
+std::vector<Move> Board::GenerateKnightMoves(int home) {
+	auto lookup = KnightMoves[home];
 	std::vector<Move> list;
 	for (int l : lookup) {
 		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
-		list.push_back(Move(square, l));
+		list.push_back(Move(home, l));
 	}
 	return list;
 }
@@ -783,13 +981,48 @@ std::vector<Move> Board::GenerateCastlingMoves() {
 	return list;
 }
 
-__int64 Board::CalculateAttackedSquares() {
-	__int64 bits = 0ULL;
+__int64 Board::CalculateAttackedSquares(int colorOfPieces) {
+	__int64 squares = 0ULL;
+	for (int i = 0; i < 64; i++) {
+		int piece = GetPieceAt(i);
+		if (ColorOfPiece(piece) == colorOfPieces) {
+			int pieceType = TypeOfPiece(piece);
+			switch (pieceType) {
+			case PieceType::Pawn: {
+				squares |= GeneratePawnAttacks(colorOfPieces, i);
+				break;
+			}
+			case PieceType::Knight: {
+				squares |= GenerateKnightAttacks(i);
+				break;
+			}
+			case PieceType::Bishop: {
+				squares |= GenerateBishopAttacks(colorOfPieces, i);
+				break;
+			}
+			case PieceType::Rook: {
+				squares |= GenerateRookAttacks(colorOfPieces, i);
+				break;
+			}
+			case PieceType::Queen: {
+				squares |= GenerateQueenAttacks(colorOfPieces, i);
+				break;
+			}
+			case PieceType::King: {
+				squares |= GenerateKingAttacks(i);
+				break;
+			}
+			}
+		}
+	}
+	return squares;
+
+	/*
 	std::vector<Move> moves = GenerateMoves();
 	for (const Move& m : moves) {
 		SetBitTrue(bits, m.to);
 	}
-	return bits;
+	return bits; */
 }
 
 std::vector<Move> Board::GenerateLegalMoves() {
@@ -861,12 +1094,14 @@ bool Board::IsLegalMove(Move m) {
 	TryMove(m);
 
 	// Check
-	Turn = !Turn;
-	AttackedSquares = CalculateAttackedSquares();
 	bool inCheck = false;
-	if (Turn == Turn::Black) inCheck = (AttackedSquares & WhiteKingBits) != 0;
-	if (Turn == Turn::White) inCheck = (AttackedSquares & BlackKingBits) != 0;
-	Turn = !Turn;
+	if (Turn == Turn::White) {
+		AttackedSquares = CalculateAttackedSquares(PieceColor::Black);
+		inCheck = (AttackedSquares & WhiteKingBits) != 0;
+	} else {
+		AttackedSquares = CalculateAttackedSquares(PieceColor::White);
+		inCheck = (AttackedSquares & BlackKingBits) != 0;
+	}
 
 	// Revert
 	WhitePawnBits = whitePawnBits;

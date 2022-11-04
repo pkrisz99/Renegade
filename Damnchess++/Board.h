@@ -7,7 +7,6 @@
 #include <sstream>
 #include "Move.h"
 #include "Utils.cpp"
-//#include <windows.h>  // <-- sorry
 using namespace std;
 
 /*
@@ -30,15 +29,22 @@ public:
 	void TryMove(Move move);
 	std::vector<Move> GenerateMoves();
 	std::vector<Move> GenerateLegalMoves();
-	__int64 CalculateAttackedSquares();
+	__int64 CalculateAttackedSquares(int colorOfPieces);
 
-	std::vector<Move> GenerateKnightMoves(int square);
-	std::vector<Move> GenerateCastlingMoves();
+	std::vector<Move> GenerateKnightMoves(int home);
 	std::vector<Move> GenerateRookMoves(int home);
 	std::vector<Move> GenerateBishopMoves(int home);
 	std::vector<Move> GenerateQueenMoves(int home);
 	std::vector<Move> GenerateKingMoves(int home);
 	std::vector<Move> GeneratePawnMoves(int home);
+	std::vector<Move> GenerateCastlingMoves();
+
+	unsigned __int64 GenerateKnightAttacks(int from);
+	unsigned __int64 GenerateKingAttacks(int from);
+	unsigned __int64 GenerateBishopAttacks(int pieceColor, int home);
+	unsigned __int64 GenerateRookAttacks(int pieceColor, int from);
+	unsigned __int64 GenerateQueenAttacks(int pieceColor, int from);
+	unsigned __int64 GeneratePawnAttacks(int pieceColor, int from);
 
 
 	__int64 WhitePawnBits;
