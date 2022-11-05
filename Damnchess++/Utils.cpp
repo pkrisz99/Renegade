@@ -4,6 +4,11 @@
 
 // To do: add squares, files, and ranks
 
+namespace Side {
+	static const bool White = true;
+	static const bool Black = false;
+}
+
 namespace MoveFlag {
 	static const int ShortCastle = 1;
 	static const int LongCastle = 2;
@@ -68,19 +73,21 @@ static std::string StateString(GameState s) {
 static const std::string starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 
-static void SetBitTrue(__int64& number, __int64 place) {
-	number |= 1ULL << place;
-}
-static void SetBitTrue(unsigned __int64& number, __int64 place) {
+static void SetBitTrue(unsigned __int64& number, unsigned __int64 place) {
 	number |= 1ULL << place;
 }
 
-static void SetBitFalse(__int64& number, __int64 place) {
+static void SetBitFalse(unsigned __int64& number, unsigned __int64 place) {
 	number &= ~(1ULL << place);
 }
 
-static bool CheckBit(__int64& number, __int64 place) {
+static bool CheckBit(unsigned __int64& number, unsigned __int64 place) {
 	return (number >> place) & 1ULL;
+}
+
+static int SideToPieceColor(bool side) {
+	if (side == Side::White) return PieceColor::White;
+	return PieceColor::Black;
 }
 
 

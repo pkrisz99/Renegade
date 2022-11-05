@@ -22,14 +22,14 @@ public:
 	void Push(Move move);
 	bool PushUci(string ucistr);
 	Board Copy();
-	void Draw(__int64 customBits);
+	void Draw(unsigned __int64 customBits);
 	int GetPieceAt(int place);
 
-	bool IsLegalMove(Move m);
+	bool IsLegalMove(Move m, int side);
 	void TryMove(Move move);
-	std::vector<Move> GenerateMoves();
-	std::vector<Move> GenerateLegalMoves();
-	__int64 CalculateAttackedSquares(int colorOfPieces);
+	std::vector<Move> GenerateMoves(int side);
+	std::vector<Move> GenerateLegalMoves(int side);
+	unsigned __int64 CalculateAttackedSquares(int side);
 
 	std::vector<Move> GenerateKnightMoves(int home);
 	std::vector<Move> GenerateRookMoves(int home);
@@ -47,20 +47,20 @@ public:
 	unsigned __int64 GeneratePawnAttacks(int pieceColor, int from);
 
 
-	__int64 WhitePawnBits;
-	__int64 WhiteKnightBits;
-	__int64 WhiteBishopBits;
-	__int64 WhiteRookBits;
-	__int64 WhiteQueenBits;
-	__int64 WhiteKingBits;
-	__int64 BlackPawnBits;
-	__int64 BlackKnightBits;
-	__int64 BlackBishopBits;
-	__int64 BlackRookBits;
-	__int64 BlackQueenBits;
-	__int64 BlackKingBits;
+	unsigned __int64 WhitePawnBits;
+	unsigned __int64 WhiteKnightBits;
+	unsigned __int64 WhiteBishopBits;
+	unsigned __int64 WhiteRookBits;
+	unsigned __int64 WhiteQueenBits;
+	unsigned __int64 WhiteKingBits;
+	unsigned __int64 BlackPawnBits;
+	unsigned __int64 BlackKnightBits;
+	unsigned __int64 BlackBishopBits;
+	unsigned __int64 BlackRookBits;
+	unsigned __int64 BlackQueenBits;
+	unsigned __int64 BlackKingBits;
 
-	__int64 AttackedSquares;
+	unsigned __int64 AttackedSquares;
 
 	int EnPassantSquare;
 	bool WhiteRightToShortCastle;

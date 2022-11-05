@@ -24,7 +24,7 @@ void Engine::perft(Board board, int depth, bool verbose) {
 }
 
 int Engine::perft1(Board board, int depth, bool verbose) {
-	std::vector<Move> moves = board.GenerateLegalMoves();
+	std::vector<Move> moves = board.GenerateLegalMoves(board.Turn);
 	if (verbose) cout << "Legal moves (" << moves.size() << "): " << endl;
 	int count = 0;
 	for (Move m : moves) {
@@ -45,7 +45,7 @@ int Engine::perft1(Board board, int depth, bool verbose) {
 
 
 int Engine::perftRecursive(Board b, int depth) { 
-	std::vector<Move> moves = b.GenerateLegalMoves();
+	std::vector<Move> moves = b.GenerateLegalMoves(b.Turn);
 	if (depth == 1) return moves.size();
 	int count = 0;
 	for (const Move& m : moves) {
@@ -77,7 +77,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level) {
 	int bestScore = NoEval;
 	Move bestMove(0,0);
 
-	std::vector<Move> legalMoves = board.GenerateLegalMoves();
+	std::vector<Move> legalMoves = board.GenerateLegalMoves(board.Turn);
 	//cout << legalMoves.size() << endl;
 	for (const Move &m : legalMoves) {
 		Board b = board.Copy();
@@ -189,7 +189,7 @@ void Engine::Start() {
 			if (parts[1] == "blackking") board.Draw(board.BlackKingBits);
 			if (parts[1] == "enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
 			if (parts[1] == "pseudolegal") {
-				std::vector<Move> v = board.GenerateMoves();
+				std::vector<Move> v = board.GenerateMoves(board.Turn);
 				for (Move m : v) cout << m.ToString() << " ";
 				cout << endl;
 			}
