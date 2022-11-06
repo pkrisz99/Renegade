@@ -27,10 +27,10 @@ std::string Move::ToString() {
 	char r2 = '1' + rank2;
 
 	char extra = '?';
-	if (flag == PromotionToKnight) extra = 'n';
-	if (flag == PromotionToBishop) extra = 'b';
-	if (flag == PromotionToRook) extra = 'r';
-	if (flag == PromotionToQueen) extra = 'q';
+	if (flag == MoveFlag::PromotionToKnight) extra = 'n';
+	if (flag == MoveFlag::PromotionToBishop) extra = 'b';
+	if (flag == MoveFlag::PromotionToRook) extra = 'r';
+	if (flag == MoveFlag::PromotionToQueen) extra = 'q';
 
 	if (extra == '?') return { f1, r1, f2, r2 };
 	else return { f1, r1, f2, r2, extra };
