@@ -84,6 +84,38 @@ Board::Board(string fen) {
 	FullmoveClock = stoi(parts[5]);
 }
 
+Board::Board() {
+	Board(starting_fen);
+}
+
+Board::Board(const Board &b) {
+	WhitePawnBits = b.WhitePawnBits;
+	WhiteKnightBits = b.WhiteKnightBits;
+	WhiteBishopBits = b.WhiteBishopBits;
+	WhiteRookBits = b.WhiteRookBits;
+	WhiteQueenBits = b.WhiteQueenBits;
+	WhiteKingBits = b.WhiteKingBits;
+
+	BlackPawnBits = b.BlackPawnBits;
+	BlackKnightBits = b.BlackKnightBits;
+	BlackBishopBits = b.BlackBishopBits;
+	BlackRookBits = b.BlackRookBits;
+	BlackQueenBits = b.BlackQueenBits;
+	BlackKingBits = b.BlackKingBits;
+
+	AttackedSquares = b.AttackedSquares;
+	EnPassantSquare = b.EnPassantSquare;
+	WhiteRightToShortCastle = b.WhiteRightToShortCastle;
+	WhiteRightToLongCastle = b.WhiteRightToLongCastle;
+	BlackRightToShortCastle = b.BlackRightToShortCastle;
+	BlackRightToLongCastle = b.BlackRightToLongCastle;
+	Turn = b.Turn;
+	HalfmoveClock = b.HalfmoveClock;
+	FullmoveClock = b.FullmoveClock;
+	State = b.State;
+	DrawCheck = b.DrawCheck;
+}
+
 void Board::Draw(unsigned __int64 customBits = 0) {
 
 	string side = Turn ? "white" : "black";
@@ -1144,32 +1176,5 @@ bool Board::IsLegalMove(Move m, int side) {
 }
 
 Board Board::Copy() {
-	Board b = Board(starting_fen); // Fix this
-
-	b.WhitePawnBits = WhitePawnBits;
-	b.WhiteKnightBits = WhiteKnightBits;
-	b.WhiteBishopBits = WhiteBishopBits;
-	b.WhiteRookBits = WhiteRookBits;
-	b.WhiteQueenBits = WhiteQueenBits;
-	b.WhiteKingBits = WhiteKingBits;
-
-	b.BlackPawnBits = BlackPawnBits;
-	b.BlackKnightBits = BlackKnightBits;
-	b.BlackBishopBits = BlackBishopBits;
-	b.BlackRookBits = BlackRookBits;
-	b.BlackQueenBits = BlackQueenBits;
-	b.BlackKingBits = BlackKingBits;
-
-	b.AttackedSquares = AttackedSquares;
-	b.EnPassantSquare = EnPassantSquare;
-	b.WhiteRightToShortCastle = WhiteRightToShortCastle;
-	b.WhiteRightToLongCastle = WhiteRightToLongCastle;
-	b.BlackRightToShortCastle = BlackRightToShortCastle;
-	b.BlackRightToLongCastle = BlackRightToLongCastle;
-	b.Turn = Turn;
-	b.HalfmoveClock = HalfmoveClock;
-	b.FullmoveClock = FullmoveClock;
-	b.State = State;
-	b.DrawCheck = DrawCheck;
-	return b;
+	return Board(*this);
 }

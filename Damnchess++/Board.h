@@ -18,6 +18,8 @@ class Board
 {
 
 public:
+	Board();
+	Board(const Board &b);
 	Board(string fen);
 	void Push(Move move);
 	bool PushUci(string ucistr);
