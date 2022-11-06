@@ -83,7 +83,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	Evaluation e = Evaluation();
 	while (!finished) {
 		depth += 1;
-		eval result = SearchRecursive(board, depth, 0, NegativeInfinity, PositiveInfinity);
+		eval result = SearchRecursive(board, depth, 0, NegativeInfinity, PositiveInfinity, -1);
 
 		// Check limits
 		auto currentTime = Clock::now();
@@ -104,11 +104,11 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	return e;
 }
 
-eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta) {
+eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta, int nodeEval) {
 
 	// Return result for terminal nodes
 	if (depth == 0) {
-		return eval{ StaticEvaluation(board, level), Move(0, 0)};
+		return eval{ nodeEval, Move(0, 0)};
 	}
 
 	// Initalize variables
@@ -121,21 +121,40 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 		return eval{ StaticEvaluation(board, level), Move(0, 0) };
 	}
 
-	// Iterate through legal moves
-	for (const Move &m : legalMoves) {
+	// Move ordering
+	std::vector<std::tuple<int, Move>> order = vector<std::tuple<int, Move>>();
+	for (const Move& m : legalMoves) {
 		Board b = board.Copy();
 		b.Push(m);
+		int interiorScore = StaticEvaluation(b, level);
+		order.push_back({interiorScore, m});
+	}
+	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
+		return get<0>(t1) < get<0>(t2);
+	});
+	legalMoves.empty();
+	for (const std::tuple<int, Move> &o : order) {
+		legalMoves.push_back(get<1>(o));
+	}
+	
+	// Iterate through legal moves
+	int i = 0;
+	for (const std::tuple<int, Move>&o : order) {
+		Board b = board.Copy();
+		b.Push(get<1>(order[i]));
 
-		eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
+		eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, get<0>(order[i]));
 		int childScore = -get<0>(childEval);
 		Move childMove = get<1>(childEval);
 
 		if (childScore > bestScore) {
-			alpha = bestScore;
 			bestScore = childScore;
-			bestMove = m;
+			alpha = bestScore;
+			bestMove = get<1>(order[i]);
 			if (alpha >= beta) break;
 		}
+
+		i++;
 	}
 
 	return eval{ bestScore, bestMove };
