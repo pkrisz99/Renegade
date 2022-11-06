@@ -83,7 +83,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	Evaluation e = Evaluation();
 	while (!finished) {
 		depth += 1;
-		eval result = SearchRecursive(board, depth, 0);
+		eval result = SearchRecursive(board, depth, 0, NegativeInfinity, PositiveInfinity);
 
 		// Check limits
 		auto currentTime = Clock::now();
@@ -104,27 +104,37 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	return e;
 }
 
-eval Engine::SearchRecursive(Board board, int depth, int level) {
-	// Generate legal moves
-	
+eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta) {
+
+	// Return result for terminal nodes
 	if (depth == 0) {
-		return eval{ StaticEvaluation(board), Move(0, 0)};
+		return eval{ StaticEvaluation(board, level), Move(0, 0)};
 	}
 
+	// Initalize variables
 	int bestScore = NoEval;
 	Move bestMove(0,0);
 
+	// Generate moves - if there are no legal moves, we return the eval
 	std::vector<Move> legalMoves = board.GenerateLegalMoves(board.Turn);
-	//cout << legalMoves.size() << endl;
+	if (legalMoves.size() == 0) {
+		return eval{ StaticEvaluation(board, level), Move(0, 0) };
+	}
+
+	// Iterate through legal moves
 	for (const Move &m : legalMoves) {
 		Board b = board.Copy();
 		b.Push(m);
-		eval childEval = SearchRecursive(b, depth - 1, level + 1);
+
+		eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
 		int childScore = -get<0>(childEval);
 		Move childMove = get<1>(childEval);
+
 		if (childScore > bestScore) {
+			alpha = bestScore;
 			bestScore = childScore;
 			bestMove = m;
+			if (alpha >= beta) break;
 		}
 	}
 
@@ -132,16 +142,16 @@ eval Engine::SearchRecursive(Board board, int depth, int level) {
 
 }
 
-int Engine::StaticEvaluation(Board board) {
+int Engine::StaticEvaluation(Board board, int level) {
 	EvaluatedNodes += 1;
 	// 1. is over?
 	if (board.State == GameState::Draw) return 0;
 	if (board.State == GameState::WhiteVictory) {
-		if (board.Turn == Turn::White) return MateEval;
-		if (board.Turn == Turn::Black) return -MateEval;
+		if (board.Turn == Turn::White) return MateEval - (level + 1) / 2;
+		if (board.Turn == Turn::Black) return -MateEval + (level + 1) / 2;
 	} else if (board.State == GameState::BlackVictory) {
-		if (board.Turn == Turn::White) return -MateEval;
-		if (board.Turn == Turn::Black) return MateEval;
+		if (board.Turn == Turn::White) return -MateEval + (level + 1) / 2;
+		if (board.Turn == Turn::Black) return MateEval - (level + 1) / 2;
 	}
 
 	// 2. Materials

@@ -3,6 +3,8 @@
 
 static const int MateEval = 1000000;
 static const int NoEval = -100000000;
+static const int NegativeInfinity = -100000000; // Inventing a new kind of math here
+static const int PositiveInfinity = 100000000;
 typedef std::tuple<int, Move> eval;
 
 static const int PawnValue = 100;
