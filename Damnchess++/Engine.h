@@ -15,7 +15,7 @@ public:
 	void perft(std::string fen, int depth, bool verbose);
 	void perft(Board b, int depth, bool verbose);
 	int perftRecursive(Board b, int depth);
-	Evaluation Search(Board board, int depth);
+	Evaluation Search(Board board, SearchParams params);
 	eval SearchRecursive(Board board, int depth, int level);
 	int StaticEvaluation(Board board);
 	int perft1(Board board, int depth, bool verbose);

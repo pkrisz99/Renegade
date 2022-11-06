@@ -90,6 +90,12 @@ static int SideToPieceColor(bool side) {
 	return PieceColor::Black;
 }
 
+struct SearchParams {
+	int wtime = -1;
+	int btime = -1;
+	int movestogo = -1;
+};
+
 
 
 // https://stackoverflow.com/questions/4244274/how-do-i-count-the-number-of-zero-bits-in-an-integer

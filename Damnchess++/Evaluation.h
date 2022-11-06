@@ -70,9 +70,11 @@ class Evaluation
 public:
 	int score = 0;
 	Move move = Move(0,0);
+	int depth = 0;
 	int nodes = 0;
 	int time = 0;
 	int nps = 0;
-	Evaluation(int s, Move m, int n, int t, int speed);
+	Evaluation();
+	Evaluation(int s, Move m, int d, int n, int t, int speed);
 };
 
