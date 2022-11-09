@@ -25,6 +25,7 @@ Board::Board(string fen) {
 	FullmoveClock = 0;
 	Turn = Turn::White;
 	State = GameState::Playing;
+	StartingPosition = (fen == starting_fen);
 
 	std::stringstream ss(fen);
 	std::istream_iterator<std::string> begin(ss);
@@ -86,6 +87,7 @@ Board::Board(string fen) {
 
 Board::Board() {
 	Board(starting_fen);
+	StartingPosition = true;
 }
 
 Board::Board(const Board &b) {
@@ -114,6 +116,7 @@ Board::Board(const Board &b) {
 	FullmoveClock = b.FullmoveClock;
 	State = b.State;
 	DrawCheck = b.DrawCheck;
+	StartingPosition = b.StartingPosition;
 }
 
 void Board::Draw(unsigned __int64 customBits = 0) {
@@ -630,6 +633,7 @@ unsigned __int64 Board::GeneratePawnAttacks(int pieceColor, int from) {
 std::vector<Move> Board::GenerateKnightMoves(int home) {
 	auto lookup = KnightMoves[home];
 	std::vector<Move> list;
+	list.reserve(8);
 	for (int l : lookup) {
 		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
 		list.push_back(Move(home, l));
@@ -639,6 +643,7 @@ std::vector<Move> Board::GenerateKnightMoves(int home) {
 
 std::vector<Move> Board::GenerateRookMoves(int home) {
 	std::vector<Move> list;
+	list.reserve(14);
 	int rank = GetSquareRank(home);
 	int file = GetSquareFile(home);
 
@@ -716,6 +721,7 @@ std::vector<Move> Board::GenerateRookMoves(int home) {
 
 std::vector<Move> Board::GenerateBishopMoves(int home) {
 	std::vector<Move> list;
+	list.reserve(13);
 	int rank = GetSquareRank(home);
 	int file = GetSquareFile(home);
 
@@ -810,6 +816,7 @@ std::vector<Move> Board::GenerateBishopMoves(int home) {
 std::vector<Move> Board::GenerateQueenMoves(int home) {
 	std::vector<Move> list1 = GenerateRookMoves(home);
 	std::vector<Move> list2 = GenerateBishopMoves(home);
+	list1.reserve(27);
 	list1.insert(list1.end(), list2.begin(), list2.end());
 	return list1;
 }
@@ -817,6 +824,7 @@ std::vector<Move> Board::GenerateQueenMoves(int home) {
 std::vector<Move> Board::GenerateKingMoves(int home) {
 	auto lookup = KingMoves[home];
 	std::vector<Move> list;
+	list.reserve(8);
 	for (int l : lookup) {
 		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
 		list.push_back(Move(home, l));
@@ -830,6 +838,7 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 	int file = GetSquareFile(home);
 	int rank = GetSquareRank(home);
 	std::vector<Move> list;
+	list.reserve(4);
 	int target;
 
 	if (color == PieceColor::White) {
@@ -1085,6 +1094,7 @@ std::vector<Move> Board::GenerateLegalMoves(int side) {
 
 std::vector<Move> Board::GenerateMoves(int side) {
 	std::vector<Move> PossibleMoves;
+	PossibleMoves.reserve(50);
 	int myColor = SideToPieceColor(side);
 	for (int i = 0; i < 64; i++) {
 		int piece = GetPieceAt(i);

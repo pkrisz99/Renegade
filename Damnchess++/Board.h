@@ -70,6 +70,7 @@ public:
 	bool BlackRightToShortCastle;
 	bool BlackRightToLongCastle;
 	bool Turn;
+	bool StartingPosition;
 
 	bool DrawCheck = true;
 
