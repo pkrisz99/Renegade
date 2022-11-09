@@ -26,6 +26,7 @@ public:
 	Board Copy();
 	void Draw(unsigned __int64 customBits);
 	int GetPieceAt(int place);
+	unsigned __int64 Hash();
 
 	bool IsLegalMove(Move m, int side);
 	void TryMove(Move move);

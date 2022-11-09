@@ -181,6 +181,51 @@ void Board::Draw(unsigned __int64 customBits = 0) {
 
 }
 
+unsigned __int64 Board::Hash() {
+	unsigned __int64 hash = 0ULL;
+
+	// Pieces
+	for (int i = 0; i < 64; i++) {
+		if (CheckBit(BlackPawnBits, i)) hash ^= Zobrist[64 * 0 + i];
+		else if (CheckBit(WhitePawnBits, i)) hash ^= Zobrist[64 * 1 + i];
+		else if (CheckBit(BlackKnightBits, i)) hash ^= Zobrist[64 * 2 + i];
+		else if (CheckBit(WhiteKnightBits, i)) hash ^= Zobrist[64 * 3 + i];
+		else if (CheckBit(BlackBishopBits, i)) hash ^= Zobrist[64 * 4 + i];
+		else if (CheckBit(WhiteBishopBits, i)) hash ^= Zobrist[64 * 5 + i];
+		else if (CheckBit(BlackRookBits, i)) hash ^= Zobrist[64 * 6 + i];
+		else if (CheckBit(WhiteRookBits, i)) hash ^= Zobrist[64 * 7 + i];
+		else if (CheckBit(BlackQueenBits, i)) hash ^= Zobrist[64 * 8 + i];
+		else if (CheckBit(WhiteQueenBits, i)) hash ^= Zobrist[64 * 9 + i];
+		else if (CheckBit(BlackKingBits, i)) hash ^= Zobrist[64 * 10 + i];
+		else if (CheckBit(WhiteKingBits, i)) hash ^= Zobrist[64 * 11 + i];
+	}
+
+	// Castling
+	if (WhiteRightToShortCastle) hash ^= Zobrist[768];
+	if (WhiteRightToLongCastle) hash ^= Zobrist[769];
+	if (BlackRightToShortCastle) hash ^= Zobrist[770];
+	if (BlackRightToLongCastle) hash ^= Zobrist[771];
+
+	// En passant
+	if (EnPassantSquare != -1) {
+		bool hasPawn = false;
+		if (GetSquareFile(EnPassantSquare) != 0) {
+			if (Turn == Turn::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 7ULL);
+			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 9ULL);
+		}
+		if ((GetSquareFile(EnPassantSquare) != 7) && !hasPawn) {
+			if (Turn == Turn::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 9ULL);
+			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 7ULL);
+		}
+		if (hasPawn) hash ^= Zobrist[772 + GetSquareFile(EnPassantSquare)];
+	}
+
+	// Turn
+	if (Turn == Turn::White) hash ^= Zobrist[780];
+
+	return hash;
+}
+
 int Board::GetPieceAt(int place) {
 	if (CheckBit(WhitePawnBits, place)) return Piece::WhitePawn;
 	if (CheckBit(WhiteKnightBits, place)) return Piece::WhiteKnight;

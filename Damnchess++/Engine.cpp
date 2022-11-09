@@ -259,6 +259,7 @@ void Engine::Start() {
 				for (Move m : v) cout << m.ToString() << " ";
 				cout << endl;
 			}
+			if (parts[1] == "hash") cout << "Hash: " << std::hex << board.Hash() << std::dec << endl;
 			continue;
 		}
 
