@@ -10,7 +10,6 @@
 int main() {
 
     Engine engine = Engine();
-    cout << "Started." << endl;
     engine.Start();
     return 0;
 }

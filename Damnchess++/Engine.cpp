@@ -211,7 +211,6 @@ int Engine::StaticEvaluation(Board board, int level) {
 // Start UCI protocol
 void Engine::Start() {
 	cout << "Damnchess++ by Krisz, 2022  [Build: " << __DATE__ << " " << __TIME__ << "]" << endl;
-	cout << "UCI interface begin" << endl;
 	std::string cmd = "";
 	Board board = Board(starting_fen);
 	while (getline(cin, cmd)) {
@@ -326,7 +325,7 @@ void Engine::Start() {
 		cout << "Unknown command: '" << parts[0] << "'" << endl;
 
 	}
-	cout << "UCI interface ended" << endl;
+	cout << "Damnchess UCI interface ended" << endl;
 }
 
 void Engine::PrintInfo(Evaluation e) {

@@ -473,14 +473,12 @@ void Board::Push(Move move) {
 
 unsigned unsigned __int64 Board::GenerateKnightAttacks(int from) {
 	unsigned unsigned __int64 squares = 0ULL;
-	for (int sq : KnightMoves[from]) SetBitTrue(squares, sq);
-	return squares;
+	return KnightMoveBits[from];
 }
 
 unsigned unsigned __int64 Board::GenerateKingAttacks(int from) {
 	unsigned unsigned __int64 squares = 0ULL;
-	for (int sq : KingMoves[from]) SetBitTrue(squares, sq);
-	return squares;
+	return KingMoveBits[from];
 }
 
 unsigned unsigned __int64 Board::GenerateBishopAttacks(int pieceColor, int from) {
