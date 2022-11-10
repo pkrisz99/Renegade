@@ -28,6 +28,7 @@ public:
 	int GetPieceAt(int place);
 	unsigned __int64 Hash();
 
+	bool AreThereLegalMoves(int side);
 	bool IsLegalMove(Move m, int side);
 	void TryMove(Move move);
 	std::vector<Move> GenerateMoves(int side);

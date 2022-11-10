@@ -425,8 +425,8 @@ void Board::Push(Move move) {
 
 	
 	// Check checkmates & stalemates
-	std::vector<Move> moves = GenerateLegalMoves(Turn);
-	if (moves.size() == 0) {
+	bool hasMoves = AreThereLegalMoves(Turn);
+	if (!hasMoves) {
 		if (inCheck) {
 			if (Turn == Turn::Black) State = GameState::WhiteVictory;
 			else State = GameState::BlackVictory;
@@ -1025,6 +1025,44 @@ std::vector<Move> Board::GenerateMoves(int side) {
 		PossibleMoves.insert(PossibleMoves.end(), moves.begin(), moves.end());
 	}
 	return PossibleMoves;
+}
+
+bool Board::AreThereLegalMoves(int side) {
+	bool hasMoves = false;
+	int myColor = SideToPieceColor(side);
+	std::vector<Move> moves;
+	moves.reserve(27);
+	for (int i = 0; i < 64; i++) {
+		int piece = GetPieceAt(i);
+		int color = ColorOfPiece(piece);
+		int type = TypeOfPiece(piece);
+		if (color != myColor) continue;
+
+		if (type == PieceType::Pawn) moves = GeneratePawnMoves(i);
+		else if (type == PieceType::Knight) moves = GenerateKnightMoves(i);
+		else if (type == PieceType::Bishop) moves = GenerateSlidingMoves(piece, i);
+		else if (type == PieceType::Rook) moves = GenerateSlidingMoves(piece, i);
+		else if (type == PieceType::Queen) moves = GenerateSlidingMoves(piece, i);
+		else if (type == PieceType::King) {
+			moves = GenerateKingMoves(i);
+			std::vector<Move> castlingMoves = GenerateCastlingMoves();
+			moves.insert(moves.end(), castlingMoves.begin(), castlingMoves.end());
+		}
+
+		if (moves.size() != 0) {
+			for (Move m : moves) {
+				if (IsLegalMove(m, side)) {
+					moves.empty();
+					hasMoves = true;
+					break;
+				}
+			}
+			moves.empty();
+		}
+
+		if (hasMoves) break;
+	}
+	return hasMoves;
 }
 
 bool Board::IsLegalMove(Move m, int side) {
