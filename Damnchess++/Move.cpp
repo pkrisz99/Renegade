@@ -1,5 +1,11 @@
 #include "Move.h"
 
+Move::Move() {
+	this->from = 0;
+	this->to = 0;
+	flag = 0;
+}
+
 Move::Move(int from, int to) {
 	this->from = from;
 	this->to = to;

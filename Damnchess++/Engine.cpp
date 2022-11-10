@@ -3,7 +3,8 @@
 typedef std::chrono::high_resolution_clock Clock;
 
 Engine::Engine() {
-	//
+	EvaluatedNodes = 0;
+	HashSize = 125000; // 1 MB
 }
 
 void Engine::perft(string fen, int depth, bool verbose) {
@@ -62,6 +63,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	if (myTime == -1) myTime = 2000;
 
 	auto startTime = Clock::now();
+	Hashes.reserve(131072); // 1 MB
 	int elapsedMs = 0;
 	int depth = 0;
 	EvaluatedNodes = 0;
@@ -83,6 +85,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	Evaluation e = Evaluation();
 	while (!finished) {
 		depth += 1;
+		Hashes.clear();
 		eval result = SearchRecursive(board, depth, 0, NegativeInfinity, PositiveInfinity, -1);
 
 		// Check limits
@@ -97,18 +100,31 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 		e.nodes = EvaluatedNodes;
 		e.time = elapsedMs;
 		e.nps = EvaluatedNodes * 1e9 / (currentTime - startTime).count();
+		e.hashfull = Hashes.size() * 1000 / HashSize;
 		PrintInfo(e);
 	}
 	cout << "bestmove " << e.move.ToString() << endl;
-	
+	Hashes.clear();
 	return e;
 }
 
 eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta, int nodeEval) {
 
+	// Calculate hash
+	unsigned __int64 hash = board.Hash();
+
 	// Return result for terminal nodes
 	if (depth == 0) {
-		return eval{ nodeEval, Move(0, 0)};
+		eval e = eval{ nodeEval, Move(0, 0) };
+		//Hashes[hash] = e;
+		return e;
+	}
+
+	// Check hash
+	auto it = Hashes.find(hash);
+	if (it != Hashes.end()) {
+		eval e = it->second;
+		return e;
 	}
 
 	// Initalize variables
@@ -118,7 +134,9 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	// Generate moves - if there are no legal moves, we return the eval
 	std::vector<Move> legalMoves = board.GenerateLegalMoves(board.Turn);
 	if (legalMoves.size() == 0) {
-		return eval{ StaticEvaluation(board, level), Move(0, 0) };
+		eval e = eval{ StaticEvaluation(board, level), Move(0, 0) };
+		if (Hashes.size() < HashSize) Hashes[hash] = e;
+		return e;
 	}
 
 	// Move ordering
@@ -157,7 +175,9 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 		i++;
 	}
 
-	return eval{ bestScore, bestMove };
+	eval e = eval{ bestScore, bestMove };
+	if (Hashes.size() < HashSize) Hashes[hash] = e;
+	return e;
 
 }
 
@@ -329,7 +349,7 @@ void Engine::Start() {
 }
 
 void Engine::PrintInfo(Evaluation e) {
-	cout << "info depth " << e.depth << " score cp " << e.score << " nodes " << e.nodes << " nps " << e.nps << " time " << e.time << endl;
+	cout << "info depth " << e.depth << " score cp " << e.score << " nodes " << e.nodes << " nps " << e.nps << " time " << e.time << " hashfull " << e.hashfull << " pv " << e.move.ToString() << endl;
 }
 
 void Engine::Play() {

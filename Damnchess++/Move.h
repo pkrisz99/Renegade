@@ -6,6 +6,7 @@
 class Move
 {
 public:
+	Move();
 	Move(int from, int to);
 	Move(int from, int to, int flag);
 	void SetFlag(int flag);

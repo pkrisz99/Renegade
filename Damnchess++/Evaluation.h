@@ -76,7 +76,8 @@ public:
 	int nodes = 0;
 	int time = 0;
 	int nps = 0;
+	int hashfull = 0;
 	Evaluation();
-	Evaluation(int s, Move m, int d, int n, int t, int speed);
+	Evaluation(int s, Move m, int d, int n, int t, int speed, int h);
 };
 

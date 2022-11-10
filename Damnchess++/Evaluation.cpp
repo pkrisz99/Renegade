@@ -6,13 +6,15 @@ Evaluation::Evaluation() {
 	nodes = 0;
 	time = 0;
 	nps = 0;
+	hashfull = 0;
 }
 
-Evaluation::Evaluation(int s, Move m, int d, int n, int t, int speed) {
+Evaluation::Evaluation(int s, Move m, int d, int n, int t, int speed, int h) {
 	score = s;
 	move = m;
 	depth = d;
 	nodes = n;
 	time = t;
 	nps = speed;
+	hashfull = h;
 }

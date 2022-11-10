@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <thread>
 #include <algorithm>
+#include <unordered_map>
 
 class Engine
 {
@@ -25,5 +26,7 @@ public:
 	void Play();
 
 	int EvaluatedNodes;
+	std::unordered_map<unsigned __int64, eval> Hashes;
+	int HashSize;
 };
 
