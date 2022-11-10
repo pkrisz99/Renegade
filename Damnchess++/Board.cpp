@@ -650,24 +650,14 @@ unsigned __int64 Board::GeneratePawnAttacks(int pieceColor, int from) {
 	int rank = GetSquareRank(from);
 	int file = GetSquareFile(from);
 	if (pieceColor == PieceColor::White) {
-		if (file != 0) {
-			SetBitTrue(squares, (unsigned __int64)from + 7);
-			if (from - 1 == EnPassantSquare) SetBitTrue(squares, (unsigned __int64)from - 1);
-		}
-		if (file != 7) {
-			SetBitTrue(squares, (unsigned __int64)from + 9);
-			if (from + 1 == EnPassantSquare) SetBitTrue(squares, (unsigned __int64)from + 1);
-		}
+		squares = WhitePawnAttacks[from];
+		if ((from - 1 == EnPassantSquare) && (file != 0)) SetBitTrue(squares, (unsigned __int64)from - 1);
+		if ((from + 1 == EnPassantSquare) && (file != 7)) SetBitTrue(squares, (unsigned __int64)from + 1);
 	}
 	else {
-		if (file != 0) {
-			SetBitTrue(squares, (unsigned __int64)from - 9);
-			if (from - 1 == EnPassantSquare) SetBitTrue(squares, (unsigned __int64)from - 1);
-		}
-		if (file != 7) {
-			SetBitTrue(squares, (unsigned __int64)from - 7);
-			if (from + 1 == EnPassantSquare) SetBitTrue(squares, (unsigned __int64)from + 1);
-		}
+		squares = BlackPawnAttacks[from];
+		if ((from - 1 == EnPassantSquare) && (file != 0)) SetBitTrue(squares, (unsigned __int64)from - 1);
+		if ((from + 1 == EnPassantSquare) && (file != 7)) SetBitTrue(squares, (unsigned __int64)from + 1);
 	}
 	return squares;
 }
@@ -684,184 +674,59 @@ std::vector<Move> Board::GenerateKnightMoves(int home) {
 	return list;
 }
 
-std::vector<Move> Board::GenerateRookMoves(int home) {
-	std::vector<Move> list;
-	list.reserve(14);
-	int rank = GetSquareRank(home);
-	int file = GetSquareFile(home);
+std::vector<Move> Board::GenerateSlidingMoves(int piece, int home) {
+	unsigned __int64 friendlyOccupance = 0ULL;
+	unsigned __int64 opponentOccupance = 0ULL;
+	std::vector<Move> Moves;
+	Moves.reserve(27);
+	if (ColorOfPiece(piece) == PieceColor::White) {
+		friendlyOccupance = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
+		opponentOccupance = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
+	}
+	else if (ColorOfPiece(piece) == PieceColor::Black) {
+		opponentOccupance = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
+		friendlyOccupance = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
+	}
 
-	// Go up
-	for (int i = rank+1; i < 8; i++) {
-		int pos = Square(i, file);
-		int pieceAtPos = GetPieceAt(pos);
-		if (pieceAtPos == 0) {
-			list.push_back(Move(home, pos));
-			continue;
+	int rankDirection = 0;
+	int fileDirection = 0;
+
+	int pieceType = TypeOfPiece(piece);
+	int minDir = ((pieceType == PieceType::Rook) || (pieceType == PieceType::Queen)) ? 1 : 5;
+	int maxDir = ((pieceType == PieceType::Bishop) || (pieceType == PieceType::Queen)) ? 8 : 4;
+
+	for (int direction = minDir; direction <= maxDir; direction++) {
+		switch (direction) {
+		case 1: { rankDirection = +1; fileDirection = 0; break; }
+		case 2: { rankDirection = -1; fileDirection = 0; break; }
+		case 3: { rankDirection = 0; fileDirection = +1; break; }
+		case 4: { rankDirection = 0; fileDirection = -1; break; }
+		case 5: { rankDirection = +1; fileDirection = +1; break; }
+		case 6: { rankDirection = +1; fileDirection = -1; break; }
+		case 7: { rankDirection = -1; fileDirection = +1; break; }
+		case 8: { rankDirection = -1; fileDirection = -1; break; }
 		}
-		int colorAtPos = ColorOfPiece(pieceAtPos);
-		if (colorAtPos == TurnToPieceColor(Turn)) {
-			break;
-		}
-		if (colorAtPos != TurnToPieceColor(Turn)) {
-			list.push_back(Move(home, pos));
-			break;
-		}
-	}
-	// Go down
-	for (int i = rank - 1; i >= 0; i--) {
-		int pos = Square(i, file);
-		int pieceAtPos = GetPieceAt(pos);
-		if (pieceAtPos == 0) {
-			list.push_back(Move(home, pos));
-			continue;
-		}
-		int colorAtPos = ColorOfPiece(pieceAtPos);
-		if (colorAtPos == TurnToPieceColor(Turn)) {
-			break;
-		}
-		if (colorAtPos != TurnToPieceColor(Turn)) {
-			list.push_back(Move(home, pos));
-			break;
-		}
-	}
-	// Go left
-	for (int i = file - 1; i >= 0; i--) {
-		int pos = Square(rank, i);
-		int pieceAtPos = GetPieceAt(pos);
-		if (pieceAtPos == 0) {
-			list.push_back(Move(home, pos));
-			continue;
-		}
-		int colorAtPos = ColorOfPiece(pieceAtPos);
-		if (colorAtPos == TurnToPieceColor(Turn)) {
-			break;
-		}
-		if (colorAtPos != TurnToPieceColor(Turn)) {
-			list.push_back(Move(home, pos));
-			break;
-		}
-	}
-	// Go right
-	for (int i = file + 1; i < 8; i++) {
-		int pos = Square(rank, i);
-		int pieceAtPos = GetPieceAt(pos);
-		if (pieceAtPos == 0) {
-			list.push_back(Move(home, pos));
-			continue;
-		}
-		int colorAtPos = ColorOfPiece(pieceAtPos);
-		if (colorAtPos == TurnToPieceColor(Turn)) {
-			break;
-		}
-		if (colorAtPos != TurnToPieceColor(Turn)) {
-			list.push_back(Move(home, pos));
-			break;
+
+		int file = GetSquareFile(home);
+		int rank = GetSquareRank(home);
+
+		// To do: how to handle the king? appearantly it works without it, but no idea why
+		for (int i = 1; i < 8; i++) {
+			file += fileDirection;
+			rank += rankDirection;
+			if ((file > 7) || (file < 0) || (rank > 7) || (rank < 0)) break;
+			int thatSquare = Square(rank, file);
+			if (CheckBit(friendlyOccupance, thatSquare)) break;
+			if (CheckBit(opponentOccupance, thatSquare)) {
+				Moves.push_back(Move(home, thatSquare));
+				break;
+			}
+			Moves.push_back(Move(home, thatSquare));
 		}
 	}
 
-	return list;
-}
+	return Moves;
 
-std::vector<Move> Board::GenerateBishopMoves(int home) {
-	std::vector<Move> list;
-	list.reserve(13);
-	int rank = GetSquareRank(home);
-	int file = GetSquareFile(home);
-
-	// Go up-left
-	int r = rank;
-	int f = file;
-	while ((r < 7) && (f > 0)) {
-		r++;
-		f--;
-		int pos = Square(r, f);
-		int pieceAtPos = GetPieceAt(pos);
-		if (pieceAtPos == 0) {
-			list.push_back(Move(home, pos));
-			continue;
-		}
-		int colorAtPos = ColorOfPiece(pieceAtPos);
-		if (colorAtPos == TurnToPieceColor(Turn)) {
-			break;
-		}
-		if (colorAtPos != TurnToPieceColor(Turn)) {
-			list.push_back(Move(home, pos));
-			break;
-		}
-	}
-	// Go up-right
-	r = rank;
-	f = file;
-	while ((r < 7) && (f < 7)) {
-		r++;
-		f++;
-		int pos = Square(r, f);
-		int pieceAtPos = GetPieceAt(pos);
-		if (pieceAtPos == 0) {
-			list.push_back(Move(home, pos));
-			continue;
-		}
-		int colorAtPos = ColorOfPiece(pieceAtPos);
-		if (colorAtPos == TurnToPieceColor(Turn)) {
-			break;
-		}
-		if (colorAtPos != TurnToPieceColor(Turn)) {
-			list.push_back(Move(home, pos));
-			break;
-		}
-	}
-	// Go down-right
-	r = rank;
-	f = file;
-	while ((r > 0) && (f < 7)) {
-		r--;
-		f++;
-		int pos = Square(r, f);
-		int pieceAtPos = GetPieceAt(pos);
-		if (pieceAtPos == 0) {
-			list.push_back(Move(home, pos));
-			continue;
-		}
-		int colorAtPos = ColorOfPiece(pieceAtPos);
-		if (colorAtPos == TurnToPieceColor(Turn)) {
-			break;
-		}
-		if (colorAtPos != TurnToPieceColor(Turn)) {
-			list.push_back(Move(home, pos));
-			break;
-		}
-	}
-	// Go down-left
-	r = rank;
-	f = file;
-	while ((r > 0) && (f > 0)) {
-		r--;
-		f--;
-		int pos = Square(r, f);
-		int pieceAtPos = GetPieceAt(pos);
-		if (pieceAtPos == 0) {
-			list.push_back(Move(home, pos));
-			continue;
-		}
-		int colorAtPos = ColorOfPiece(pieceAtPos);
-		if (colorAtPos == TurnToPieceColor(Turn)) {
-			break;
-		}
-		if (colorAtPos != TurnToPieceColor(Turn)) {
-			list.push_back(Move(home, pos));
-			break;
-		}
-	}
-	return list;
-
-}
-
-std::vector<Move> Board::GenerateQueenMoves(int home) {
-	std::vector<Move> list1 = GenerateRookMoves(home);
-	std::vector<Move> list2 = GenerateBishopMoves(home);
-	list1.reserve(27);
-	list1.insert(list1.end(), list2.begin(), list2.end());
-	return list1;
 }
 
 std::vector<Move> Board::GenerateKingMoves(int home) {
@@ -1148,9 +1013,9 @@ std::vector<Move> Board::GenerateMoves(int side) {
 		std::vector<Move> moves;
 		if (type == PieceType::Pawn) moves = GeneratePawnMoves(i);
 		if (type == PieceType::Knight) moves = GenerateKnightMoves(i);
-		if (type == PieceType::Bishop) moves = GenerateBishopMoves(i);
-		if (type == PieceType::Rook) moves = GenerateRookMoves(i);
-		if (type == PieceType::Queen) moves = GenerateQueenMoves(i);
+		if (type == PieceType::Bishop) moves = GenerateSlidingMoves(piece, i);
+		if (type == PieceType::Rook) moves = GenerateSlidingMoves(piece, i);
+		if (type == PieceType::Queen) moves = GenerateSlidingMoves(piece, i);
 		if (type == PieceType::King) {
 			moves = GenerateKingMoves(i);
 			std::vector<Move> castlingMoves = GenerateCastlingMoves();

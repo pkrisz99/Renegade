@@ -35,12 +35,10 @@ public:
 	unsigned __int64 CalculateAttackedSquares(int side);
 
 	std::vector<Move> GenerateKnightMoves(int home);
-	std::vector<Move> GenerateRookMoves(int home);
-	std::vector<Move> GenerateBishopMoves(int home);
-	std::vector<Move> GenerateQueenMoves(int home);
 	std::vector<Move> GenerateKingMoves(int home);
 	std::vector<Move> GeneratePawnMoves(int home);
 	std::vector<Move> GenerateCastlingMoves();
+	std::vector<Move> GenerateSlidingMoves(int piece, int home);
 
 	unsigned __int64 GenerateKnightAttacks(int from);
 	unsigned __int64 GenerateKingAttacks(int from);
