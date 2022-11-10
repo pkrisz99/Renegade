@@ -1052,12 +1052,12 @@ bool Board::AreThereLegalMoves(int side) {
 		if (moves.size() != 0) {
 			for (Move m : moves) {
 				if (IsLegalMove(m, side)) {
-					moves.empty();
+					moves.clear();
 					hasMoves = true;
 					break;
 				}
 			}
-			moves.empty();
+			moves.clear();
 		}
 
 		if (hasMoves) break;

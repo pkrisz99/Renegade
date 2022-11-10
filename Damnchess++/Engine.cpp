@@ -150,7 +150,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
 		return get<0>(t1) < get<0>(t2);
 	});
-	legalMoves.empty();
+	legalMoves.clear();
 	for (const std::tuple<int, Move> &o : order) {
 		legalMoves.push_back(get<1>(o));
 	}
