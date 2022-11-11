@@ -10,7 +10,7 @@
 using namespace std;
 
 /*
-* This is the board representation of Damnchess.
+* This is the board representation of Renegade.
 * Square 0 = A1, 1 = A2 ... 8 = B1 ... 63 = H8
 */
 

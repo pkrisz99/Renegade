@@ -228,7 +228,7 @@ int Engine::StaticEvaluation(Board board, int level) {
 
 // Start UCI protocol
 void Engine::Start() {
-	cout << "Damnchess++ by Krisz, 2022  [Build: " << __DATE__ << " " << __TIME__ << "]" << endl;
+	cout << "Renegade chess engine  [Build: " << __DATE__ << " " << __TIME__ << "]" << endl;
 	std::string cmd = "";
 	Board board = Board(starting_fen);
 	while (getline(cin, cmd)) {
@@ -243,8 +243,8 @@ void Engine::Start() {
 		if (cmd == "quit") break;
 
 		if (cmd == "uci") {
-			cout << "id name Damnchess" << endl;
-			cout << "id author Krisz" << endl;
+			cout << "id name Renegade" << endl;
+			cout << "id author Krisztian Peocz" << endl;
 			cout << "uciok" << endl;
 			continue;
 		}
@@ -343,7 +343,7 @@ void Engine::Start() {
 		cout << "Unknown command: '" << parts[0] << "'" << endl;
 
 	}
-	cout << "Damnchess UCI interface ended" << endl;
+	cout << "Renegade UCI interface ended" << endl;
 }
 
 void Engine::PrintInfo(Evaluation e) {
@@ -353,7 +353,7 @@ void Engine::PrintInfo(Evaluation e) {
 void Engine::Play() {
 	Board board = Board(starting_fen);
 
-	cout << "Damnchess" << endl;
+	cout << "Renegade" << endl;
 	cout << "c - Computer, h - Human" << endl;
 	cout << "White player? ";
 	char white;
@@ -383,7 +383,7 @@ void Engine::Play() {
 		} else {
 			Evaluation e = Search(board, SearchParams());
 			board.Push(e.move);
-			cout << "Damnchess plays " << e.move.ToString() << endl;
+			cout << "Renegade plays " << e.move.ToString() << endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 		}
 

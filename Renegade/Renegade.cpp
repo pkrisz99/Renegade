@@ -1,11 +1,7 @@
-// Damnchess++.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-#include "Board.h"
-#include "Engine.h"
-#include "Evaluation.h"
+// Renegade chess engine
+// Since 2022
 
-#include <iostream>
-#include <tuple>
+#include "Engine.h"
 
 int main() {
 
