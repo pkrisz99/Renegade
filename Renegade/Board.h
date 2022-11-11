@@ -7,7 +7,13 @@
 #include <sstream>
 #include "Move.h"
 #include "Utils.cpp"
-using namespace std;
+
+using std::cout;
+using std::endl;
+using std::cin;
+using std::string;
+using std::vector;
+using std::get;
 
 /*
 * This is the board representation of Renegade.
@@ -31,8 +37,8 @@ public:
 	bool AreThereLegalMoves(int side);
 	bool IsLegalMove(Move m, int side);
 	void TryMove(Move move);
-	std::vector<Move> GenerateMoves(int side);
-	std::vector<Move> GenerateLegalMoves(int side);
+	vector<Move> GenerateMoves(int side);
+	vector<Move> GenerateLegalMoves(int side);
 	unsigned __int64 CalculateAttackedSquares(int side);
 
 	std::vector<Move> GenerateKnightMoves(int home);

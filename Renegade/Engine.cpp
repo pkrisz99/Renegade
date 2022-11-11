@@ -228,7 +228,7 @@ int Engine::StaticEvaluation(Board board, int level) {
 
 // Start UCI protocol
 void Engine::Start() {
-	cout << "Renegade chess engine  [Build: " << __DATE__ << " " << __TIME__ << "]" << endl;
+	cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
 	std::string cmd = "";
 	Board board = Board(starting_fen);
 	while (getline(cin, cmd)) {
@@ -353,7 +353,6 @@ void Engine::PrintInfo(Evaluation e) {
 void Engine::Play() {
 	Board board = Board(starting_fen);
 
-	cout << "Renegade" << endl;
 	cout << "c - Computer, h - Human" << endl;
 	cout << "White player? ";
 	char white;

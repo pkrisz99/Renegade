@@ -2,6 +2,8 @@
 #include <vector>
 #include <string>
 
+const std::string Version = "0.2.0";
+
 // To do: add squares, files, and ranks
 
 namespace Side {

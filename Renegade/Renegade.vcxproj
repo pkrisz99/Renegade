@@ -144,6 +144,7 @@
     <ClCompile Include="Evaluation.cpp" />
     <ClCompile Include="Move.cpp" />
     <ClCompile Include="Renegade.cpp" />
+    <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Board.h" />
