@@ -2,6 +2,12 @@
 #include <vector>
 #include <string>
 
+#ifdef _MSC_VER
+	#include <intrin.h>
+#else
+	#include <stdio.h>
+#endif
+
 const std::string Version = "0.2.0";
 
 // To do: add squares, files, and ranks
@@ -101,13 +107,21 @@ struct SearchParams {
 
 
 // https://stackoverflow.com/questions/4244274/how-do-i-count-the-number-of-zero-bits-in-an-integer
-static int NonZeros(__int64 number) {
+static int NonZeros(unsigned __int64 number) {
+	#ifdef _MSC_VER
+		return __popcnt64(number);
+	#else
+		return __builtin_popcount(number); // likely wrong
+	#endif
+
+	/* Fallback version:
 	size_t zeros = 0;
 	for (size_t i = 0; i < CHAR_BIT * sizeof number; ++i) {
 		if ((number & (1ULL << i)) == 0)
 			++zeros;
 	}
 	return CHAR_BIT * sizeof number - zeros;
+	*/
 }
 
 
