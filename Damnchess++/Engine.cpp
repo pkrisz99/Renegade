@@ -86,7 +86,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	while (!finished) {
 		depth += 1;
 		Hashes.clear();
-		eval result = SearchRecursive(board, depth, 0, NegativeInfinity, PositiveInfinity, -1);
+		eval result = SearchRecursive(board, depth, 0, NegativeInfinity, PositiveInfinity, NoEval);
 
 		// Check limits
 		auto currentTime = Clock::now();
@@ -110,8 +110,10 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 
 eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta, int nodeEval) {
 
+	if (nodeEval == NoEval) nodeEval = StaticEvaluation(board, level);
+
 	// Calculate hash
-	unsigned __int64 hash = board.Hash();
+	unsigned __int64 hash = board.Hash(true);
 
 	// Return result for terminal nodes
 	if (depth == 0) {
@@ -134,7 +136,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	// Generate moves - if there are no legal moves, we return the eval
 	std::vector<Move> legalMoves = board.GenerateLegalMoves(board.Turn);
 	if (legalMoves.size() == 0) {
-		eval e = eval{ StaticEvaluation(board, level), Move(0, 0) };
+		eval e = eval{ nodeEval, Move(0, 0) };
 		if (Hashes.size() < HashSize) Hashes[hash] = e;
 		return e;
 	}
@@ -150,25 +152,21 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
 		return get<0>(t1) < get<0>(t2);
 	});
-	legalMoves.clear();
-	for (const std::tuple<int, Move> &o : order) {
-		legalMoves.push_back(get<1>(o));
-	}
 	
 	// Iterate through legal moves
 	int i = 0;
 	for (const std::tuple<int, Move>&o : order) {
 		Board b = board.Copy();
-		b.Push(get<1>(order[i]));
+		b.Push(get<1>(o));
 
-		eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, get<0>(order[i]));
+		eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, get<0>(o));
 		int childScore = -get<0>(childEval);
 		Move childMove = get<1>(childEval);
 
 		if (childScore > bestScore) {
 			bestScore = childScore;
 			alpha = bestScore;
-			bestMove = get<1>(order[i]);
+			bestMove = get<1>(o);
 			if (alpha >= beta) break;
 		}
 
@@ -278,7 +276,7 @@ void Engine::Start() {
 				for (Move m : v) cout << m.ToString() << " ";
 				cout << endl;
 			}
-			if (parts[1] == "hash") cout << "Hash: " << std::hex << board.Hash() << std::dec << endl;
+			if (parts[1] == "hash") cout << "Hash (polyglot): " << std::hex << board.Hash(false) << std::dec << endl;
 			continue;
 		}
 

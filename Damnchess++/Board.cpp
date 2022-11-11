@@ -181,7 +181,7 @@ void Board::Draw(unsigned __int64 customBits = 0) {
 
 }
 
-unsigned __int64 Board::Hash() {
+unsigned __int64 Board::Hash(bool hashPlys) {
 	unsigned __int64 hash = 0ULL;
 
 	// Pieces
@@ -222,6 +222,9 @@ unsigned __int64 Board::Hash() {
 
 	// Turn
 	if (Turn == Turn::White) hash ^= Zobrist[780];
+
+	// Ply number - internal only
+	if (hashPlys) hash ^= (FullmoveClock * 0xE0C754A);
 
 	return hash;
 }
