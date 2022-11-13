@@ -5,6 +5,7 @@ typedef std::chrono::high_resolution_clock Clock;
 Engine::Engine() {
 	EvaluatedNodes = 0;
 	HashSize = 125000; // 1 MB
+	InitOpeningBook();
 }
 
 void Engine::perft(string fen, int depth, bool verbose) {
@@ -79,6 +80,14 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	}
 	else {
 		searchTime = 1000;
+	}
+
+	// Check for book moves
+	std::string bookMove = GetBookMove(board.Hash(false));
+	if (bookMove != "") {
+		Evaluation e;
+		cout << "bestmove " << bookMove << endl;
+		return e;
 	}
 
 	// Iterative deepening
@@ -277,6 +286,21 @@ void Engine::Start() {
 				cout << endl;
 			}
 			if (parts[1] == "hash") cout << "Hash (polyglot): " << std::hex << board.Hash(false) << std::dec << endl;
+			if (parts[1] == "book") {
+				if (parts[2] == "count") {
+					cout << "Book entries: " << BookEntries.size() << endl;
+				}
+				else if (parts[2] == "entry") {
+					int n = stoi(parts[3]);
+					cout << "Entry " << n << ": " << std::hex << BookEntries[n].hash << std::dec << PolyglotMoveToString(BookEntries[n].from, BookEntries[n].to, BookEntries[n].promotion) << endl;
+				}
+				else {
+					std::string s = GetBookMove(board.Hash(false));
+					if (s != "") cout << "Book move: " << s << endl;
+					else cout << "No book move found" << endl;
+				}
+				
+			}
 			continue;
 		}
 
@@ -388,4 +412,53 @@ void Engine::Play() {
 
 	}
 
+}
+
+void Engine::InitOpeningBook() {
+	std::ifstream ifs("book.bin", std::ios::in | std::ios::binary);
+
+	if (!ifs) return;
+
+	unsigned __int64 buffer[2];
+	int c = 0;
+
+	while (ifs.read(reinterpret_cast<char*>(&buffer), 16)) {
+		BookEntry entry;
+		int b = _byteswap_ushort(0xFFFF & buffer[1]);
+		entry.hash = _byteswap_uint64(buffer[0]);
+		entry.to =        (0b000000000111111 & b) >> 0;
+		entry.from =      (0b000111111000000 & b) >> 6;
+		entry.promotion = (0b111000000000000 & b) >> 12;
+		entry.weight = 0;
+		entry.learn = 0;
+		BookEntries.push_back(entry);
+	}
+	ifs.close();
+
+
+}
+
+std::string Engine::GetBookMove(unsigned __int64 hash) {
+	// should take about 2-3 ms for Human.bin (~900k entries) 
+
+	std::vector<string> matches;
+	for (const BookEntry &e : BookEntries) {
+		if (e.hash != hash) continue;
+
+		Move m = Move(e.from, e.to);
+		switch (e.promotion) {
+			case 1: { m.SetFlag(MoveFlag::PromotionToKnight); break; }
+			case 2: { m.SetFlag(MoveFlag::PromotionToBishop); break; }
+			case 3: { m.SetFlag(MoveFlag::PromotionToRook); break; }
+			case 4: { m.SetFlag(MoveFlag::PromotionToQueen); break; }
+		}
+		matches.push_back(m.ToString());
+	}
+
+	//cout << matches.size() << endl;
+	if (matches.size() == 0) return "";
+	std::srand(std::time(0));
+	int random_pos = std::rand() % matches.size();
+
+	return matches[random_pos];
 }

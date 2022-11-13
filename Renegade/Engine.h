@@ -9,6 +9,9 @@
 #include <thread>
 #include <algorithm>
 #include <unordered_map>
+#include <fstream>
+#include <filesystem>
+#include <random>
 
 class Engine
 {
@@ -24,9 +27,12 @@ public:
 	void Start();
 	void PrintInfo(Evaluation e);
 	void Play();
+	void InitOpeningBook();
+	std::string GetBookMove(unsigned __int64 hash);
 
 	int EvaluatedNodes;
 	std::unordered_map<unsigned __int64, eval> Hashes;
+	std::vector<BookEntry> BookEntries;
 	int HashSize;
 };
 

@@ -255,15 +255,15 @@ bool Board::PushUci(string ucistr) {
 
 	// Promotions
 	if (extra == 'q') move.flag = MoveFlag::PromotionToQueen;
-	if (extra == 'r') move.flag = MoveFlag::PromotionToRook;
-	if (extra == 'b') move.flag = MoveFlag::PromotionToBishop;
-	if (extra == 'n') move.flag = MoveFlag::PromotionToKnight;
+	else if (extra == 'r') move.flag = MoveFlag::PromotionToRook;
+	else if (extra == 'b') move.flag = MoveFlag::PromotionToBishop;
+	else if (extra == 'n') move.flag = MoveFlag::PromotionToKnight;
 
 	// Castling
 	if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 2)) move.flag = MoveFlag::LongCastle;
-	if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 6)) move.flag = MoveFlag::ShortCastle;
-	if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 58)) move.flag = MoveFlag::LongCastle;
-	if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 62)) move.flag = MoveFlag::ShortCastle;
+	else if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 6)) move.flag = MoveFlag::ShortCastle;
+	else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 58)) move.flag = MoveFlag::LongCastle;
+	else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 62)) move.flag = MoveFlag::ShortCastle;
 
 	// En passant possibility
 	if (TypeOfPiece(piece) == PieceType::Pawn) {
@@ -303,30 +303,30 @@ void Board::TryMove(Move move) {
 	int targetPieceType = TypeOfPiece(targetPiece);
 
 	if (piece == Piece::WhitePawn) { SetBitFalse(WhitePawnBits, move.from); SetBitTrue(WhitePawnBits, move.to); }
-	if (piece == Piece::WhiteKnight) { SetBitFalse(WhiteKnightBits, move.from); SetBitTrue(WhiteKnightBits, move.to); }
-	if (piece == Piece::WhiteBishop) { SetBitFalse(WhiteBishopBits, move.from); SetBitTrue(WhiteBishopBits, move.to); }
-	if (piece == Piece::WhiteRook) { SetBitFalse(WhiteRookBits, move.from); SetBitTrue(WhiteRookBits, move.to); }
-	if (piece == Piece::WhiteQueen) { SetBitFalse(WhiteQueenBits, move.from); SetBitTrue(WhiteQueenBits, move.to); }
-	if (piece == Piece::WhiteKing) { SetBitFalse(WhiteKingBits, move.from); SetBitTrue(WhiteKingBits, move.to); }
-	if (piece == Piece::BlackPawn) { SetBitFalse(BlackPawnBits, move.from); SetBitTrue(BlackPawnBits, move.to); }
-	if (piece == Piece::BlackKnight) { SetBitFalse(BlackKnightBits, move.from); SetBitTrue(BlackKnightBits, move.to); }
-	if (piece == Piece::BlackBishop) { SetBitFalse(BlackBishopBits, move.from); SetBitTrue(BlackBishopBits, move.to); }
-	if (piece == Piece::BlackRook) { SetBitFalse(BlackRookBits, move.from); SetBitTrue(BlackRookBits, move.to); }
-	if (piece == Piece::BlackQueen) { SetBitFalse(BlackQueenBits, move.from); SetBitTrue(BlackQueenBits, move.to); }
-	if (piece == Piece::BlackKing) { SetBitFalse(BlackKingBits, move.from); SetBitTrue(BlackKingBits, move.to); }
+	else if (piece == Piece::WhiteKnight) { SetBitFalse(WhiteKnightBits, move.from); SetBitTrue(WhiteKnightBits, move.to); }
+	else if (piece == Piece::WhiteBishop) { SetBitFalse(WhiteBishopBits, move.from); SetBitTrue(WhiteBishopBits, move.to); }
+	else if (piece == Piece::WhiteRook) { SetBitFalse(WhiteRookBits, move.from); SetBitTrue(WhiteRookBits, move.to); }
+	else if (piece == Piece::WhiteQueen) { SetBitFalse(WhiteQueenBits, move.from); SetBitTrue(WhiteQueenBits, move.to); }
+	else if (piece == Piece::WhiteKing) { SetBitFalse(WhiteKingBits, move.from); SetBitTrue(WhiteKingBits, move.to); }
+	else if (piece == Piece::BlackPawn) { SetBitFalse(BlackPawnBits, move.from); SetBitTrue(BlackPawnBits, move.to); }
+	else if (piece == Piece::BlackKnight) { SetBitFalse(BlackKnightBits, move.from); SetBitTrue(BlackKnightBits, move.to); }
+	else if (piece == Piece::BlackBishop) { SetBitFalse(BlackBishopBits, move.from); SetBitTrue(BlackBishopBits, move.to); }
+	else if (piece == Piece::BlackRook) { SetBitFalse(BlackRookBits, move.from); SetBitTrue(BlackRookBits, move.to); }
+	else if (piece == Piece::BlackQueen) { SetBitFalse(BlackQueenBits, move.from); SetBitTrue(BlackQueenBits, move.to); }
+	else if (piece == Piece::BlackKing) { SetBitFalse(BlackKingBits, move.from); SetBitTrue(BlackKingBits, move.to); }
 
 	if (targetPiece == Piece::WhitePawn) SetBitFalse(WhitePawnBits, move.to);
-	if (targetPiece == Piece::WhiteKnight) SetBitFalse(WhiteKnightBits, move.to);
-	if (targetPiece == Piece::WhiteBishop) SetBitFalse(WhiteBishopBits, move.to);
-	if (targetPiece == Piece::WhiteRook) SetBitFalse(WhiteRookBits, move.to);
-	if (targetPiece == Piece::WhiteQueen) SetBitFalse(WhiteQueenBits, move.to);
-	if (targetPiece == Piece::WhiteKing) SetBitFalse(WhiteKingBits, move.to); // ????
-	if (targetPiece == Piece::BlackPawn) SetBitFalse(BlackPawnBits, move.to);
-	if (targetPiece == Piece::BlackKnight) SetBitFalse(BlackKnightBits, move.to);
-	if (targetPiece == Piece::BlackBishop) SetBitFalse(BlackBishopBits, move.to);
-	if (targetPiece == Piece::BlackRook) SetBitFalse(BlackRookBits, move.to);
-	if (targetPiece == Piece::BlackQueen) SetBitFalse(BlackQueenBits, move.to);
-	if (targetPiece == Piece::BlackKing) SetBitFalse(BlackKingBits, move.to); // ????
+	else if (targetPiece == Piece::WhiteKnight) SetBitFalse(WhiteKnightBits, move.to);
+	else if (targetPiece == Piece::WhiteBishop) SetBitFalse(WhiteBishopBits, move.to);
+	else if (targetPiece == Piece::WhiteRook) SetBitFalse(WhiteRookBits, move.to);
+	else if (targetPiece == Piece::WhiteQueen) SetBitFalse(WhiteQueenBits, move.to);
+	else if (targetPiece == Piece::WhiteKing) SetBitFalse(WhiteKingBits, move.to); // ????
+	else if (targetPiece == Piece::BlackPawn) SetBitFalse(BlackPawnBits, move.to);
+	else if (targetPiece == Piece::BlackKnight) SetBitFalse(BlackKnightBits, move.to);
+	else if (targetPiece == Piece::BlackBishop) SetBitFalse(BlackBishopBits, move.to);
+	else if (targetPiece == Piece::BlackRook) SetBitFalse(BlackRookBits, move.to);
+	else if (targetPiece == Piece::BlackQueen) SetBitFalse(BlackQueenBits, move.to);
+	else if (targetPiece == Piece::BlackKing) SetBitFalse(BlackKingBits, move.to); // ????
 
 	if ((piece == Piece::WhitePawn) && (move.to == EnPassantSquare) ) {
 		SetBitFalse(BlackPawnBits, (unsigned __int64)(EnPassantSquare)-8);
@@ -337,15 +337,15 @@ void Board::TryMove(Move move) {
 
 	if (piece == Piece::WhitePawn) {
 		if (move.flag == MoveFlag::PromotionToKnight) { SetBitFalse(WhitePawnBits, move.to);  SetBitTrue(WhiteKnightBits, move.to); }
-		if (move.flag == MoveFlag::PromotionToBishop) { SetBitFalse(WhitePawnBits, move.to);  SetBitTrue(WhiteBishopBits, move.to); }
-		if (move.flag == MoveFlag::PromotionToRook) { SetBitFalse(WhitePawnBits, move.to);  SetBitTrue(WhiteRookBits, move.to); }
-		if (move.flag == MoveFlag::PromotionToQueen) { SetBitFalse(WhitePawnBits, move.to);  SetBitTrue(WhiteQueenBits, move.to); }
+		else if (move.flag == MoveFlag::PromotionToBishop) { SetBitFalse(WhitePawnBits, move.to);  SetBitTrue(WhiteBishopBits, move.to); }
+		else if (move.flag == MoveFlag::PromotionToRook) { SetBitFalse(WhitePawnBits, move.to);  SetBitTrue(WhiteRookBits, move.to); }
+		else if (move.flag == MoveFlag::PromotionToQueen) { SetBitFalse(WhitePawnBits, move.to);  SetBitTrue(WhiteQueenBits, move.to); }
 	}
 	if (piece == Piece::BlackPawn) {
 		if (move.flag == MoveFlag::PromotionToKnight) { SetBitFalse(BlackPawnBits, move.to);  SetBitTrue(BlackKnightBits, move.to); }
-		if (move.flag == MoveFlag::PromotionToBishop) { SetBitFalse(BlackPawnBits, move.to);  SetBitTrue(BlackBishopBits, move.to); }
-		if (move.flag == MoveFlag::PromotionToRook) { SetBitFalse(BlackPawnBits, move.to);  SetBitTrue(BlackRookBits, move.to); }
-		if (move.flag == MoveFlag::PromotionToQueen) { SetBitFalse(BlackPawnBits, move.to);  SetBitTrue(BlackQueenBits, move.to); }
+		else if (move.flag == MoveFlag::PromotionToBishop) { SetBitFalse(BlackPawnBits, move.to);  SetBitTrue(BlackBishopBits, move.to); }
+		else if (move.flag == MoveFlag::PromotionToRook) { SetBitFalse(BlackPawnBits, move.to);  SetBitTrue(BlackRookBits, move.to); }
+		else if (move.flag == MoveFlag::PromotionToQueen) { SetBitFalse(BlackPawnBits, move.to);  SetBitTrue(BlackQueenBits, move.to); }
 	}
 
 	if (targetPiece != 0) HalfmoveClock = 0;

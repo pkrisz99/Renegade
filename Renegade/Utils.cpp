@@ -71,6 +71,15 @@ static const __int64 DarkSquares = 0b1010101010101010101010101010101010101010101
 
 enum class GameState { Playing, WhiteVictory, BlackVictory, Draw };
 
+struct BookEntry {
+	int from;
+	int to;
+	int promotion;
+	unsigned __int64 hash;
+	int weight;
+	int learn;
+};
+
 static std::string StateString(GameState s) {
 	if (s == GameState::Playing) return "Playing";
 	if (s == GameState::WhiteVictory) return "WhiteVictory";
@@ -103,6 +112,27 @@ struct SearchParams {
 	int btime = -1;
 	int movestogo = -1;
 };
+
+static std::string PolyglotMoveToString(int from, int to, int promotion) {
+	int file1 = from % 8;
+	int rank1 = from / 8;
+	int file2 = to % 8;
+	int rank2 = to / 8;
+
+	char f1 = 'a' + file1;
+	char r1 = '1' + rank1;
+	char f2 = 'a' + file2;
+	char r2 = '1' + rank2;
+
+	/*char extra = '?';
+	if (flag == MoveFlag::PromotionToKnight) extra = 'n';
+	if (flag == MoveFlag::PromotionToBishop) extra = 'b';
+	if (flag == MoveFlag::PromotionToRook) extra = 'r';
+	if (flag == MoveFlag::PromotionToQueen) extra = 'q';
+
+	if (extra == '?') return { f1, r1, f2, r2 };*/
+	return { f1, r1, f2, r2 };
+}
 
 
 
