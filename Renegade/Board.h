@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include "Move.h"
 #include "Utils.cpp"
 
 using std::cout;
@@ -26,7 +27,7 @@ public:
 	Board();
 	Board(const Board &b);
 	Board(string fen);
-	void Push(unsigned __int64 move);
+	void Push(Move move);
 	bool PushUci(string ucistr);
 	Board Copy();
 	void Draw(unsigned __int64 customBits);
@@ -34,17 +35,17 @@ public:
 	unsigned __int64 Hash(bool hashPlys);
 
 	bool AreThereLegalMoves(int side);
-	bool IsLegalMove(unsigned __int64 m, int side);
-	void TryMove(unsigned __int64 move);
-	vector<unsigned __int64> GenerateMoves(int side);
-	vector<unsigned __int64> GenerateLegalMoves(int side);
+	bool IsLegalMove(Move m, int side);
+	void TryMove(Move move);
+	vector<Move> GenerateMoves(int side);
+	vector<Move> GenerateLegalMoves(int side);
 	unsigned __int64 CalculateAttackedSquares(int side);
 
-	std::vector<unsigned __int64> GenerateKnightMoves(int home);
-	std::vector<unsigned __int64> GenerateKingMoves(int home);
-	std::vector<unsigned __int64> GeneratePawnMoves(int home);
-	std::vector<unsigned __int64> GenerateCastlingMoves();
-	std::vector<unsigned __int64> GenerateSlidingMoves(int piece, int home);
+	std::vector<Move> GenerateKnightMoves(int home);
+	std::vector<Move> GenerateKingMoves(int home);
+	std::vector<Move> GeneratePawnMoves(int home);
+	std::vector<Move> GenerateCastlingMoves();
+	std::vector<Move> GenerateSlidingMoves(int piece, int home);
 
 	unsigned __int64 GenerateKnightAttacks(int from);
 	unsigned __int64 GenerateKingAttacks(int from);

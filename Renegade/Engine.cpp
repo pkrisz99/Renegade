@@ -26,10 +26,10 @@ void Engine::perft(Board board, int depth, bool verbose) {
 }
 
 int Engine::perft1(Board board, int depth, bool verbose) {
-	std::vector<unsigned __int64> moves = board.GenerateLegalMoves(board.Turn);
+	std::vector<Move> moves = board.GenerateLegalMoves(board.Turn);
 	if (verbose) cout << "Legal moves (" << moves.size() << "): " << endl;
 	int count = 0;
-	for (unsigned __int64 m : moves) {
+	for (Move m : moves) {
 		Board b = board.Copy();
 		b.Push(m);
 		int r;
@@ -40,17 +40,17 @@ int Engine::perft1(Board board, int depth, bool verbose) {
 			r = perftRecursive(b, depth - 1);
 			count += r;
 		}
-		if (verbose) cout << " - " << MoveToString(m) << " : " << r << endl;
+		if (verbose) cout << " - " << m.ToString() << " : " << r << endl;
 	}
 	return count;
 }
 
 
 int Engine::perftRecursive(Board b, int depth) { 
-	std::vector<unsigned __int64> moves = b.GenerateLegalMoves(b.Turn);
+	std::vector<Move> moves = b.GenerateLegalMoves(b.Turn);
 	if (depth == 1) return moves.size();
 	int count = 0;
-	for (const unsigned __int64& m : moves) {
+	for (const Move& m : moves) {
 		Board child = b.Copy();
 		child.Push(m);
 		count += perftRecursive(child, depth - 1);
@@ -83,12 +83,12 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	}
 
 	// Check for book moves
-	/*std::string bookMove = GetBookMove(board.Hash(false));
+	std::string bookMove = GetBookMove(board.Hash(false));
 	if (bookMove != "") {
 		Evaluation e;
 		cout << "bestmove " << bookMove << endl;
 		return e;
-	}*/
+	}
 
 	// Iterative deepening
 	Evaluation e = Evaluation();
@@ -112,7 +112,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 		e.hashfull = Hashes.size() * 1000 / HashSize;
 		PrintInfo(e);
 	}
-	cout << "bestmove " << MoveToString(e.move) << endl;
+	cout << "bestmove " << e.move.ToString() << endl;
 	Hashes.clear();
 	return e;
 }
@@ -126,7 +126,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 
 	// Return result for terminal nodes
 	if (depth == 0) {
-		eval e = eval{ nodeEval, 0ULL};
+		eval e = eval{ nodeEval, Move(0, 0) };
 		//Hashes[hash] = e;
 		return e;
 	}
@@ -140,19 +140,19 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 
 	// Initalize variables
 	int bestScore = NoEval;
-	unsigned __int64 bestMove = 0;
+	Move bestMove(0,0);
 
 	// Generate moves - if there are no legal moves, we return the eval
-	std::vector<unsigned __int64> legalMoves = board.GenerateLegalMoves(board.Turn);
+	std::vector<Move> legalMoves = board.GenerateLegalMoves(board.Turn);
 	if (legalMoves.size() == 0) {
-		eval e = eval{ nodeEval, 0ULL };
+		eval e = eval{ nodeEval, Move(0, 0) };
 		if (Hashes.size() < HashSize) Hashes[hash] = e;
 		return e;
 	}
 
 	// Move ordering
-	std::vector<std::tuple<int, unsigned __int64>> order = vector<std::tuple<int, unsigned __int64>>();
-	for (const unsigned __int64& m : legalMoves) {
+	std::vector<std::tuple<int, Move>> order = vector<std::tuple<int, Move>>();
+	for (const Move& m : legalMoves) {
 		Board b = board.Copy();
 		b.Push(m);
 		int interiorScore = StaticEvaluation(b, level);
@@ -164,13 +164,13 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	
 	// Iterate through legal moves
 	int i = 0;
-	for (const std::tuple<int, unsigned __int64>&o : order) {
+	for (const std::tuple<int, Move>&o : order) {
 		Board b = board.Copy();
 		b.Push(get<1>(o));
 
 		eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, get<0>(o));
 		int childScore = -get<0>(childEval);
-		unsigned __int64 childMove = get<1>(childEval);
+		Move childMove = get<1>(childEval);
 
 		if (childScore > bestScore) {
 			bestScore = childScore;
@@ -281,8 +281,8 @@ void Engine::Start() {
 			if (parts[1] == "blackking") board.Draw(board.BlackKingBits);
 			if (parts[1] == "enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
 			if (parts[1] == "pseudolegal") {
-				std::vector<unsigned __int64> v = board.GenerateMoves(board.Turn);
-				for (unsigned __int64 m : v) cout << MoveToString(m) << " ";
+				std::vector<Move> v = board.GenerateMoves(board.Turn);
+				for (Move m : v) cout << m.ToString() << " ";
 				cout << endl;
 			}
 			if (parts[1] == "hash") cout << "Hash (polyglot): " << std::hex << board.Hash(false) << std::dec << endl;
@@ -371,7 +371,7 @@ void Engine::Start() {
 }
 
 void Engine::PrintInfo(Evaluation e) {
-	cout << "info depth " << e.depth << " score cp " << e.score << " nodes " << e.nodes << " nps " << e.nps << " time " << e.time << " hashfull " << e.hashfull << " pv " << MoveToString(e.move) << endl;
+	cout << "info depth " << e.depth << " score cp " << e.score << " nodes " << e.nodes << " nps " << e.nps << " time " << e.time << " hashfull " << e.hashfull << " pv " << e.move.ToString() << endl;
 }
 
 void Engine::Play() {
@@ -406,7 +406,7 @@ void Engine::Play() {
 		} else {
 			Evaluation e = Search(board, SearchParams());
 			board.Push(e.move);
-			cout << "Renegade plays " << MoveToString(e.move) << endl;
+			cout << "Renegade plays " << e.move.ToString() << endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 		}
 
@@ -445,14 +445,14 @@ std::string Engine::GetBookMove(unsigned __int64 hash) {
 	for (const BookEntry &e : BookEntries) {
 		if (e.hash != hash) continue;
 
-		unsigned __int64 m = EncodeMove(e.from, e.to, 0);
+		Move m = Move(e.from, e.to);
 		switch (e.promotion) {
-			case 1: { m = SetMoveFlag(m, MoveFlag::PromotionToKnight); break; }
-			case 2: { m = SetMoveFlag(m, MoveFlag::PromotionToBishop); break; }
-			case 3: { m = SetMoveFlag(m, MoveFlag::PromotionToRook); break; }
-			case 4: { m = SetMoveFlag(m, MoveFlag::PromotionToQueen); break; }
+			case 1: { m.SetFlag(MoveFlag::PromotionToKnight); break; }
+			case 2: { m.SetFlag(MoveFlag::PromotionToBishop); break; }
+			case 3: { m.SetFlag(MoveFlag::PromotionToRook); break; }
+			case 4: { m.SetFlag(MoveFlag::PromotionToQueen); break; }
 		}
-		matches.push_back(MoveToString(m));
+		matches.push_back(m.ToString());
 	}
 
 	//cout << matches.size() << endl;
