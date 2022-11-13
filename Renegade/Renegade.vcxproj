@@ -143,7 +143,6 @@
     <ClCompile Include="Board.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Evaluation.cpp" />
-    <ClCompile Include="Move.cpp" />
     <ClCompile Include="Renegade.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
@@ -151,7 +150,6 @@
     <ClInclude Include="Board.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Evaluation.h" />
-    <ClInclude Include="Move.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

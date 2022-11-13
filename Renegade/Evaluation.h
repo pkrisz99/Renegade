@@ -1,11 +1,11 @@
 #pragma once
-#include "Move.h"
+#include <tuple>
 
 static const int MateEval = 1000000;
 static const int NoEval = -100000000;
 static const int NegativeInfinity = -100000000; // Inventing a new kind of math here
 static const int PositiveInfinity = 100000000;
-typedef std::tuple<int, Move> eval;
+typedef std::tuple<int, unsigned __int64> eval;
 
 static const int PawnValue = 100;
 static const int KnightValue = 300;
@@ -71,13 +71,13 @@ class Evaluation
 {
 public:
 	int score = 0;
-	Move move = Move(0,0);
+	unsigned __int64 move = 0ULL;
 	int depth = 0;
 	int nodes = 0;
 	int time = 0;
 	int nps = 0;
 	int hashfull = 0;
 	Evaluation();
-	Evaluation(int s, Move m, int d, int n, int t, int speed, int h);
+	Evaluation(int s, unsigned __int64 m, int d, int n, int t, int speed, int h);
 };
 

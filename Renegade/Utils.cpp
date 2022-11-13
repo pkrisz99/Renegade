@@ -134,6 +134,57 @@ static std::string PolyglotMoveToString(int from, int to, int promotion) {
 	return { f1, r1, f2, r2 };
 }
 
+static unsigned __int64 EncodeMove(int from, int to, int flags) {
+	// bits  0- 7 -> from
+	// bits  8-15 -> from
+	// bits 16-23 -> flags
+	unsigned __int64 bits = 0ULL;
+	bits = from | ((unsigned __int64)to << 8) | ((unsigned __int64)flags << 16);
+	return bits;
+}
+
+static unsigned __int64 GetMoveFrom(unsigned __int64 move) {
+	return move & 0x00000000000000FF;
+}
+
+static unsigned __int64 GetMoveTo(unsigned __int64 move) {
+	return (move & 0x000000000000FF00) >> 8;
+}
+
+static unsigned __int64 GetMoveFlag(unsigned __int64 move) {
+	return (move & 0x0000000000FF000) >> 16;
+}
+
+
+static unsigned __int64 SetMoveFlag(unsigned __int64 move, unsigned __int64 flag) {
+	return move | (flag << 16);
+}
+
+static std::string MoveToString(unsigned __int64 move) {
+	int from = GetMoveFrom(move);
+	int to = GetMoveTo(move);
+	int flag = GetMoveFlag(move);
+
+	int file1 = from % 8;
+	int rank1 = from / 8;
+	int file2 = to % 8;
+	int rank2 = to / 8;
+
+	char f1 = 'a' + file1;
+	char r1 = '1' + rank1;
+	char f2 = 'a' + file2;
+	char r2 = '1' + rank2;
+
+	char extra = '?';
+	if (flag == MoveFlag::PromotionToKnight) extra = 'n';
+	if (flag == MoveFlag::PromotionToBishop) extra = 'b';
+	if (flag == MoveFlag::PromotionToRook) extra = 'r';
+	if (flag == MoveFlag::PromotionToQueen) extra = 'q';
+
+	if (extra == '?') return { f1, r1, f2, r2 };
+	else return { f1, r1, f2, r2, extra };
+}
+
 
 
 // https://stackoverflow.com/questions/4244274/how-do-i-count-the-number-of-zero-bits-in-an-integer

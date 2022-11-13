@@ -250,35 +250,35 @@ bool Board::PushUci(string ucistr) {
 	int sq1 = SquareToNum(ucistr.substr(0, 2));
 	int sq2 = SquareToNum(ucistr.substr(2, 2));
 	int extra = ucistr[4];
-	Move move = Move(sq1, sq2);
+	unsigned __int64 move = EncodeMove(sq1, sq2, 0);
 	int piece = GetPieceAt(sq1);
 
 	// Promotions
-	if (extra == 'q') move.flag = MoveFlag::PromotionToQueen;
-	else if (extra == 'r') move.flag = MoveFlag::PromotionToRook;
-	else if (extra == 'b') move.flag = MoveFlag::PromotionToBishop;
-	else if (extra == 'n') move.flag = MoveFlag::PromotionToKnight;
+	if (extra == 'q') move = SetMoveFlag(move, MoveFlag::PromotionToQueen);
+	else if (extra == 'r') move = SetMoveFlag(move, MoveFlag::PromotionToRook);
+	else if (extra == 'b') move = SetMoveFlag(move, MoveFlag::PromotionToBishop);
+	else if (extra == 'n') move = SetMoveFlag(move, MoveFlag::PromotionToKnight);
 
 	// Castling
-	if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 2)) move.flag = MoveFlag::LongCastle;
-	else if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 6)) move.flag = MoveFlag::ShortCastle;
-	else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 58)) move.flag = MoveFlag::LongCastle;
-	else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 62)) move.flag = MoveFlag::ShortCastle;
+	if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 2)) move = SetMoveFlag(move, MoveFlag::LongCastle);
+	else if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 6)) move = SetMoveFlag(move, MoveFlag::ShortCastle);
+	else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 58)) move = SetMoveFlag(move, MoveFlag::LongCastle);
+	else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 62)) move = SetMoveFlag(move, MoveFlag::ShortCastle);
 
 	// En passant possibility
 	if (TypeOfPiece(piece) == PieceType::Pawn) {
 		int f1 = sq1 / 8;
 		int f2 = sq2 / 8;
-		if (abs(f2 - f1) > 1) move.flag = MoveFlag::EnPassant;
+		if (abs(f2 - f1) > 1) move = SetMoveFlag(move, MoveFlag::EnPassant);
 	}
 
 	// En passant performed
 	// ???
 
-	std::vector<Move> legalMoves = GenerateLegalMoves(Turn);
+	std::vector<unsigned __int64> legalMoves = GenerateLegalMoves(Turn);
 	bool valid = false;
-	for (const Move &m : legalMoves) {
-		if ((m.to == move.to) && (m.from == move.from) && (m.flag == move.flag)) {
+	for (const unsigned __int64 &m : legalMoves) {
+		if ((GetMoveTo(m) == GetMoveTo(move)) && (GetMoveFrom(m) == GetMoveFrom(move)) && (GetMoveFlag(m) == GetMoveFlag(move))) {
 			valid = true;
 			break;
 		}
@@ -293,84 +293,84 @@ bool Board::PushUci(string ucistr) {
 
 }
 
-void Board::TryMove(Move move) {
+void Board::TryMove(unsigned __int64 move) {
 	
-	int piece = GetPieceAt(move.from);
+	int piece = GetPieceAt(GetMoveFrom(move));
 	int pieceColor = ColorOfPiece(piece);
 	int pieceType = TypeOfPiece(piece);
-	int targetPiece = GetPieceAt(move.to);
+	int targetPiece = GetPieceAt(GetMoveTo(move));
 	int targetPieceColor = ColorOfPiece(targetPiece);
 	int targetPieceType = TypeOfPiece(targetPiece);
 
-	if (piece == Piece::WhitePawn) { SetBitFalse(WhitePawnBits, move.from); SetBitTrue(WhitePawnBits, move.to); }
-	else if (piece == Piece::WhiteKnight) { SetBitFalse(WhiteKnightBits, move.from); SetBitTrue(WhiteKnightBits, move.to); }
-	else if (piece == Piece::WhiteBishop) { SetBitFalse(WhiteBishopBits, move.from); SetBitTrue(WhiteBishopBits, move.to); }
-	else if (piece == Piece::WhiteRook) { SetBitFalse(WhiteRookBits, move.from); SetBitTrue(WhiteRookBits, move.to); }
-	else if (piece == Piece::WhiteQueen) { SetBitFalse(WhiteQueenBits, move.from); SetBitTrue(WhiteQueenBits, move.to); }
-	else if (piece == Piece::WhiteKing) { SetBitFalse(WhiteKingBits, move.from); SetBitTrue(WhiteKingBits, move.to); }
-	else if (piece == Piece::BlackPawn) { SetBitFalse(BlackPawnBits, move.from); SetBitTrue(BlackPawnBits, move.to); }
-	else if (piece == Piece::BlackKnight) { SetBitFalse(BlackKnightBits, move.from); SetBitTrue(BlackKnightBits, move.to); }
-	else if (piece == Piece::BlackBishop) { SetBitFalse(BlackBishopBits, move.from); SetBitTrue(BlackBishopBits, move.to); }
-	else if (piece == Piece::BlackRook) { SetBitFalse(BlackRookBits, move.from); SetBitTrue(BlackRookBits, move.to); }
-	else if (piece == Piece::BlackQueen) { SetBitFalse(BlackQueenBits, move.from); SetBitTrue(BlackQueenBits, move.to); }
-	else if (piece == Piece::BlackKing) { SetBitFalse(BlackKingBits, move.from); SetBitTrue(BlackKingBits, move.to); }
+	if (piece == Piece::WhitePawn) { SetBitFalse(WhitePawnBits, GetMoveFrom(move)); SetBitTrue(WhitePawnBits, GetMoveTo(move)); }
+	else if (piece == Piece::WhiteKnight) { SetBitFalse(WhiteKnightBits, GetMoveFrom(move)); SetBitTrue(WhiteKnightBits, GetMoveTo(move)); }
+	else if (piece == Piece::WhiteBishop) { SetBitFalse(WhiteBishopBits, GetMoveFrom(move)); SetBitTrue(WhiteBishopBits, GetMoveTo(move)); }
+	else if (piece == Piece::WhiteRook) { SetBitFalse(WhiteRookBits, GetMoveFrom(move)); SetBitTrue(WhiteRookBits, GetMoveTo(move)); }
+	else if (piece == Piece::WhiteQueen) { SetBitFalse(WhiteQueenBits, GetMoveFrom(move)); SetBitTrue(WhiteQueenBits, GetMoveTo(move)); }
+	else if (piece == Piece::WhiteKing) { SetBitFalse(WhiteKingBits, GetMoveFrom(move)); SetBitTrue(WhiteKingBits, GetMoveTo(move)); }
+	else if (piece == Piece::BlackPawn) { SetBitFalse(BlackPawnBits, GetMoveFrom(move)); SetBitTrue(BlackPawnBits, GetMoveTo(move)); }
+	else if (piece == Piece::BlackKnight) { SetBitFalse(BlackKnightBits, GetMoveFrom(move)); SetBitTrue(BlackKnightBits, GetMoveTo(move)); }
+	else if (piece == Piece::BlackBishop) { SetBitFalse(BlackBishopBits, GetMoveFrom(move)); SetBitTrue(BlackBishopBits, GetMoveTo(move)); }
+	else if (piece == Piece::BlackRook) { SetBitFalse(BlackRookBits, GetMoveFrom(move)); SetBitTrue(BlackRookBits, GetMoveTo(move)); }
+	else if (piece == Piece::BlackQueen) { SetBitFalse(BlackQueenBits, GetMoveFrom(move)); SetBitTrue(BlackQueenBits, GetMoveTo(move)); }
+	else if (piece == Piece::BlackKing) { SetBitFalse(BlackKingBits, GetMoveFrom(move)); SetBitTrue(BlackKingBits, GetMoveTo(move)); }
 
-	if (targetPiece == Piece::WhitePawn) SetBitFalse(WhitePawnBits, move.to);
-	else if (targetPiece == Piece::WhiteKnight) SetBitFalse(WhiteKnightBits, move.to);
-	else if (targetPiece == Piece::WhiteBishop) SetBitFalse(WhiteBishopBits, move.to);
-	else if (targetPiece == Piece::WhiteRook) SetBitFalse(WhiteRookBits, move.to);
-	else if (targetPiece == Piece::WhiteQueen) SetBitFalse(WhiteQueenBits, move.to);
-	else if (targetPiece == Piece::WhiteKing) SetBitFalse(WhiteKingBits, move.to); // ????
-	else if (targetPiece == Piece::BlackPawn) SetBitFalse(BlackPawnBits, move.to);
-	else if (targetPiece == Piece::BlackKnight) SetBitFalse(BlackKnightBits, move.to);
-	else if (targetPiece == Piece::BlackBishop) SetBitFalse(BlackBishopBits, move.to);
-	else if (targetPiece == Piece::BlackRook) SetBitFalse(BlackRookBits, move.to);
-	else if (targetPiece == Piece::BlackQueen) SetBitFalse(BlackQueenBits, move.to);
-	else if (targetPiece == Piece::BlackKing) SetBitFalse(BlackKingBits, move.to); // ????
+	if (targetPiece == Piece::WhitePawn) SetBitFalse(WhitePawnBits, GetMoveTo(move));
+	else if (targetPiece == Piece::WhiteKnight) SetBitFalse(WhiteKnightBits, GetMoveTo(move));
+	else if (targetPiece == Piece::WhiteBishop) SetBitFalse(WhiteBishopBits, GetMoveTo(move));
+	else if (targetPiece == Piece::WhiteRook) SetBitFalse(WhiteRookBits, GetMoveTo(move));
+	else if (targetPiece == Piece::WhiteQueen) SetBitFalse(WhiteQueenBits, GetMoveTo(move));
+	else if (targetPiece == Piece::WhiteKing) SetBitFalse(WhiteKingBits, GetMoveTo(move)); // ????
+	else if (targetPiece == Piece::BlackPawn) SetBitFalse(BlackPawnBits, GetMoveTo(move));
+	else if (targetPiece == Piece::BlackKnight) SetBitFalse(BlackKnightBits, GetMoveTo(move));
+	else if (targetPiece == Piece::BlackBishop) SetBitFalse(BlackBishopBits, GetMoveTo(move));
+	else if (targetPiece == Piece::BlackRook) SetBitFalse(BlackRookBits, GetMoveTo(move));
+	else if (targetPiece == Piece::BlackQueen) SetBitFalse(BlackQueenBits, GetMoveTo(move));
+	else if (targetPiece == Piece::BlackKing) SetBitFalse(BlackKingBits, GetMoveTo(move)); // ????
 
-	if ((piece == Piece::WhitePawn) && (move.to == EnPassantSquare) ) {
+	if ((piece == Piece::WhitePawn) && (GetMoveTo(move) == EnPassantSquare) ) {
 		SetBitFalse(BlackPawnBits, (unsigned __int64)(EnPassantSquare)-8);
 	}
-	if ((piece == Piece::BlackPawn) && (move.to == EnPassantSquare)) {
+	if ((piece == Piece::BlackPawn) && (GetMoveTo(move) == EnPassantSquare)) {
 		SetBitFalse(WhitePawnBits, (unsigned __int64)(EnPassantSquare)+8);
 	}
 
 	if (piece == Piece::WhitePawn) {
-		if (move.flag == MoveFlag::PromotionToKnight) { SetBitFalse(WhitePawnBits, move.to);  SetBitTrue(WhiteKnightBits, move.to); }
-		else if (move.flag == MoveFlag::PromotionToBishop) { SetBitFalse(WhitePawnBits, move.to);  SetBitTrue(WhiteBishopBits, move.to); }
-		else if (move.flag == MoveFlag::PromotionToRook) { SetBitFalse(WhitePawnBits, move.to);  SetBitTrue(WhiteRookBits, move.to); }
-		else if (move.flag == MoveFlag::PromotionToQueen) { SetBitFalse(WhitePawnBits, move.to);  SetBitTrue(WhiteQueenBits, move.to); }
+		if (GetMoveFlag(move) == MoveFlag::PromotionToKnight) { SetBitFalse(WhitePawnBits, GetMoveTo(move));  SetBitTrue(WhiteKnightBits, GetMoveTo(move)); }
+		else if (GetMoveFlag(move) == MoveFlag::PromotionToBishop) { SetBitFalse(WhitePawnBits, GetMoveTo(move));  SetBitTrue(WhiteBishopBits, GetMoveTo(move)); }
+		else if (GetMoveFlag(move) == MoveFlag::PromotionToRook) { SetBitFalse(WhitePawnBits, GetMoveTo(move));  SetBitTrue(WhiteRookBits, GetMoveTo(move)); }
+		else if (GetMoveFlag(move) == MoveFlag::PromotionToQueen) { SetBitFalse(WhitePawnBits, GetMoveTo(move));  SetBitTrue(WhiteQueenBits, GetMoveTo(move)); }
 	}
 	if (piece == Piece::BlackPawn) {
-		if (move.flag == MoveFlag::PromotionToKnight) { SetBitFalse(BlackPawnBits, move.to);  SetBitTrue(BlackKnightBits, move.to); }
-		else if (move.flag == MoveFlag::PromotionToBishop) { SetBitFalse(BlackPawnBits, move.to);  SetBitTrue(BlackBishopBits, move.to); }
-		else if (move.flag == MoveFlag::PromotionToRook) { SetBitFalse(BlackPawnBits, move.to);  SetBitTrue(BlackRookBits, move.to); }
-		else if (move.flag == MoveFlag::PromotionToQueen) { SetBitFalse(BlackPawnBits, move.to);  SetBitTrue(BlackQueenBits, move.to); }
+		if (GetMoveFlag(move) == MoveFlag::PromotionToKnight) { SetBitFalse(BlackPawnBits, GetMoveTo(move));  SetBitTrue(BlackKnightBits, GetMoveTo(move)); }
+		else if (GetMoveFlag(move) == MoveFlag::PromotionToBishop) { SetBitFalse(BlackPawnBits, GetMoveTo(move));  SetBitTrue(BlackBishopBits, GetMoveTo(move)); }
+		else if (GetMoveFlag(move) == MoveFlag::PromotionToRook) { SetBitFalse(BlackPawnBits, GetMoveTo(move));  SetBitTrue(BlackRookBits, GetMoveTo(move)); }
+		else if (GetMoveFlag(move) == MoveFlag::PromotionToQueen) { SetBitFalse(BlackPawnBits, GetMoveTo(move));  SetBitTrue(BlackQueenBits, GetMoveTo(move)); }
 	}
 
 	if (targetPiece != 0) HalfmoveClock = 0;
 	if (TypeOfPiece(piece) == PieceType::Pawn) HalfmoveClock = 0;
 
 	// 2. Handle castling
-	if ((Turn == Turn::White) && (move.flag == MoveFlag::ShortCastle)) {
+	if ((Turn == Turn::White) && (GetMoveFlag(move) == MoveFlag::ShortCastle)) {
 		SetBitFalse(WhiteRookBits, 7);
 		SetBitTrue(WhiteRookBits, 5);
 		WhiteRightToShortCastle = false;
 		WhiteRightToLongCastle = false;
 	}
-	if ((Turn == Turn::White) && (move.flag == MoveFlag::LongCastle)) {
+	if ((Turn == Turn::White) && (GetMoveFlag(move) == MoveFlag::LongCastle)) {
 		SetBitFalse(WhiteRookBits, 0);
 		SetBitTrue(WhiteRookBits, 3);
 		WhiteRightToShortCastle = false;
 		WhiteRightToLongCastle = false;
 	}
-	if ((Turn == Turn::Black) && (move.flag == MoveFlag::ShortCastle)) {
+	if ((Turn == Turn::Black) && (GetMoveFlag(move) == MoveFlag::ShortCastle)) {
 		SetBitFalse(BlackRookBits, 63);
 		SetBitTrue(BlackRookBits, 61);
 		BlackRightToShortCastle = false;
 		BlackRightToLongCastle = false;
 	}
-	if ((Turn == Turn::Black) && (move.flag == MoveFlag::LongCastle)) {
+	if ((Turn == Turn::Black) && (GetMoveFlag(move) == MoveFlag::LongCastle)) {
 		SetBitFalse(BlackRookBits, 56);
 		SetBitTrue(BlackRookBits, 59);
 		BlackRightToShortCastle = false;
@@ -386,18 +386,18 @@ void Board::TryMove(Move move) {
 		BlackRightToShortCastle = false;
 		BlackRightToLongCastle = false;
 	}
-	if ((move.to == 7) || (move.from == 7)) WhiteRightToShortCastle = false;
-	if ((move.to == 0) || (move.from == 0)) WhiteRightToLongCastle = false;
-	if ((move.to == 63) || (move.from == 63)) BlackRightToShortCastle = false;
-	if ((move.to == 56) || (move.from == 56)) BlackRightToLongCastle = false;
+	if ((GetMoveTo(move) == 7) || (GetMoveFrom(move) == 7)) WhiteRightToShortCastle = false;
+	if ((GetMoveTo(move) == 0) || (GetMoveFrom(move) == 0)) WhiteRightToLongCastle = false;
+	if ((GetMoveTo(move) == 63) || (GetMoveFrom(move) == 63)) BlackRightToShortCastle = false;
+	if ((GetMoveTo(move) == 56) || (GetMoveFrom(move) == 56)) BlackRightToLongCastle = false;
 
 	// 4. Update en passant
-	if (move.flag == MoveFlag::EnPassant) {
+	if (GetMoveFlag(move) == MoveFlag::EnPassant) {
 		if (Turn == Turn::White) {
-			EnPassantSquare = move.to - 8;
+			EnPassantSquare = GetMoveTo(move) - 8;
 		}
 		else {
-			EnPassantSquare = move.to + 8;
+			EnPassantSquare = GetMoveTo(move) + 8;
 		}
 	}
 	else {
@@ -406,7 +406,7 @@ void Board::TryMove(Move move) {
 
 }
 
-void Board::Push(Move move) {
+void Board::Push(unsigned __int64 move) {
 
 	TryMove(move);
 
@@ -474,18 +474,18 @@ void Board::Push(Move move) {
 
 }
 
-unsigned unsigned __int64 Board::GenerateKnightAttacks(int from) {
+unsigned __int64 Board::GenerateKnightAttacks(int from) {
 	unsigned unsigned __int64 squares = 0ULL;
 	return KnightMoveBits[from];
 }
 
-unsigned unsigned __int64 Board::GenerateKingAttacks(int from) {
-	unsigned unsigned __int64 squares = 0ULL;
+unsigned __int64 Board::GenerateKingAttacks(int from) {
+	unsigned __int64 squares = 0ULL;
 	return KingMoveBits[from];
 }
 
-unsigned unsigned __int64 Board::GenerateBishopAttacks(int pieceColor, int from) {
-	unsigned unsigned __int64 squares = 0ULL;
+unsigned __int64 Board::GenerateBishopAttacks(int pieceColor, int from) {
+	unsigned __int64 squares = 0ULL;
 	int rank = GetSquareRank(from);
 	int file = GetSquareFile(from);
 	// Go up-left
@@ -666,21 +666,21 @@ unsigned __int64 Board::GeneratePawnAttacks(int pieceColor, int from) {
 }
 
 
-std::vector<Move> Board::GenerateKnightMoves(int home) {
+std::vector<unsigned __int64> Board::GenerateKnightMoves(int home) {
 	auto lookup = KnightMoves[home];
-	std::vector<Move> list;
+	std::vector<unsigned __int64> list;
 	list.reserve(8);
 	for (int l : lookup) {
 		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
-		list.push_back(Move(home, l));
+		list.push_back(EncodeMove(home, l, 0));
 	}
 	return list;
 }
 
-std::vector<Move> Board::GenerateSlidingMoves(int piece, int home) {
+std::vector<unsigned __int64> Board::GenerateSlidingMoves(int piece, int home) {
 	unsigned __int64 friendlyOccupance = 0ULL;
 	unsigned __int64 opponentOccupance = 0ULL;
-	std::vector<Move> Moves;
+	std::vector<unsigned __int64> Moves;
 	Moves.reserve(27);
 	if (ColorOfPiece(piece) == PieceColor::White) {
 		friendlyOccupance = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
@@ -721,10 +721,10 @@ std::vector<Move> Board::GenerateSlidingMoves(int piece, int home) {
 			int thatSquare = Square(rank, file);
 			if (CheckBit(friendlyOccupance, thatSquare)) break;
 			if (CheckBit(opponentOccupance, thatSquare)) {
-				Moves.push_back(Move(home, thatSquare));
+				Moves.push_back(EncodeMove(home, thatSquare, 0));
 				break;
 			}
-			Moves.push_back(Move(home, thatSquare));
+			Moves.push_back(EncodeMove(home, thatSquare, 0));
 		}
 	}
 
@@ -732,23 +732,23 @@ std::vector<Move> Board::GenerateSlidingMoves(int piece, int home) {
 
 }
 
-std::vector<Move> Board::GenerateKingMoves(int home) {
+std::vector<unsigned __int64> Board::GenerateKingMoves(int home) {
 	auto lookup = KingMoves[home];
-	std::vector<Move> list;
+	std::vector<unsigned __int64> list;
 	list.reserve(8);
 	for (int l : lookup) {
 		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
-		list.push_back(Move(home, l));
+		list.push_back(EncodeMove(home, l, 0));
 	}
 	return list;
 }
 
-std::vector<Move> Board::GeneratePawnMoves(int home) {
+std::vector<unsigned __int64> Board::GeneratePawnMoves(int home) {
 	int piece = GetPieceAt(home);
 	int color = ColorOfPiece(piece);
 	int file = GetSquareFile(home);
 	int rank = GetSquareRank(home);
-	std::vector<Move> list;
+	std::vector<unsigned __int64> list;
 	list.reserve(4);
 	int target;
 
@@ -757,13 +757,13 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 		target = home + 8;
 		if (GetPieceAt(target) == 0) {
 			if (GetSquareRank(target) != 7) {
-				Move m = Move(home, target);
+				unsigned __int64 m = EncodeMove(home, target, 0);
 				list.push_back(m);
 			} else { // Promote
-				Move m1 = Move(home, target, MoveFlag::PromotionToKnight);
-				Move m2 = Move(home, target, MoveFlag::PromotionToBishop);
-				Move m3 = Move(home, target, MoveFlag::PromotionToRook);
-				Move m4 = Move(home, target, MoveFlag::PromotionToQueen);
+				unsigned __int64 m1 = EncodeMove(home, target, MoveFlag::PromotionToKnight);
+				unsigned __int64 m2 = EncodeMove(home, target, MoveFlag::PromotionToBishop);
+				unsigned __int64 m3 = EncodeMove(home, target, MoveFlag::PromotionToRook);
+				unsigned __int64 m4 = EncodeMove(home, target, MoveFlag::PromotionToQueen);
 				list.push_back(m1);
 				list.push_back(m2);
 				list.push_back(m3);
@@ -775,13 +775,13 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 		target = home + 7;
 		if ((file != 0) && ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target==EnPassantSquare) && (ColorOfPiece(GetPieceAt(target)) == 0))) {
 			if (GetSquareRank(target) != 7) {
-				Move m = Move(home, target);
+				unsigned __int64 m = EncodeMove(home, target, 0);
 				list.push_back(m);
 			} else { // Promote
-				Move m1 = Move(home, target, MoveFlag::PromotionToKnight);
-				Move m2 = Move(home, target, MoveFlag::PromotionToBishop);
-				Move m3 = Move(home, target, MoveFlag::PromotionToRook);
-				Move m4 = Move(home, target, MoveFlag::PromotionToQueen);
+				unsigned __int64 m1 = EncodeMove(home, target, MoveFlag::PromotionToKnight);
+				unsigned __int64 m2 = EncodeMove(home, target, MoveFlag::PromotionToBishop);
+				unsigned __int64 m3 = EncodeMove(home, target, MoveFlag::PromotionToRook);
+				unsigned __int64 m4 = EncodeMove(home, target, MoveFlag::PromotionToQueen);
 				list.push_back(m1);
 				list.push_back(m2);
 				list.push_back(m3);
@@ -794,14 +794,14 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 		if (file != 7) {
 			if ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare) && (ColorOfPiece(GetPieceAt(target)) == 0)) {
 				if (GetSquareRank(target) != 7) {
-					Move m = Move(home, target);
+					unsigned __int64 m = EncodeMove(home, target, 0);
 					list.push_back(m);
 				}
 				else { // Promote
-					Move m1 = Move(home, target, MoveFlag::PromotionToKnight);
-					Move m2 = Move(home, target, MoveFlag::PromotionToBishop);
-					Move m3 = Move(home, target, MoveFlag::PromotionToRook);
-					Move m4 = Move(home, target, MoveFlag::PromotionToQueen);
+					unsigned __int64 m1 = EncodeMove(home, target, MoveFlag::PromotionToKnight);
+					unsigned __int64 m2 = EncodeMove(home, target, MoveFlag::PromotionToBishop);
+					unsigned __int64 m3 = EncodeMove(home, target, MoveFlag::PromotionToRook);
+					unsigned __int64 m4 = EncodeMove(home, target, MoveFlag::PromotionToQueen);
 					list.push_back(m1);
 					list.push_back(m2);
 					list.push_back(m3);
@@ -815,7 +815,7 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 			bool free1 = GetPieceAt(home + 8) == 0;
 			bool free2 = GetPieceAt(home + 16) == 0;
 			if (free1 && free2) {
-				Move m = Move(home, home+16, MoveFlag::EnPassant);
+				unsigned __int64 m = EncodeMove(home, home+16, MoveFlag::EnPassant);
 				list.push_back(m);
 			}
 		}
@@ -827,13 +827,13 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 		target = home - 8;
 		if (GetPieceAt(target) == 0) {
 			if (GetSquareRank(target) != 0) {
-				Move m = Move(home, target);
+				unsigned __int64 m = EncodeMove(home, target, 0);
 				list.push_back(m);
 			} else { // Promote
-				Move m1 = Move(home, target, MoveFlag::PromotionToKnight);
-				Move m2 = Move(home, target, MoveFlag::PromotionToBishop);
-				Move m3 = Move(home, target, MoveFlag::PromotionToRook);
-				Move m4 = Move(home, target, MoveFlag::PromotionToQueen);
+				unsigned __int64 m1 = EncodeMove(home, target, MoveFlag::PromotionToKnight);
+				unsigned __int64 m2 = EncodeMove(home, target, MoveFlag::PromotionToBishop);
+				unsigned __int64 m3 = EncodeMove(home, target, MoveFlag::PromotionToRook);
+				unsigned __int64 m4 = EncodeMove(home, target, MoveFlag::PromotionToQueen);
 				list.push_back(m1);
 				list.push_back(m2);
 				list.push_back(m3);
@@ -845,13 +845,13 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 		target = home - 7;
 		if ((file != 7) && ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare) && (ColorOfPiece(GetPieceAt(target)) == 0))) {
 			if (GetSquareRank(target) != 0) {
-				Move m = Move(home, target);
+				unsigned __int64 m = EncodeMove(home, target, 0);
 				list.push_back(m);
 			} else { // Promote
-				Move m1 = Move(home, target, MoveFlag::PromotionToKnight);
-				Move m2 = Move(home, target, MoveFlag::PromotionToBishop);
-				Move m3 = Move(home, target, MoveFlag::PromotionToRook);
-				Move m4 = Move(home, target, MoveFlag::PromotionToQueen);
+				unsigned __int64 m1 = EncodeMove(home, target, MoveFlag::PromotionToKnight);
+				unsigned __int64 m2 = EncodeMove(home, target, MoveFlag::PromotionToBishop);
+				unsigned __int64 m3 = EncodeMove(home, target, MoveFlag::PromotionToRook);
+				unsigned __int64 m4 = EncodeMove(home, target, MoveFlag::PromotionToQueen);
 				list.push_back(m1);
 				list.push_back(m2);
 				list.push_back(m3);
@@ -864,14 +864,14 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 		if (file != 0) {
 			if ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare) && (ColorOfPiece(GetPieceAt(target)) == 0)) {
 				if (GetSquareRank(target) != 0) {
-					Move m = Move(home, target);
+					unsigned __int64 m = EncodeMove(home, target, 0);
 					list.push_back(m);
 				}
 				else { // Promote
-					Move m1 = Move(home, target, MoveFlag::PromotionToKnight);
-					Move m2 = Move(home, target, MoveFlag::PromotionToBishop);
-					Move m3 = Move(home, target, MoveFlag::PromotionToRook);
-					Move m4 = Move(home, target, MoveFlag::PromotionToQueen);
+					unsigned __int64 m1 = EncodeMove(home, target, MoveFlag::PromotionToKnight);
+					unsigned __int64 m2 = EncodeMove(home, target, MoveFlag::PromotionToBishop);
+					unsigned __int64 m3 = EncodeMove(home, target, MoveFlag::PromotionToRook);
+					unsigned __int64 m4 = EncodeMove(home, target, MoveFlag::PromotionToQueen);
 					list.push_back(m1);
 					list.push_back(m2);
 					list.push_back(m3);
@@ -885,7 +885,7 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 			bool free1 = GetPieceAt(home - 8) == 0;
 			bool free2 = GetPieceAt(home - 16) == 0;
 			if (free1 && free2) {
-				Move m = Move(home, home - 16, MoveFlag::EnPassant);
+				unsigned __int64 m = EncodeMove(home, home - 16, MoveFlag::EnPassant);
 				list.push_back(m);
 			}
 		}
@@ -894,8 +894,8 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 
 }
 
-std::vector<Move> Board::GenerateCastlingMoves() {
-	std::vector<Move> list;
+std::vector<unsigned __int64> Board::GenerateCastlingMoves() {
+	std::vector<unsigned __int64> list;
 	if ((Turn == Turn::White) && (WhiteRightToShortCastle)) {
 		bool empty_f1 = GetPieceAt(5) == 0;
 		bool empty_g1 = GetPieceAt(6) == 0;
@@ -903,7 +903,7 @@ std::vector<Move> Board::GenerateCastlingMoves() {
 		bool safe_f1 = CheckBit(AttackedSquares, 5) == 0;
 		bool safe_g1 = CheckBit(AttackedSquares, 6) == 0;
 		if (empty_f1 && empty_g1 && safe_e1 && safe_f1 && safe_g1) {
-			Move m = Move(4, 6, MoveFlag::ShortCastle);
+			unsigned __int64 m = EncodeMove(4, 6, MoveFlag::ShortCastle);
 			list.push_back(m);
 		}
 	}
@@ -915,7 +915,7 @@ std::vector<Move> Board::GenerateCastlingMoves() {
 		bool safe_d1 = CheckBit(AttackedSquares, 3) == 0;
 		bool safe_e1 = CheckBit(AttackedSquares, 4) == 0;
 		if (empty_b1 && empty_c1 && empty_d1 && safe_c1 && safe_d1 && safe_e1) {
-			Move m = Move(4, 2, MoveFlag::LongCastle);
+			unsigned __int64 m = EncodeMove(4, 2, MoveFlag::LongCastle);
 			list.push_back(m);
 		}
 	}
@@ -926,7 +926,7 @@ std::vector<Move> Board::GenerateCastlingMoves() {
 		bool safe_f8 = CheckBit(AttackedSquares, 61) == 0;
 		bool safe_g8 = CheckBit(AttackedSquares, 62) == 0;
 		if (empty_f8 && empty_g8 && safe_e8 && safe_f8 && safe_g8) {
-			Move m = Move(60, 62, MoveFlag::ShortCastle);
+			unsigned __int64 m = EncodeMove(60, 62, MoveFlag::ShortCastle);
 			list.push_back(m);
 		}
 	}
@@ -938,7 +938,7 @@ std::vector<Move> Board::GenerateCastlingMoves() {
 		bool safe_d8 = CheckBit(AttackedSquares, 59) == 0;
 		bool safe_e8 = CheckBit(AttackedSquares, 60) == 0;
 		if (empty_b8 && empty_c8 && empty_d8 && safe_c8 && safe_d8 && safe_e8) {
-			Move m = Move(60, 58, MoveFlag::LongCastle);
+			unsigned __int64 m = EncodeMove(60, 58, MoveFlag::LongCastle);
 			list.push_back(m);
 		}
 	}
@@ -989,13 +989,13 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 	return bits; */
 }
 
-std::vector<Move> Board::GenerateLegalMoves(int side) {
-	std::vector<Move> LegalMoves;
+std::vector<unsigned __int64> Board::GenerateLegalMoves(int side) {
+	std::vector<unsigned __int64> LegalMoves;
 	if (State != GameState::Playing) return LegalMoves;
 
-	std::vector<Move> PossibleMoves = GenerateMoves(side);
+	std::vector<unsigned __int64> PossibleMoves = GenerateMoves(side);
 
-	for (const Move& m : PossibleMoves) {
+	for (const unsigned __int64 & m : PossibleMoves) {
 		if (IsLegalMove(m, side)) LegalMoves.push_back(m);
 	}
 
@@ -1003,8 +1003,8 @@ std::vector<Move> Board::GenerateLegalMoves(int side) {
 	// Filter attacked, parried squares, pins
 }
 
-std::vector<Move> Board::GenerateMoves(int side) {
-	std::vector<Move> PossibleMoves;
+std::vector<unsigned __int64> Board::GenerateMoves(int side) {
+	std::vector<unsigned __int64> PossibleMoves;
 	PossibleMoves.reserve(50);
 	int myColor = SideToPieceColor(side);
 	for (int i = 0; i < 64; i++) {
@@ -1013,7 +1013,7 @@ std::vector<Move> Board::GenerateMoves(int side) {
 		int type = TypeOfPiece(piece);
 		if (color != myColor) continue;
 
-		std::vector<Move> moves;
+		std::vector<unsigned __int64> moves;
 		if (type == PieceType::Pawn) moves = GeneratePawnMoves(i);
 		if (type == PieceType::Knight) moves = GenerateKnightMoves(i);
 		if (type == PieceType::Bishop) moves = GenerateSlidingMoves(piece, i);
@@ -1021,7 +1021,7 @@ std::vector<Move> Board::GenerateMoves(int side) {
 		if (type == PieceType::Queen) moves = GenerateSlidingMoves(piece, i);
 		if (type == PieceType::King) {
 			moves = GenerateKingMoves(i);
-			std::vector<Move> castlingMoves = GenerateCastlingMoves();
+			std::vector<unsigned __int64> castlingMoves = GenerateCastlingMoves();
 			moves.insert(moves.end(), castlingMoves.begin(), castlingMoves.end());
 		}
 
@@ -1033,7 +1033,7 @@ std::vector<Move> Board::GenerateMoves(int side) {
 bool Board::AreThereLegalMoves(int side) {
 	bool hasMoves = false;
 	int myColor = SideToPieceColor(side);
-	std::vector<Move> moves;
+	std::vector<unsigned __int64> moves;
 	moves.reserve(27);
 	for (int i = 0; i < 64; i++) {
 		int piece = GetPieceAt(i);
@@ -1048,12 +1048,12 @@ bool Board::AreThereLegalMoves(int side) {
 		else if (type == PieceType::Queen) moves = GenerateSlidingMoves(piece, i);
 		else if (type == PieceType::King) {
 			moves = GenerateKingMoves(i);
-			std::vector<Move> castlingMoves = GenerateCastlingMoves();
+			std::vector<unsigned __int64> castlingMoves = GenerateCastlingMoves();
 			moves.insert(moves.end(), castlingMoves.begin(), castlingMoves.end());
 		}
 
 		if (moves.size() != 0) {
-			for (Move m : moves) {
+			for (unsigned __int64 m : moves) {
 				if (IsLegalMove(m, side)) {
 					moves.clear();
 					hasMoves = true;
@@ -1068,7 +1068,7 @@ bool Board::AreThereLegalMoves(int side) {
 	return hasMoves;
 }
 
-bool Board::IsLegalMove(Move m, int side) {
+bool Board::IsLegalMove(unsigned __int64 m, int side) {
 
 	// Backup variables
 	unsigned __int64 whitePawnBits = WhitePawnBits;
