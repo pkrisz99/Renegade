@@ -50,10 +50,8 @@ public:
 
 	unsigned __int64 GenerateKnightAttacks(int from);
 	unsigned __int64 GenerateKingAttacks(int from);
-	unsigned __int64 GenerateBishopAttacks(int pieceColor, int home);
-	unsigned __int64 GenerateRookAttacks(int pieceColor, int from);
-	unsigned __int64 GenerateQueenAttacks(int pieceColor, int from);
 	unsigned __int64 GeneratePawnAttacks(int pieceColor, int from);
+	unsigned __int64 GenerateSlidingAttacks(int piece, int home);
 
 
 	unsigned __int64 WhitePawnBits;
