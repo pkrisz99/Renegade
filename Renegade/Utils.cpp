@@ -80,6 +80,12 @@ struct BookEntry {
 	int learn;
 };
 
+struct EngineSettings {
+	bool UseBook;
+	bool QSearch;
+	int Hash;
+};
+
 static std::string StateString(GameState s) {
 	if (s == GameState::Playing) return "Playing";
 	if (s == GameState::WhiteVictory) return "WhiteVictory";
@@ -132,6 +138,11 @@ static std::string PolyglotMoveToString(int from, int to, int promotion) {
 
 	if (extra == '?') return { f1, r1, f2, r2 };*/
 	return { f1, r1, f2, r2 };
+}
+
+static std::string lowercase(std::string str) {
+	for (int x = 0; x < str.length(); x++) str[x] = tolower(str[x]);
+	return str;
 }
 
 

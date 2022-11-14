@@ -6,7 +6,10 @@ Engine::Engine() {
 	EvaluatedNodes = 0;
 	EvaluatedQuiescenceNodes = 0;
 	SelDepth = 0;
-	HashSize = 125000 * 10; // 10 MB
+	Settings.Hash = 10;
+	Settings.QSearch = true;
+	Settings.UseBook = true;
+	HashSize = 125000 * Settings.Hash;
 	InitOpeningBook();
 }
 
@@ -66,7 +69,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	if (myTime == -1) myTime = 2000;
 
 	auto startTime = Clock::now();
-	Hashes.reserve(131072); // 1 MB
+	Hashes.reserve(HashSize);
 	int elapsedMs = 0;
 	int depth = 0;
 	EvaluatedNodes = 0;
@@ -86,11 +89,13 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	}
 
 	// Check for book moves
-	std::string bookMove = GetBookMove(board.Hash(false));
-	if (bookMove != "") {
-		Evaluation e;
-		cout << "bestmove " << bookMove << endl;
-		return e;
+	if (Settings.UseBook) {
+		std::string bookMove = GetBookMove(board.Hash(false));
+		if (bookMove != "") {
+			Evaluation e;
+			cout << "bestmove " << bookMove << endl;
+			return e;
+		}
 	}
 
 	// Iterative deepening
@@ -115,7 +120,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 		e.qnodes = EvaluatedQuiescenceNodes;
 		e.time = elapsedMs;
 		e.nps = EvaluatedNodes * 1e9 / (currentTime - startTime).count();
-		e.hashfull = Hashes.size() * 1000 / HashSize;
+		e.hashfull = HashSize != 0 ? (Hashes.size() * 1000 / HashSize) : 0;
 		PrintInfo(e);
 	}
 	cout << "bestmove " << e.move.ToString() << endl;
@@ -132,8 +137,13 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 
 	// Return result for terminal nodes
 	if (depth == 0) {
-		//eval e = eval{ nodeEval, Move(0, 0) };
-		eval e = SearchQuiescence(board, level + 1, -beta, -alpha, nodeEval);
+		eval e;
+		if (Settings.QSearch) {
+			e = SearchQuiescence(board, level + 1, -beta, -alpha, nodeEval);
+		}
+		else {
+			e = eval{ nodeEval, Move(0, 0) };
+		}
 		Hashes[hash] = e;
 		return e;
 	}
@@ -213,7 +223,6 @@ eval Engine::SearchQuiescence(Board board, int level, int alpha, int beta, int n
 
 	// Generate moves - if there are no capture moves, we return the eval
 	std::vector<Move> captureMoves = board.GenerateCaptureMoves(board.Turn);
-	//cout << captureMoves.size() << endl;
 	if (captureMoves.size() == 0) {
 		eval e = eval{ nodeEval, Move(0, 0) };
 		if (Hashes.size() < HashSize) Hashes[hash] = e;
@@ -323,7 +332,7 @@ void Engine::Start() {
 	std::string cmd = "";
 	Board board = Board(starting_fen);
 	while (getline(cin, cmd)) {
-		
+
 		cmd = trimstr(cmd);
 		if (cmd.size() == 0) continue;
 		std::stringstream ss(cmd);
@@ -336,6 +345,9 @@ void Engine::Start() {
 		if (cmd == "uci") {
 			cout << "id name Renegade " << Version << endl;
 			cout << "id author Krisztian Peocz" << endl;
+			cout << "option name Hash type spin default 10 min 0 max 256" << endl;
+			cout << "option name OwnBook type check default true" << endl;
+			cout << "option name QSearch type check default true" << endl;
 			cout << "uciok" << endl;
 			continue;
 		}
@@ -352,6 +364,34 @@ void Engine::Start() {
 		if (cmd == "play") {
 			Play();
 			continue;
+		}
+
+		// Set option
+		if (parts[0] == "setoption") {
+
+			parts[2] = lowercase(parts[2]);
+
+			if (parts[2] == "usebook") {
+				parts[4] = lowercase(parts[4]);
+				if (parts[4] == "true") Settings.UseBook = true;
+				else if (parts[4] == "false") Settings.UseBook = false;
+				else cout << "Unknown value: '" << parts[4] << "'" << endl;
+			}
+			else if (parts[2] == "qsearch") {
+				parts[4] = lowercase(parts[4]);
+				if (parts[4] == "true") Settings.QSearch = true;
+				else if (parts[4] == "false") Settings.QSearch = false;
+				else cout << "Unknown value: '" << parts[4] << "'" << endl;
+			}
+			else if (parts[2] == "hash") {
+				Settings.Hash = stoi(parts[4]);
+				HashSize = Settings.Hash * 125000;
+			}
+			else {
+				cout << "Invalid option: '" << parts[2] << "'" << endl;
+			}
+			continue;
+
 		}
 
 		// Debug commands

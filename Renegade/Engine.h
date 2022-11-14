@@ -38,5 +38,6 @@ public:
 	std::vector<BookEntry> BookEntries;
 	int HashSize;
 	int SelDepth;
+	EngineSettings Settings;
 };
 
