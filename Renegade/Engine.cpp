@@ -4,7 +4,9 @@ typedef std::chrono::high_resolution_clock Clock;
 
 Engine::Engine() {
 	EvaluatedNodes = 0;
-	HashSize = 125000; // 1 MB
+	EvaluatedQuiescenceNodes = 0;
+	SelDepth = 0;
+	HashSize = 125000 * 10; // 10 MB
 	InitOpeningBook();
 }
 
@@ -68,6 +70,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	int elapsedMs = 0;
 	int depth = 0;
 	EvaluatedNodes = 0;
+	EvaluatedQuiescenceNodes = 0;
 	bool finished = false;
 
 	// Calculating the time allocated for searching
@@ -94,8 +97,9 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	Evaluation e = Evaluation();
 	while (!finished) {
 		depth += 1;
+		SelDepth = 0;
 		Hashes.clear();
-		eval result = SearchRecursive(board, depth, 0, NegativeInfinity, PositiveInfinity, NoEval);
+		eval result = SearchRecursive(board, depth, 1, NegativeInfinity, PositiveInfinity, NoEval);
 
 		// Check limits
 		auto currentTime = Clock::now();
@@ -106,7 +110,9 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 		e.score = get<0>(result);
 		e.move = get<1>(result);
 		e.depth = depth;
+		e.seldepth = SelDepth;
 		e.nodes = EvaluatedNodes;
+		e.qnodes = EvaluatedQuiescenceNodes;
 		e.time = elapsedMs;
 		e.nps = EvaluatedNodes * 1e9 / (currentTime - startTime).count();
 		e.hashfull = Hashes.size() * 1000 / HashSize;
@@ -126,8 +132,9 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 
 	// Return result for terminal nodes
 	if (depth == 0) {
-		eval e = eval{ nodeEval, Move(0, 0) };
-		//Hashes[hash] = e;
+		//eval e = eval{ nodeEval, Move(0, 0) };
+		eval e = SearchQuiescence(board, level + 1, -beta, -alpha, nodeEval);
+		Hashes[hash] = e;
 		return e;
 	}
 
@@ -151,12 +158,12 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	}
 
 	// Move ordering
-	std::vector<std::tuple<int, Move>> order = vector<std::tuple<int, Move>>();
+	std::vector<std::tuple<int, Move, Board>> order = vector<std::tuple<int, Move, Board>>();
 	for (const Move& m : legalMoves) {
 		Board b = board.Copy();
 		b.Push(m);
 		int interiorScore = StaticEvaluation(b, level);
-		order.push_back({interiorScore, m});
+		order.push_back({interiorScore, m, b});
 	}
 	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
 		return get<0>(t1) < get<0>(t2);
@@ -164,11 +171,85 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	
 	// Iterate through legal moves
 	int i = 0;
-	for (const std::tuple<int, Move>&o : order) {
-		Board b = board.Copy();
-		b.Push(get<1>(o));
+	for (const std::tuple<int, Move, Board>&o : order) {
 
-		eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, get<0>(o));
+		eval childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
+		int childScore = -get<0>(childEval);
+		Move childMove = get<1>(childEval);
+
+		if (childScore > bestScore) {
+			bestScore = childScore;
+			alpha = bestScore;
+			bestMove = get<1>(o);
+			if (alpha >= beta) break;
+		}
+
+		i++;
+	}
+
+	eval e = eval{ bestScore, bestMove };
+	if (Hashes.size() < HashSize) Hashes[hash] = e;
+	return e;
+
+}
+
+eval Engine::SearchQuiescence(Board board, int level, int alpha, int beta, int nodeEval) {
+
+	//cout << level << endl;
+
+	// Calculate hash
+	unsigned __int64 hash = board.Hash(true);
+
+	// Check hash
+	auto it = Hashes.find(hash);
+	if (it != Hashes.end()) {
+		eval e = it->second;
+		return e;
+	}
+
+	// Initalize variables
+	int bestScore = NoEval;
+	Move bestMove(0, 0);
+
+	// Generate moves - if there are no capture moves, we return the eval
+	std::vector<Move> captureMoves = board.GenerateCaptureMoves(board.Turn);
+	//cout << captureMoves.size() << endl;
+	if (captureMoves.size() == 0) {
+		eval e = eval{ nodeEval, Move(0, 0) };
+		if (Hashes.size() < HashSize) Hashes[hash] = e;
+		return e;
+	}
+
+	if (nodeEval >= beta) {
+		eval e = eval{ beta, Move(0, 0) };
+		if (Hashes.size() < HashSize) Hashes[hash] = e;
+		return e;
+	}
+
+	if (nodeEval > alpha) {
+		alpha = nodeEval;
+	}
+
+
+
+	// Move ordering
+	std::vector<std::tuple<int, Move, Board>> order = vector<std::tuple<int, Move, Board>>();
+	for (const Move& m : captureMoves) {
+		Board b = board.Copy();
+		b.Push(m);
+		EvaluatedQuiescenceNodes += 1;
+		int interiorScore = StaticEvaluation(b, level);
+		order.push_back({ interiorScore, m, b});
+	}
+	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
+		return get<0>(t1) < get<0>(t2);
+	});
+
+	// Iterate through legal moves
+	int i = 0;
+	for (const std::tuple<int, Move, Board>& o : order) {
+
+		eval childEval = SearchQuiescence(get<2>(o), level + 1, -beta, -alpha, get<0>(o));
 		int childScore = -get<0>(childEval);
 		Move childMove = get<1>(childEval);
 
@@ -190,6 +271,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 
 int Engine::StaticEvaluation(Board board, int level) {
 	EvaluatedNodes += 1;
+	if (level > SelDepth) SelDepth = level;
 	// 1. is over?
 	if (board.State == GameState::Draw) return 0;
 	if (board.State == GameState::WhiteVictory) {
@@ -219,16 +301,16 @@ int Engine::StaticEvaluation(Board board, int level) {
 	for (int i = 0; i < 64; i++) {
 		int piece = board.GetPieceAt(i);
 		if (piece == Piece::WhitePawn) score += PawnPSQT[i];
-		if (piece == Piece::WhiteKnight) score += KnightPSQT[i];
-		if (piece == Piece::WhiteBishop) score += BishopPSQT[i];
-		if (piece == Piece::WhiteRook) score += RookPSQT[i];
-		if (piece == Piece::WhiteQueen) score += QueenPSQT[i];
+		else if (piece == Piece::WhiteKnight) score += KnightPSQT[i];
+		else if (piece == Piece::WhiteBishop) score += BishopPSQT[i];
+		else if (piece == Piece::WhiteRook) score += RookPSQT[i];
+		else if (piece == Piece::WhiteQueen) score += QueenPSQT[i];
 
 		if (piece == Piece::BlackPawn) score -= PawnPSQT[63 - i];
-		if (piece == Piece::BlackKnight) score -= KnightPSQT[63 - i];
-		if (piece == Piece::BlackBishop) score -= BishopPSQT[63 - i];
-		if (piece == Piece::BlackRook) score -= RookPSQT[63 - i];
-		if (piece == Piece::BlackQueen) score -= QueenPSQT[63 - i];
+		else if (piece == Piece::BlackKnight) score -= KnightPSQT[63 - i];
+		else if (piece == Piece::BlackBishop) score -= BishopPSQT[63 - i];
+		else if (piece == Piece::BlackRook) score -= RookPSQT[63 - i];
+		else if (piece == Piece::BlackQueen) score -= QueenPSQT[63 - i];
 	}
 
 	if (!board.Turn) score *= -1;
@@ -252,7 +334,7 @@ void Engine::Start() {
 		if (cmd == "quit") break;
 
 		if (cmd == "uci") {
-			cout << "id name Renegade" << endl;
+			cout << "id name Renegade " << Version << endl;
 			cout << "id author Krisztian Peocz" << endl;
 			cout << "uciok" << endl;
 			continue;
@@ -371,7 +453,7 @@ void Engine::Start() {
 }
 
 void Engine::PrintInfo(Evaluation e) {
-	cout << "info depth " << e.depth << " score cp " << e.score << " nodes " << e.nodes << " nps " << e.nps << " time " << e.time << " hashfull " << e.hashfull << " pv " << e.move.ToString() << endl;
+	cout << "info depth " << e.depth << " seldepth " << e.seldepth << " score cp " << e.score << " nodes " << e.nodes << " qnodes " << e.qnodes << " nps " << e.nps << " time " << e.time << " hashfull " << e.hashfull << " pv " << e.move.ToString() << endl;
 }
 
 void Engine::Play() {

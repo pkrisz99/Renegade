@@ -39,6 +39,7 @@ public:
 	void TryMove(Move move);
 	vector<Move> GenerateMoves(int side);
 	vector<Move> GenerateLegalMoves(int side);
+	vector<Move> GenerateCaptureMoves(int side);
 	unsigned __int64 CalculateAttackedSquares(int side);
 
 	std::vector<Move> GenerateKnightMoves(int home);
