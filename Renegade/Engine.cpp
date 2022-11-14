@@ -6,7 +6,7 @@ Engine::Engine() {
 	EvaluatedNodes = 0;
 	EvaluatedQuiescenceNodes = 0;
 	SelDepth = 0;
-	Settings.Hash = 10;
+	Settings.Hash = 4;
 	Settings.QSearch = true;
 	Settings.UseBook = true;
 	HashSize = 125000 * Settings.Hash;
@@ -345,7 +345,7 @@ void Engine::Start() {
 		if (cmd == "uci") {
 			cout << "id name Renegade " << Version << endl;
 			cout << "id author Krisztian Peocz" << endl;
-			cout << "option name Hash type spin default 10 min 0 max 256" << endl;
+			cout << "option name Hash type spin default 4 min 0 max 256" << endl;
 			cout << "option name OwnBook type check default true" << endl;
 			cout << "option name QSearch type check default true" << endl;
 			cout << "uciok" << endl;
@@ -422,6 +422,19 @@ void Engine::Start() {
 					else cout << "No book move found" << endl;
 				}
 				
+			}
+			if (parts[1] == "settings") {
+				cout << "Hash: " << Settings.Hash << endl;
+				cout << "OwnBook: " << Settings.UseBook << endl;
+				cout << "QSearch: " << Settings.QSearch << endl;
+			}
+			if (parts[1] == "hashalloc") {
+				cout << "Hash: " << endl;
+				cout << "- max items (C++):      " << Hashes.bucket_count() * Hashes.max_load_factor() << endl;
+				cout << "- max items (software): " << HashSize << endl;
+				cout << "- buckets:              " << Hashes.bucket_count() << endl;
+				cout << "- load factor:          " << Hashes.max_load_factor() << endl;
+				cout << "- setting:              " << Settings.Hash << endl;
 			}
 			continue;
 		}
