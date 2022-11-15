@@ -26,6 +26,7 @@ Board::Board(string fen) {
 	Turn = Turn::White;
 	State = GameState::Playing;
 	StartingPosition = (fen == starting_fen);
+	PastHashes = std::vector<unsigned __int64>();
 
 	std::stringstream ss(fen);
 	std::istream_iterator<std::string> begin(ss);
@@ -83,6 +84,7 @@ Board::Board(string fen) {
 
 	HalfmoveClock = stoi(parts[4]);
 	FullmoveClock = stoi(parts[5]);
+	PastHashes.push_back(Hash(false));
 }
 
 Board::Board() {
@@ -117,6 +119,12 @@ Board::Board(const Board &b) {
 	State = b.State;
 	DrawCheck = b.DrawCheck;
 	StartingPosition = b.StartingPosition;
+
+	PastHashes = std::vector<unsigned __int64>();
+	PastHashes.reserve(b.PastHashes.size());
+	for (unsigned __int64 ph : b.PastHashes) {
+		PastHashes.push_back(ph);
+	}
 }
 
 void Board::Draw(unsigned __int64 customBits = 0) {
@@ -426,6 +434,10 @@ void Board::Push(Move move) {
 	if (Turn == Turn::White) inCheck = NonZeros(AttackedSquares & WhiteKingBits);
 	else inCheck = NonZeros(AttackedSquares & BlackKingBits);
 
+	// Add current hash to list
+	unsigned __int64 hash;
+	PastHashes.push_back(hash);
+
 	
 	// Check checkmates & stalemates
 	bool hasMoves = AreThereLegalMoves(Turn);
@@ -438,6 +450,15 @@ void Board::Push(Move move) {
 		}
 	}
 	if ((State != GameState::Playing) || (!DrawCheck)) return;
+
+	// Threefold repetition check
+	int stateCount = std::count(PastHashes.begin(), PastHashes.end(), hash);
+	// optimalization idea: only check the last 'HalfmoveClock' moves?
+	if (stateCount >= 3) {
+		State = GameState::Draw;
+		return;
+	}
+
 
 	// Insufficient material check
 	int WhitePawnCount = NonZeros(WhitePawnBits);
@@ -654,10 +675,10 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 				Move m2 = Move(home, target, MoveFlag::PromotionToBishop);
 				Move m3 = Move(home, target, MoveFlag::PromotionToRook);
 				Move m4 = Move(home, target, MoveFlag::PromotionToQueen);
-				list.push_back(m1);
-				list.push_back(m2);
-				list.push_back(m3);
 				list.push_back(m4);
+				list.push_back(m3);
+				list.push_back(m2);
+				list.push_back(m1);
 			}
 		}
 

@@ -83,6 +83,7 @@ public:
 	int FullmoveClock;
 
 	GameState State;
+	std::vector<unsigned __int64> PastHashes;
 
 };
 
