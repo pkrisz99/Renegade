@@ -8,7 +8,7 @@ Engine::Engine() {
 	SelDepth = 0;
 	Depth = 0;
 	Settings.Hash = 4;
-	Settings.QSearch = true;
+	Settings.QSearch = false;
 	Settings.UseBook = true;
 	HashSize = 125000 * Settings.Hash;
 	InitOpeningBook();
@@ -146,7 +146,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 		else {
 			e = eval{ nodeEval, Move(0, 0) };
 		}
-		Hashes[hash] = e;
+		if (HashSize < Hashes.size()) Hashes[hash] = e;
 		return e;
 	}
 
@@ -357,7 +357,7 @@ void Engine::Start() {
 			cout << "id author Krisztian Peocz" << endl;
 			cout << "option name Hash type spin default 4 min 0 max 256" << endl;
 			cout << "option name OwnBook type check default true" << endl;
-			cout << "option name QSearch type check default true" << endl;
+			cout << "option name QSearch type check default false" << endl;
 			cout << "uciok" << endl;
 			continue;
 		}
@@ -406,6 +406,7 @@ void Engine::Start() {
 
 		// Debug commands
 		if (parts[0] == "debug") {
+			if (parts[1] == "draw") board.Draw(0ULL);
 			if (parts[1] == "attackmap") board.Draw(board.AttackedSquares);
 			if (parts[1] == "whitepawn") board.Draw(board.WhitePawnBits);
 			if (parts[1] == "whiteking") board.Draw(board.WhiteKingBits);
@@ -446,6 +447,14 @@ void Engine::Start() {
 				cout << "- load factor:          " << Hashes.max_load_factor() << endl;
 				cout << "- setting:              " << Settings.Hash << endl;
 			}
+			if (parts[1] == "eval") {
+				cout << "Static evaluation: " << StaticEvaluation(board, 0) << endl;
+			}
+			continue;
+		}
+
+		if (cmd == "nb") { // shorthand for no book (useful for testing)
+			Settings.UseBook = false;
 			continue;
 		}
 
