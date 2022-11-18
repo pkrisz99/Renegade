@@ -6,6 +6,7 @@ Engine::Engine() {
 	EvaluatedNodes = 0;
 	EvaluatedQuiescenceNodes = 0;
 	SelDepth = 0;
+	Depth = 0;
 	Settings.Hash = 4;
 	Settings.QSearch = true;
 	Settings.UseBook = true;
@@ -103,6 +104,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	while (!finished) {
 		depth += 1;
 		SelDepth = 0;
+		Depth = depth;
 		Hashes.clear();
 		eval result = SearchRecursive(board, depth, 1, NegativeInfinity, PositiveInfinity, NoEval);
 
@@ -223,7 +225,7 @@ eval Engine::SearchQuiescence(Board board, int level, int alpha, int beta, int n
 
 	// Generate moves - if there are no capture moves, we return the eval
 	std::vector<Move> captureMoves = board.GenerateCaptureMoves(board.Turn);
-	if (captureMoves.size() == 0) {
+	if ((captureMoves.size() == 0) || (level >= Depth + 4)) {
 		eval e = eval{ nodeEval, Move(0, 0) };
 		if (Hashes.size() < HashSize) Hashes[hash] = e;
 		return e;
@@ -231,6 +233,14 @@ eval Engine::SearchQuiescence(Board board, int level, int alpha, int beta, int n
 
 	if (nodeEval >= beta) {
 		eval e = eval{ beta, Move(0, 0) };
+		if (Hashes.size() < HashSize) Hashes[hash] = e;
+		return e;
+	}
+
+	// Delta pruning
+	// to do: increase limit for promotions
+	if (nodeEval < alpha - 950) {
+		eval e = eval{ alpha, Move(0, 0) };
 		if (Hashes.size() < HashSize) Hashes[hash] = e;
 		return e;
 	}
@@ -371,7 +381,7 @@ void Engine::Start() {
 
 			parts[2] = lowercase(parts[2]);
 
-			if (parts[2] == "usebook") {
+			if (parts[2] == "ownbook") {
 				parts[4] = lowercase(parts[4]);
 				if (parts[4] == "true") Settings.UseBook = true;
 				else if (parts[4] == "false") Settings.UseBook = false;
@@ -506,7 +516,8 @@ void Engine::Start() {
 }
 
 void Engine::PrintInfo(Evaluation e) {
-	cout << "info depth " << e.depth << " seldepth " << e.seldepth << " score cp " << e.score << " nodes " << e.nodes << " qnodes " << e.qnodes << " nps " << e.nps << " time " << e.time << " hashfull " << e.hashfull << " pv " << e.move.ToString() << endl;
+	cout << "info depth " << e.depth << " seldepth " << e.seldepth << " score cp " << e.score << " nodes " << e.nodes << /* " qnodes " << e.qnodes << */ " nps " << e.nps 
+		<< " time " << e.time << " hashfull " << e.hashfull << " pv " << e.move.ToString() << endl;
 }
 
 void Engine::Play() {
