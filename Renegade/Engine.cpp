@@ -421,7 +421,7 @@ void Engine::Start() {
 			if (parts[1] == "hash") cout << "Hash (polyglot): " << std::hex << board.Hash(false) << std::dec << endl;
 			if (parts[1] == "book") {
 				if (parts[2] == "count") {
-					cout << "Book entries: " << BookEntries.size() << endl;
+					cout << "Book entries: " << BookEntries.size() << " (from: " << std::filesystem::current_path().string() << ")" << endl;
 				}
 				else if (parts[2] == "entry") {
 					int n = stoi(parts[3]);

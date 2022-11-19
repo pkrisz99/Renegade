@@ -12,6 +12,7 @@
 #include <fstream>
 #include <vector>
 #include <random>
+#include <filesystem>
 
 class Engine
 {

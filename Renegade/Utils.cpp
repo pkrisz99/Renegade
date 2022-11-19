@@ -8,7 +8,7 @@
 	#include <stdio.h>
 #endif
 
-const std::string Version = "0.2.0+";
+const std::string Version = "0.3.0";
 
 // To do: add squares, files, and ranks
 
