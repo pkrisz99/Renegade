@@ -22,6 +22,8 @@ void Move::SetFlag(int flag) {
 }
 
 std::string Move::ToString() {
+	if ((from == 0) && (to == 0)) return "0000";
+
 	int file1 = from % 8;
 	int rank1 = from / 8;
 	int file2 = to % 8;

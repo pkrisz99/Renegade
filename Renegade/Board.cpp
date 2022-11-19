@@ -435,7 +435,7 @@ void Board::Push(Move move) {
 	else inCheck = NonZeros(AttackedSquares & BlackKingBits);
 
 	// Add current hash to list
-	unsigned __int64 hash;
+	unsigned __int64 hash = Hash(false);
 	PastHashes.push_back(hash);
 
 	

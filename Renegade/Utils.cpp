@@ -130,14 +130,14 @@ static std::string PolyglotMoveToString(int from, int to, int promotion) {
 	char f2 = 'a' + file2;
 	char r2 = '1' + rank2;
 
-	/*char extra = '?';
-	if (flag == MoveFlag::PromotionToKnight) extra = 'n';
-	if (flag == MoveFlag::PromotionToBishop) extra = 'b';
-	if (flag == MoveFlag::PromotionToRook) extra = 'r';
-	if (flag == MoveFlag::PromotionToQueen) extra = 'q';
+	char extra = '?';
+	if (promotion == 1) extra = 'n';
+	else if (promotion == 2) extra = 'b';
+	else if (promotion == 3) extra = 'r';
+	else if (promotion == 4) extra = 'q';
 
-	if (extra == '?') return { f1, r1, f2, r2 };*/
-	return { f1, r1, f2, r2 };
+	if (extra == '?') return { f1, r1, f2, r2 };
+	else return { f1, r1, f2, r2 };
 }
 
 static std::string lowercase(std::string str) {

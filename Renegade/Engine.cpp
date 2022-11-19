@@ -146,7 +146,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 		else {
 			e = eval{ nodeEval, Move(0, 0) };
 		}
-		if (HashSize < Hashes.size()) Hashes[hash] = e;
+		if (Hashes.size() < HashSize) Hashes[hash] = e;
 		return e;
 	}
 
@@ -449,6 +449,12 @@ void Engine::Start() {
 			}
 			if (parts[1] == "eval") {
 				cout << "Static evaluation: " << StaticEvaluation(board, 0) << endl;
+			}
+			if (parts[1] == "pasthashes") {
+				cout << "Past hashes size: " << board.PastHashes.size() << endl;
+				for (int i = 0; i < board.PastHashes.size(); i++) {
+					cout << "- entry " << i << ": " << std::hex << board.PastHashes[i] << std::dec << endl;
+				}
 			}
 			continue;
 		}
