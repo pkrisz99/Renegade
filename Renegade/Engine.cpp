@@ -185,7 +185,17 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	int i = 0;
 	for (const std::tuple<int, Move, Board>&o : order) {
 
-		eval childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
+		eval childEval;
+		if (i == 0) {
+			childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
+		}
+		else {
+			childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -alpha-1, -alpha, get<0>(o));
+			if ((alpha < -get<0>(childEval)) && (-get<0>(childEval) < beta)) {
+				childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
+			}
+		}
+		
 		int childScore = -get<0>(childEval);
 		Move childMove = get<1>(childEval);
 
@@ -455,6 +465,36 @@ void Engine::Start() {
 				for (int i = 0; i < board.PastHashes.size(); i++) {
 					cout << "- entry " << i << ": " << std::hex << board.PastHashes[i] << std::dec << endl;
 				}
+			}
+			if (parts[1] == "runtime") {
+				cout << "Timing test suite:" << endl;
+				__int64 nanoseconds = 0;
+				for (int i = 0; i < 100000; i++) {
+					auto t0 = Clock::now();
+					StaticEvaluation(board, 0);
+					auto t1 = Clock::now();
+					nanoseconds += (t1 - t0).count();
+				}
+				cout << "- static evaluation: " << nanoseconds / 1e8 << " us" << endl;
+				nanoseconds = 0;
+				for (int i = 0; i < 100000; i++) {
+					auto t0 = Clock::now();
+					board.GenerateLegalMoves(board.Turn);
+					auto t1 = Clock::now();
+					nanoseconds += (t1 - t0).count();
+				}
+				cout << "- legal move gen: " << nanoseconds / 1e8 << " us" << endl;
+				nanoseconds = 0;
+				unsigned __int64 dummy = 0;
+				for (int i = 0; i < 100000; i++) {
+					auto t0 = Clock::now();
+					dummy = board.CalculateAttackedSquares(TurnToPieceColor(!board.Turn));
+					auto t1 = Clock::now();
+					nanoseconds += (t1 - t0).count();
+					if (dummy == 0) break; // impossible condition
+				}
+				cout << "- attack map calc: " << nanoseconds / 1e8 << " us" << endl;
+				
 			}
 			continue;
 		}
