@@ -2,7 +2,7 @@
 
 Evaluation::Evaluation() {
 	score = 0;
-	move = Move(0, 0);
+	pv = std::vector<Move>();
 	nodes = 0;
 	qnodes = 0;
 	time = 0;
@@ -10,13 +10,31 @@ Evaluation::Evaluation() {
 	hashfull = 0;
 }
 
-Evaluation::Evaluation(int s, Move m, int d, int sd, int n, int qn, int t, int speed, int h) {
+Evaluation::Evaluation(int s, std::vector<Move> p, int d, int sd, int n, int qn, int t, int speed, int h) {
 	score = s;
-	move = m;
+	pv = p;
 	depth = d;
 	seldepth = sd;
 	nodes = n;
 	time = t;
 	nps = speed;
 	hashfull = h;
+}
+
+Move Evaluation::BestMove() {
+	return pv.back();
+}
+
+eval::eval(int s) {
+	score = s;
+	moves = std::vector<Move>();
+}
+
+eval::eval() {
+	score = NoEval;
+}
+
+eval::eval(int s, std::vector<Move> m) {
+	score = s;
+	moves = m;
 }

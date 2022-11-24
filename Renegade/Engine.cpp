@@ -114,8 +114,8 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 		if (elapsedMs >= searchTime) finished = true;
 
 		// Send info
-		e.score = get<0>(result);
-		e.move = get<1>(result);
+		e.score = result.score;
+		e.pv = result.moves;
 		e.depth = depth;
 		e.seldepth = SelDepth;
 		e.nodes = EvaluatedNodes;
@@ -125,7 +125,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 		e.hashfull = HashSize != 0 ? (Hashes.size() * 1000 / HashSize) : 0;
 		PrintInfo(e);
 	}
-	cout << "bestmove " << e.move.ToString() << endl;
+	cout << "bestmove " << e.BestMove().ToString() << endl;
 	Hashes.clear();
 	return e;
 }
@@ -144,7 +144,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 			e = SearchQuiescence(board, level + 1, -beta, -alpha, nodeEval);
 		}
 		else {
-			e = eval{ nodeEval, Move(0, 0) };
+			e = eval(nodeEval);
 		}
 		if (Hashes.size() < HashSize) Hashes[hash] = e;
 		return e;
@@ -159,12 +159,12 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 
 	// Initalize variables
 	int bestScore = NoEval;
-	Move bestMove(0,0);
+	std::vector<Move> bestMoves;
 
 	// Generate moves - if there are no legal moves, we return the eval
 	std::vector<Move> legalMoves = board.GenerateLegalMoves(board.Turn);
 	if (legalMoves.size() == 0) {
-		eval e = eval{ nodeEval, Move(0, 0) };
+		eval e = eval(nodeEval);
 		if (Hashes.size() < HashSize) Hashes[hash] = e;
 		return e;
 	}
@@ -191,25 +191,26 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 		}
 		else {
 			childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -alpha-1, -alpha, get<0>(o));
-			if ((alpha < -get<0>(childEval)) && (-get<0>(childEval) < beta)) {
+			if ((alpha < -childEval.score) && (-childEval.score < beta)) {
 				childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
 			}
 		}
 		
-		int childScore = -get<0>(childEval);
-		Move childMove = get<1>(childEval);
+		int childScore = -childEval.score;
+		std::vector<Move> childMoves = childEval.moves;
 
 		if (childScore > bestScore) {
 			bestScore = childScore;
 			alpha = bestScore;
-			bestMove = get<1>(o);
+			bestMoves = childMoves;
+			bestMoves.push_back(get<1>(o));
 			if (alpha >= beta) break;
 		}
 
 		i++;
 	}
 
-	eval e = eval{ bestScore, bestMove };
+	eval e(bestScore, bestMoves);
 	if (Hashes.size() < HashSize) Hashes[hash] = e;
 	return e;
 
@@ -231,18 +232,18 @@ eval Engine::SearchQuiescence(Board board, int level, int alpha, int beta, int n
 
 	// Initalize variables
 	int bestScore = NoEval;
-	Move bestMove(0, 0);
+	std::vector<Move> bestMoves;
 
 	// Generate moves - if there are no capture moves, we return the eval
 	std::vector<Move> captureMoves = board.GenerateCaptureMoves(board.Turn);
 	if ((captureMoves.size() == 0) || (level >= Depth + 4)) {
-		eval e = eval{ nodeEval, Move(0, 0) };
+		eval e = eval(nodeEval);
 		if (Hashes.size() < HashSize) Hashes[hash] = e;
 		return e;
 	}
 
 	if (nodeEval >= beta) {
-		eval e = eval{ beta, Move(0, 0) };
+		eval e = eval(beta);
 		if (Hashes.size() < HashSize) Hashes[hash] = e;
 		return e;
 	}
@@ -250,7 +251,7 @@ eval Engine::SearchQuiescence(Board board, int level, int alpha, int beta, int n
 	// Delta pruning
 	// to do: increase limit for promotions
 	if (nodeEval < alpha - 950) {
-		eval e = eval{ alpha, Move(0, 0) };
+		eval e = eval(alpha);
 		if (Hashes.size() < HashSize) Hashes[hash] = e;
 		return e;
 	}
@@ -258,8 +259,6 @@ eval Engine::SearchQuiescence(Board board, int level, int alpha, int beta, int n
 	if (nodeEval > alpha) {
 		alpha = nodeEval;
 	}
-
-
 
 	// Move ordering
 	std::vector<std::tuple<int, Move, Board>> order = vector<std::tuple<int, Move, Board>>();
@@ -279,20 +278,22 @@ eval Engine::SearchQuiescence(Board board, int level, int alpha, int beta, int n
 	for (const std::tuple<int, Move, Board>& o : order) {
 
 		eval childEval = SearchQuiescence(get<2>(o), level + 1, -beta, -alpha, get<0>(o));
-		int childScore = -get<0>(childEval);
-		Move childMove = get<1>(childEval);
+
+		int childScore = -childEval.score;
+		std::vector<Move> childMoves = childEval.moves;
 
 		if (childScore > bestScore) {
 			bestScore = childScore;
 			alpha = bestScore;
-			bestMove = get<1>(o);
+			bestMoves = childMoves;
+			bestMoves.push_back(get<1>(o));
 			if (alpha >= beta) break;
 		}
 
 		i++;
 	}
 
-	eval e = eval{ bestScore, bestMove };
+	eval e(bestScore, bestMoves);
 	if (Hashes.size() < HashSize) Hashes[hash] = e;
 	return e;
 
@@ -593,8 +594,12 @@ void Engine::Start() {
 }
 
 void Engine::PrintInfo(Evaluation e) {
-	cout << "info depth " << e.depth << " seldepth " << e.seldepth << " score cp " << e.score << " nodes " << e.nodes << /* " qnodes " << e.qnodes << */ " nps " << e.nps 
-		<< " time " << e.time << " hashfull " << e.hashfull << " pv " << e.move.ToString() << endl;
+	cout << "info depth " << e.depth << " seldepth " << e.seldepth << " score cp " << e.score << " nodes " << e.nodes << /* " qnodes " << e.qnodes << */ " nps " << e.nps
+		<< " time " << e.time << " hashfull " << e.hashfull << " pv";
+	
+	for (auto iter = e.pv.rbegin(); iter != e.pv.rend(); ++iter)
+		cout << " " << iter->ToString();
+	cout << endl;
 }
 
 void Engine::Play() {
@@ -628,8 +633,8 @@ void Engine::Play() {
 			}
 		} else {
 			Evaluation e = Search(board, SearchParams());
-			board.Push(e.move);
-			cout << "Renegade plays " << e.move.ToString() << endl;
+			board.Push(e.BestMove());
+			cout << "Renegade plays " << e.BestMove().ToString() << endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 		}
 
