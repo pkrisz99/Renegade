@@ -37,7 +37,6 @@ public:
 	bool AreThereLegalMoves(int side);
 	bool IsLegalMove(Move m, int side);
 	void TryMove(Move move);
-	void RevertLastMove();
 	vector<Move> GenerateMoves(int side);
 	vector<Move> GenerateLegalMoves(int side);
 	vector<Move> GenerateCaptureMoves(int side);
@@ -78,8 +77,6 @@ public:
 	int FullmoveClock;
 	GameState State;
 	std::vector<unsigned __int64> PastHashes;
-
-	std::vector<BoardState> BoardStates;
 
 	// Board settings:
 	bool StartingPosition;

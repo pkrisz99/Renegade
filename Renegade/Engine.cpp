@@ -170,13 +170,12 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	}
 
 	// Move ordering
-	std::vector<std::tuple<int, Move>> order = vector<std::tuple<int, Move>>();
+	std::vector<std::tuple<int, Move, Board>> order = vector<std::tuple<int, Move, Board>>();
 	for (const Move& m : legalMoves) {
-		//Board b = board.Copy();
-		board.Push(m);
-		int interiorScore = StaticEvaluation(board, level);
-		board.RevertLastMove();
-		order.push_back({interiorScore, m});
+		Board b = board.Copy();
+		b.Push(m);
+		int interiorScore = StaticEvaluation(b, level);
+		order.push_back({interiorScore, m, b});
 	}
 	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
 		return get<0>(t1) < get<0>(t2);
@@ -184,21 +183,18 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	
 	// Iterate through legal moves
 	int i = 0;
-	for (const std::tuple<int, Move>&o : order) {
+	for (const std::tuple<int, Move, Board>&o : order) {
 
 		eval childEval;
-		board.Push(get<1>(o));
 		if (i == 0) {
-			childEval = SearchRecursive(board, depth - 1, level + 1, -beta, -alpha, get<0>(o));
+			childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
 		}
 		else {
-			childEval = SearchRecursive(board, depth - 1, level + 1, -alpha-1, -alpha, get<0>(o));
+			childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -alpha-1, -alpha, get<0>(o));
 			if ((alpha < -get<0>(childEval)) && (-get<0>(childEval) < beta)) {
-				childEval = SearchRecursive(board, depth - 1, level + 1, -beta, -alpha, get<0>(o));
+				childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
 			}
 		}
-		board.RevertLastMove();
-
 		
 		int childScore = -get<0>(childEval);
 		Move childMove = get<1>(childEval);
