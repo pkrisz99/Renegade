@@ -132,10 +132,10 @@ void Board::Draw(unsigned __int64 customBits = 0) {
 	string side = Turn ? "white" : "black";
 	cout << "    Move: " << FullmoveClock << " - " << side << " to play" << endl;;
 	
-	const string WhiteOnLightSqaure = "\033[31;47m";
-	const string WhiteOnDarkSqaure = "\033[31;43m";
-	const string BlackOnLightSqaure = "\033[30;47m";
-	const string BlackOnDarkSqaure = "\033[30;43m";
+	const string WhiteOnLightSquare = "\033[31;47m";
+	const string WhiteOnDarkSquare = "\033[31;43m";
+	const string BlackOnLightSquare = "\033[30;47m";
+	const string BlackOnDarkSquare = "\033[30;43m";
 	const string Default = "\033[0m";
 	const string WhiteOnTarget = "\033[31;45m";
 	const string BlackOnTarget = "\033[30;45m";
@@ -166,12 +166,12 @@ void Board::Draw(unsigned __int64 customBits = 0) {
 			string CellStyle;
 
 			if ((i + j) % 2 == 1) {
-				if (pieceColor == PieceColor::Black) CellStyle = BlackOnLightSqaure;
-				else CellStyle = WhiteOnLightSqaure;
+				if (pieceColor == PieceColor::Black) CellStyle = BlackOnLightSquare;
+				else CellStyle = WhiteOnLightSquare;
 			}
 			else {
-				if (pieceColor == PieceColor::Black) CellStyle = BlackOnDarkSqaure;
-				else CellStyle = WhiteOnDarkSqaure;
+				if (pieceColor == PieceColor::Black) CellStyle = BlackOnDarkSquare;
+				else CellStyle = WhiteOnDarkSquare;
 			}
 
 			if (CheckBit(customBits, (unsigned __int64)i * 8 + j)) {
@@ -1039,7 +1039,7 @@ bool Board::IsLegalMove(Move m, int side) {
 	bool blackLongCastle = BlackRightToLongCastle;
 	int fullmoveClock = FullmoveClock;
 	int halfmoveClock = HalfmoveClock;
-	unsigned __int64 attackedSqaures = AttackedSquares;
+	unsigned __int64 attackedSquares = AttackedSquares;
 	GameState state = State;
 
 	// Push move
@@ -1076,7 +1076,7 @@ bool Board::IsLegalMove(Move m, int side) {
 	FullmoveClock = fullmoveClock;
 	HalfmoveClock = halfmoveClock;
 	State = state;
-	AttackedSquares = attackedSqaures;
+	AttackedSquares = attackedSquares;
 
 
 	return !inCheck;
