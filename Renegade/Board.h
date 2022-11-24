@@ -17,7 +17,7 @@ using std::get;
 
 /*
 * This is the board representation of Renegade.
-* Square 0 = A1, 1 = A2 ... 8 = B1 ... 63 = H8
+* Square 0 = A1, 1 = B1 ... 8 = A2 ... 63 = H8
 */
 
 class Board
@@ -53,7 +53,7 @@ public:
 	unsigned __int64 GeneratePawnAttacks(int pieceColor, int from);
 	unsigned __int64 GenerateSlidingAttacks(int piece, int home);
 
-
+	// Board variables:
 	unsigned __int64 WhitePawnBits;
 	unsigned __int64 WhiteKnightBits;
 	unsigned __int64 WhiteBishopBits;
@@ -66,24 +66,21 @@ public:
 	unsigned __int64 BlackRookBits;
 	unsigned __int64 BlackQueenBits;
 	unsigned __int64 BlackKingBits;
-
 	unsigned __int64 AttackedSquares;
-
 	int EnPassantSquare;
 	bool WhiteRightToShortCastle;
 	bool WhiteRightToLongCastle;
 	bool BlackRightToShortCastle;
 	bool BlackRightToLongCastle;
 	bool Turn;
-	bool StartingPosition;
-
-	bool DrawCheck = true;
-
 	int HalfmoveClock;
 	int FullmoveClock;
-
 	GameState State;
 	std::vector<unsigned __int64> PastHashes;
+
+	// Board settings:
+	bool StartingPosition;
+	bool DrawCheck = true;
 
 };
 

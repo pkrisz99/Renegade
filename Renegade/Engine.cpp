@@ -469,31 +469,53 @@ void Engine::Start() {
 			if (parts[1] == "runtime") {
 				cout << "Timing test suite:" << endl;
 				__int64 nanoseconds = 0;
+				unsigned __int64 dummy = 0;
 				for (int i = 0; i < 100000; i++) {
 					auto t0 = Clock::now();
-					StaticEvaluation(board, 0);
+					dummy = StaticEvaluation(board, 0);
 					auto t1 = Clock::now();
 					nanoseconds += (t1 - t0).count();
+					if (dummy > 10000000) break;
 				}
 				cout << "- static evaluation: " << nanoseconds / 1e8 << " us" << endl;
 				nanoseconds = 0;
+				std::vector<Move> dummyMoves;
 				for (int i = 0; i < 100000; i++) {
 					auto t0 = Clock::now();
-					board.GenerateLegalMoves(board.Turn);
+					dummyMoves = board.GenerateLegalMoves(board.Turn);
 					auto t1 = Clock::now();
 					nanoseconds += (t1 - t0).count();
+					if (dummyMoves.size() < 0) break;
 				}
 				cout << "- legal move gen: " << nanoseconds / 1e8 << " us" << endl;
 				nanoseconds = 0;
-				unsigned __int64 dummy = 0;
+				dummy = 0;
+				for (int i = 0; i < 100000; i++) {
+					auto t0 = Clock::now();
+					board.GenerateMoves(board.Turn);
+					auto t1 = Clock::now();
+					nanoseconds += (t1 - t0).count();
+				}
+				cout << "- pseudo move gen: " << nanoseconds / 1e8 << " us" << endl;
+				nanoseconds = 0;
+				dummy = 0;
 				for (int i = 0; i < 100000; i++) {
 					auto t0 = Clock::now();
 					dummy = board.CalculateAttackedSquares(TurnToPieceColor(!board.Turn));
 					auto t1 = Clock::now();
 					nanoseconds += (t1 - t0).count();
-					if (dummy == 0) break; // impossible condition
+					if (dummy == 0) break; // impossible condition on purpose
 				}
 				cout << "- attack map calc: " << nanoseconds / 1e8 << " us" << endl;
+				dummy = 0ULL;
+				for (int i = 0; i < 100000; i++) {
+					auto t0 = Clock::now();
+					dummy = board.Hash(true);
+					auto t1 = Clock::now();
+					nanoseconds += (t1 - t0).count();
+					if (dummy == 0) break; // (almost) impossible condition on purpose
+				}
+				cout << "- hashing: " << nanoseconds / 1e8 << " us" << endl;
 				
 			}
 			continue;
