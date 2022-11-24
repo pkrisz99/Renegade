@@ -8,9 +8,8 @@
 	#include <stdio.h>
 #endif
 
-const std::string Version = "0.3.0";
+const std::string Version = "0.3.0+";
 
-// To do: add squares, files, and ranks
 
 namespace Side {
 	static const bool White = true;
@@ -66,8 +65,33 @@ namespace Piece {
 	static const int BlackKing = BlackPieceOffset + PieceType::King;
 }
 
-static const __int64 DarkSquares = 0b0101010101010101010101010101010101010101010101010101010101010101;
-static const __int64 LightSquares = 0b1010101010101010101010101010101010101010101010101010101010101010;
+namespace Bitboards {
+	static const unsigned __int64 DarkSquares =  0b0101010101010101010101010101010101010101010101010101010101010101;
+	static const unsigned __int64 LightSquares = 0b1010101010101010101010101010101010101010101010101010101010101010;
+	static const unsigned __int64 Rank8 =        0b1111111100000000000000000000000000000000000000000000000000000000;
+	static const unsigned __int64 Rank1 =        0b0000000000000000000000000000000000000000000000000000000011111111;
+	static const unsigned __int64 FileH =        0b1000000010000000100000001000000010000000100000001000000010000000;
+	static const unsigned __int64 FileA =        0b0000000100000001000000010000000100000001000000010000000100000001;
+}
+
+namespace Squares {
+	static const int A1 = 0;
+	static const int B1 = 1;
+	static const int C1 = 2;
+	static const int D1 = 3;
+	static const int E1 = 4;
+	static const int F1 = 5;
+	static const int G1 = 6;
+	static const int H1 = 7;
+	static const int A8 = 56;
+	static const int B8 = 57;
+	static const int C8 = 58;
+	static const int D8 = 59;
+	static const int E8 = 60;
+	static const int F8 = 61;
+	static const int G8 = 62;
+	static const int H8 = 63;
+}
 
 enum class GameState { Playing, WhiteVictory, BlackVictory, Draw };
 

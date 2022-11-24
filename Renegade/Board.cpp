@@ -239,16 +239,16 @@ unsigned __int64 Board::Hash(bool hashPlys) {
 
 int Board::GetPieceAt(int place) {
 	if (CheckBit(WhitePawnBits, place)) return Piece::WhitePawn;
+	if (CheckBit(BlackPawnBits, place)) return Piece::BlackPawn;
 	if (CheckBit(WhiteKnightBits, place)) return Piece::WhiteKnight;
 	if (CheckBit(WhiteBishopBits, place)) return Piece::WhiteBishop;
 	if (CheckBit(WhiteRookBits, place)) return Piece::WhiteRook;
-	if (CheckBit(WhiteQueenBits, place)) return Piece::WhiteQueen;
-	if (CheckBit(WhiteKingBits, place)) return Piece::WhiteKing;
-	if (CheckBit(BlackPawnBits, place)) return Piece::BlackPawn;
 	if (CheckBit(BlackKnightBits, place)) return Piece::BlackKnight;
 	if (CheckBit(BlackBishopBits, place)) return Piece::BlackBishop;
 	if (CheckBit(BlackRookBits, place)) return Piece::BlackRook;
+	if (CheckBit(WhiteQueenBits, place)) return Piece::WhiteQueen;
 	if (CheckBit(BlackQueenBits, place)) return Piece::BlackQueen;
+	if (CheckBit(WhiteKingBits, place)) return Piece::WhiteKing;
 	if (CheckBit(BlackKingBits, place)) return Piece::BlackKing;
 	return 0;
 }
@@ -452,11 +452,13 @@ void Board::Push(Move move) {
 	if ((State != GameState::Playing) || (!DrawCheck)) return;
 
 	// Threefold repetition check
-	int stateCount = std::count(PastHashes.begin(), PastHashes.end(), hash);
 	// optimalization idea: only check the last 'HalfmoveClock' moves?
-	if (stateCount >= 3) {
-		State = GameState::Draw;
-		return;
+	if (DrawCheck) {
+		int stateCount = std::count(PastHashes.begin(), PastHashes.end(), hash);
+		if (stateCount >= 3) {
+			State = GameState::Draw;
+			return;
+		}
 	}
 
 
@@ -473,10 +475,10 @@ void Board::Push(Move move) {
 	int BlackQueenCount = NonZeros(BlackQueenBits);
 	int WhitePieceCount = WhitePawnCount + WhiteKnightCount + WhiteBishopCount + WhiteRookCount + WhiteQueenCount;
 	int BlackPieceCount = BlackPawnCount + BlackKnightCount + BlackBishopCount + BlackRookCount + BlackQueenCount;
-	int WhiteLightBishopCount = NonZeros(WhiteBishopBits & LightSquares);
-	int WhiteDarkBishopCount = NonZeros(WhiteBishopBits & DarkSquares);
-	int BlackLightBishopCount = NonZeros(BlackBishopBits & LightSquares);
-	int BlackDarkBishopCount = NonZeros(BlackBishopBits & DarkSquares);
+	int WhiteLightBishopCount = NonZeros(WhiteBishopBits & Bitboards::LightSquares);
+	int WhiteDarkBishopCount = NonZeros(WhiteBishopBits & Bitboards::DarkSquares);
+	int BlackLightBishopCount = NonZeros(BlackBishopBits & Bitboards::LightSquares);
+	int BlackDarkBishopCount = NonZeros(BlackBishopBits & Bitboards::DarkSquares);
 
 	bool flag = false;
 	if (WhitePieceCount == 0 && BlackPieceCount == 0) flag = true;
@@ -808,48 +810,48 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 std::vector<Move> Board::GenerateCastlingMoves() {
 	std::vector<Move> list;
 	if ((Turn == Turn::White) && (WhiteRightToShortCastle)) {
-		bool empty_f1 = GetPieceAt(5) == 0;
-		bool empty_g1 = GetPieceAt(6) == 0;
-		bool safe_e1 = CheckBit(AttackedSquares, 4) == 0;
-		bool safe_f1 = CheckBit(AttackedSquares, 5) == 0;
-		bool safe_g1 = CheckBit(AttackedSquares, 6) == 0;
+		bool empty_f1 = GetPieceAt(Squares::F1) == 0;
+		bool empty_g1 = GetPieceAt(Squares::G1) == 0;
+		bool safe_e1 = CheckBit(AttackedSquares, Squares::E1) == 0;
+		bool safe_f1 = CheckBit(AttackedSquares, Squares::F1) == 0;
+		bool safe_g1 = CheckBit(AttackedSquares, Squares::G1) == 0;
 		if (empty_f1 && empty_g1 && safe_e1 && safe_f1 && safe_g1) {
-			Move m = Move(4, 6, MoveFlag::ShortCastle);
+			Move m = Move(Squares::E1, Squares::G1, MoveFlag::ShortCastle);
 			list.push_back(m);
 		}
 	}
 	if ((Turn == Turn::White) && (WhiteRightToLongCastle)) {
-		bool empty_b1 = GetPieceAt(1) == 0;
-		bool empty_c1 = GetPieceAt(2) == 0;
-		bool empty_d1 = GetPieceAt(3) == 0;
-		bool safe_c1 = CheckBit(AttackedSquares, 2) == 0;
-		bool safe_d1 = CheckBit(AttackedSquares, 3) == 0;
-		bool safe_e1 = CheckBit(AttackedSquares, 4) == 0;
+		bool empty_b1 = GetPieceAt(Squares::B1) == 0;
+		bool empty_c1 = GetPieceAt(Squares::C1) == 0;
+		bool empty_d1 = GetPieceAt(Squares::D1) == 0;
+		bool safe_c1 = CheckBit(AttackedSquares, Squares::C1) == 0;
+		bool safe_d1 = CheckBit(AttackedSquares, Squares::D1) == 0;
+		bool safe_e1 = CheckBit(AttackedSquares, Squares::E1) == 0;
 		if (empty_b1 && empty_c1 && empty_d1 && safe_c1 && safe_d1 && safe_e1) {
-			Move m = Move(4, 2, MoveFlag::LongCastle);
+			Move m = Move(Squares::E1, Squares::C1, MoveFlag::LongCastle);
 			list.push_back(m);
 		}
 	}
 	if ((Turn == Turn::Black) && (BlackRightToShortCastle)) {
-		bool empty_f8 = GetPieceAt(61) == 0;
-		bool empty_g8 = GetPieceAt(62) == 0;
-		bool safe_e8 = CheckBit(AttackedSquares, 60) == 0;
-		bool safe_f8 = CheckBit(AttackedSquares, 61) == 0;
-		bool safe_g8 = CheckBit(AttackedSquares, 62) == 0;
+		bool empty_f8 = GetPieceAt(Squares::F8) == 0;
+		bool empty_g8 = GetPieceAt(Squares::G8) == 0;
+		bool safe_e8 = CheckBit(AttackedSquares, Squares::E8) == 0;
+		bool safe_f8 = CheckBit(AttackedSquares, Squares::F8) == 0;
+		bool safe_g8 = CheckBit(AttackedSquares, Squares::G8) == 0;
 		if (empty_f8 && empty_g8 && safe_e8 && safe_f8 && safe_g8) {
 			Move m = Move(60, 62, MoveFlag::ShortCastle);
 			list.push_back(m);
 		}
 	}
 	if ((Turn == Turn::Black) && (BlackRightToLongCastle)) {
-		bool empty_b8 = GetPieceAt(57) == 0;
-		bool empty_c8 = GetPieceAt(58) == 0;
-		bool empty_d8 = GetPieceAt(59) == 0;
-		bool safe_c8 = CheckBit(AttackedSquares, 58) == 0;
-		bool safe_d8 = CheckBit(AttackedSquares, 59) == 0;
-		bool safe_e8 = CheckBit(AttackedSquares, 60) == 0;
+		bool empty_b8 = GetPieceAt(Squares::B8) == 0;
+		bool empty_c8 = GetPieceAt(Squares::C8) == 0;
+		bool empty_d8 = GetPieceAt(Squares::D8) == 0;
+		bool safe_c8 = CheckBit(AttackedSquares, Squares::C8) == 0;
+		bool safe_d8 = CheckBit(AttackedSquares, Squares::D8) == 0;
+		bool safe_e8 = CheckBit(AttackedSquares, Squares::E8) == 0;
 		if (empty_b8 && empty_c8 && empty_d8 && safe_c8 && safe_d8 && safe_e8) {
-			Move m = Move(60, 58, MoveFlag::LongCastle);
+			Move m = Move(Squares::E8, Squares::C8, MoveFlag::LongCastle);
 			list.push_back(m);
 		}
 	}
@@ -863,10 +865,10 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 		if (ColorOfPiece(piece) == colorOfPieces) {
 			int pieceType = TypeOfPiece(piece);
 			switch (pieceType) {
-			case PieceType::Pawn: {
+			/*case PieceType::Pawn: {
 				squares |= GeneratePawnAttacks(colorOfPieces, i);
 				break;
-			}
+			}*/
 			case PieceType::Knight: {
 				squares |= GenerateKnightAttacks(i);
 				break;
@@ -890,6 +892,30 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 			}
 		}
 	}
+
+	if (colorOfPieces == PieceColor::White) {
+		squares |= (WhitePawnBits & ~Bitboards::FileA) << 7;
+		squares |= (WhitePawnBits & ~Bitboards::FileH) << 9;
+	}
+	else {
+		squares |= (BlackPawnBits & ~Bitboards::FileA) >> 9;
+		squares |= (BlackPawnBits & ~Bitboards::FileH) >> 7;
+	}
+
+	if (EnPassantSquare != -1) {
+		unsigned __int64 encodedEP = 0ULL;
+		SetBitTrue(encodedEP, EnPassantSquare);
+		if (colorOfPieces == PieceColor::White) {
+			squares |= ((WhitePawnBits & ~Bitboards::FileA) >> 1) & encodedEP;
+			squares |= ((WhitePawnBits & ~Bitboards::FileH) << 1) & encodedEP;
+		}
+		else {
+			squares |= ((BlackPawnBits & ~Bitboards::FileA) >> 1) & encodedEP;
+			squares |= ((BlackPawnBits & ~Bitboards::FileH) << 1) & encodedEP;
+		}
+	}
+	
+
 	return squares;
 
 }
