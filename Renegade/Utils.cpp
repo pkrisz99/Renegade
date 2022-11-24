@@ -117,6 +117,31 @@ static std::string StateString(GameState s) {
 	if (s == GameState::Draw) return "Draw";
 }
 
+struct BoardState {
+	unsigned __int64 WhitePawnBits;
+	unsigned __int64 WhiteKnightBits;
+	unsigned __int64 WhiteBishopBits;
+	unsigned __int64 WhiteRookBits;
+	unsigned __int64 WhiteQueenBits;
+	unsigned __int64 WhiteKingBits;
+	unsigned __int64 BlackPawnBits;
+	unsigned __int64 BlackKnightBits;
+	unsigned __int64 BlackBishopBits;
+	unsigned __int64 BlackRookBits;
+	unsigned __int64 BlackQueenBits;
+	unsigned __int64 BlackKingBits;
+	unsigned __int64 AttackedSquares;
+	int EnPassantSquare;
+	bool WhiteRightToShortCastle;
+	bool WhiteRightToLongCastle;
+	bool BlackRightToShortCastle;
+	bool BlackRightToLongCastle;
+	bool Turn;
+	int HalfmoveClock;
+	int FullmoveClock;
+	GameState State;
+};
+
 static const std::string starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 

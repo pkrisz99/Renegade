@@ -125,6 +125,10 @@ Board::Board(const Board &b) {
 	for (unsigned __int64 ph : b.PastHashes) {
 		PastHashes.push_back(ph);
 	}
+	BoardStates = std::vector<BoardState>();
+	for (const BoardState &bs : b.BoardStates) {
+		BoardStates.push_back(bs);
+	}
 }
 
 void Board::Draw(unsigned __int64 customBits = 0) {
@@ -302,6 +306,7 @@ bool Board::PushUci(string ucistr) {
 }
 
 void Board::TryMove(Move move) {
+
 	
 	int piece = GetPieceAt(move.from);
 	int pieceColor = ColorOfPiece(piece);
@@ -415,6 +420,30 @@ void Board::TryMove(Move move) {
 }
 
 void Board::Push(Move move) {
+
+	BoardState old;
+	old.WhitePawnBits = WhitePawnBits;
+	old.WhiteKnightBits = WhiteKnightBits;
+	old.WhiteBishopBits = WhiteBishopBits;
+	old.WhiteRookBits = WhiteRookBits;
+	old.WhiteQueenBits = WhiteQueenBits;
+	old.WhiteKingBits = WhiteKingBits;
+	old.BlackPawnBits = BlackPawnBits;
+	old.BlackKnightBits = BlackKnightBits;
+	old.BlackBishopBits = BlackBishopBits;
+	old.BlackRookBits = BlackRookBits;
+	old.BlackQueenBits = BlackQueenBits;
+	old.BlackKingBits = BlackKingBits;
+	old.EnPassantSquare = EnPassantSquare;
+	old.WhiteRightToShortCastle = WhiteRightToShortCastle;
+	old.WhiteRightToLongCastle = WhiteRightToLongCastle;
+	old.BlackRightToShortCastle = BlackRightToShortCastle;
+	old.BlackRightToLongCastle = BlackRightToLongCastle;
+	old.FullmoveClock = FullmoveClock;
+	old.HalfmoveClock = HalfmoveClock;
+	old.State = State;
+	old.AttackedSquares = AttackedSquares;
+	BoardStates.push_back(old);
 
 	TryMove(move);
 
@@ -964,11 +993,11 @@ std::vector<Move> Board::GenerateMoves(int side) {
 
 		std::vector<Move> moves;
 		if (type == PieceType::Pawn) moves = GeneratePawnMoves(i);
-		if (type == PieceType::Knight) moves = GenerateKnightMoves(i);
-		if (type == PieceType::Bishop) moves = GenerateSlidingMoves(piece, i);
-		if (type == PieceType::Rook) moves = GenerateSlidingMoves(piece, i);
-		if (type == PieceType::Queen) moves = GenerateSlidingMoves(piece, i);
-		if (type == PieceType::King) {
+		else if (type == PieceType::Knight) moves = GenerateKnightMoves(i);
+		else if (type == PieceType::Bishop) moves = GenerateSlidingMoves(piece, i);
+		else if (type == PieceType::Rook) moves = GenerateSlidingMoves(piece, i);
+		else if (type == PieceType::Queen) moves = GenerateSlidingMoves(piece, i);
+		else if (type == PieceType::King) {
 			moves = GenerateKingMoves(i);
 			std::vector<Move> castlingMoves = GenerateCastlingMoves();
 			moves.insert(moves.end(), castlingMoves.begin(), castlingMoves.end());
@@ -1039,7 +1068,7 @@ bool Board::IsLegalMove(Move m, int side) {
 	bool blackLongCastle = BlackRightToLongCastle;
 	int fullmoveClock = FullmoveClock;
 	int halfmoveClock = HalfmoveClock;
-	unsigned __int64 attackedSqaures = AttackedSquares;
+	unsigned __int64 attackedSquares = AttackedSquares;
 	GameState state = State;
 
 	// Push move
@@ -1076,11 +1105,39 @@ bool Board::IsLegalMove(Move m, int side) {
 	FullmoveClock = fullmoveClock;
 	HalfmoveClock = halfmoveClock;
 	State = state;
-	AttackedSquares = attackedSqaures;
+	AttackedSquares = attackedSquares;
 
 
 	return !inCheck;
 	
+}
+
+void Board::RevertLastMove() {
+	BoardState last = BoardStates.back();
+	BoardStates.pop_back();
+
+	WhitePawnBits = last.WhitePawnBits;
+	WhiteKnightBits = last.WhiteKnightBits;
+	WhiteBishopBits = last.WhiteBishopBits;
+	WhiteRookBits = last.WhiteRookBits;
+	WhiteQueenBits = last.WhiteQueenBits;
+	WhiteKingBits = last.WhiteKingBits;
+	BlackPawnBits = last.BlackPawnBits;
+	BlackKnightBits = last.BlackKnightBits;
+	BlackBishopBits = last.BlackBishopBits;
+	BlackRookBits = last.BlackRookBits;
+	BlackQueenBits = last.BlackQueenBits;
+	BlackKingBits = last.BlackKingBits;
+	AttackedSquares = last.AttackedSquares;
+	EnPassantSquare = last.EnPassantSquare;
+	WhiteRightToShortCastle = last.WhiteRightToShortCastle;
+	WhiteRightToLongCastle = last.WhiteRightToLongCastle;
+	BlackRightToShortCastle = last.BlackRightToShortCastle;
+	BlackRightToLongCastle = last.BlackRightToLongCastle;
+	Turn = last.Turn;
+	HalfmoveClock = last.HalfmoveClock;
+	FullmoveClock = last.FullmoveClock;
+	State = last.State;
 }
 
 Board Board::Copy() {
