@@ -2,6 +2,7 @@
 
 Heuristics::Heuristics() {
 	HashedEntryCount = 0;
+	KillerMoves.reserve(100);
 }
 
 void Heuristics::AddEntry(unsigned __int64 hash, eval e, int level) {
@@ -27,4 +28,19 @@ std::tuple<bool, HashEntry>  Heuristics::RetrieveEntry(unsigned __int64 hash, in
 void Heuristics::ClearEntries() {
 	Hashes.clear();
 	HashedEntryCount = 0;
+	for (auto v : KillerMoves) {
+		v[0] = Move(0, 0);
+		v[1] = Move(0, 0);
+	}
+}
+
+void Heuristics::AddKillerMove(Move move, int level) {
+	KillerMoves[level][1] = KillerMoves[level][0];
+	KillerMoves[level][0] = move;
+}
+
+bool Heuristics::IsKillerMove(Move move, int level) {
+	if ((KillerMoves[level][0].from == move.from) && (KillerMoves[level][0].to == move.to)) return true;
+	if ((KillerMoves[level][1].from == move.from) && (KillerMoves[level][1].to == move.to)) return true;
+	return false;
 }

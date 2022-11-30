@@ -171,20 +171,25 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	}
 
 	// Move ordering
-	std::vector<std::tuple<int, Move, Board>> order = vector<std::tuple<int, Move, Board>>();
+	std::vector<std::tuple<int, Move, Board, int>> order = vector<std::tuple<int, Move, Board, int>>();
 	for (const Move& m : legalMoves) {
 		Board b = board.Copy();
 		b.Push(m);
 		int interiorScore = StaticEvaluation(b, level);
-		order.push_back({interiorScore, m, b});
+		int orderScore = interiorScore;
+		if (Heuristics.IsKillerMove(m, level)) {
+			orderScore -= 200000;
+			//cout << "kill" << endl;
+		}
+		order.push_back({interiorScore, m, b, orderScore});
 	}
 	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
-		return get<0>(t1) < get<0>(t2);
+		return get<3>(t1) < get<3>(t2);
 	});
 	
 	// Iterate through legal moves
 	int i = 0;
-	for (const std::tuple<int, Move, Board>&o : order) {
+	for (const std::tuple<int, Move, Board, int>&o : order) {
 
 		//eval childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
 
@@ -208,6 +213,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 			alpha = bestScore;
 			bestMoves = childMoves;
 			bestMoves.push_back(get<1>(o));
+			Heuristics.AddKillerMove(get<1>(o), level);
 			if (alpha >= beta) break;
 		}
 
