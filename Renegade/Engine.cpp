@@ -542,8 +542,9 @@ void Engine::Start() {
 		// Position command
 		if (parts[0] == "position") {
 
-			if (parts[1] == "startpos") {
-				board = Board(starting_fen);
+			if ((parts[1] == "startpos") || (parts[1] == "kiwipete")) {
+				if (parts[1] == "startpos") board = Board(starting_fen);
+				if (parts[1] == "kiwipete") board = Board(kiwipete_fen);
 				if (parts[2] == "moves") {
 					for (int i = 3; i < parts.size(); i++) {
 						bool r = board.PushUci(parts[i]);
