@@ -11,6 +11,7 @@ Engine::Engine() {
 	Settings.QSearch = false;
 	Settings.UseBook = true;
 	HashSize = 125000 * Settings.Hash;
+	//Heuristics = Heuristics();
 	InitOpeningBook();
 }
 
@@ -70,7 +71,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	if (myTime == -1) myTime = 2000;
 
 	auto startTime = Clock::now();
-	Hashes.reserve(HashSize);
+	//Hashes.reserve(HashSize);
 	int elapsedMs = 0;
 	int depth = 0;
 	EvaluatedNodes = 0;
@@ -102,10 +103,10 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	// Iterative deepening
 	Evaluation e = Evaluation();
 	while (!finished) {
+		Heuristics.ClearEntries();
 		depth += 1;
 		SelDepth = 0;
 		Depth = depth;
-		Hashes.clear();
 		eval result = SearchRecursive(board, depth, 1, NegativeInfinity, PositiveInfinity, NoEval);
 
 		// Check limits
@@ -122,39 +123,38 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 		e.qnodes = EvaluatedQuiescenceNodes;
 		e.time = elapsedMs;
 		e.nps = EvaluatedNodes * 1e9 / (currentTime - startTime).count();
-		e.hashfull = HashSize != 0 ? (Hashes.size() * 1000 / HashSize) : 0;
+		//e.hashfull = HashSize != 0 ? (Hashes.size() * 1000 / HashSize) : 0;
 		PrintInfo(e);
 	}
 	cout << "bestmove " << e.BestMove().ToString() << endl;
-	Hashes.clear();
+	//cout << std::size(Heuristics.Hashes) << " " << Heuristics.HashedEntryCount << endl;
+	Heuristics.ClearEntries();
 	return e;
 }
 
 eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta, int nodeEval) {
 
-	if (nodeEval == NoEval) nodeEval = StaticEvaluation(board, level);
+	if (nodeEval == NoEval) nodeEval = StaticEvaluation(board, Depth);
 
 	// Calculate hash
 	unsigned __int64 hash = board.Hash(true);
 
 	// Return result for terminal nodes
 	if (depth == 0) {
-		eval e;
-		if (Settings.QSearch) {
-			e = SearchQuiescence(board, level + 1, -beta, -alpha, nodeEval);
-		}
-		else {
-			e = eval(nodeEval);
-		}
-		if (Hashes.size() < HashSize) Hashes[hash] = e;
+		eval e = eval(nodeEval);
+		// e = SearchQuiescence(board, level + 1, -beta, -alpha, nodeEval);
+		//if (Hashes.size() < HashSize) Hashes[hash] = e;
+		//cout << "b" << endl;
+		Heuristics.AddEntry(hash, e, Depth);
 		return e;
 	}
 
 	// Check hash
-	auto it = Hashes.find(hash);
-	if (it != Hashes.end()) {
-		eval e = it->second;
-		return e;
+	std::tuple<bool, HashEntry> entry = Heuristics.RetrieveEntry(hash, Depth);
+	if (get<0>(entry)) {
+		//cout << "m" << endl;
+		std::vector<Move> m = std::vector<Move>();
+		return eval(get<1>(entry).score, get<1>(entry).moves);
 	}
 
 	// Initalize variables
@@ -165,7 +165,8 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	std::vector<Move> legalMoves = board.GenerateLegalMoves(board.Turn);
 	if (legalMoves.size() == 0) {
 		eval e = eval(nodeEval);
-		if (Hashes.size() < HashSize) Hashes[hash] = e;
+		//if (Hashes.size() < HashSize) Hashes[hash] = e;
+		Heuristics.AddEntry(hash, e, Depth);
 		return e;
 	}
 
@@ -185,6 +186,9 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	int i = 0;
 	for (const std::tuple<int, Move, Board>&o : order) {
 
+		//eval childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
+
+		
 		eval childEval;
 		if (i == 0) {
 			childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
@@ -211,11 +215,12 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	}
 
 	eval e(bestScore, bestMoves);
-	if (Hashes.size() < HashSize) Hashes[hash] = e;
-	return e;
 
+	Heuristics.AddEntry(hash, e, Depth);
+	return e;
 }
 
+/*
 eval Engine::SearchQuiescence(Board board, int level, int alpha, int beta, int nodeEval) {
 
 	//cout << level << endl;
@@ -298,6 +303,7 @@ eval Engine::SearchQuiescence(Board board, int level, int alpha, int beta, int n
 	return e;
 
 }
+*/
 
 int Engine::StaticEvaluation(Board board, int level) {
 	EvaluatedNodes += 1;
@@ -368,7 +374,7 @@ void Engine::Start() {
 			cout << "id author Krisztian Peocz" << endl;
 			cout << "option name Hash type spin default 4 min 0 max 256" << endl;
 			cout << "option name OwnBook type check default true" << endl;
-			cout << "option name QSearch type check default false" << endl;
+			//cout << "option name QSearch type check default false" << endl;
 			cout << "uciok" << endl;
 			continue;
 		}
@@ -448,16 +454,16 @@ void Engine::Start() {
 			if (parts[1] == "settings") {
 				cout << "Hash: " << Settings.Hash << endl;
 				cout << "OwnBook: " << Settings.UseBook << endl;
-				cout << "QSearch: " << Settings.QSearch << endl;
+				//cout << "QSearch: " << Settings.QSearch << endl;
 			}
-			if (parts[1] == "hashalloc") {
+			/*if (parts[1] == "hashalloc") {
 				cout << "Hash: " << endl;
 				cout << "- max items (C++):      " << Hashes.bucket_count() * Hashes.max_load_factor() << endl;
 				cout << "- max items (software): " << HashSize << endl;
 				cout << "- buckets:              " << Hashes.bucket_count() << endl;
 				cout << "- load factor:          " << Hashes.max_load_factor() << endl;
 				cout << "- setting:              " << Settings.Hash << endl;
-			}
+			}*/
 			if (parts[1] == "eval") {
 				cout << "Static evaluation: " << StaticEvaluation(board, 0) << endl;
 			}
@@ -594,7 +600,7 @@ void Engine::Start() {
 }
 
 void Engine::PrintInfo(Evaluation e) {
-	cout << "info depth " << e.depth << " seldepth " << e.seldepth << " score cp " << e.score << " nodes " << e.nodes << /* " qnodes " << e.qnodes << */ " nps " << e.nps
+	cout << "info depth " << e.depth /* << " seldepth " << e.seldepth*/ << " score cp " << e.score << " nodes " << e.nodes << /* " qnodes " << e.qnodes << */ " nps " << e.nps
 		<< " time " << e.time << " hashfull " << e.hashfull << " pv";
 	
 	for (auto iter = e.pv.rbegin(); iter != e.pv.rend(); ++iter)

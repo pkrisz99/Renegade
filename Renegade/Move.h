@@ -11,6 +11,7 @@ public:
 	Move(int from, int to, int flag);
 	void SetFlag(int flag);
 	std::string ToString();
+	bool IsNotNull();
 
 	int from;
 	int to;

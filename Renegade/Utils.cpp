@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <iostream>
 
 #ifdef _MSC_VER
 	#include <intrin.h>

@@ -44,3 +44,7 @@ std::string Move::ToString() {
 	else return { f1, r1, f2, r2, extra };
 
 }
+
+bool Move::IsNotNull() {
+	return (from != 0) || (to != 0);
+}
