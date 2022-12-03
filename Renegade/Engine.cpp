@@ -123,12 +123,15 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 		e.qnodes = EvaluatedQuiescenceNodes;
 		e.time = elapsedMs;
 		e.nps = EvaluatedNodes * 1e9 / (currentTime - startTime).count();
+		std::reverse(e.pv.begin(), e.pv.end());
 		//e.hashfull = HashSize != 0 ? (Hashes.size() * 1000 / HashSize) : 0;
-		PrintInfo(e);
+		PrintInfo(e);		
+		Heuristics.SetPv(e.pv);		
 	}
 	cout << "bestmove " << e.BestMove().ToString() << endl;
 	//cout << std::size(Heuristics.Hashes) << " " << Heuristics.HashedEntryCount << endl;
 	Heuristics.ClearEntries();
+	Heuristics.ClearPv();
 	return e;
 }
 
@@ -143,8 +146,6 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	if (depth == 0) {
 		eval e = eval(nodeEval);
 		// e = SearchQuiescence(board, level + 1, -beta, -alpha, nodeEval);
-		//if (Hashes.size() < HashSize) Hashes[hash] = e;
-		//cout << "b" << endl;
 		Heuristics.AddEntry(hash, e, Depth);
 		return e;
 	}
@@ -165,7 +166,6 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	std::vector<Move> legalMoves = board.GenerateLegalMoves(board.Turn);
 	if (legalMoves.size() == 0) {
 		eval e = eval(nodeEval);
-		//if (Hashes.size() < HashSize) Hashes[hash] = e;
 		Heuristics.AddEntry(hash, e, Depth);
 		return e;
 	}
@@ -176,25 +176,25 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 		Board b = board.Copy();
 		b.Push(m);
 		int interiorScore = StaticEvaluation(b, level);
-		int orderScore = interiorScore;
+		int orderScore = -interiorScore;
 		if (Heuristics.IsKillerMove(m, level)) {
-			orderScore -= 200000;
-			//cout << "kill" << endl;
+			//orderScore += 200;
+		}
+		if (Heuristics.IsPvMove(m, level)) {
+			//orderScore += 100;
 		}
 		order.push_back({interiorScore, m, b, orderScore});
 	}
 	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
-		return get<3>(t1) < get<3>(t2);
+		return get<3>(t1) > get<3>(t2);
 	});
 	
 	// Iterate through legal moves
 	int i = 0;
 	for (const std::tuple<int, Move, Board, int>&o : order) {
-
-		//eval childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
-
 		
-		eval childEval;
+		eval childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
+		/*
 		if (i == 0) {
 			childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
 		}
@@ -203,7 +203,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 			if ((alpha < -childEval.score) && (-childEval.score < beta)) {
 				childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
 			}
-		}
+		}*/
 		
 		int childScore = -childEval.score;
 		std::vector<Move> childMoves = childEval.moves;
@@ -213,8 +213,12 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 			alpha = bestScore;
 			bestMoves = childMoves;
 			bestMoves.push_back(get<1>(o));
-			Heuristics.AddKillerMove(get<1>(o), level);
-			if (alpha >= beta) break;
+			bool capture = board.GetPieceAt(get<1>(o).to) != Piece::None;
+			
+			if (alpha >= beta) {
+				if (true) Heuristics.AddKillerMove(get<1>(o), level);
+				break;
+			}
 		}
 
 		i++;
@@ -610,8 +614,8 @@ void Engine::PrintInfo(Evaluation e) {
 	cout << "info depth " << e.depth /* << " seldepth " << e.seldepth*/ << " score cp " << e.score << " nodes " << e.nodes << /* " qnodes " << e.qnodes << */ " nps " << e.nps
 		<< " time " << e.time << " hashfull " << e.hashfull << " pv";
 	
-	for (auto iter = e.pv.rbegin(); iter != e.pv.rend(); ++iter)
-		cout << " " << iter->ToString();
+	for (Move move : e.pv)
+		cout << " " << move.ToString();
 	cout << endl;
 }
 

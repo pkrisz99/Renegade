@@ -22,7 +22,7 @@ Evaluation::Evaluation(int s, std::vector<Move> p, int d, int sd, int n, int qn,
 }
 
 Move Evaluation::BestMove() {
-	return pv.back();
+	return pv.front();
 }
 
 eval::eval(int s) {
