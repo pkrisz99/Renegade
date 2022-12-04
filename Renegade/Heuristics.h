@@ -5,8 +5,15 @@
 #include <queue>
 #include <array>
 
+namespace ScoreType {
+	static const int Exact = 0;
+	static const int UpperBound = 1; // Alpha (fail-low)
+	static const int LowerBound = 2; // Beta (fail-high)
+};
+
 struct HashEntry {
 	int score;
+	int scoreType;
 	std::vector<Move> moves;
 };
 
@@ -14,7 +21,7 @@ class Heuristics
 {
 public:
 	Heuristics();
-	void AddEntry(unsigned __int64 hash, eval e);
+	void AddEntry(unsigned __int64 hash, eval e, int scoreType);
 	void AddKillerMove(Move m, int level);
 	bool IsKillerMove(Move move, int level);
 	bool IsPvMove(Move move, int level);
@@ -29,6 +36,6 @@ public:
 	std::vector<Move> PvMoves;
 
 	static const unsigned __int64 PlyHash = 0x2022b;
-	const HashEntry NoEntry = { -1, std::vector<Move>() };
+	const HashEntry NoEntry = { -1, ScoreType::Exact, std::vector<Move>() };
 };
 

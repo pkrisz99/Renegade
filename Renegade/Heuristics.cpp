@@ -6,12 +6,13 @@ Heuristics::Heuristics() {
 	PvMoves = std::vector<Move>();
 }
 
-void Heuristics::AddEntry(unsigned __int64 hash, eval e) {
+void Heuristics::AddEntry(unsigned __int64 hash, eval e, int scoreType) {
 	//int usage = Hashes.capacity() * sizeof(T) + sizeof(vec);
 	//std::cout << usage << std::endl;
 	HashedEntryCount += 1;
 	HashEntry entry;
 	entry.score = e.score;
+	entry.scoreType = scoreType;
 	if (e.moves.size() > 0) {
 		entry.moves = e.moves;
 	}
@@ -20,9 +21,10 @@ void Heuristics::AddEntry(unsigned __int64 hash, eval e) {
 
 std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(unsigned __int64 hash) {
 	if (Hashes.find(hash) != Hashes.end()) {
-		return { true, Hashes[hash] };
+		HashEntry entry = Hashes[hash];
+		return { true, entry };
 	}
-	return { false, NoEntry };
+	return { false,  NoEntry };
 }
 
 void Heuristics::ClearEntries() {

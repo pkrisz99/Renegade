@@ -137,11 +137,10 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 
 eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta) {
 
-
 	// Return result for terminal nodes
 	if (depth == 0) {
 		eval e = eval(StaticEvaluation(board, level));
-		//Heuristics.AddEntry(hash, e, Depth);
+		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
 	}
 
@@ -149,9 +148,14 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	unsigned __int64 hash = board.Hash(true);
 
 	// Check hash
-	std::tuple<bool, HashEntry> entry = Heuristics.RetrieveEntry(hash);
-	if (get<0>(entry)) {
-		//return eval(get<1>(entry).score, get<1>(entry).moves);
+	std::tuple<bool, HashEntry> retrieved = Heuristics.RetrieveEntry(hash);
+	if (get<0>(retrieved)) {
+		HashEntry entry = get<1>(retrieved);
+		int score = NoEval;
+		if (entry.scoreType == ScoreType::Exact) score = entry.score;
+		if (entry.scoreType == ScoreType::UpperBound) score = alpha;
+		if (entry.scoreType == ScoreType::LowerBound); score = beta;
+		return eval(score, entry.moves);
 	}
 
 	// Initalize variables
@@ -162,7 +166,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	std::vector<Move> legalMoves = board.GenerateLegalMoves(board.Turn);
 	if (legalMoves.size() == 0) {
 		eval e = eval(StaticEvaluation(board, level));
-		Heuristics.AddEntry(hash, e);
+		Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
 	}
 
@@ -200,6 +204,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	
 	// Iterate through legal moves
 	int i = 0;
+	int scoreType = ScoreType::UpperBound;
 	for (const std::tuple<Move, int>&o : order) {
 		Board b = board.Copy();
 		b.Push(get<0>(o));
@@ -221,22 +226,28 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 
 		if (childScore > bestScore) {
 			bestScore = childScore;
-			alpha = bestScore;
 			bestMoves = childMoves;
 			bestMoves.push_back(get<0>(o));
-			bool capture = b.GetPieceAt(get<0>(o).to) != Piece::None;
 			
-			if (alpha >= beta) {
+			if (bestScore >= beta) {
+				//bool capture = b.GetPieceAt(get<0>(o).to) != Piece::None;
 				if (true) Heuristics.AddKillerMove(get<0>(o), level);
-				break;
+				eval e(beta, bestMoves);
+				Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
+				return e;
+			}
+
+			if (bestScore > alpha) {
+				scoreType = ScoreType::Exact;
+				alpha = bestScore;
 			}
 		}
 
 		i++;
 	}
 
-	eval e(bestScore, bestMoves);
-	Heuristics.AddEntry(hash, e);
+	eval e(alpha, bestMoves);
+	Heuristics.AddEntry(hash, e, scoreType);
 	return e;
 }
 
