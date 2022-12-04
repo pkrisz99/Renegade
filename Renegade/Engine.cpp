@@ -81,7 +81,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	// Calculating the time allocated for searching
 	int searchTime;
 	if (myTime != -1) {
-		if (myTime > 120000) searchTime = 5000;
+		if (myTime > 120000) searchTime = 500000;
 		else if (myTime > 60000) searchTime = 2000;
 		else if (myTime > 30000) searchTime = 1000;
 		else searchTime = 200;
@@ -107,7 +107,7 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 		depth += 1;
 		SelDepth = 0;
 		Depth = depth;
-		eval result = SearchRecursive(board, depth, 1, NegativeInfinity, PositiveInfinity, NoEval);
+		eval result = SearchRecursive(board, depth, 1, NegativeInfinity, PositiveInfinity);
 
 		// Check limits
 		auto currentTime = Clock::now();
@@ -135,27 +135,23 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	return e;
 }
 
-eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta, int nodeEval) {
+eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta) {
 
-	if (nodeEval == NoEval) nodeEval = StaticEvaluation(board, Depth);
+
+	// Return result for terminal nodes
+	if (depth == 0) {
+		eval e = eval(StaticEvaluation(board, level));
+		//Heuristics.AddEntry(hash, e, Depth);
+		return e;
+	}
 
 	// Calculate hash
 	unsigned __int64 hash = board.Hash(true);
 
-	// Return result for terminal nodes
-	if (depth == 0) {
-		eval e = eval(nodeEval);
-		// e = SearchQuiescence(board, level + 1, -beta, -alpha, nodeEval);
-		Heuristics.AddEntry(hash, e, Depth);
-		return e;
-	}
-
 	// Check hash
-	std::tuple<bool, HashEntry> entry = Heuristics.RetrieveEntry(hash, Depth);
+	std::tuple<bool, HashEntry> entry = Heuristics.RetrieveEntry(hash);
 	if (get<0>(entry)) {
-		//cout << "m" << endl;
-		std::vector<Move> m = std::vector<Move>();
-		return eval(get<1>(entry).score, get<1>(entry).moves);
+		//return eval(get<1>(entry).score, get<1>(entry).moves);
 	}
 
 	// Initalize variables
@@ -165,43 +161,58 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	// Generate moves - if there are no legal moves, we return the eval
 	std::vector<Move> legalMoves = board.GenerateLegalMoves(board.Turn);
 	if (legalMoves.size() == 0) {
-		eval e = eval(nodeEval);
-		Heuristics.AddEntry(hash, e, Depth);
+		eval e = eval(StaticEvaluation(board, level));
+		Heuristics.AddEntry(hash, e);
 		return e;
 	}
 
 	// Move ordering
-	std::vector<std::tuple<int, Move, Board, int>> order = vector<std::tuple<int, Move, Board, int>>();
+	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
 	for (const Move& m : legalMoves) {
-		Board b = board.Copy();
-		b.Push(m);
-		int interiorScore = StaticEvaluation(b, level);
-		int orderScore = -interiorScore;
-		if (Heuristics.IsKillerMove(m, level)) {
-			//orderScore += 200;
+		
+		int orderScore = 0;
+		int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from)); // attackingPieceType
+		int capturedPiece = TypeOfPiece(board.GetPieceAt(m.to)); // attackedPieceType
+		const int values[] = { 0, 100, 300, 300, 500, 900, 10000 };
+		if (capturedPiece != PieceType::None) {
+			orderScore = values[capturedPiece] - values[attackingPiece] + 10;
 		}
-		if (Heuristics.IsPvMove(m, level)) {
-			//orderScore += 100;
-		}
-		order.push_back({interiorScore, m, b, orderScore});
+
+		if (m.flag == MoveFlag::PromotionToQueen) orderScore += 900;
+		else if (m.flag == MoveFlag::PromotionToRook) orderScore += 500;
+		else if (m.flag == MoveFlag::PromotionToBishop) orderScore += 300;
+		else if (m.flag == MoveFlag::PromotionToKnight) orderScore += 300;
+		
+		if (attackingPiece == PieceType::Pawn) orderScore += PawnPSQT[m.to] - PawnPSQT[m.from];
+		else if (attackingPiece == PieceType::Knight) orderScore += KnightPSQT[m.to] - KnightPSQT[m.from];
+		else if (attackingPiece == PieceType::Bishop) orderScore += BishopPSQT[m.to] - BishopPSQT[m.from];
+		else if (attackingPiece == PieceType::Rook) orderScore += RookPSQT[m.to] - RookPSQT[m.from];
+		else if (attackingPiece == PieceType::Queen) orderScore += QueenPSQT[m.to] - QueenPSQT[m.from];
+
+		if (Heuristics.IsKillerMove(m, level)) orderScore += 200000;
+		if (Heuristics.IsPvMove(m, level)) orderScore += 100000;
+
+		order.push_back({m, orderScore});
 	}
 	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
-		return get<3>(t1) > get<3>(t2);
+		return get<1>(t1) > get<1>(t2);
 	});
 	
 	// Iterate through legal moves
 	int i = 0;
-	for (const std::tuple<int, Move, Board, int>&o : order) {
+	for (const std::tuple<Move, int>&o : order) {
+		Board b = board.Copy();
+		b.Push(get<0>(o));
+		eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
 		
-		eval childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
 		/*
 		if (i == 0) {
-			childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
+			childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
 		}
 		else {
-			childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -alpha-1, -alpha, get<0>(o));
+			childEval = SearchRecursive(b, depth - 1, level + 1, -alpha-1, -alpha);
 			if ((alpha < -childEval.score) && (-childEval.score < beta)) {
-				childEval = SearchRecursive(get<2>(o), depth - 1, level + 1, -beta, -alpha, get<0>(o));
+				childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
 			}
 		}*/
 		
@@ -212,11 +223,11 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 			bestScore = childScore;
 			alpha = bestScore;
 			bestMoves = childMoves;
-			bestMoves.push_back(get<1>(o));
-			bool capture = board.GetPieceAt(get<1>(o).to) != Piece::None;
+			bestMoves.push_back(get<0>(o));
+			bool capture = b.GetPieceAt(get<0>(o).to) != Piece::None;
 			
 			if (alpha >= beta) {
-				if (true) Heuristics.AddKillerMove(get<1>(o), level);
+				if (true) Heuristics.AddKillerMove(get<0>(o), level);
 				break;
 			}
 		}
@@ -225,8 +236,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	}
 
 	eval e(bestScore, bestMoves);
-
-	Heuristics.AddEntry(hash, e, Depth);
+	Heuristics.AddEntry(hash, e);
 	return e;
 }
 
@@ -445,7 +455,10 @@ void Engine::Start() {
 				for (Move m : v) cout << m.ToString() << " ";
 				cout << endl;
 			}
-			if (parts[1] == "hash") cout << "Hash (polyglot): " << std::hex << board.Hash(false) << std::dec << endl;
+			if (parts[1] == "hash") {
+				cout << "Hash (polyglot): " << std::hex << board.Hash(false) << endl;
+				cout << "Hash (custom):   " << board.Hash(true) << std::dec << endl;
+			}
 			if (parts[1] == "book") {
 				if (parts[2] == "count") {
 					cout << "Book entries: " << BookEntries.size() << " (from: " << std::filesystem::current_path().string() << ")" << endl;

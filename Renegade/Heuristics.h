@@ -14,14 +14,14 @@ class Heuristics
 {
 public:
 	Heuristics();
-	void AddEntry(unsigned __int64 hash, eval e, int level);
+	void AddEntry(unsigned __int64 hash, eval e);
 	void AddKillerMove(Move m, int level);
 	bool IsKillerMove(Move move, int level);
 	bool IsPvMove(Move move, int level);
 	void SetPv(std::vector<Move> pv);
 	void ClearEntries();
 	void ClearPv();
-	std::tuple<bool, HashEntry> RetrieveEntry(unsigned __int64 hash, int level);
+	std::tuple<bool, HashEntry> RetrieveEntry(unsigned __int64 hash);
 
 	std::unordered_map<unsigned __int64, HashEntry> Hashes;
 	int HashedEntryCount;
