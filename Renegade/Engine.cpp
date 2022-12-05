@@ -194,7 +194,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 		int score = NoEval;
 		if (entry.scoreType == ScoreType::Exact) score = entry.score;
 		if (entry.scoreType == ScoreType::UpperBound) score = alpha;
-		if (entry.scoreType == ScoreType::LowerBound); score = beta;
+		if (entry.scoreType == ScoreType::LowerBound) score = beta;
 		return eval(score, entry.moves);
 	}
 
