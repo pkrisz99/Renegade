@@ -1,7 +1,5 @@
 #include "Engine.h"
 
-typedef std::chrono::high_resolution_clock Clock;
-
 Engine::Engine() {
 	EvaluatedNodes = 0;
 	EvaluatedQuiescenceNodes = 0;
@@ -53,7 +51,7 @@ int Engine::perft1(Board board, int depth, bool verbose) {
 }
 
 
-int Engine::perftRecursive(Board b, int depth) { 
+int Engine::perftRecursive(Board b, int depth) {
 	std::vector<Move> moves = b.GenerateLegalMoves(b.Turn);
 	if (depth == 1) return moves.size();
 	int count = 0;
@@ -63,33 +61,53 @@ int Engine::perftRecursive(Board b, int depth) {
 		count += perftRecursive(child, depth - 1);
 	}
 	return count;
+};
+
+// Time allocation
+SearchConstraints Engine::CalculateConstraints(SearchParams params, bool turn) {
+	SearchConstraints constraints = SearchConstraints();
+	constraints.MaxNodes = -1;
+	constraints.MaxDepth = -1;
+	constraints.SearchTimeMin = -1;
+	constraints.SearchTimeMax = -1;
+
+	// Nodes && depth && movetime 
+ 	if (params.nodes != 0) constraints.MaxNodes = params.nodes;
+	if (params.depth != 0) constraints.MaxDepth = params.depth;
+	if (params.movetime != 0) {
+		constraints.SearchTimeMin = params.movetime;
+		constraints.SearchTimeMax = params.movetime;
+	}
+	if ((constraints.MaxDepth != -1) || (constraints.MaxNodes != -1)) return constraints;
+	if ((constraints.SearchTimeMin != -1) || (constraints.SearchTimeMax != -1)) return constraints;
+
+	// Handle wtime, btime, winc, binc
+	int myTime = turn ? params.wtime : params.btime;
+	if (myTime != 0) {
+		int maxTime = myTime * 0.5;
+		int minTime = myTime * 0.015;
+		constraints.SearchTimeMax = maxTime;
+		constraints.SearchTimeMin = minTime;
+		return constraints;
+	}
+
+	// Default: go infinite
+	return constraints;
 }
 
-Evaluation Engine::Search(Board board, SearchParams params) {
-	
-	int myTime = board.Turn ? params.wtime: params.btime;
-	if (myTime == -1) myTime = 2000;
+Evaluation Engine::Search(Board board) {
 
-	auto startTime = Clock::now();
-	//Hashes.reserve(HashSize);
+	StartSearchTime = Clock::now();
 	int elapsedMs = 0;
-	int depth = 0;
 	EvaluatedNodes = 0;
 	EvaluatedQuiescenceNodes = 0;
+	Aborting = false;
+	Depth = 0;
 	bool finished = false;
 
-	// Calculating the time allocated for searching
-	int searchTime;
-	if (myTime != -1) {
-		if (myTime > 120000) searchTime = 500000;
-		else if (myTime > 60000) searchTime = 2000;
-		else if (myTime > 30000) searchTime = 1000;
-		else searchTime = 200;
-	}
-	else {
-		searchTime = 1000;
-	}
-
+	cout << "info string Renegade searching for time: (" << Constraints.SearchTimeMin << ".." << Constraints.SearchTimeMax
+		<< ") depth: " << Constraints.MaxDepth << " nodes: " << Constraints.MaxNodes << endl;
+	
 	// Check for book moves
 	if (Settings.UseBook) {
 		std::string bookMove = GetBookMove(board.Hash(false));
@@ -104,25 +122,32 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 	Evaluation e = Evaluation();
 	while (!finished) {
 		Heuristics.ClearEntries();
-		depth += 1;
+		Depth += 1;
 		SelDepth = 0;
-		Depth = depth;
-		eval result = SearchRecursive(board, depth, 1, NegativeInfinity, PositiveInfinity);
+		eval result = SearchRecursive(board, Depth, 1, NegativeInfinity, PositiveInfinity);
 
 		// Check limits
 		auto currentTime = Clock::now();
-		elapsedMs = (currentTime - startTime).count() / 1e6;
-		if (elapsedMs >= searchTime) finished = true;
+		elapsedMs = (currentTime - StartSearchTime).count() / 1e6;
+		if ((elapsedMs >= Constraints.SearchTimeMin) && (Constraints.SearchTimeMin != -1)) finished = true;
+		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
+		if (Aborting) {
+			e.nodes = EvaluatedNodes;
+			e.time = elapsedMs;
+			e.nps = EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count();
+			PrintInfo(e);
+			break;
+		}
 
 		// Send info
 		e.score = result.score;
 		e.pv = result.moves;
-		e.depth = depth;
+		e.depth = Depth;
 		e.seldepth = SelDepth;
 		e.nodes = EvaluatedNodes;
 		e.qnodes = EvaluatedQuiescenceNodes;
 		e.time = elapsedMs;
-		e.nps = EvaluatedNodes * 1e9 / (currentTime - startTime).count();
+		e.nps = EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count();
 		std::reverse(e.pv.begin(), e.pv.end());
 		//e.hashfull = HashSize != 0 ? (Hashes.size() * 1000 / HashSize) : 0;
 		PrintInfo(e);		
@@ -136,6 +161,21 @@ Evaluation Engine::Search(Board board, SearchParams params) {
 }
 
 eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta) {
+
+	// Check limits
+	if (Aborting) return eval();
+	if ((Constraints.MaxNodes != -1) && (EvaluatedNodes >= Constraints.MaxNodes) && (Depth > 1)) {
+		Aborting = true;
+		return eval();
+	}
+	if ((EvaluatedNodes % 1000 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
+		auto now = Clock::now();
+		int elapsedMs = (now - StartSearchTime).count() / 1e6;
+		if (elapsedMs >= Constraints.SearchTimeMax) {
+			Aborting = true;
+			return eval();
+		}
+	}
 
 	// Return result for terminal nodes
 	if (depth == 0) {
@@ -203,7 +243,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	});
 	
 	// Iterate through legal moves
-	int i = 0;
+	bool pvSearch = true;
 	int scoreType = ScoreType::UpperBound;
 	for (const std::tuple<Move, int>&o : order) {
 		Board b = board.Copy();
@@ -211,7 +251,8 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 		eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
 		
 		/*
-		if (i == 0) {
+		eval childEval;
+		if (pvSearch) {
 			childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
 		}
 		else {
@@ -240,101 +281,16 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 			if (bestScore > alpha) {
 				scoreType = ScoreType::Exact;
 				alpha = bestScore;
+				pvSearch = false;
 			}
 		}
 
-		i++;
 	}
 
 	eval e(alpha, bestMoves);
 	Heuristics.AddEntry(hash, e, scoreType);
 	return e;
 }
-
-/*
-eval Engine::SearchQuiescence(Board board, int level, int alpha, int beta, int nodeEval) {
-
-	//cout << level << endl;
-
-	// Calculate hash
-	unsigned __int64 hash = board.Hash(true);
-
-	// Check hash
-	auto it = Hashes.find(hash);
-	if (it != Hashes.end()) {
-		eval e = it->second;
-		return e;
-	}
-
-	// Initalize variables
-	int bestScore = NoEval;
-	std::vector<Move> bestMoves;
-
-	// Generate moves - if there are no capture moves, we return the eval
-	std::vector<Move> captureMoves = board.GenerateCaptureMoves(board.Turn);
-	if ((captureMoves.size() == 0) || (level >= Depth + 4)) {
-		eval e = eval(nodeEval);
-		if (Hashes.size() < HashSize) Hashes[hash] = e;
-		return e;
-	}
-
-	if (nodeEval >= beta) {
-		eval e = eval(beta);
-		if (Hashes.size() < HashSize) Hashes[hash] = e;
-		return e;
-	}
-
-	// Delta pruning
-	// to do: increase limit for promotions
-	if (nodeEval < alpha - 950) {
-		eval e = eval(alpha);
-		if (Hashes.size() < HashSize) Hashes[hash] = e;
-		return e;
-	}
-
-	if (nodeEval > alpha) {
-		alpha = nodeEval;
-	}
-
-	// Move ordering
-	std::vector<std::tuple<int, Move, Board>> order = vector<std::tuple<int, Move, Board>>();
-	for (const Move& m : captureMoves) {
-		Board b = board.Copy();
-		b.Push(m);
-		EvaluatedQuiescenceNodes += 1;
-		int interiorScore = StaticEvaluation(b, level);
-		order.push_back({ interiorScore, m, b});
-	}
-	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
-		return get<0>(t1) < get<0>(t2);
-	});
-
-	// Iterate through legal moves
-	int i = 0;
-	for (const std::tuple<int, Move, Board>& o : order) {
-
-		eval childEval = SearchQuiescence(get<2>(o), level + 1, -beta, -alpha, get<0>(o));
-
-		int childScore = -childEval.score;
-		std::vector<Move> childMoves = childEval.moves;
-
-		if (childScore > bestScore) {
-			bestScore = childScore;
-			alpha = bestScore;
-			bestMoves = childMoves;
-			bestMoves.push_back(get<1>(o));
-			if (alpha >= beta) break;
-		}
-
-		i++;
-	}
-
-	eval e(bestScore, bestMoves);
-	if (Hashes.size() < HashSize) Hashes[hash] = e;
-	return e;
-
-}
-*/
 
 int Engine::StaticEvaluation(Board board, int level) {
 	EvaluatedNodes += 1;
@@ -623,8 +579,29 @@ void Engine::Start() {
 					params.movestogo = stoi(parts[i + 1]);
 					i += 1;
 				}
+				if (parts[i] == "winc") {
+					params.winc = stoi(parts[i + 1]);
+					i += 1;
+				}
+				if (parts[i] == "binc") {
+					params.binc = stoi(parts[i + 1]);
+					i += 1;
+				}
+				if (parts[i] == "nodes") {
+					params.nodes = stoi(parts[i + 1]);
+					i += 1;
+				}
+				if (parts[i] == "depth") {
+					params.depth = stoi(parts[i + 1]);
+					i += 1;
+				}
+				if (parts[i] == "movetime") {
+					params.movetime = stoi(parts[i + 1]);
+					i += 1;
+				}
 			}
-			Search(board, params);
+			Constraints = CalculateConstraints(params, board.Turn);
+			Search(board);
 			continue;
 		}
 
@@ -673,7 +650,8 @@ void Engine::Play() {
 				success = board.PushUci(str);
 			}
 		} else {
-			Evaluation e = Search(board, SearchParams());
+			Evaluation e = Search(board);
+			Constraints = {3000, 3000, -1, -1};
 			board.Push(e.BestMove());
 			cout << "Renegade plays " << e.BestMove().ToString() << endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(3000));

@@ -20,6 +20,7 @@ void Heuristics::AddEntry(unsigned __int64 hash, eval e, int scoreType) {
 }
 
 std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(unsigned __int64 hash) {
+	// Using this changes the PV - no clue why
 	if (Hashes.find(hash) != Hashes.end()) {
 		HashEntry entry = Hashes[hash];
 		return { true, entry };

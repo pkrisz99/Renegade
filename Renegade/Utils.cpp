@@ -96,6 +96,42 @@ namespace Squares {
 
 enum class GameState { Playing, WhiteVictory, BlackVictory, Draw };
 
+struct SearchParams {
+	int wtime = 0;
+	int btime = 0;
+	int winc = 0;
+	int binc = 0;
+	int movestogo = 0;
+	int nodes = 0;
+	int depth = 0;
+	bool infinite = false;
+	//int mate;
+	int movetime = 0;
+	// searchmoves...
+};
+
+/*
+SearchParams::SearchParams() {
+	wtime = 0;
+	btime = 0;
+	winc = 0;
+	binc = 0;
+	movestogo = 0;
+	nodes = 0;
+	depth = 0;
+	infinite = false;
+	movetime = 0;
+}*/
+
+struct SearchConstraints {
+	int SearchTimeMin;
+	int SearchTimeMax;
+	int MaxDepth;
+	int MaxNodes;
+};
+
+
+
 struct BookEntry {
 	int from;
 	int to;
@@ -138,12 +174,6 @@ static int SideToPieceColor(bool side) {
 	if (side == Side::White) return PieceColor::White;
 	return PieceColor::Black;
 }
-
-struct SearchParams {
-	int wtime = -1;
-	int btime = -1;
-	int movestogo = -1;
-};
 
 static std::string PolyglotMoveToString(int from, int to, int promotion) {
 	int file1 = from % 8;
