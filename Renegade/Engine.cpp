@@ -192,10 +192,12 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	if (get<0>(retrieved)) {
 		HashEntry entry = get<1>(retrieved);
 		int score = NoEval;
+		bool usable = true;
 		if (entry.scoreType == ScoreType::Exact) score = entry.score;
-		if (entry.scoreType == ScoreType::UpperBound) score = alpha;
-		if (entry.scoreType == ScoreType::LowerBound) score = beta;
-		return eval(score, entry.moves);
+		else if ((entry.scoreType == ScoreType::UpperBound) && (entry.score <= alpha)) score = alpha;
+		else if ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta)) score = beta;
+		else usable = false;
+		if (usable) return eval(score, entry.moves);
 	}
 
 	// Initalize variables
@@ -243,16 +245,16 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	});
 	
 	// Iterate through legal moves
-	bool pvSearch = true;
+	bool pvSearch = false;
 	int scoreType = ScoreType::UpperBound;
 	for (const std::tuple<Move, int>&o : order) {
 		Board b = board.Copy();
 		b.Push(get<0>(o));
-		eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
+		//eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
 		
-		/*
+		// Principal variation search - questionable gains
 		eval childEval;
-		if (pvSearch) {
+		if (!pvSearch) {
 			childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
 		}
 		else {
@@ -260,7 +262,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 			if ((alpha < -childEval.score) && (-childEval.score < beta)) {
 				childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
 			}
-		}*/
+		}
 		
 		int childScore = -childEval.score;
 		std::vector<Move> childMoves = childEval.moves;
@@ -281,7 +283,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 			if (bestScore > alpha) {
 				scoreType = ScoreType::Exact;
 				alpha = bestScore;
-				pvSearch = false;
+				pvSearch = true;
 			}
 		}
 

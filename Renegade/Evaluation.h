@@ -2,9 +2,9 @@
 #include "Move.h"
 
 static const int MateEval = 1000000;
-static const int NoEval = -100000000;
-static const int NegativeInfinity = -100000000; // Inventing a new kind of math here
-static const int PositiveInfinity = 100000000;
+static const int NoEval = -666666666;
+static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
+static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
 
 struct eval {
