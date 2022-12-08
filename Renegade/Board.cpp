@@ -493,7 +493,7 @@ void Board::Push(Move move) {
 	if (State != GameState::Playing) return;
 	
 	// Check clocks...
-	if (HalfmoveClock == 100) State = GameState::Draw;
+	if (HalfmoveClock >= 100) State = GameState::Draw;
 
 }
 

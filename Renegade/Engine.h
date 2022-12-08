@@ -46,5 +46,6 @@ public:
 	SearchConstraints Constraints;
 	bool Aborting = false;
 	std::chrono::steady_clock::time_point StartSearchTime;
+	bool Explored;
 };
 

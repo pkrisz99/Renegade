@@ -124,6 +124,7 @@ Evaluation Engine::Search(Board board) {
 		Heuristics.ClearEntries();
 		Depth += 1;
 		SelDepth = 0;
+		Explored = true;
 		eval result = SearchRecursive(board, Depth, 1, NegativeInfinity, PositiveInfinity);
 
 		// Check limits
@@ -131,6 +132,7 @@ Evaluation Engine::Search(Board board) {
 		elapsedMs = (currentTime - StartSearchTime).count() / 1e6;
 		if ((elapsedMs >= Constraints.SearchTimeMin) && (Constraints.SearchTimeMin != -1)) finished = true;
 		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
+		if ((Depth >= 100) || (Explored)) finished = true;
 		if (Aborting) {
 			e.nodes = EvaluatedNodes;
 			e.time = elapsedMs;
@@ -180,6 +182,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	// Return result for terminal nodes
 	if (depth == 0) {
 		eval e = eval(StaticEvaluation(board, level));
+		if (board.State == GameState::Playing) Explored = false;
 		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
 	}
