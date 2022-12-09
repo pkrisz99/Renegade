@@ -5,9 +5,9 @@ Engine::Engine() {
 	EvaluatedQuiescenceNodes = 0;
 	SelDepth = 0;
 	Depth = 0;
-	Settings.Hash = 4;
+	Settings.Hash = 16;
 	Settings.QSearch = false;
-	Settings.UseBook = true;
+	Settings.UseBook = false;
 	HashSize = 125000 * Settings.Hash;
 	//Heuristics = Heuristics();
 	InitOpeningBook();
@@ -126,6 +126,7 @@ Evaluation Engine::Search(Board board) {
 		SelDepth = 0;
 		Explored = true;
 		eval result = SearchRecursive(board, Depth, 1, NegativeInfinity, PositiveInfinity);
+		Heuristics.SetHashSize(Settings.Hash);
 
 		// Check limits
 		auto currentTime = Clock::now();
@@ -137,6 +138,7 @@ Evaluation Engine::Search(Board board) {
 			e.nodes = EvaluatedNodes;
 			e.time = elapsedMs;
 			e.nps = EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count();
+			e.hashfull = Heuristics.GetHashfull();
 			PrintInfo(e);
 			break;
 		}
@@ -151,7 +153,7 @@ Evaluation Engine::Search(Board board) {
 		e.time = elapsedMs;
 		e.nps = EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count();
 		std::reverse(e.pv.begin(), e.pv.end());
-		//e.hashfull = HashSize != 0 ? (Hashes.size() * 1000 / HashSize) : 0;
+		e.hashfull = Heuristics.GetHashfull();
 		PrintInfo(e);		
 		Heuristics.SetPv(e.pv);		
 	}
@@ -364,8 +366,8 @@ void Engine::Start() {
 		if (cmd == "uci") {
 			cout << "id name Renegade " << Version << endl;
 			cout << "id author Krisztian Peocz" << endl;
-			cout << "option name Hash type spin default 4 min 0 max 256" << endl;
-			cout << "option name OwnBook type check default true" << endl;
+			cout << "option name Hash type spin default 16 min 0 max 256" << endl;
+			cout << "option name OwnBook type check default false" << endl;
 			//cout << "option name QSearch type check default false" << endl;
 			cout << "uciok" << endl;
 			continue;
@@ -451,14 +453,12 @@ void Engine::Start() {
 				cout << "OwnBook: " << Settings.UseBook << endl;
 				//cout << "QSearch: " << Settings.QSearch << endl;
 			}
-			/*if (parts[1] == "hashalloc") {
-				cout << "Hash: " << endl;
-				cout << "- max items (C++):      " << Hashes.bucket_count() * Hashes.max_load_factor() << endl;
-				cout << "- max items (software): " << HashSize << endl;
-				cout << "- buckets:              " << Hashes.bucket_count() << endl;
-				cout << "- load factor:          " << Hashes.max_load_factor() << endl;
-				cout << "- setting:              " << Settings.Hash << endl;
-			}*/
+			if (parts[1] == "sizeof") {
+				cout << "sizeof HashEntry:         " << sizeof(HashEntry) << endl;
+				cout << "sizeof Move:              " << sizeof(Move) << endl;
+				cout << "sizeof std::vector<Move>: " << sizeof(std::vector<Move>) << endl;
+				cout << "sizeof int:               " << sizeof(int) << endl;
+			}
 			if (parts[1] == "eval") {
 				cout << "Static evaluation: " << StaticEvaluation(board, 0) << endl;
 			}

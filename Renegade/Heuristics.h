@@ -29,11 +29,15 @@ public:
 	void ClearEntries();
 	void ClearPv();
 	std::tuple<bool, HashEntry> RetrieveEntry(unsigned __int64 hash);
+	void SetHashSize(int megabytes);
+	int GetHashfull();
 
 	std::unordered_map<unsigned __int64, HashEntry> Hashes;
 	int HashedEntryCount;
+	int ApproxHashSize;
 	std::vector<std::array<Move, 2>> KillerMoves;
 	std::vector<Move> PvMoves;
+	unsigned __int64 MaximumHashSize;
 
 	static const unsigned __int64 PlyHash = 0x2022b;
 	const HashEntry NoEntry = { -1, ScoreType::Exact, std::vector<Move>() };

@@ -2,6 +2,7 @@
 
 Heuristics::Heuristics() {
 	HashedEntryCount = 0;
+	ApproxHashSize = 0;
 	KillerMoves.reserve(100);
 	PvMoves = std::vector<Move>();
 }
@@ -9,6 +10,7 @@ Heuristics::Heuristics() {
 void Heuristics::AddEntry(unsigned __int64 hash, eval e, int scoreType) {
 	//int usage = Hashes.capacity() * sizeof(T) + sizeof(vec);
 	//std::cout << usage << std::endl;
+	if (ApproxHashSize + sizeof(HashEntry) >= MaximumHashSize) return;
 	HashedEntryCount += 1;
 	HashEntry entry;
 	entry.score = e.score;
@@ -17,10 +19,11 @@ void Heuristics::AddEntry(unsigned __int64 hash, eval e, int scoreType) {
 		entry.moves = e.moves;
 	}
 	Hashes[hash] = entry;
+	ApproxHashSize += sizeof(Move) * entry.moves.capacity() + sizeof(HashEntry); // Is this good?
 }
 
 std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(unsigned __int64 hash) {
-	// Using this changes the PV - no clue why
+
 	if (Hashes.find(hash) != Hashes.end()) {
 		HashEntry entry = Hashes[hash];
 		return { true, entry };
@@ -31,6 +34,7 @@ std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(unsigned __int64 hash) {
 void Heuristics::ClearEntries() {
 	Hashes.clear();
 	HashedEntryCount = 0;
+	ApproxHashSize = 0;
 
 	KillerMoves.clear();
 	KillerMoves.reserve(100);
@@ -66,4 +70,13 @@ bool Heuristics::IsPvMove(Move move, int level) {
 	if (level > PvMoves.size()) return false;
 	if ((move.from == PvMoves[level-1].from) && (move.to == PvMoves[level-1].to)) return true;
 	return false;
+}
+
+void Heuristics::SetHashSize(int megabytes) {
+	MaximumHashSize = megabytes * 1024ULL * 1024ULL;
+}
+
+int Heuristics::GetHashfull() {
+	if (MaximumHashSize <= 0) return -1;
+	return ApproxHashSize * 1000ULL / MaximumHashSize;
 }
