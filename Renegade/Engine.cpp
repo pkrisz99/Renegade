@@ -105,8 +105,8 @@ Evaluation Engine::Search(Board board) {
 	Depth = 0;
 	bool finished = false;
 
-	cout << "info string Renegade searching for time: (" << Constraints.SearchTimeMin << ".." << Constraints.SearchTimeMax
-		<< ") depth: " << Constraints.MaxDepth << " nodes: " << Constraints.MaxNodes << endl;
+	//cout << "info string Renegade searching for time: (" << Constraints.SearchTimeMin << ".." << Constraints.SearchTimeMax
+	//	<< ") depth: " << Constraints.MaxDepth << " nodes: " << Constraints.MaxNodes << endl;
 	
 	// Check for book moves
 	if (Settings.UseBook) {
@@ -210,16 +210,11 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	std::vector<Move> bestMoves;
 
 	// Generate moves - if there are no legal moves, we return the eval
-	std::vector<Move> legalMoves = board.GenerateLegalMoves(board.Turn);
-	if (legalMoves.size() == 0) {
-		eval e = eval(StaticEvaluation(board, level));
-		Heuristics.AddEntry(hash, e, ScoreType::Exact);
-		return e;
-	}
+	std::vector<Move> pseudoMoves = board.GenerateMoves(board.Turn);
 
 	// Move ordering
 	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
-	for (const Move& m : legalMoves) {
+	for (const Move& m : pseudoMoves) {
 		
 		int orderScore = 0;
 		int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from)); // attackingPieceType
@@ -252,7 +247,10 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	// Iterate through legal moves
 	bool pvSearch = false;
 	int scoreType = ScoreType::UpperBound;
+	int legalMoveCount = 0;
 	for (const std::tuple<Move, int>&o : order) {
+		if (!board.IsLegalMove(get<0>(o), board.Turn)) continue;
+		legalMoveCount += 1;
 		Board b = board.Copy();
 		b.Push(get<0>(o));
 		//eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
@@ -292,6 +290,13 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 			}
 		}
 
+	}
+
+	// Case when there was no legal move 
+	if (legalMoveCount == 0) {
+		eval e = eval(StaticEvaluation(board, level));
+		Heuristics.AddEntry(hash, e, ScoreType::Exact);
+		return e;
 	}
 
 	eval e(alpha, bestMoves);
