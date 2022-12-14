@@ -34,7 +34,7 @@ public:
 
 	std::unordered_map<unsigned __int64, HashEntry> Hashes;
 	int HashedEntryCount;
-	int ApproxHashSize;
+	__int64 ApproxHashSize;
 	std::vector<std::array<Move, 2>> KillerMoves;
 	std::vector<Move> PvMoves;
 	unsigned __int64 MaximumHashSize;

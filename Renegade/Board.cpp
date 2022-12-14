@@ -232,7 +232,7 @@ unsigned __int64 Board::Hash(bool hashPlys) {
 	if (Turn == Turn::White) hash ^= Zobrist[780];
 
 	// Ply number - internal only
-	if (hashPlys) hash ^= (FullmoveClock * 0xE0C754A);
+	if (hashPlys) hash ^= (FullmoveClock * 0xE0C754AULL);
 
 	return hash;
 }
@@ -454,7 +454,7 @@ void Board::Push(Move move) {
 	// Threefold repetition check
 	// optimalization idea: only check the last 'HalfmoveClock' moves?
 	if (DrawCheck) {
-		int stateCount = std::count(PastHashes.begin(), PastHashes.end(), hash);
+		__int64 stateCount = std::count(PastHashes.begin(), PastHashes.end(), hash);
 		if (stateCount >= 3) {
 			State = GameState::Draw;
 			return;
@@ -732,7 +732,6 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 				list.push_back(m);
 			}
 		}
-		return list;
 	}
 
 	if (color == PieceColor::Black) {
@@ -802,9 +801,9 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 				list.push_back(m);
 			}
 		}
-		return list;
 	}
 
+	return list;
 }
 
 std::vector<Move> Board::GenerateCastlingMoves() {
@@ -1016,8 +1015,8 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 	unsigned __int64 knightBits = colorOfPieces == PieceColor::White ? WhiteKnightBits : BlackKnightBits;
 	fill = 0;
 	while (NonZeros(knightBits) != 0) {
-		int sq = 64 - __lzcnt64(knightBits) - 1;
-		fill |= GenerateKnightAttacks(sq);
+		unsigned __int64 sq = 64 - __lzcnt64(knightBits) - 1;
+		fill |= GenerateKnightAttacks((int)sq);
 		SetBitFalse(knightBits, sq);
 	}
 	fill = fill & ~friendlyPieces;
@@ -1074,7 +1073,7 @@ std::vector<Move> Board::GenerateCaptureMoves(int side) { // + todo: check for p
 			unsigned __int64 opponentOccupance = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 			if (CheckBit(opponentOccupance, m.to)) CaptureMoves.push_back(m);
 		}
-		else {
+		else if (side == Side::Black) {
 			unsigned __int64 opponentOccupance = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
 			if (CheckBit(opponentOccupance, m.to)) CaptureMoves.push_back(m);
 		}

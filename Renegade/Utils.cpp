@@ -206,7 +206,7 @@ static std::string lowercase(std::string str) {
 // https://stackoverflow.com/questions/4244274/how-do-i-count-the-number-of-zero-bits-in-an-integer
 static int NonZeros(unsigned __int64 number) {
 	#ifdef _MSC_VER
-		return __popcnt64(number);
+		return (int)__popcnt64(number);
 	#else
 		return __builtin_popcount(number); // likely wrong
 	#endif

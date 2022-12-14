@@ -78,5 +78,5 @@ void Heuristics::SetHashSize(int megabytes) {
 
 int Heuristics::GetHashfull() {
 	if (MaximumHashSize <= 0) return -1;
-	return ApproxHashSize * 1000ULL / MaximumHashSize;
+	return (int)(ApproxHashSize * 1000ULL / MaximumHashSize);
 }

@@ -1,22 +1,30 @@
-// Renegade chess engine
+// Renegade chess engine - a lighthearted attempt at creating a chess engine from scratch
 // Since 2022
+
+// Files:
+// - Engine.cpp     : handles search, communication and interfacing
+// - Board.cpp      : board representation and move generation
+// - Heuristics.cpp : collection of methods to make search more efficient (e.g. transposition table stuff)
+// - Move.cpp       : move representation
+// - Evaluation.cpp : evaluation object
+// - Utils.cpp      : other misc functions and shared variables
+
+// Requirements:
+// Processors released after 2013:
+// - Intel Haswell (Core 4th gen)
+// - AMD Piledriver
+// The code currently uses bit manipulation instructions, thus requiring a recent-ish CPU.
+// It is only at a few places, so substituting them for a more compatible method shouldn't
+// be terribly difficult.
+
+// Compilation:
+// Renegade is written using Visual Studio 2019 ... 
+
 
 #include "Engine.h"
 
 int main() {
-
     Engine engine = Engine();
     engine.Start();
     return 0;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file

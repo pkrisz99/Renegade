@@ -24,7 +24,7 @@ void Engine::perft(Board board, int depth, bool verbose) {
 	auto t0 = Clock::now();
 	int r = perft1(b, depth, verbose);
 	auto t1 = Clock::now();
-	float seconds = (t1 - t0).count() / 1e9;
+	float seconds = (float)((t1 - t0).count() / 1e9);
 	float speed = r / seconds / 1000000;
 	if (verbose) cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps" << endl;
 	else cout << r << endl;
@@ -53,7 +53,7 @@ int Engine::perft1(Board board, int depth, bool verbose) {
 
 int Engine::perftRecursive(Board b, int depth) {
 	std::vector<Move> moves = b.GenerateLegalMoves(b.Turn);
-	if (depth == 1) return moves.size();
+	if (depth == 1) return (int)moves.size();
 	int count = 0;
 	for (const Move& m : moves) {
 		Board child = b.Copy();
@@ -84,8 +84,8 @@ SearchConstraints Engine::CalculateConstraints(SearchParams params, bool turn) {
 	// Handle wtime, btime, winc, binc
 	int myTime = turn ? params.wtime : params.btime;
 	if (myTime != 0) {
-		int maxTime = myTime * 0.5;
-		int minTime = myTime * 0.015;
+		int maxTime = (int)(myTime * 0.5);
+		int minTime = (int)(myTime * 0.015);
 		constraints.SearchTimeMax = maxTime;
 		constraints.SearchTimeMin = minTime;
 		return constraints;
@@ -130,14 +130,14 @@ Evaluation Engine::Search(Board board) {
 
 		// Check limits
 		auto currentTime = Clock::now();
-		elapsedMs = (currentTime - StartSearchTime).count() / 1e6;
+		elapsedMs = (int) ((currentTime - StartSearchTime).count() / 1e6);
 		if ((elapsedMs >= Constraints.SearchTimeMin) && (Constraints.SearchTimeMin != -1)) finished = true;
 		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
 		if ((Depth >= 100) || (Explored)) finished = true;
 		if (Aborting) {
 			e.nodes = EvaluatedNodes;
 			e.time = elapsedMs;
-			e.nps = EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count();
+			e.nps = (int)(EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count());
 			e.hashfull = Heuristics.GetHashfull();
 			PrintInfo(e);
 			break;
@@ -151,7 +151,7 @@ Evaluation Engine::Search(Board board) {
 		e.nodes = EvaluatedNodes;
 		e.qnodes = EvaluatedQuiescenceNodes;
 		e.time = elapsedMs;
-		e.nps = EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count();
+		e.nps = (int)(EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count());
 		std::reverse(e.pv.begin(), e.pv.end());
 		e.hashfull = Heuristics.GetHashfull();
 		PrintInfo(e);		
@@ -174,7 +174,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	}
 	if ((EvaluatedNodes % 1000 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
 		auto now = Clock::now();
-		int elapsedMs = (now - StartSearchTime).count() / 1e6;
+		int elapsedMs = (int)((now - StartSearchTime).count() / 1e6);
 		if (elapsedMs >= Constraints.SearchTimeMax) {
 			Aborting = true;
 			return eval();
