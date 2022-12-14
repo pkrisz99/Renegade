@@ -7,6 +7,7 @@
 #include <sstream>
 #include "Move.h"
 #include "Utils.cpp"
+#include <intrin.h>
 
 using std::cout;
 using std::endl;

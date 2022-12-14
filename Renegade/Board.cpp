@@ -497,13 +497,13 @@ void Board::Push(Move move) {
 
 }
 
-unsigned unsigned __int64 Board::GenerateKnightAttacks(int from) {
-	unsigned unsigned __int64 squares = 0ULL;
+unsigned __int64 Board::GenerateKnightAttacks(int from) {
+	unsigned __int64 squares = 0ULL;
 	return KnightMoveBits[from];
 }
 
-unsigned unsigned __int64 Board::GenerateKingAttacks(int from) {
-	unsigned unsigned __int64 squares = 0ULL;
+unsigned __int64 Board::GenerateKingAttacks(int from) {
+	unsigned __int64 squares = 0ULL;
 	return KingMoveBits[from];
 }
 
@@ -878,23 +878,6 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 		friendlyPieces = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 	}
 
-	for (int i = 0; i < 64; i++) {
-		int piece = GetPieceAt(i);
-		if (ColorOfPiece(piece) == colorOfPieces) {
-			int pieceType = TypeOfPiece(piece);
-			switch (pieceType) {
-			case PieceType::Knight: {
-				squares |= GenerateKnightAttacks(i);
-				break;
-			}
-			case PieceType::King: {
-				squares |= GenerateKingAttacks(i);
-				break;
-			}
-			}
-		}
-	}
-
 	// Fill left
 	unsigned __int64 boundMask = ~Bitboards::FileA;
 	unsigned __int64 propagatingPieces = parallelSliders;
@@ -1015,6 +998,30 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 	fill |= ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
 	squares |= fill;
 
+	// King attack gen
+	unsigned __int64 kingBits = colorOfPieces == PieceColor::White ? WhiteKingBits : BlackKingBits;
+	fill = 0;
+	fill |= (kingBits & ~Bitboards::FileH) << 1;
+	fill |= (kingBits & ~Bitboards::FileA) >> 1;
+	fill |= (kingBits & ~Bitboards::Rank8) << 8;
+	fill |= (kingBits & ~Bitboards::Rank1) >> 8;
+	fill |= (kingBits & ~Bitboards::FileA & ~Bitboards::Rank8) << 7;
+	fill |= (kingBits & ~Bitboards::FileH & ~Bitboards::Rank8) << 9;
+	fill |= (kingBits & ~Bitboards::FileH & ~Bitboards::Rank1) >> 7;
+	fill |= (kingBits & ~Bitboards::FileA & ~Bitboards::Rank1) >> 9;
+	fill = fill & ~friendlyPieces;
+	squares |= fill;
+
+	// Knight attack gen: +6, +10, +15, +17
+	unsigned __int64 knightBits = colorOfPieces == PieceColor::White ? WhiteKnightBits : BlackKnightBits;
+	fill = 0;
+	while (NonZeros(knightBits) != 0) {
+		int sq = 64 - __lzcnt64(knightBits) - 1;
+		fill |= GenerateKnightAttacks(sq);
+		SetBitFalse(knightBits, sq);
+	}
+	fill = fill & ~friendlyPieces;
+	squares |= fill;
 
 	if (colorOfPieces == PieceColor::White) {
 		squares |= (WhitePawnBits & ~Bitboards::FileA) << 7;

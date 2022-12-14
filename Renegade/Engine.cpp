@@ -25,8 +25,8 @@ void Engine::perft(Board board, int depth, bool verbose) {
 	int r = perft1(b, depth, verbose);
 	auto t1 = Clock::now();
 	float seconds = (t1 - t0).count() / 1e9;
-	float speed = r / seconds / 1000;
-	if (verbose) cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(3) << std::fixed << seconds << " s | " << std::setprecision(1) << speed << "kN/s" << endl;
+	float speed = r / seconds / 1000000;
+	if (verbose) cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps" << endl;
 	else cout << r << endl;
 }
 
