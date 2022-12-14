@@ -695,10 +695,10 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 				Move m2 = Move(home, target, MoveFlag::PromotionToBishop);
 				Move m3 = Move(home, target, MoveFlag::PromotionToRook);
 				Move m4 = Move(home, target, MoveFlag::PromotionToQueen);
-				list.push_back(m1);
-				list.push_back(m2);
-				list.push_back(m3);
 				list.push_back(m4);
+				list.push_back(m3);
+				list.push_back(m2);
+				list.push_back(m1);
 			}
 		}
 
@@ -715,10 +715,10 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 					Move m2 = Move(home, target, MoveFlag::PromotionToBishop);
 					Move m3 = Move(home, target, MoveFlag::PromotionToRook);
 					Move m4 = Move(home, target, MoveFlag::PromotionToQueen);
-					list.push_back(m1);
-					list.push_back(m2);
-					list.push_back(m3);
 					list.push_back(m4);
+					list.push_back(m3);
+					list.push_back(m2);
+					list.push_back(m1);
 				}
 			}
 		}
@@ -747,10 +747,10 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 				Move m2 = Move(home, target, MoveFlag::PromotionToBishop);
 				Move m3 = Move(home, target, MoveFlag::PromotionToRook);
 				Move m4 = Move(home, target, MoveFlag::PromotionToQueen);
-				list.push_back(m1);
-				list.push_back(m2);
-				list.push_back(m3);
 				list.push_back(m4);
+				list.push_back(m3);
+				list.push_back(m2);
+				list.push_back(m1);
 			}
 		}
 
@@ -765,10 +765,10 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 				Move m2 = Move(home, target, MoveFlag::PromotionToBishop);
 				Move m3 = Move(home, target, MoveFlag::PromotionToRook);
 				Move m4 = Move(home, target, MoveFlag::PromotionToQueen);
-				list.push_back(m1);
-				list.push_back(m2);
-				list.push_back(m3);
 				list.push_back(m4);
+				list.push_back(m3);
+				list.push_back(m2);
+				list.push_back(m1);
 			}
 		}
 
@@ -785,10 +785,10 @@ std::vector<Move> Board::GeneratePawnMoves(int home) {
 					Move m2 = Move(home, target, MoveFlag::PromotionToBishop);
 					Move m3 = Move(home, target, MoveFlag::PromotionToRook);
 					Move m4 = Move(home, target, MoveFlag::PromotionToQueen);
-					list.push_back(m1);
-					list.push_back(m2);
-					list.push_back(m3);
 					list.push_back(m4);
+					list.push_back(m3);
+					list.push_back(m2);
+					list.push_back(m1);
 				}
 			}
 		}
@@ -860,29 +860,31 @@ std::vector<Move> Board::GenerateCastlingMoves() {
 
 unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 	unsigned __int64 squares = 0ULL;
+	unsigned __int64 parallelSliders = 0;
+	unsigned __int64 diagonalSliders = 0;
+	unsigned __int64 friendlyPieces = 0;
+	unsigned __int64 opponentPieces = 0;
+
+	if (colorOfPieces == PieceColor::White) {
+		parallelSliders = WhiteRookBits | WhiteQueenBits;
+		diagonalSliders = WhiteBishopBits | WhiteQueenBits;
+		friendlyPieces = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
+		opponentPieces = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
+	}
+	else {
+		parallelSliders = BlackRookBits | BlackQueenBits;
+		diagonalSliders = BlackBishopBits | BlackQueenBits;
+		opponentPieces = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
+		friendlyPieces = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
+	}
+
 	for (int i = 0; i < 64; i++) {
 		int piece = GetPieceAt(i);
 		if (ColorOfPiece(piece) == colorOfPieces) {
 			int pieceType = TypeOfPiece(piece);
 			switch (pieceType) {
-			/*case PieceType::Pawn: {
-				squares |= GeneratePawnAttacks(colorOfPieces, i);
-				break;
-			}*/
 			case PieceType::Knight: {
 				squares |= GenerateKnightAttacks(i);
-				break;
-			}
-			case PieceType::Bishop: {
-				squares |= GenerateSlidingAttacks(piece, i);
-				break;
-			}
-			case PieceType::Rook: {
-				squares |= GenerateSlidingAttacks(piece, i);
-				break;
-			}
-			case PieceType::Queen: {
-				squares |= GenerateSlidingAttacks(piece, i);
 				break;
 			}
 			case PieceType::King: {
@@ -892,6 +894,127 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 			}
 		}
 	}
+
+	// Fill left
+	unsigned __int64 boundMask = ~Bitboards::FileA;
+	unsigned __int64 propagatingPieces = parallelSliders;
+	unsigned __int64 blockingFriends = friendlyPieces & ~propagatingPieces;
+	int direction = 1;
+	unsigned __int64 fill = ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
+	for (int i = 0; i < 7; i++) {
+		fill = fill & boundMask;
+		fill |= fill >> direction;
+		fill = fill & ~blockingFriends & ~(opponentPieces >> direction);
+	}
+	fill |= ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
+	fill = fill & ~friendlyPieces;
+	squares |= fill;
+
+	// Fill down
+	boundMask = ~Bitboards::Rank1;
+	propagatingPieces = parallelSliders;
+	blockingFriends = friendlyPieces & ~propagatingPieces;
+	direction = 8;
+	fill = ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
+	for (int i = 0; i < 7; i++) {
+		fill = fill & boundMask;
+		fill |= fill >> direction;
+		fill = fill & ~blockingFriends & ~(opponentPieces >> direction);
+	}
+	fill |= ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
+	fill = fill & ~friendlyPieces;
+	squares |= fill;
+
+	// Fill right
+	boundMask = ~Bitboards::FileH;
+	propagatingPieces = parallelSliders;
+	blockingFriends = friendlyPieces & ~propagatingPieces;
+	direction = 1;
+	fill = ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
+	for (int i = 0; i < 7; i++) {
+		fill = fill & boundMask;
+		fill |= fill << direction;
+		fill = fill & ~blockingFriends & ~(opponentPieces << direction);
+	}
+	fill |= ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
+	fill = fill & ~friendlyPieces;
+	squares |= fill;
+
+	// Fill up
+	boundMask = ~Bitboards::Rank8;
+	propagatingPieces = parallelSliders;
+	blockingFriends = friendlyPieces & ~propagatingPieces;
+	direction = 8;
+	fill = ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
+	for (int i = 0; i < 7; i++) {
+		fill = fill & boundMask;
+		fill |= fill << direction;
+		fill = fill & ~blockingFriends & ~(opponentPieces << direction);
+	}
+	fill = fill & ~friendlyPieces;
+	fill |= ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
+	squares |= fill;
+
+	// Fill right down
+	boundMask = ~Bitboards::FileH & ~Bitboards::Rank1;
+	propagatingPieces = diagonalSliders;
+	blockingFriends = friendlyPieces & ~propagatingPieces;
+	direction = 7;
+	fill = ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
+	for (int i = 0; i < 7; i++) {
+		fill = fill & boundMask;
+		fill |= fill >> direction;
+		fill = fill & ~blockingFriends & ~(opponentPieces >> direction);
+	}
+	fill = fill & ~friendlyPieces;
+	fill |= ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
+	squares |= fill;
+
+	// Fill left down
+	boundMask = ~Bitboards::FileA & ~Bitboards::Rank1;
+	propagatingPieces = diagonalSliders;
+	blockingFriends = friendlyPieces & ~propagatingPieces;
+	direction = 9;
+	fill = ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
+	for (int i = 0; i < 7; i++) {
+		fill = fill & boundMask;
+		fill |= fill >> direction;
+		fill = fill & ~blockingFriends & ~(opponentPieces >> direction);
+	}
+	fill |= ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
+	fill = fill & ~friendlyPieces;
+	squares |= fill;
+
+	// Fill right up
+	boundMask = ~Bitboards::FileH & ~Bitboards::Rank8;
+	propagatingPieces = diagonalSliders;
+	blockingFriends = friendlyPieces & ~propagatingPieces;
+	direction = 9;
+	fill = ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
+	for (int i = 0; i < 7; i++) {
+		fill = fill & boundMask;
+		fill |= fill << direction;
+		fill = fill & ~blockingFriends & ~(opponentPieces << direction);
+	}
+	fill |= ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
+	fill = fill & ~friendlyPieces;
+	squares |= fill;
+
+	// Fill left up
+	boundMask = ~Bitboards::FileA & ~Bitboards::Rank8;
+	propagatingPieces = diagonalSliders;
+	blockingFriends = friendlyPieces & ~propagatingPieces;
+	direction = 7;
+	fill = ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
+	for (int i = 0; i < 7; i++) {
+		fill = fill & boundMask;
+		fill |= fill << direction;
+		fill = fill & ~blockingFriends & ~(opponentPieces << direction);
+	}
+	fill = fill & ~friendlyPieces;
+	fill |= ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
+	squares |= fill;
+
 
 	if (colorOfPieces == PieceColor::White) {
 		squares |= (WhitePawnBits & ~Bitboards::FileA) << 7;
