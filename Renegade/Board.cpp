@@ -62,12 +62,7 @@ Board::Board(string fen) {
 
 	if (parts[1] == "w") Turn = Turn::White;
 	else Turn = Turn::Black;
-
-	if (Turn == Turn::White) {
-		AttackedSquares = CalculateAttackedSquares(PieceColor::Black);
-	} else {
-		AttackedSquares = CalculateAttackedSquares(PieceColor::White);
-	}
+	AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
 
 	for (char f : parts[2]) {
 		switch (f) {
@@ -423,11 +418,8 @@ void Board::Push(Move move) {
 	HalfmoveClock += 1;
 	if (Turn == Turn::White) FullmoveClock += 1;
 
-	if (Turn == Turn::White) {
-		AttackedSquares = CalculateAttackedSquares(PieceColor::Black);
-	} else {
-		AttackedSquares = CalculateAttackedSquares(PieceColor::White);
-	}
+	uint64_t lastAttackMap = AttackedSquares;
+	AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
 
 	// Get state after
 	int inCheck = 0;
@@ -440,7 +432,7 @@ void Board::Push(Move move) {
 
 	
 	// Check checkmates & stalemates
-	bool hasMoves = AreThereLegalMoves(Turn);
+	bool hasMoves = AreThereLegalMoves(Turn, lastAttackMap);
 	if (!hasMoves) {
 		if (inCheck) {
 			if (Turn == Turn::Black) State = GameState::WhiteVictory;
@@ -591,58 +583,34 @@ std::vector<Move> Board::GenerateSlidingMoves(int piece, int home) {
 
 }
 
-
-unsigned __int64 Board::GenerateSlidingAttacks(int piece, int home) {
-	unsigned __int64 friendlyOccupance = 0ULL;
-	unsigned __int64 opponentOccupance = 0ULL;
-	unsigned __int64 attacks = 0ULL;
-
-	if (ColorOfPiece(piece) == PieceColor::White) {
-		friendlyOccupance = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
-		opponentOccupance = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
+inline unsigned __int64 Board::GenerateSlidingAttacksShiftDown(int direction, unsigned __int64 boundMask, unsigned __int64 propagatingPieces, unsigned __int64 friendlyPieces, unsigned __int64 opponentPieces) {
+	unsigned __int64 blockingFriends = friendlyPieces & ~propagatingPieces;
+	unsigned __int64 fill = ((propagatingPieces & boundMask) >> direction) & ~blockingFriends;
+	uint64_t lastFill = fill;
+	for (int i = 0; i < 7; i++) {
+		fill = fill & boundMask;
+		fill |= fill >> direction;
+		fill = fill & ~blockingFriends & ~(opponentPieces >> direction);
+		if (fill == lastFill) return fill | (((propagatingPieces & boundMask) >> direction) & ~blockingFriends);
+		lastFill = fill;
 	}
-	else if (ColorOfPiece(piece) == PieceColor::Black) {
-		opponentOccupance = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
-		friendlyOccupance = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
+	fill |= ((propagatingPieces & boundMask) >> direction) & ~blockingFriends;
+	return fill;
+}
+
+inline unsigned __int64 Board::GenerateSlidingAttacksShiftUp(int direction, unsigned __int64 boundMask, unsigned __int64 propagatingPieces, unsigned __int64 friendlyPieces, unsigned __int64 opponentPieces) {
+	unsigned __int64 blockingFriends = friendlyPieces & ~propagatingPieces;
+	unsigned __int64 fill = ((propagatingPieces & boundMask) << direction) & ~blockingFriends;
+	uint64_t lastFill = fill;
+	for (int i = 0; i < 7; i++) {
+		fill = fill & boundMask;
+		fill |= fill << direction;
+		fill = fill & ~blockingFriends & ~(opponentPieces << direction);
+		if (fill == lastFill) return fill | (((propagatingPieces & boundMask) << direction) & ~blockingFriends);
+		lastFill = fill;
 	}
-
-	int rankDirection = 0;
-	int fileDirection = 0;
-
-	int pieceType = TypeOfPiece(piece);
-	int minDir = ((pieceType == PieceType::Rook) || (pieceType == PieceType::Queen)) ? 1 : 5;
-	int maxDir = ((pieceType == PieceType::Bishop) || (pieceType == PieceType::Queen)) ? 8 : 4;
-
-	for (int direction = minDir; direction <= maxDir; direction++) {
-		switch (direction) {
-		case 1: { rankDirection = +1; fileDirection = 0; break; }
-		case 2: { rankDirection = -1; fileDirection = 0; break; }
-		case 3: { rankDirection = 0; fileDirection = +1; break; }
-		case 4: { rankDirection = 0; fileDirection = -1; break; }
-		case 5: { rankDirection = +1; fileDirection = +1; break; }
-		case 6: { rankDirection = +1; fileDirection = -1; break; }
-		case 7: { rankDirection = -1; fileDirection = +1; break; }
-		case 8: { rankDirection = -1; fileDirection = -1; break; }
-		}
-
-		int file = GetSquareFile(home);
-		int rank = GetSquareRank(home);
-
-		// To do: how to handle the king? appearantly it works without it, but no idea why
-		for (int i = 1; i < 8; i++) {
-			file += fileDirection;
-			rank += rankDirection;
-			if ((file > 7) || (file < 0) || (rank > 7) || (rank < 0)) break;
-			int thatSquare = Square(rank, file);
-			if (CheckBit(friendlyOccupance, thatSquare)) break;
-			if (CheckBit(opponentOccupance, thatSquare)) {
-				SetBitTrue(attacks, thatSquare);
-				break;
-			}
-			SetBitTrue(attacks, thatSquare);
-		}
-	}
-	return attacks;
+	fill |= ((propagatingPieces & boundMask) << direction) & ~blockingFriends;
+	return fill;
 }
 
 std::vector<Move> Board::GenerateKingMoves(int home) {
@@ -877,129 +845,19 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 		friendlyPieces = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 	}
 
-	// Fill left
-	unsigned __int64 boundMask = ~Bitboards::FileA;
-	unsigned __int64 propagatingPieces = parallelSliders;
-	unsigned __int64 blockingFriends = friendlyPieces & ~propagatingPieces;
-	int direction = 1;
-	unsigned __int64 fill = ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
-	for (int i = 0; i < 7; i++) {
-		fill = fill & boundMask;
-		fill |= fill >> direction;
-		fill = fill & ~blockingFriends & ~(opponentPieces >> direction);
-	}
-	fill |= ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
-	fill = fill & ~friendlyPieces;
-	squares |= fill;
-
-	// Fill down
-	boundMask = ~Bitboards::Rank1;
-	propagatingPieces = parallelSliders;
-	blockingFriends = friendlyPieces & ~propagatingPieces;
-	direction = 8;
-	fill = ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
-	for (int i = 0; i < 7; i++) {
-		fill = fill & boundMask;
-		fill |= fill >> direction;
-		fill = fill & ~blockingFriends & ~(opponentPieces >> direction);
-	}
-	fill |= ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
-	fill = fill & ~friendlyPieces;
-	squares |= fill;
-
-	// Fill right
-	boundMask = ~Bitboards::FileH;
-	propagatingPieces = parallelSliders;
-	blockingFriends = friendlyPieces & ~propagatingPieces;
-	direction = 1;
-	fill = ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
-	for (int i = 0; i < 7; i++) {
-		fill = fill & boundMask;
-		fill |= fill << direction;
-		fill = fill & ~blockingFriends & ~(opponentPieces << direction);
-	}
-	fill |= ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
-	fill = fill & ~friendlyPieces;
-	squares |= fill;
-
-	// Fill up
-	boundMask = ~Bitboards::Rank8;
-	propagatingPieces = parallelSliders;
-	blockingFriends = friendlyPieces & ~propagatingPieces;
-	direction = 8;
-	fill = ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
-	for (int i = 0; i < 7; i++) {
-		fill = fill & boundMask;
-		fill |= fill << direction;
-		fill = fill & ~blockingFriends & ~(opponentPieces << direction);
-	}
-	fill = fill & ~friendlyPieces;
-	fill |= ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
-	squares |= fill;
-
-	// Fill right down
-	boundMask = ~Bitboards::FileH & ~Bitboards::Rank1;
-	propagatingPieces = diagonalSliders;
-	blockingFriends = friendlyPieces & ~propagatingPieces;
-	direction = 7;
-	fill = ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
-	for (int i = 0; i < 7; i++) {
-		fill = fill & boundMask;
-		fill |= fill >> direction;
-		fill = fill & ~blockingFriends & ~(opponentPieces >> direction);
-	}
-	fill = fill & ~friendlyPieces;
-	fill |= ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
-	squares |= fill;
-
-	// Fill left down
-	boundMask = ~Bitboards::FileA & ~Bitboards::Rank1;
-	propagatingPieces = diagonalSliders;
-	blockingFriends = friendlyPieces & ~propagatingPieces;
-	direction = 9;
-	fill = ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
-	for (int i = 0; i < 7; i++) {
-		fill = fill & boundMask;
-		fill |= fill >> direction;
-		fill = fill & ~blockingFriends & ~(opponentPieces >> direction);
-	}
-	fill |= ((propagatingPieces & boundMask) >> direction) & ~(blockingFriends);
-	fill = fill & ~friendlyPieces;
-	squares |= fill;
-
-	// Fill right up
-	boundMask = ~Bitboards::FileH & ~Bitboards::Rank8;
-	propagatingPieces = diagonalSliders;
-	blockingFriends = friendlyPieces & ~propagatingPieces;
-	direction = 9;
-	fill = ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
-	for (int i = 0; i < 7; i++) {
-		fill = fill & boundMask;
-		fill |= fill << direction;
-		fill = fill & ~blockingFriends & ~(opponentPieces << direction);
-	}
-	fill |= ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
-	fill = fill & ~friendlyPieces;
-	squares |= fill;
-
-	// Fill left up
-	boundMask = ~Bitboards::FileA & ~Bitboards::Rank8;
-	propagatingPieces = diagonalSliders;
-	blockingFriends = friendlyPieces & ~propagatingPieces;
-	direction = 7;
-	fill = ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
-	for (int i = 0; i < 7; i++) {
-		fill = fill & boundMask;
-		fill |= fill << direction;
-		fill = fill & ~blockingFriends & ~(opponentPieces << direction);
-	}
-	fill = fill & ~friendlyPieces;
-	fill |= ((propagatingPieces & boundMask) << direction) & ~(blockingFriends);
-	squares |= fill;
+	// Sliding piece attack generation
+	squares |= GenerateSlidingAttacksShiftDown(1, ~Bitboards::FileA, parallelSliders, friendlyPieces, opponentPieces); // Left
+	squares |= GenerateSlidingAttacksShiftDown(8, ~Bitboards::Rank1, parallelSliders, friendlyPieces, opponentPieces); // Down
+	squares |= GenerateSlidingAttacksShiftUp(1, ~Bitboards::FileH, parallelSliders, friendlyPieces, opponentPieces); // Right
+	squares |= GenerateSlidingAttacksShiftUp(8, ~Bitboards::Rank8, parallelSliders, friendlyPieces, opponentPieces); // Up
+	squares |= GenerateSlidingAttacksShiftDown(7, ~Bitboards::FileH & ~Bitboards::Rank1, diagonalSliders, friendlyPieces, opponentPieces); // Right-down
+	squares |= GenerateSlidingAttacksShiftDown(9, ~Bitboards::FileA & ~Bitboards::Rank1, diagonalSliders, friendlyPieces, opponentPieces); // Left-down
+	squares |= GenerateSlidingAttacksShiftUp(9, ~Bitboards::FileH & ~Bitboards::Rank8, diagonalSliders, friendlyPieces, opponentPieces); // Right-up
+	squares |= GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, diagonalSliders, friendlyPieces, opponentPieces); // Left-up
 
 	// King attack gen
 	unsigned __int64 kingBits = colorOfPieces == PieceColor::White ? WhiteKingBits : BlackKingBits;
-	fill = 0;
+	uint64_t fill = 0;
 	fill |= (kingBits & ~Bitboards::FileH) << 1;
 	fill |= (kingBits & ~Bitboards::FileA) >> 1;
 	fill |= (kingBits & ~Bitboards::Rank8) << 8;
@@ -1022,28 +880,31 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 	fill = fill & ~friendlyPieces;
 	squares |= fill;
 
+	// Attack maps (by my own definition) doesn't cover friendly pieces
+	squares = squares & ~friendlyPieces;
+
+	// Pawn attack map generation
 	if (colorOfPieces == PieceColor::White) {
 		squares |= (WhitePawnBits & ~Bitboards::FileA) << 7;
 		squares |= (WhitePawnBits & ~Bitboards::FileH) << 9;
+		if (EnPassantSquare != -1) {
+			unsigned __int64 encodedEP = 0;
+			SetBitTrue(encodedEP, EnPassantSquare);
+			squares |= ((WhitePawnBits & ~Bitboards::FileA) >> 1) & encodedEP;
+			squares |= ((WhitePawnBits & ~Bitboards::FileH) << 1) & encodedEP;
+		}
+
 	}
 	else {
 		squares |= (BlackPawnBits & ~Bitboards::FileA) >> 9;
 		squares |= (BlackPawnBits & ~Bitboards::FileH) >> 7;
-	}
-
-	if (EnPassantSquare != -1) {
-		unsigned __int64 encodedEP = 0ULL;
-		SetBitTrue(encodedEP, EnPassantSquare);
-		if (colorOfPieces == PieceColor::White) {
-			squares |= ((WhitePawnBits & ~Bitboards::FileA) >> 1) & encodedEP;
-			squares |= ((WhitePawnBits & ~Bitboards::FileH) << 1) & encodedEP;
-		}
-		else {
+		if (EnPassantSquare != -1) {
+			unsigned __int64 encodedEP = 0;
+			SetBitTrue(encodedEP, EnPassantSquare);
 			squares |= ((BlackPawnBits & ~Bitboards::FileA) >> 1) & encodedEP;
 			squares |= ((BlackPawnBits & ~Bitboards::FileH) << 1) & encodedEP;
 		}
 	}
-	
 
 	return squares;
 
@@ -1093,11 +954,11 @@ std::vector<Move> Board::GenerateMoves(int side) {
 
 		std::vector<Move> moves;
 		if (type == PieceType::Pawn) moves = GeneratePawnMoves(i);
-		if (type == PieceType::Knight) moves = GenerateKnightMoves(i);
-		if (type == PieceType::Bishop) moves = GenerateSlidingMoves(piece, i);
-		if (type == PieceType::Rook) moves = GenerateSlidingMoves(piece, i);
-		if (type == PieceType::Queen) moves = GenerateSlidingMoves(piece, i);
-		if (type == PieceType::King) {
+		else if (type == PieceType::Knight) moves = GenerateKnightMoves(i);
+		else if (type == PieceType::Bishop) moves = GenerateSlidingMoves(piece, i);
+		else if (type == PieceType::Rook) moves = GenerateSlidingMoves(piece, i);
+		else if (type == PieceType::Queen) moves = GenerateSlidingMoves(piece, i);
+		else if (type == PieceType::King) {
 			moves = GenerateKingMoves(i);
 			std::vector<Move> castlingMoves = GenerateCastlingMoves();
 			moves.insert(moves.end(), castlingMoves.begin(), castlingMoves.end());
@@ -1108,10 +969,17 @@ std::vector<Move> Board::GenerateMoves(int side) {
 	return PossibleMoves;
 }
 
-bool Board::AreThereLegalMoves(int side) {
+bool Board::AreThereLegalMoves(int side, uint64_t lastAttackMap) {
 	bool hasMoves = false;
 	int myColor = SideToPieceColor(side);
 	std::vector<Move> moves;
+
+	// Quick king test - if the king can move without being attacked, then we have a legal move
+	uint64_t kingBits = side == PieceColor::White ? WhiteKingBits : BlackKingBits;
+	uint64_t sq = 64 - __lzcnt64(kingBits) - 1;
+	uint64_t kingMoveBits = GenerateKingAttacks((int)sq);
+	if (~lastAttackMap & (kingMoveBits | kingBits) != 0) return true;
+
 	moves.reserve(27);
 	for (int i = 0; i < 64; i++) {
 		int piece = GetPieceAt(i);

@@ -35,7 +35,7 @@ public:
 	int GetPieceAt(int place);
 	unsigned __int64 Hash(bool hashPlys);
 
-	bool AreThereLegalMoves(int side);
+	bool AreThereLegalMoves(int side, uint64_t lastAttackMap);
 	bool IsLegalMove(Move m, int side);
 	void TryMove(Move move);
 	vector<Move> GenerateMoves(int side);
@@ -52,7 +52,10 @@ public:
 	unsigned __int64 GenerateKnightAttacks(int from);
 	unsigned __int64 GenerateKingAttacks(int from);
 	unsigned __int64 GeneratePawnAttacks(int pieceColor, int from);
-	unsigned __int64 GenerateSlidingAttacks(int piece, int home);
+	unsigned __int64 GenerateSlidingAttacksShiftUp(int direction, unsigned __int64 boundMask, unsigned __int64 propagatingPieces,
+		unsigned __int64 friendlyPieces, unsigned __int64 opponentPieces);
+	unsigned __int64 GenerateSlidingAttacksShiftDown(int direction, unsigned __int64 boundMask, unsigned __int64 propagatingPieces,
+		unsigned __int64 friendlyPieces, unsigned __int64 opponentPieces);
 
 	// Board variables:
 	unsigned __int64 WhitePawnBits;
