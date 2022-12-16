@@ -34,6 +34,8 @@ public:
 	void Draw(unsigned __int64 customBits);
 	int GetPieceAt(int place);
 	unsigned __int64 Hash(bool hashPlys);
+	uint64_t GetOccupancy();
+	uint64_t GetOccupancy(int pieceColor);
 
 	bool AreThereLegalMoves(int side, uint64_t lastAttackMap);
 	bool IsLegalMove(Move m, int side);

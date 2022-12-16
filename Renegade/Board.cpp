@@ -188,19 +188,23 @@ unsigned __int64 Board::Hash(bool hashPlys) {
 	unsigned __int64 hash = 0ULL;
 
 	// Pieces
-	for (int i = 0; i < 64; i++) {
-		if (CheckBit(BlackPawnBits, i)) hash ^= Zobrist[64 * 0 + i];
-		else if (CheckBit(WhitePawnBits, i)) hash ^= Zobrist[64 * 1 + i];
-		else if (CheckBit(BlackKnightBits, i)) hash ^= Zobrist[64 * 2 + i];
-		else if (CheckBit(WhiteKnightBits, i)) hash ^= Zobrist[64 * 3 + i];
-		else if (CheckBit(BlackBishopBits, i)) hash ^= Zobrist[64 * 4 + i];
-		else if (CheckBit(WhiteBishopBits, i)) hash ^= Zobrist[64 * 5 + i];
-		else if (CheckBit(BlackRookBits, i)) hash ^= Zobrist[64 * 6 + i];
-		else if (CheckBit(WhiteRookBits, i)) hash ^= Zobrist[64 * 7 + i];
-		else if (CheckBit(BlackQueenBits, i)) hash ^= Zobrist[64 * 8 + i];
-		else if (CheckBit(WhiteQueenBits, i)) hash ^= Zobrist[64 * 9 + i];
-		else if (CheckBit(BlackKingBits, i)) hash ^= Zobrist[64 * 10 + i];
-		else if (CheckBit(WhiteKingBits, i)) hash ^= Zobrist[64 * 11 + i];
+	uint64_t occupancy = GetOccupancy();
+	while (NonZeros(occupancy) != 0) {
+		unsigned __int64 sq = 64 - __lzcnt64(occupancy) - 1;
+		SetBitFalse(occupancy, sq);
+
+		if (CheckBit(BlackPawnBits, sq)) hash ^= Zobrist[64 * 0 + sq];
+		else if (CheckBit(WhitePawnBits, sq)) hash ^= Zobrist[64 * 1 + sq];
+		else if (CheckBit(BlackKnightBits, sq)) hash ^= Zobrist[64 * 2 + sq];
+		else if (CheckBit(WhiteKnightBits, sq)) hash ^= Zobrist[64 * 3 + sq];
+		else if (CheckBit(BlackBishopBits, sq)) hash ^= Zobrist[64 * 4 + sq];
+		else if (CheckBit(WhiteBishopBits, sq)) hash ^= Zobrist[64 * 5 + sq];
+		else if (CheckBit(BlackRookBits, sq)) hash ^= Zobrist[64 * 6 + sq];
+		else if (CheckBit(WhiteRookBits, sq)) hash ^= Zobrist[64 * 7 + sq];
+		else if (CheckBit(BlackQueenBits, sq)) hash ^= Zobrist[64 * 8 + sq];
+		else if (CheckBit(WhiteQueenBits, sq)) hash ^= Zobrist[64 * 9 + sq];
+		else if (CheckBit(BlackKingBits, sq)) hash ^= Zobrist[64 * 10 + sq];
+		else if (CheckBit(WhiteKingBits, sq)) hash ^= Zobrist[64 * 11 + sq];
 	}
 
 	// Castling
@@ -246,6 +250,16 @@ int Board::GetPieceAt(int place) {
 	if (CheckBit(WhiteKingBits, place)) return Piece::WhiteKing;
 	if (CheckBit(BlackKingBits, place)) return Piece::BlackKing;
 	return 0;
+}
+
+uint64_t Board::GetOccupancy() {
+	return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits
+		| BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
+}
+
+uint64_t Board::GetOccupancy(int pieceColor) {
+	if (pieceColor == PieceColor::White) return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
+	return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 }
 
 bool Board::PushUci(string ucistr) {
@@ -946,7 +960,11 @@ std::vector<Move> Board::GenerateMoves(int side) {
 	std::vector<Move> PossibleMoves;
 	PossibleMoves.reserve(50);
 	int myColor = SideToPieceColor(side);
-	for (int i = 0; i < 64; i++) {
+	uint64_t occupancy = GetOccupancy(SideToPieceColor(side));
+	while (occupancy != 0) {
+		unsigned __int64 i = 64 - __lzcnt64(occupancy) - 1;
+		SetBitFalse(occupancy, i);
+
 		int piece = GetPieceAt(i);
 		int color = ColorOfPiece(piece);
 		int type = TypeOfPiece(piece);
@@ -978,10 +996,13 @@ bool Board::AreThereLegalMoves(int side, uint64_t lastAttackMap) {
 	uint64_t kingBits = side == PieceColor::White ? WhiteKingBits : BlackKingBits;
 	uint64_t sq = 64 - __lzcnt64(kingBits) - 1;
 	uint64_t kingMoveBits = GenerateKingAttacks((int)sq);
-	if (~lastAttackMap & (kingMoveBits | kingBits) != 0) return true;
+	if ((~lastAttackMap & (kingMoveBits | kingBits)) != 0) return true;
 
-	moves.reserve(27);
-	for (int i = 0; i < 64; i++) {
+	moves.reserve(13);
+	uint64_t occupancy = GetOccupancy(SideToPieceColor(side));
+	while (occupancy != 0) {
+		unsigned __int64 i = 64 - __lzcnt64(occupancy) - 1;
+		SetBitFalse(occupancy, i);
 		int piece = GetPieceAt(i);
 		int color = ColorOfPiece(piece);
 		int type = TypeOfPiece(piece);

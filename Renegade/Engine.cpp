@@ -5,7 +5,7 @@ Engine::Engine() {
 	EvaluatedQuiescenceNodes = 0;
 	SelDepth = 0;
 	Depth = 0;
-	Settings.Hash = 16;
+	Settings.Hash = 64;
 	Settings.QSearch = false;
 	Settings.UseBook = false;
 	HashSize = 125000 * Settings.Hash;
@@ -333,7 +333,10 @@ int Engine::StaticEvaluation(Board board, int level) {
 	if (NonZeros(board.WhiteBishopBits) >= 2) score += 50;
 	if (NonZeros(board.BlackBishopBits) >= 2) score -= 50;
 
-	for (int i = 0; i < 64; i++) {
+	uint64_t occupancy = board.GetOccupancy();
+	while (occupancy != 0) {
+		unsigned __int64 i = 64 - __lzcnt64(occupancy) - 1;
+		SetBitFalse(occupancy, i);
 		int piece = board.GetPieceAt(i);
 		if (piece == Piece::WhitePawn) score += PawnPSQT[i];
 		else if (piece == Piece::WhiteKnight) score += KnightPSQT[i];
@@ -371,7 +374,7 @@ void Engine::Start() {
 		if (cmd == "uci") {
 			cout << "id name Renegade " << Version << endl;
 			cout << "id author Krisztian Peocz" << endl;
-			cout << "option name Hash type spin default 16 min 0 max 256" << endl;
+			cout << "option name Hash type spin default 64 min 0 max 256" << endl;
 			cout << "option name OwnBook type check default false" << endl;
 			//cout << "option name QSearch type check default false" << endl;
 			cout << "uciok" << endl;
