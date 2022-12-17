@@ -432,7 +432,6 @@ void Board::Push(Move move) {
 	HalfmoveClock += 1;
 	if (Turn == Turn::White) FullmoveClock += 1;
 
-	uint64_t lastAttackMap = AttackedSquares;
 	AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
 
 	// Get state after
@@ -443,10 +442,9 @@ void Board::Push(Move move) {
 	// Add current hash to list
 	unsigned __int64 hash = Hash(false);
 	PastHashes.push_back(hash);
-
 	
 	// Check checkmates & stalemates
-	bool hasMoves = AreThereLegalMoves(Turn, lastAttackMap);
+	bool hasMoves = AreThereLegalMoves(Turn);
 	if (!hasMoves) {
 		if (inCheck) {
 			if (Turn == Turn::Black) State = GameState::WhiteVictory;
@@ -987,16 +985,16 @@ std::vector<Move> Board::GenerateMoves(int side) {
 	return PossibleMoves;
 }
 
-bool Board::AreThereLegalMoves(int side, uint64_t lastAttackMap) {
+bool Board::AreThereLegalMoves(int side) {
 	bool hasMoves = false;
 	int myColor = SideToPieceColor(side);
 	std::vector<Move> moves;
 
-	// Quick king test - if the king can move without being attacked, then we have a legal move
-	uint64_t kingBits = side == PieceColor::White ? WhiteKingBits : BlackKingBits;
+	// Quick king test - if the king can move to a free square without being attacked, then we have a legal move
+	uint64_t kingBits = side == Side::White ? WhiteKingBits : BlackKingBits;
 	uint64_t sq = 64 - __lzcnt64(kingBits) - 1;
 	uint64_t kingMoveBits = GenerateKingAttacks((int)sq);
-	if ((~lastAttackMap & (kingMoveBits | kingBits)) != 0) return true;
+	if ((~AttackedSquares & ~GetOccupancy() & kingMoveBits) != 0) return true;
 
 	moves.reserve(13);
 	uint64_t occupancy = GetOccupancy(SideToPieceColor(side));
