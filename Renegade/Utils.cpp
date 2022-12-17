@@ -9,7 +9,7 @@
 	#include <stdio.h>
 #endif
 
-const std::string Version = "0.5.0";
+const std::string Version = "0.5.1";
 
 
 namespace Side {

@@ -427,10 +427,6 @@ void Engine::Start() {
 		if (parts[0] == "debug") {
 			if (parts[1] == "draw") board.Draw(0ULL);
 			if (parts[1] == "attackmap") board.Draw(board.AttackedSquares);
-			if (parts[1] == "whitepawn") board.Draw(board.WhitePawnBits);
-			if (parts[1] == "whiteking") board.Draw(board.WhiteKingBits);
-			if (parts[1] == "blackpawn") board.Draw(board.BlackPawnBits);
-			if (parts[1] == "blackking") board.Draw(board.BlackKingBits);
 			if (parts[1] == "enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
 			if (parts[1] == "pseudolegal") {
 				std::vector<Move> v = board.GenerateMoves(board.Turn);

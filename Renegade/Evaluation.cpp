@@ -22,7 +22,8 @@ Evaluation::Evaluation(int s, std::vector<Move> p, int d, int sd, int n, int qn,
 }
 
 Move Evaluation::BestMove() {
-	return pv.front();
+	if (pv.size() != 0) return pv.front();
+	else return Move();
 }
 
 eval::eval(int s) {

@@ -37,7 +37,7 @@ public:
 	uint64_t GetOccupancy();
 	uint64_t GetOccupancy(int pieceColor);
 
-	bool AreThereLegalMoves(int side);
+	bool AreThereLegalMoves(int side, uint64_t previousAttackMap);
 	bool IsLegalMove(Move m, int side);
 	void TryMove(Move move);
 	vector<Move> GenerateMoves(int side);
