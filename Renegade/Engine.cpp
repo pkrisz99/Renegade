@@ -125,7 +125,7 @@ Evaluation Engine::Search(Board board) {
 		Depth += 1;
 		SelDepth = 0;
 		Explored = true;
-		eval result = SearchRecursive(board, Depth, 1, NegativeInfinity, PositiveInfinity);
+		eval result = SearchRecursive(board, Depth, 1, NegativeInfinity, PositiveInfinity, true);
 		Heuristics.SetHashSize(Settings.Hash);
 
 		// Check limits
@@ -164,7 +164,7 @@ Evaluation Engine::Search(Board board) {
 	return e;
 }
 
-eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta) {
+eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta, bool canNullMove) {
 
 	// Check limits
 	if (Aborting) return eval();
@@ -182,7 +182,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	}
 
 	// Return result for terminal nodes
-	if (depth == 0) {
+	if (depth <= 0) {
 		eval e = eval(StaticEvaluation(board, level));
 		if (board.State == GameState::Playing) Explored = false;
 		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
@@ -203,6 +203,21 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 		else if ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta)) score = beta;
 		else usable = false;
 		if (usable) return eval(score, entry.moves);
+	}
+
+	// Null-move pruning
+	bool kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
+	bool inCheck = (board.AttackedSquares & kingBits) != 0;
+	int reduction;
+	if (depth > 7) reduction = 3;
+	else reduction = 2;
+	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1)) {
+		Move m = Move();
+		m.SetFlag(MoveFlag::NullMove);
+		Board b = board.Copy();
+		b.Push(m);
+		eval nullMoveEval = SearchRecursive(b, depth - 1 - reduction, level + 1, -beta, -alpha, false);
+		if (-nullMoveEval.score >= beta) return eval(beta);
 	}
 
 	// Initalize variables
@@ -258,12 +273,12 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 		// Principal variation search - questionable gains
 		eval childEval;
 		if (!pvSearch) {
-			childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
+			childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
 		}
 		else {
-			childEval = SearchRecursive(b, depth - 1, level + 1, -alpha-1, -alpha);
+			childEval = SearchRecursive(b, depth - 1, level + 1, -alpha-1, -alpha, true);
 			if ((alpha < -childEval.score) && (-childEval.score < beta)) {
-				childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
+				childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
 			}
 		}
 		

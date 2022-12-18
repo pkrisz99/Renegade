@@ -9,7 +9,7 @@
 	#include <stdio.h>
 #endif
 
-const std::string Version = "0.5.1";
+const std::string Version = "0.5.1+";
 
 
 namespace Side {
@@ -25,6 +25,7 @@ namespace MoveFlag {
 	static const int PromotionToRook = 5;
 	static const int PromotionToQueen = 6;
 	static const int EnPassant = 7;
+	static const int NullMove = 8;
 }
 
 namespace Turn {

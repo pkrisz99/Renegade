@@ -425,7 +425,7 @@ void Board::TryMove(Move move) {
 
 void Board::Push(Move move) {
 
-	TryMove(move);
+	if (move.flag != MoveFlag::NullMove) TryMove(move);
 
 	// Increment timers
 	Turn = !Turn;

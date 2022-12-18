@@ -40,6 +40,7 @@ public:
 	bool AreThereLegalMoves(int side, uint64_t previousAttackMap);
 	bool IsLegalMove(Move m, int side);
 	void TryMove(Move move);
+	void MakeNullMove(Move move);
 	vector<Move> GenerateMoves(int side);
 	vector<Move> GenerateLegalMoves(int side);
 	vector<Move> GenerateCaptureMoves(int side);

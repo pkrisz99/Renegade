@@ -26,7 +26,7 @@ public:
 	int perft1(Board board, int depth, bool verbose);
 	int perftRecursive(Board b, int depth);
 	Evaluation Search(Board board);
-	eval SearchRecursive(Board board, int depth, int level, int alpha, int beta);
+	eval SearchRecursive(Board board, int depth, int level, int alpha, int beta, bool canNullMove);
 	int StaticEvaluation(Board board, int level);
 	void Start();
 	void PrintInfo(Evaluation e);
