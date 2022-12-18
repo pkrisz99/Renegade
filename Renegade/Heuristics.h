@@ -14,14 +14,13 @@ namespace ScoreType {
 struct HashEntry {
 	int score;
 	int scoreType;
-	std::vector<Move> moves;
 };
 
 class Heuristics
 {
 public:
 	Heuristics();
-	void AddEntry(unsigned __int64 hash, eval e, int scoreType);
+	void AddEntry(unsigned __int64 hash, int score, int scoreType);
 	void AddKillerMove(Move m, int level);
 	bool IsKillerMove(Move move, int level);
 	bool IsPvMove(Move move, int level);
@@ -31,6 +30,8 @@ public:
 	std::tuple<bool, HashEntry> RetrieveEntry(unsigned __int64 hash);
 	void SetHashSize(int megabytes);
 	int GetHashfull();
+	void UpdatePvTable(Move move, int level);
+	std::vector<Move> GetPvLine();
 
 	std::unordered_map<unsigned __int64, HashEntry> Hashes;
 	int HashedEntryCount;
@@ -38,8 +39,8 @@ public:
 	std::vector<std::array<Move, 2>> KillerMoves;
 	std::vector<Move> PvMoves;
 	unsigned __int64 MaximumHashSize;
+	Move PvTable[30][30];
 
-	static const unsigned __int64 PlyHash = 0x2022b;
-	const HashEntry NoEntry = { -1, ScoreType::Exact, std::vector<Move>() };
+	const HashEntry NoEntry = { -1, ScoreType::Exact};
 };
 

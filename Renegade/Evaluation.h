@@ -6,18 +6,6 @@ static const int NoEval = -666666666;
 static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
 static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
-
-struct eval {
-	int score;
-	std::vector<Move> moves;
-
-	eval(int s);
-	eval(int s, std::vector<Move> m);
-	eval();
-};
-
-//typedef std::tuple<int, Move> eval;
-
 static const int PawnValue = 100;
 static const int KnightValue = 300;
 static const int BishopValue = 300;

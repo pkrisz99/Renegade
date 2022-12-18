@@ -72,7 +72,7 @@ SearchConstraints Engine::CalculateConstraints(SearchParams params, bool turn) {
 	constraints.SearchTimeMax = -1;
 
 	// Nodes && depth && movetime 
- 	if (params.nodes != 0) constraints.MaxNodes = params.nodes;
+	if (params.nodes != 0) constraints.MaxNodes = params.nodes;
 	if (params.depth != 0) constraints.MaxDepth = params.depth;
 	if (params.movetime != 0) {
 		constraints.SearchTimeMin = params.movetime;
@@ -125,7 +125,7 @@ Evaluation Engine::Search(Board board) {
 		Depth += 1;
 		SelDepth = 0;
 		Explored = true;
-		eval result = SearchRecursive(board, Depth, 1, NegativeInfinity, PositiveInfinity, true);
+		int result = SearchRecursive(board, Depth, 1, NegativeInfinity, PositiveInfinity, true);
 		Heuristics.SetHashSize(Settings.Hash);
 
 		// Check limits
@@ -144,46 +144,46 @@ Evaluation Engine::Search(Board board) {
 		}
 
 		// Send info
-		e.score = result.score;
-		e.pv = result.moves;
+		e.score = result;
 		e.depth = Depth;
 		e.seldepth = SelDepth;
 		e.nodes = EvaluatedNodes;
 		e.qnodes = EvaluatedQuiescenceNodes;
 		e.time = elapsedMs;
 		e.nps = (int)(EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count());
-		std::reverse(e.pv.begin(), e.pv.end());
 		e.hashfull = Heuristics.GetHashfull();
-		PrintInfo(e);		
-		Heuristics.SetPv(e.pv);		
+		e.pv = Heuristics.GetPvLine();
+
+		Heuristics.SetPv(e.pv);
+		PrintInfo(e);
 	}
 	cout << "bestmove " << e.BestMove().ToString() << endl;
-	//cout << std::size(Heuristics.Hashes) << " " << Heuristics.HashedEntryCount << endl;
+
 	Heuristics.ClearEntries();
 	Heuristics.ClearPv();
 	return e;
 }
 
-eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta, bool canNullMove) {
+int Engine::SearchRecursive(Board board, int depth, int level, int alpha, int beta, bool canNullMove) {
 
 	// Check limits
-	if (Aborting) return eval();
+	if (Aborting) return NoEval;
 	if ((Constraints.MaxNodes != -1) && (EvaluatedNodes >= Constraints.MaxNodes) && (Depth > 1)) {
 		Aborting = true;
-		return eval();
+		return NoEval;
 	}
 	if ((EvaluatedNodes % 1000 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
 		auto now = Clock::now();
 		int elapsedMs = (int)((now - StartSearchTime).count() / 1e6);
 		if (elapsedMs >= Constraints.SearchTimeMax) {
 			Aborting = true;
-			return eval();
+			return NoEval;
 		}
 	}
 
 	// Return result for terminal nodes
 	if (depth <= 0) {
-		eval e = eval(StaticEvaluation(board, level));
+		int e = StaticEvaluation(board, level);
 		if (board.State == GameState::Playing) Explored = false;
 		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
@@ -202,22 +202,22 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 		else if ((entry.scoreType == ScoreType::UpperBound) && (entry.score <= alpha)) score = alpha;
 		else if ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta)) score = beta;
 		else usable = false;
-		if (usable) return eval(score, entry.moves);
+		if (usable) return score;
 	}
 
 	// Null-move pruning
 	bool kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
 	bool inCheck = (board.AttackedSquares & kingBits) != 0;
 	int reduction;
-	if (depth > 7) reduction = 3;
+	if (depth >= 7) reduction = 3;
 	else reduction = 2;
 	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1)) {
 		Move m = Move();
 		m.SetFlag(MoveFlag::NullMove);
 		Board b = board.Copy();
 		b.Push(m);
-		eval nullMoveEval = SearchRecursive(b, depth - 1 - reduction, level + 1, -beta, -alpha, false);
-		if (-nullMoveEval.score >= beta) return eval(beta);
+		int nullMoveEval = SearchRecursive(b, depth - 1 - reduction, level + 1, -beta, -beta+1, false);
+		if (-nullMoveEval >= beta) return beta;
 	}
 
 	// Initalize variables
@@ -251,7 +251,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 		else if (attackingPiece == PieceType::Queen) orderScore += QueenPSQT[m.to] - QueenPSQT[m.from];
 
 		if (Heuristics.IsKillerMove(m, level)) orderScore += 200000;
-		if (Heuristics.IsPvMove(m, level)) orderScore += 100000;
+		//if (Heuristics.IsPvMove(m, level)) orderScore += 100000;
 
 		order.push_back({m, orderScore});
 	}
@@ -264,36 +264,34 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
 	for (const std::tuple<Move, int>&o : order) {
-		if (!board.IsLegalMove(get<0>(o), board.Turn)) continue;
+		Move m = get<0>(o);
+		if (!board.IsLegalMove(m, board.Turn)) continue;
 		legalMoveCount += 1;
 		Board b = board.Copy();
-		b.Push(get<0>(o));
+		b.Push(m);
 		//eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
 		
 		// Principal variation search - questionable gains
-		eval childEval;
+		int childEval;
 		if (!pvSearch) {
 			childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
 		}
 		else {
 			childEval = SearchRecursive(b, depth - 1, level + 1, -alpha-1, -alpha, true);
-			if ((alpha < -childEval.score) && (-childEval.score < beta)) {
+			if ((alpha < -childEval) && (-childEval < beta)) {
 				childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
 			}
 		}
 		
-		int childScore = -childEval.score;
-		std::vector<Move> childMoves = childEval.moves;
+		int childScore = -childEval;
 
 		if (childScore > bestScore) {
 			bestScore = childScore;
-			bestMoves = childMoves;
-			bestMoves.push_back(get<0>(o));
-			
+
 			if (bestScore >= beta) {
 				//bool capture = b.GetPieceAt(get<0>(o).to) != Piece::None;
-				if (true) Heuristics.AddKillerMove(get<0>(o), level);
-				eval e(beta, bestMoves);
+				if (true) Heuristics.AddKillerMove(m, level);
+				int e = beta;
 				Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
 				return e;
 			}
@@ -302,6 +300,7 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 				scoreType = ScoreType::Exact;
 				alpha = bestScore;
 				pvSearch = true;
+				Heuristics.UpdatePvTable(m, level);
 			}
 		}
 
@@ -309,12 +308,12 @@ eval Engine::SearchRecursive(Board board, int depth, int level, int alpha, int b
 
 	// Case when there was no legal move 
 	if (legalMoveCount == 0) {
-		eval e = eval(StaticEvaluation(board, level));
+		int e = StaticEvaluation(board, level);
 		Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
 	}
 
-	eval e(alpha, bestMoves);
+	int e = alpha;
 	Heuristics.AddEntry(hash, e, scoreType);
 	return e;
 }

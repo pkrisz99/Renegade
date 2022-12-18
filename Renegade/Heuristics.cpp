@@ -7,19 +7,14 @@ Heuristics::Heuristics() {
 	PvMoves = std::vector<Move>();
 }
 
-void Heuristics::AddEntry(unsigned __int64 hash, eval e, int scoreType) {
-	//int usage = Hashes.capacity() * sizeof(T) + sizeof(vec);
-	//std::cout << usage << std::endl;
+void Heuristics::AddEntry(unsigned __int64 hash, int score, int scoreType) {
 	if (ApproxHashSize + sizeof(HashEntry) >= MaximumHashSize) return;
 	HashedEntryCount += 1;
 	HashEntry entry;
-	entry.score = e.score;
+	entry.score = score;
 	entry.scoreType = scoreType;
-	if (e.moves.size() > 0) {
-		entry.moves = e.moves;
-	}
 	Hashes[hash] = entry;
-	ApproxHashSize += sizeof(Move) * entry.moves.capacity() + sizeof(HashEntry); // Is this good?
+	ApproxHashSize += sizeof(HashEntry); // Is this good?
 }
 
 std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(unsigned __int64 hash) {
@@ -43,6 +38,9 @@ void Heuristics::ClearEntries() {
 		a[0] = Move(0, 0);
 		a[1] = Move(0, 0);
 		KillerMoves.push_back(a);
+	}
+	for (int i = 0; i < 30; i++) {
+		for (int j = 0; j < 30; j++) PvTable[i][j] = Move();
 	}
 }
 
@@ -79,4 +77,23 @@ void Heuristics::SetHashSize(int megabytes) {
 int Heuristics::GetHashfull() {
 	if (MaximumHashSize <= 0) return -1;
 	return (int)(ApproxHashSize * 1000ULL / MaximumHashSize);
+}
+
+void Heuristics::UpdatePvTable(Move move, int level) {
+	PvTable[level][level] = move;
+	for (int i = level + 1; i < 20; i++) {
+		Move lowerMove = PvTable[level + 1][i];
+		if ((lowerMove.from == 0) && (lowerMove.to == 0)) break;
+		PvTable[level][i] = lowerMove;
+	}
+}
+
+std::vector<Move> Heuristics::GetPvLine() {
+	std::vector<Move> list = std::vector<Move>();
+	for (int i = 1; i < 20; i++) {
+		Move m = PvTable[1][i];
+		if ((m.from == 0) && (m.to == 0)) break;
+		list.push_back(m);
+	}
+	return list;
 }

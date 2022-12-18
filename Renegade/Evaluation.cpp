@@ -25,17 +25,3 @@ Move Evaluation::BestMove() {
 	if (pv.size() != 0) return pv.front();
 	else return Move();
 }
-
-eval::eval(int s) {
-	score = s;
-	moves = std::vector<Move>();
-}
-
-eval::eval() {
-	score = NoEval;
-}
-
-eval::eval(int s, std::vector<Move> m) {
-	score = s;
-	moves = m;
-}
