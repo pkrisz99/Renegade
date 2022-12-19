@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <chrono>
 
 #ifdef _MSC_VER
 	#include <intrin.h>
@@ -10,6 +11,8 @@
 #endif
 
 const std::string Version = "0.5.1+";
+
+typedef std::chrono::high_resolution_clock Clock;
 
 
 namespace Side {

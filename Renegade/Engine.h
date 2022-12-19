@@ -14,38 +14,15 @@
 #include <vector>
 #include <random>
 #include <filesystem>
-
-typedef std::chrono::high_resolution_clock Clock;
+#include "Search.h"
 
 class Engine
 {
 public:
 	Engine();
-	void perft(std::string fen, int depth, bool verbose);
-	void perft(Board b, int depth, bool verbose);
-	int perft1(Board board, int depth, bool verbose);
-	int perftRecursive(Board b, int depth);
-	Evaluation Search(Board board);
-	int SearchRecursive(Board board, int depth, int level, int alpha, int beta, bool canNullMove);
-	int StaticEvaluation(Board board, int level);
 	void Start();
-	void PrintInfo(Evaluation e);
 	void Play();
-	void InitOpeningBook();
-	std::string GetBookMove(unsigned __int64 hash);
-	SearchConstraints CalculateConstraints(SearchParams params, bool turn);
-
-	int EvaluatedNodes;
-	int EvaluatedQuiescenceNodes;
-	std::vector<BookEntry> BookEntries;
-	int HashSize;
-	int SelDepth;
-	int Depth;
+	Search Search;
 	EngineSettings Settings;
-	Heuristics Heuristics;
-	SearchConstraints Constraints;
-	bool Aborting = false;
-	std::chrono::steady_clock::time_point StartSearchTime;
-	bool Explored;
 };
 
