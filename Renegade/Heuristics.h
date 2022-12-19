@@ -20,25 +20,25 @@ class Heuristics
 {
 public:
 	Heuristics();
-	void AddEntry(unsigned __int64 hash, int score, int scoreType);
+	void AddEntry(uint64_t hash, int score, int scoreType);
 	void AddKillerMove(Move m, int level);
 	bool IsKillerMove(Move move, int level);
 	bool IsPvMove(Move move, int level);
 	void SetPv(std::vector<Move> pv);
 	void ClearEntries();
 	void ClearPv();
-	std::tuple<bool, HashEntry> RetrieveEntry(unsigned __int64 hash);
+	std::tuple<bool, HashEntry> RetrieveEntry(uint64_t hash);
 	void SetHashSize(int megabytes);
 	int GetHashfull();
 	void UpdatePvTable(Move move, int level);
 	std::vector<Move> GetPvLine();
 
-	std::unordered_map<unsigned __int64, HashEntry> Hashes;
+	std::unordered_map<uint64_t, HashEntry> Hashes;
 	int HashedEntryCount;
-	__int64 ApproxHashSize;
+	int64_t ApproxHashSize;
 	std::vector<std::array<Move, 2>> KillerMoves;
 	std::vector<Move> PvMoves;
-	unsigned __int64 MaximumHashSize;
+	uint64_t MaximumHashSize;
 	Move PvTable[30][30];
 
 	const HashEntry NoEntry = { -1, ScoreType::Exact};

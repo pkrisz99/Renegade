@@ -26,7 +26,7 @@ Board::Board(string fen) {
 	Turn = Turn::White;
 	State = GameState::Playing;
 	StartingPosition = (fen == starting_fen);
-	PastHashes = std::vector<unsigned __int64>();
+	PastHashes = std::vector<uint64_t>();
 
 	std::stringstream ss(fen);
 	std::istream_iterator<std::string> begin(ss);
@@ -115,14 +115,14 @@ Board::Board(const Board &b) {
 	DrawCheck = b.DrawCheck;
 	StartingPosition = b.StartingPosition;
 
-	PastHashes = std::vector<unsigned __int64>();
+	PastHashes = std::vector<uint64_t>();
 	PastHashes.reserve(b.PastHashes.size());
-	for (unsigned __int64 ph : b.PastHashes) {
+	for (uint64_t ph : b.PastHashes) {
 		PastHashes.push_back(ph);
 	}
 }
 
-void Board::Draw(unsigned __int64 customBits = 0) {
+void Board::Draw(uint64_t customBits = 0) {
 
 	string side = Turn ? "white" : "black";
 	cout << "    Move: " << FullmoveClock << " - " << side << " to play" << endl;;
@@ -169,7 +169,7 @@ void Board::Draw(unsigned __int64 customBits = 0) {
 				else CellStyle = WhiteOnDarkSquare;
 			}
 
-			if (CheckBit(customBits, (unsigned __int64)i * 8 + j)) {
+			if (CheckBit(customBits, (uint64_t)i * 8 + j)) {
 				if (pieceColor == PieceColor::Black) CellStyle = BlackOnTarget;
 				else  CellStyle = WhiteOnTarget;
 			}
@@ -184,13 +184,13 @@ void Board::Draw(unsigned __int64 customBits = 0) {
 
 }
 
-unsigned __int64 Board::Hash(bool hashPlys) {
-	unsigned __int64 hash = 0ULL;
+uint64_t Board::Hash(bool hashPlys) {
+	uint64_t hash = 0ULL;
 
 	// Pieces
 	uint64_t occupancy = GetOccupancy();
 	while (NonZeros(occupancy) != 0) {
-		unsigned __int64 sq = 64 - __lzcnt64(occupancy) - 1;
+		uint64_t sq = 64 - __lzcnt64(occupancy) - 1;
 		SetBitFalse(occupancy, sq);
 
 		if (CheckBit(BlackPawnBits, sq)) hash ^= Zobrist[64 * 0 + sq];
@@ -346,10 +346,10 @@ void Board::TryMove(Move move) {
 	else if (targetPiece == Piece::BlackKing) SetBitFalse(BlackKingBits, move.to); // ????
 
 	if ((piece == Piece::WhitePawn) && (move.to == EnPassantSquare) ) {
-		SetBitFalse(BlackPawnBits, (unsigned __int64)(EnPassantSquare)-8);
+		SetBitFalse(BlackPawnBits, (uint64_t)(EnPassantSquare)-8);
 	}
 	if ((piece == Piece::BlackPawn) && (move.to == EnPassantSquare)) {
-		SetBitFalse(WhitePawnBits, (unsigned __int64)(EnPassantSquare)+8);
+		SetBitFalse(WhitePawnBits, (uint64_t)(EnPassantSquare)+8);
 	}
 
 	if (piece == Piece::WhitePawn) {
@@ -441,7 +441,7 @@ void Board::Push(Move move) {
 	else inCheck = NonZeros(AttackedSquares & BlackKingBits);
 
 	// Add current hash to list
-	unsigned __int64 hash = Hash(false);
+	uint64_t hash = Hash(false);
 	PastHashes.push_back(hash);
 	
 	// Check checkmates & stalemates
@@ -459,7 +459,7 @@ void Board::Push(Move move) {
 	// Threefold repetition check
 	// optimalization idea: only check the last 'HalfmoveClock' moves?
 	if (DrawCheck) {
-		__int64 stateCount = std::count(PastHashes.begin(), PastHashes.end(), hash);
+		int64_t stateCount = std::count(PastHashes.begin(), PastHashes.end(), hash);
 		if (stateCount >= 3) {
 			State = GameState::Draw;
 			return;
@@ -502,27 +502,27 @@ void Board::Push(Move move) {
 
 }
 
-unsigned __int64 Board::GenerateKnightAttacks(int from) {
+uint64_t Board::GenerateKnightAttacks(int from) {
 	return KnightMoveBits[from];
 }
 
-unsigned __int64 Board::GenerateKingAttacks(int from) {
+uint64_t Board::GenerateKingAttacks(int from) {
 	return KingMoveBits[from];
 }
 
-unsigned __int64 Board::GeneratePawnAttacks(int pieceColor, int from) {
-	unsigned __int64 squares = 0ULL;
+uint64_t Board::GeneratePawnAttacks(int pieceColor, int from) {
+	uint64_t squares = 0ULL;
 	int rank = GetSquareRank(from);
 	int file = GetSquareFile(from);
 	if (pieceColor == PieceColor::White) {
 		squares = WhitePawnAttacks[from];
-		if ((from - 1 == EnPassantSquare) && (file != 0)) SetBitTrue(squares, (unsigned __int64)from - 1);
-		if ((from + 1 == EnPassantSquare) && (file != 7)) SetBitTrue(squares, (unsigned __int64)from + 1);
+		if ((from - 1 == EnPassantSquare) && (file != 0)) SetBitTrue(squares, (uint64_t)from - 1);
+		if ((from + 1 == EnPassantSquare) && (file != 7)) SetBitTrue(squares, (uint64_t)from + 1);
 	}
 	else {
 		squares = BlackPawnAttacks[from];
-		if ((from - 1 == EnPassantSquare) && (file != 0)) SetBitTrue(squares, (unsigned __int64)from - 1);
-		if ((from + 1 == EnPassantSquare) && (file != 7)) SetBitTrue(squares, (unsigned __int64)from + 1);
+		if ((from - 1 == EnPassantSquare) && (file != 0)) SetBitTrue(squares, (uint64_t)from - 1);
+		if ((from + 1 == EnPassantSquare) && (file != 7)) SetBitTrue(squares, (uint64_t)from + 1);
 	}
 	return squares;
 }
@@ -540,8 +540,8 @@ std::vector<Move> Board::GenerateKnightMoves(int home) {
 }
 
 std::vector<Move> Board::GenerateSlidingMoves(int piece, int home) {
-	unsigned __int64 friendlyOccupance = 0ULL;
-	unsigned __int64 opponentOccupance = 0ULL;
+	uint64_t friendlyOccupance = 0ULL;
+	uint64_t opponentOccupance = 0ULL;
 	std::vector<Move> Moves;
 	Moves.reserve(27);
 	if (ColorOfPiece(piece) == PieceColor::White) {
@@ -594,9 +594,9 @@ std::vector<Move> Board::GenerateSlidingMoves(int piece, int home) {
 
 }
 
-inline unsigned __int64 Board::GenerateSlidingAttacksShiftDown(int direction, unsigned __int64 boundMask, unsigned __int64 propagatingPieces, unsigned __int64 friendlyPieces, unsigned __int64 opponentPieces) {
-	unsigned __int64 blockingFriends = friendlyPieces & ~propagatingPieces;
-	unsigned __int64 fill = ((propagatingPieces & boundMask) >> direction) & ~blockingFriends;
+inline uint64_t Board::GenerateSlidingAttacksShiftDown(int direction, uint64_t boundMask, uint64_t propagatingPieces, uint64_t friendlyPieces, uint64_t opponentPieces) {
+	uint64_t blockingFriends = friendlyPieces & ~propagatingPieces;
+	uint64_t fill = ((propagatingPieces & boundMask) >> direction) & ~blockingFriends;
 	uint64_t lastFill = fill;
 	for (int i = 0; i < 7; i++) {
 		fill = fill & boundMask;
@@ -609,9 +609,9 @@ inline unsigned __int64 Board::GenerateSlidingAttacksShiftDown(int direction, un
 	return fill;
 }
 
-inline unsigned __int64 Board::GenerateSlidingAttacksShiftUp(int direction, unsigned __int64 boundMask, unsigned __int64 propagatingPieces, unsigned __int64 friendlyPieces, unsigned __int64 opponentPieces) {
-	unsigned __int64 blockingFriends = friendlyPieces & ~propagatingPieces;
-	unsigned __int64 fill = ((propagatingPieces & boundMask) << direction) & ~blockingFriends;
+inline uint64_t Board::GenerateSlidingAttacksShiftUp(int direction, uint64_t boundMask, uint64_t propagatingPieces, uint64_t friendlyPieces, uint64_t opponentPieces) {
+	uint64_t blockingFriends = friendlyPieces & ~propagatingPieces;
+	uint64_t fill = ((propagatingPieces & boundMask) << direction) & ~blockingFriends;
 	uint64_t lastFill = fill;
 	for (int i = 0; i < 7; i++) {
 		fill = fill & boundMask;
@@ -836,12 +836,12 @@ std::vector<Move> Board::GenerateCastlingMoves() {
 	return list;
 }
 
-unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
-	unsigned __int64 squares = 0ULL;
-	unsigned __int64 parallelSliders = 0;
-	unsigned __int64 diagonalSliders = 0;
-	unsigned __int64 friendlyPieces = 0;
-	unsigned __int64 opponentPieces = 0;
+uint64_t Board::CalculateAttackedSquares(int colorOfPieces) {
+	uint64_t squares = 0ULL;
+	uint64_t parallelSliders = 0;
+	uint64_t diagonalSliders = 0;
+	uint64_t friendlyPieces = 0;
+	uint64_t opponentPieces = 0;
 
 	if (colorOfPieces == PieceColor::White) {
 		parallelSliders = WhiteRookBits | WhiteQueenBits;
@@ -867,7 +867,7 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 	squares |= GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, diagonalSliders, friendlyPieces, opponentPieces); // Left-up
 
 	// King attack gen
-	unsigned __int64 kingBits = colorOfPieces == PieceColor::White ? WhiteKingBits : BlackKingBits;
+	uint64_t kingBits = colorOfPieces == PieceColor::White ? WhiteKingBits : BlackKingBits;
 	uint64_t fill = 0;
 	fill |= (kingBits & ~Bitboards::FileH) << 1;
 	fill |= (kingBits & ~Bitboards::FileA) >> 1;
@@ -881,10 +881,10 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 	squares |= fill;
 
 	// Knight attack gen: +6, +10, +15, +17
-	unsigned __int64 knightBits = colorOfPieces == PieceColor::White ? WhiteKnightBits : BlackKnightBits;
+	uint64_t knightBits = colorOfPieces == PieceColor::White ? WhiteKnightBits : BlackKnightBits;
 	fill = 0;
 	while (NonZeros(knightBits) != 0) {
-		unsigned __int64 sq = 64 - __lzcnt64(knightBits) - 1;
+		uint64_t sq = 64 - __lzcnt64(knightBits) - 1;
 		fill |= GenerateKnightAttacks((int)sq);
 		SetBitFalse(knightBits, sq);
 	}
@@ -899,7 +899,7 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 		squares |= (WhitePawnBits & ~Bitboards::FileA) << 7;
 		squares |= (WhitePawnBits & ~Bitboards::FileH) << 9;
 		if (EnPassantSquare != -1) {
-			unsigned __int64 encodedEP = 0;
+			uint64_t encodedEP = 0;
 			SetBitTrue(encodedEP, EnPassantSquare);
 			squares |= ((WhitePawnBits & ~Bitboards::FileA) >> 1) & encodedEP;
 			squares |= ((WhitePawnBits & ~Bitboards::FileH) << 1) & encodedEP;
@@ -910,7 +910,7 @@ unsigned __int64 Board::CalculateAttackedSquares(int colorOfPieces) {
 		squares |= (BlackPawnBits & ~Bitboards::FileA) >> 9;
 		squares |= (BlackPawnBits & ~Bitboards::FileH) >> 7;
 		if (EnPassantSquare != -1) {
-			unsigned __int64 encodedEP = 0;
+			uint64_t encodedEP = 0;
 			SetBitTrue(encodedEP, EnPassantSquare);
 			squares |= ((BlackPawnBits & ~Bitboards::FileA) >> 1) & encodedEP;
 			squares |= ((BlackPawnBits & ~Bitboards::FileH) << 1) & encodedEP;
@@ -942,11 +942,11 @@ std::vector<Move> Board::GenerateCaptureMoves(int side) { // + todo: check for p
 
 	for (const Move& m : LegalMoves) {
 		if (side == Side::White) {
-			unsigned __int64 opponentOccupance = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
+			uint64_t opponentOccupance = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 			if (CheckBit(opponentOccupance, m.to)) CaptureMoves.push_back(m);
 		}
 		else if (side == Side::Black) {
-			unsigned __int64 opponentOccupance = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
+			uint64_t opponentOccupance = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
 			if (CheckBit(opponentOccupance, m.to)) CaptureMoves.push_back(m);
 		}
 	}
@@ -959,7 +959,7 @@ std::vector<Move> Board::GenerateMoves(int side) {
 	int myColor = SideToPieceColor(side);
 	uint64_t occupancy = GetOccupancy(SideToPieceColor(side));
 	while (occupancy != 0) {
-		unsigned __int64 i = 64 - __lzcnt64(occupancy) - 1;
+		uint64_t i = 64 - __lzcnt64(occupancy) - 1;
 		SetBitFalse(occupancy, i);
 
 		int piece = GetPieceAt(i);
@@ -999,7 +999,7 @@ bool Board::AreThereLegalMoves(int side, uint64_t previousAttackMap) {
 	moves.reserve(13);
 	uint64_t occupancy = GetOccupancy(SideToPieceColor(side));
 	while (occupancy != 0) {
-		unsigned __int64 i = 64 - __lzcnt64(occupancy) - 1;
+		uint64_t i = 64 - __lzcnt64(occupancy) - 1;
 		SetBitFalse(occupancy, i);
 		int piece = GetPieceAt(i);
 		int color = ColorOfPiece(piece);
@@ -1036,18 +1036,18 @@ bool Board::AreThereLegalMoves(int side, uint64_t previousAttackMap) {
 bool Board::IsLegalMove(Move m, int side) {
 
 	// Backup variables
-	unsigned __int64 whitePawnBits = WhitePawnBits;
-	unsigned __int64 whiteKnightBits = WhiteKnightBits;
-	unsigned __int64 whiteBishopBits = WhiteBishopBits;
-	unsigned __int64 whiteRookBits = WhiteRookBits;
-	unsigned __int64 whiteQueenBits = WhiteQueenBits;
-	unsigned __int64 whiteKingBits = WhiteKingBits;
-	unsigned __int64 blackPawnBits = BlackPawnBits;
-	unsigned __int64 blackKnightBits = BlackKnightBits;
-	unsigned __int64 blackBishopBits = BlackBishopBits;
-	unsigned __int64 blackRookBits = BlackRookBits;
-	unsigned __int64 blackQueenBits = BlackQueenBits;
-	unsigned __int64 blackKingBits = BlackKingBits;
+	uint64_t whitePawnBits = WhitePawnBits;
+	uint64_t whiteKnightBits = WhiteKnightBits;
+	uint64_t whiteBishopBits = WhiteBishopBits;
+	uint64_t whiteRookBits = WhiteRookBits;
+	uint64_t whiteQueenBits = WhiteQueenBits;
+	uint64_t whiteKingBits = WhiteKingBits;
+	uint64_t blackPawnBits = BlackPawnBits;
+	uint64_t blackKnightBits = BlackKnightBits;
+	uint64_t blackBishopBits = BlackBishopBits;
+	uint64_t blackRookBits = BlackRookBits;
+	uint64_t blackQueenBits = BlackQueenBits;
+	uint64_t blackKingBits = BlackKingBits;
 	int enPassantSquare = EnPassantSquare;
 	bool whiteShortCastle = WhiteRightToShortCastle;
 	bool whiteLongCastle = WhiteRightToLongCastle;
@@ -1055,7 +1055,7 @@ bool Board::IsLegalMove(Move m, int side) {
 	bool blackLongCastle = BlackRightToLongCastle;
 	int fullmoveClock = FullmoveClock;
 	int halfmoveClock = HalfmoveClock;
-	unsigned __int64 attackedSquares = AttackedSquares;
+	uint64_t attackedSquares = AttackedSquares;
 	GameState state = State;
 
 	// Push move

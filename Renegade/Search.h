@@ -37,7 +37,7 @@ public:
 
 	// Opening book
 	void InitOpeningBook();
-	std::string GetBookMove(unsigned __int64 hash);
+	std::string GetBookMove(uint64_t hash);
 	BookEntry GetBookEntry(int item);
 	int GetBookSize();
 

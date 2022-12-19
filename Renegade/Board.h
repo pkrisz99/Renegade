@@ -31,20 +31,19 @@ public:
 	void Push(Move move);
 	bool PushUci(string ucistr);
 	Board Copy();
-	void Draw(unsigned __int64 customBits);
+	void Draw(uint64_t customBits);
 	int GetPieceAt(int place);
-	unsigned __int64 Hash(bool hashPlys);
+	uint64_t Hash(bool hashPlys);
 	uint64_t GetOccupancy();
 	uint64_t GetOccupancy(int pieceColor);
 
 	bool AreThereLegalMoves(int side, uint64_t previousAttackMap);
 	bool IsLegalMove(Move m, int side);
 	void TryMove(Move move);
-	void MakeNullMove(Move move);
 	vector<Move> GenerateMoves(int side);
 	vector<Move> GenerateLegalMoves(int side);
 	vector<Move> GenerateCaptureMoves(int side);
-	unsigned __int64 CalculateAttackedSquares(int side);
+	uint64_t CalculateAttackedSquares(int side);
 
 	std::vector<Move> GenerateKnightMoves(int home);
 	std::vector<Move> GenerateKingMoves(int home);
@@ -52,28 +51,28 @@ public:
 	std::vector<Move> GenerateCastlingMoves();
 	std::vector<Move> GenerateSlidingMoves(int piece, int home);
 
-	unsigned __int64 GenerateKnightAttacks(int from);
-	unsigned __int64 GenerateKingAttacks(int from);
-	unsigned __int64 GeneratePawnAttacks(int pieceColor, int from);
-	unsigned __int64 GenerateSlidingAttacksShiftUp(int direction, unsigned __int64 boundMask, unsigned __int64 propagatingPieces,
-		unsigned __int64 friendlyPieces, unsigned __int64 opponentPieces);
-	unsigned __int64 GenerateSlidingAttacksShiftDown(int direction, unsigned __int64 boundMask, unsigned __int64 propagatingPieces,
-		unsigned __int64 friendlyPieces, unsigned __int64 opponentPieces);
+	uint64_t GenerateKnightAttacks(int from);
+	uint64_t GenerateKingAttacks(int from);
+	uint64_t GeneratePawnAttacks(int pieceColor, int from);
+	uint64_t GenerateSlidingAttacksShiftUp(int direction, uint64_t boundMask, uint64_t propagatingPieces,
+		uint64_t friendlyPieces, uint64_t opponentPieces);
+	uint64_t GenerateSlidingAttacksShiftDown(int direction, uint64_t boundMask, uint64_t propagatingPieces,
+		uint64_t friendlyPieces, uint64_t opponentPieces);
 
 	// Board variables:
-	unsigned __int64 WhitePawnBits;
-	unsigned __int64 WhiteKnightBits;
-	unsigned __int64 WhiteBishopBits;
-	unsigned __int64 WhiteRookBits;
-	unsigned __int64 WhiteQueenBits;
-	unsigned __int64 WhiteKingBits;
-	unsigned __int64 BlackPawnBits;
-	unsigned __int64 BlackKnightBits;
-	unsigned __int64 BlackBishopBits;
-	unsigned __int64 BlackRookBits;
-	unsigned __int64 BlackQueenBits;
-	unsigned __int64 BlackKingBits;
-	unsigned __int64 AttackedSquares;
+	uint64_t WhitePawnBits;
+	uint64_t WhiteKnightBits;
+	uint64_t WhiteBishopBits;
+	uint64_t WhiteRookBits;
+	uint64_t WhiteQueenBits;
+	uint64_t WhiteKingBits;
+	uint64_t BlackPawnBits;
+	uint64_t BlackKnightBits;
+	uint64_t BlackBishopBits;
+	uint64_t BlackRookBits;
+	uint64_t BlackQueenBits;
+	uint64_t BlackKingBits;
+	uint64_t AttackedSquares;
 	int EnPassantSquare;
 	bool WhiteRightToShortCastle;
 	bool WhiteRightToLongCastle;
@@ -83,7 +82,7 @@ public:
 	int HalfmoveClock;
 	int FullmoveClock;
 	GameState State;
-	std::vector<unsigned __int64> PastHashes;
+	std::vector<uint64_t> PastHashes;
 
 	// Board settings:
 	bool StartingPosition;

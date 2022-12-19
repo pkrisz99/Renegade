@@ -130,8 +130,8 @@ void Engine::Start() {
 			}
 			if (parts[1] == "runtime") {
 				cout << "Timing test suite:" << endl;
-				__int64 nanoseconds = 0;
-				unsigned __int64 dummy = 0;
+				int64_t nanoseconds = 0;
+				uint64_t dummy = 0;
 				for (int i = 0; i < 100000; i++) {
 					auto t0 = Clock::now();
 					dummy = Search.StaticEvaluation(board, 0);
@@ -231,7 +231,7 @@ void Engine::Start() {
 			}
 
 			SearchParams params;
-			for (__int64 i = 1; i < parts.size(); i++) {
+			for (int i = 1; i < parts.size(); i++) {
 				if (parts[i] == "wtime") { params.wtime = stoi(parts[i + 1]); i++; }
 				if (parts[i] == "btime") { params.btime = stoi(parts[i + 1]); i++; }
 				if (parts[i] == "movestogo") { params.movestogo = stoi(parts[i + 1]); i++; }

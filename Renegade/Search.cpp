@@ -196,7 +196,7 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 	}
 
 	// Calculate hash
-	unsigned __int64 hash = board.Hash(true);
+	uint64_t hash = board.Hash(true);
 
 	// Check hash
 	std::tuple<bool, HashEntry> retrieved = Heuristics.RetrieveEntry(hash);
@@ -356,7 +356,7 @@ int Search::StaticEvaluation(Board board, int level) {
 
 	uint64_t occupancy = board.GetOccupancy();
 	while (occupancy != 0) {
-		unsigned __int64 i = 64 - __lzcnt64(occupancy) - 1;
+		uint64_t i = 64 - __lzcnt64(occupancy) - 1;
 		SetBitFalse(occupancy, i);
 		int piece = board.GetPieceAt(i);
 		if (piece == Piece::WhitePawn) score += PawnPSQT[i];
@@ -383,7 +383,7 @@ void Search::InitOpeningBook() {
 
 	if (!ifs) return;
 
-	unsigned __int64 buffer[2];
+	uint64_t buffer[2];
 	int c = 0;
 
 	while (ifs.read(reinterpret_cast<char*>(&buffer), 16)) {
@@ -402,7 +402,7 @@ void Search::InitOpeningBook() {
 
 }
 
-std::string Search::GetBookMove(unsigned __int64 hash) {
+std::string Search::GetBookMove(uint64_t hash) {
 	// should take about 2-3 ms for Human.bin (~900k entries) 
 	std::vector<string> matches;
 	for (const BookEntry& e : BookEntries) {

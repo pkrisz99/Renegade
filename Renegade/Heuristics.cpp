@@ -7,7 +7,7 @@ Heuristics::Heuristics() {
 	PvMoves = std::vector<Move>();
 }
 
-void Heuristics::AddEntry(unsigned __int64 hash, int score, int scoreType) {
+void Heuristics::AddEntry(uint64_t hash, int score, int scoreType) {
 	if (ApproxHashSize + sizeof(HashEntry) >= MaximumHashSize) return;
 	HashedEntryCount += 1;
 	HashEntry entry;
@@ -17,7 +17,7 @@ void Heuristics::AddEntry(unsigned __int64 hash, int score, int scoreType) {
 	ApproxHashSize += sizeof(HashEntry); // Is this good?
 }
 
-std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(unsigned __int64 hash) {
+std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(uint64_t hash) {
 
 	if (Hashes.find(hash) != Hashes.end()) {
 		HashEntry entry = Hashes[hash];
