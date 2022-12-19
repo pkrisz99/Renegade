@@ -100,6 +100,8 @@ namespace Squares {
 
 enum class GameState { Playing, WhiteVictory, BlackVictory, Draw };
 
+enum class PerftType { Normal, PerftDiv, Debug };
+
 struct SearchParams {
 	int wtime = 0;
 	int btime = 0;

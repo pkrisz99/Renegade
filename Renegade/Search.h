@@ -24,10 +24,8 @@ public:
 	void Reset();
 
 	// Perft methods
-	void Perft(std::string fen, int depth, bool verbose);
-	void Perft(Board b, int depth, bool verbose);
-	int Perft1(Board board, int depth, bool verbose);
-	int PerftRecursive(Board b, int depth);
+	void Perft(Board b, int depth, PerftType type);
+	int PerftRecursive(Board b, int depth, int originalDepth, PerftType type);
 
 	// Move search
 	Evaluation SearchMoves(Board board, SearchParams params, EngineSettings settings);

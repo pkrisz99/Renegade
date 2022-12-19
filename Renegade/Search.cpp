@@ -15,56 +15,42 @@ void Search::Reset() {
 
 // Perft methods --------------------------------------------------------------
 
-void Search::Perft(string fen, int depth, bool verbose) {
-	Board board = Board(fen);
-	Perft(board, depth, verbose);
-}
-
-void Search::Perft(Board board, int depth, bool verbose) {
+void Search::Perft(Board board, int depth, PerftType type) {
 	Board b = board.Copy();
 	b.DrawCheck = false;
+
 	auto t0 = Clock::now();
-	int r = Perft1(b, depth, verbose);
+	int r = PerftRecursive(b, depth, depth, type);
 	auto t1 = Clock::now();
+
 	float seconds = (float)((t1 - t0).count() / 1e9);
 	float speed = r / seconds / 1000000;
-	if (verbose) cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps" << endl;
+	if ((type == PerftType::Normal) || (type == PerftType::PerftDiv)) {
+		cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps | No bulk counting" << endl;
+	}
 	else cout << r << endl;
 }
 
-int Search::Perft1(Board board, int depth, bool verbose) {
+int Search::PerftRecursive(Board board, int depth, int originalDepth, PerftType type) {
 	std::vector<Move> moves = board.GenerateLegalMoves(board.Turn);
-	if (verbose) cout << "Legal moves (" << moves.size() << "): " << endl;
+	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << moves.size() << "): " << endl;
 	int count = 0;
 	for (Move m : moves) {
-		Board b = board.Copy();
-		b.Push(m);
 		int r;
 		if (depth == 1) {
 			r = 1;
 			count += r;
 		}
 		else {
-			r = PerftRecursive(b, depth - 1);
+			Board b = board.Copy();
+			b.Push(m);
+			r = PerftRecursive(b, depth - 1, originalDepth, type);
 			count += r;
 		}
-		if (verbose) cout << " - " << m.ToString() << " : " << r << endl;
+		if ((originalDepth == depth) && (type == PerftType::PerftDiv)) cout << " - " << m.ToString() << " : " << r << endl;
 	}
 	return count;
 }
-
-
-int Search::PerftRecursive(Board b, int depth) {
-	std::vector<Move> moves = b.GenerateLegalMoves(b.Turn);
-	if (depth == 1) return (int)moves.size();
-	int count = 0;
-	for (const Move& m : moves) {
-		Board child = b.Copy();
-		child.Push(m);
-		count += PerftRecursive(child, depth - 1);
-	}
-	return count;
-};
 
 // Time allocation
 SearchConstraints Search::CalculateConstraints(SearchParams params, bool turn) {
@@ -160,7 +146,7 @@ Evaluation Search::SearchMoves(Board board, SearchParams params, EngineSettings 
 		e.pv = Heuristics.GetPvLine();
 
 		Heuristics.SetPv(e.pv);
-		for (int i = 0; i < e.pv.size(); i++) cout << e.pv[i].ToString() << endl;
+		//for (int i = 0; i < e.pv.size(); i++) cout << e.pv[i].ToString() << endl;
 		PrintInfo(e);
 	}
 	PrintBestmove(e.BestMove());
@@ -238,11 +224,11 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 	for (const Move& m : pseudoMoves) {
 
 		int orderScore = 0;
-		int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from)); // attackingPieceType
-		int capturedPiece = TypeOfPiece(board.GetPieceAt(m.to)); // attackedPieceType
+		int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
+		int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
 		const int values[] = { 0, 100, 300, 300, 500, 900, 10000 };
-		if (capturedPiece != PieceType::None) {
-			orderScore = values[capturedPiece] - values[attackingPiece] + 10;
+		if (attackedPiece != PieceType::None) {
+			orderScore = values[attackedPiece] - values[attackingPiece] + 10;
 		}
 
 		if (m.flag == MoveFlag::PromotionToQueen) orderScore += 900;
@@ -398,7 +384,6 @@ void Search::InitOpeningBook() {
 		BookEntries.push_back(entry);
 	}
 	ifs.close();
-
 
 }
 

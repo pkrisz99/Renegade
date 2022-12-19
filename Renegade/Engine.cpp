@@ -219,14 +219,12 @@ void Engine::Start() {
 		// Go command
 		if (parts[0] == "go") {
 
-			if (parts[1] == "perft") {
+			if ((parts[1] == "perft") || (parts[1] == "perftdiv") || (parts[1] == "perfd")) {
 				int depth = stoi(parts[2]);
-				Search.Perft(board, depth, true);
-				continue;
-			}
-			if (parts[1] == "perfd") {
-				int depth = stoi(parts[2]);
-				Search.Perft(board, depth, false);
+				PerftType type = PerftType::Normal;
+				if (parts[1] == "perftdiv") type = PerftType::PerftDiv;
+				if (parts[1] == "perfd") type = PerftType::Debug;
+				Search.Perft(board, depth, type);
 				continue;
 			}
 
