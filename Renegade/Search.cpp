@@ -200,16 +200,15 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 	// Null-move pruning
 	bool kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
 	bool inCheck = (board.AttackedSquares & kingBits) != 0;
-	int reduction;
-	if (depth >= 7) reduction = 3;
-	else reduction = 2;
-	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1)) {
+	int remainingPieces = NonZeros(board.GetOccupancy());
+	int reduction = 2;
+	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1) && (remainingPieces > 5)) {
 		Move m = Move();
 		m.SetFlag(MoveFlag::NullMove);
 		Board b = board.Copy();
 		b.Push(m);
 		int nullMoveEval = SearchRecursive(b, depth - 1 - reduction, level + 1, -beta, -beta + 1, false);
-		if (-nullMoveEval >= beta) return beta;
+		if ((-nullMoveEval >= beta) && (abs(nullMoveEval) < MateEval - 1000)) return beta;
 	}
 
 	// Initalize variables
@@ -243,7 +242,9 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 		else if (attackingPiece == PieceType::Queen) orderScore += QueenPSQT[m.to] - QueenPSQT[m.from];
 
 		if (Heuristics.IsKillerMove(m, level)) orderScore += 200000;
-		//if (Heuristics.IsPvMove(m, level)) orderScore += 100000;
+		if (Heuristics.IsPvMove(m, level)) orderScore += 100000;
+
+
 
 		order.push_back({ m, orderScore });
 	}

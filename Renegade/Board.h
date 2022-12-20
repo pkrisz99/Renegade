@@ -45,11 +45,11 @@ public:
 	vector<Move> GenerateCaptureMoves(int side);
 	uint64_t CalculateAttackedSquares(int side);
 
-	std::vector<Move> GenerateKnightMoves(int home);
-	std::vector<Move> GenerateKingMoves(int home);
-	std::vector<Move> GeneratePawnMoves(int home);
-	std::vector<Move> GenerateCastlingMoves();
-	std::vector<Move> GenerateSlidingMoves(int piece, int home);
+	void GenerateKnightMoves(int home);
+	void GenerateKingMoves(int home);
+	void GeneratePawnMoves(int home);
+	void GenerateCastlingMoves();
+	void GenerateSlidingMoves(int piece, int home);
 
 	uint64_t GenerateKnightAttacks(int from);
 	uint64_t GenerateKingAttacks(int from);
@@ -83,6 +83,7 @@ public:
 	int FullmoveClock;
 	GameState State;
 	std::vector<uint64_t> PastHashes;
+	std::vector<Move> MoveList;
 
 	// Board settings:
 	bool StartingPosition;
