@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include "Evaluation.h"
 #include "Utils.cpp"
+#include "Board.h"
 #include <queue>
 #include <array>
 
@@ -32,6 +33,7 @@ public:
 	int GetHashfull();
 	void UpdatePvTable(Move move, int level);
 	std::vector<Move> GetPvLine();
+	int CalculateMoveOrderScore(Board board, Move m, int level);
 
 	std::unordered_map<uint64_t, HashEntry> Hashes;
 	int HashedEntryCount;

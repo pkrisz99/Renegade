@@ -97,3 +97,27 @@ std::vector<Move> Heuristics::GetPvLine() {
 	}
 	return list;
 }
+
+int Heuristics::CalculateMoveOrderScore(Board board, Move m, int level) {
+	int orderScore = 0;
+	int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
+	int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
+	const int values[] = { 0, 100, 300, 300, 500, 900, 10000 };
+	if (attackedPiece != PieceType::None) {
+		orderScore = values[attackedPiece] - values[attackingPiece] + 10;
+	}
+
+	if (m.flag == MoveFlag::PromotionToQueen) orderScore += 900;
+	else if (m.flag == MoveFlag::PromotionToRook) orderScore += 500;
+	else if (m.flag == MoveFlag::PromotionToBishop) orderScore += 300;
+	else if (m.flag == MoveFlag::PromotionToKnight) orderScore += 300;
+
+	if (attackingPiece == PieceType::Pawn) orderScore += PawnPSQT[m.to] - PawnPSQT[m.from];
+	else if (attackingPiece == PieceType::Knight) orderScore += KnightPSQT[m.to] - KnightPSQT[m.from];
+	else if (attackingPiece == PieceType::Bishop) orderScore += BishopPSQT[m.to] - BishopPSQT[m.from];
+	else if (attackingPiece == PieceType::Rook) orderScore += RookPSQT[m.to] - RookPSQT[m.from];
+	else if (attackingPiece == PieceType::Queen) orderScore += QueenPSQT[m.to] - QueenPSQT[m.from];
+
+	if (IsKillerMove(m, level)) orderScore += 200000;
+	if (IsPvMove(m, level)) orderScore += 100000;
+}

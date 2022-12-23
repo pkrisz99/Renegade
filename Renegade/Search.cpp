@@ -221,31 +221,7 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 	// Move ordering
 	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
 	for (const Move& m : pseudoMoves) {
-
-		int orderScore = 0;
-		int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
-		int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
-		const int values[] = { 0, 100, 300, 300, 500, 900, 10000 };
-		if (attackedPiece != PieceType::None) {
-			orderScore = values[attackedPiece] - values[attackingPiece] + 10;
-		}
-
-		if (m.flag == MoveFlag::PromotionToQueen) orderScore += 900;
-		else if (m.flag == MoveFlag::PromotionToRook) orderScore += 500;
-		else if (m.flag == MoveFlag::PromotionToBishop) orderScore += 300;
-		else if (m.flag == MoveFlag::PromotionToKnight) orderScore += 300;
-
-		if (attackingPiece == PieceType::Pawn) orderScore += PawnPSQT[m.to] - PawnPSQT[m.from];
-		else if (attackingPiece == PieceType::Knight) orderScore += KnightPSQT[m.to] - KnightPSQT[m.from];
-		else if (attackingPiece == PieceType::Bishop) orderScore += BishopPSQT[m.to] - BishopPSQT[m.from];
-		else if (attackingPiece == PieceType::Rook) orderScore += RookPSQT[m.to] - RookPSQT[m.from];
-		else if (attackingPiece == PieceType::Queen) orderScore += QueenPSQT[m.to] - QueenPSQT[m.from];
-
-		if (Heuristics.IsKillerMove(m, level)) orderScore += 200000;
-		if (Heuristics.IsPvMove(m, level)) orderScore += 100000;
-
-
-
+		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level);
 		order.push_back({ m, orderScore });
 	}
 	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
@@ -282,7 +258,7 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 			bestScore = childScore;
 
 			if (bestScore >= beta) {
-				//bool capture = b.GetPieceAt(get<0>(o).to) != Piece::None;
+				//bool capture = board.GetPieceAt(get<0>(o).to) != Piece::None;
 				if (true) Heuristics.AddKillerMove(m, level);
 				int e = beta;
 				Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
@@ -309,6 +285,38 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 	int e = alpha;
 	Heuristics.AddEntry(hash, e, scoreType);
 	return e;
+}
+
+int Search::SearchQuiescence(Board board, int level, int alpha, int beta) {
+	std::vector<Move> captureMoves = board.GenerateCaptureMoves(board.Turn);
+
+	// Update alpha-beta bounds, return static eval if no captures left
+	int staticEval = StaticEvaluation(board, level);
+	if (captureMoves.size() == 0) return alpha;
+	if (staticEval >= beta) return beta;
+	if (staticEval > alpha) alpha = staticEval;
+
+	// Order capture moves
+	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
+	for (const Move& m : captureMoves) {
+		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level);
+		order.push_back({ m, orderScore });
+	}
+	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
+		return get<1>(t1) > get<1>(t2);
+	});
+
+	// Search recursively
+	for (const std::tuple<Move, int>& o : order) {
+		Move m = get<0>(o);
+		if (!board.IsLegalMove(m, board.Turn)) continue;
+		Board b = board.Copy();
+		b.Push(m);
+		int childEval = SearchQuiescence(b, level + 1, -beta, -alpha);
+		if (childEval >= beta) return beta;
+		if (childEval > alpha) alpha = childEval;
+	}
+	return alpha;
 }
 
 int Search::StaticEvaluation(Board board, int level) {
