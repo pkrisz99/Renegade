@@ -53,7 +53,6 @@ public:
 
 	uint64_t GenerateKnightAttacks(int from);
 	uint64_t GenerateKingAttacks(int from);
-	uint64_t GeneratePawnAttacks(int pieceColor, int from);
 	uint64_t GenerateSlidingAttacksShiftUp(int direction, uint64_t boundMask, uint64_t propagatingPieces,
 		uint64_t friendlyPieces, uint64_t opponentPieces);
 	uint64_t GenerateSlidingAttacksShiftDown(int direction, uint64_t boundMask, uint64_t propagatingPieces,

@@ -310,12 +310,12 @@ bool Board::PushUci(string ucistr) {
 
 void Board::TryMove(Move move) {
 	
-	int piece = GetPieceAt(move.from);
-	int pieceColor = ColorOfPiece(piece);
-	int pieceType = TypeOfPiece(piece);
-	int targetPiece = GetPieceAt(move.to);
-	int targetPieceColor = ColorOfPiece(targetPiece);
-	int targetPieceType = TypeOfPiece(targetPiece);
+	const int piece = GetPieceAt(move.from);
+	const int pieceColor = ColorOfPiece(piece);
+	const int pieceType = TypeOfPiece(piece);
+	const int targetPiece = GetPieceAt(move.to);
+	const int targetPieceColor = ColorOfPiece(targetPiece);
+	const int targetPieceType = TypeOfPiece(targetPiece);
 
 	if (piece == Piece::WhitePawn) { SetBitFalse(WhitePawnBits, move.from); SetBitTrue(WhitePawnBits, move.to); }
 	else if (piece == Piece::WhiteKnight) { SetBitFalse(WhiteKnightBits, move.from); SetBitTrue(WhiteKnightBits, move.to); }
@@ -430,7 +430,7 @@ void Board::Push(Move move) {
 	HalfmoveClock += 1;
 	if (Turn == Turn::White) FullmoveClock += 1;
 
-	uint64_t previousAttackMap = AttackedSquares;
+	const uint64_t previousAttackMap = AttackedSquares;
 	AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
 
 	// Get state after
@@ -443,7 +443,7 @@ void Board::Push(Move move) {
 	PastHashes.push_back(hash);
 	
 	// Check checkmates & stalemates
-	bool hasMoves = AreThereLegalMoves(Turn, previousAttackMap);
+	const bool hasMoves = AreThereLegalMoves(Turn, previousAttackMap);
 	if (!hasMoves) {
 		if (inCheck) {
 			if (Turn == Turn::Black) State = GameState::WhiteVictory;
@@ -466,22 +466,22 @@ void Board::Push(Move move) {
 
 
 	// Insufficient material check
-	int WhitePawnCount = NonZeros(WhitePawnBits);
-	int WhiteKnightCount = NonZeros(WhiteKnightBits);
-	int WhiteBishopCount = NonZeros(WhiteBishopBits);
-	int WhiteRookCount = NonZeros(WhiteRookBits);
-	int WhiteQueenCount = NonZeros(WhiteQueenBits);
-	int BlackPawnCount = NonZeros(BlackPawnBits);
-	int BlackKnightCount = NonZeros(BlackKnightBits);
-	int BlackBishopCount = NonZeros(BlackBishopBits);
-	int BlackRookCount = NonZeros(BlackRookBits);
-	int BlackQueenCount = NonZeros(BlackQueenBits);
-	int WhitePieceCount = WhitePawnCount + WhiteKnightCount + WhiteBishopCount + WhiteRookCount + WhiteQueenCount;
-	int BlackPieceCount = BlackPawnCount + BlackKnightCount + BlackBishopCount + BlackRookCount + BlackQueenCount;
-	int WhiteLightBishopCount = NonZeros(WhiteBishopBits & Bitboards::LightSquares);
-	int WhiteDarkBishopCount = NonZeros(WhiteBishopBits & Bitboards::DarkSquares);
-	int BlackLightBishopCount = NonZeros(BlackBishopBits & Bitboards::LightSquares);
-	int BlackDarkBishopCount = NonZeros(BlackBishopBits & Bitboards::DarkSquares);
+	const int WhitePawnCount = NonZeros(WhitePawnBits);
+	const int WhiteKnightCount = NonZeros(WhiteKnightBits);
+	const int WhiteBishopCount = NonZeros(WhiteBishopBits);
+	const int WhiteRookCount = NonZeros(WhiteRookBits);
+	const int WhiteQueenCount = NonZeros(WhiteQueenBits);
+	const int BlackPawnCount = NonZeros(BlackPawnBits);
+	const int BlackKnightCount = NonZeros(BlackKnightBits);
+	const int BlackBishopCount = NonZeros(BlackBishopBits);
+	const int BlackRookCount = NonZeros(BlackRookBits);
+	const int BlackQueenCount = NonZeros(BlackQueenBits);
+	const int WhitePieceCount = WhitePawnCount + WhiteKnightCount + WhiteBishopCount + WhiteRookCount + WhiteQueenCount;
+	const int BlackPieceCount = BlackPawnCount + BlackKnightCount + BlackBishopCount + BlackRookCount + BlackQueenCount;
+	const int WhiteLightBishopCount = NonZeros(WhiteBishopBits & Bitboards::LightSquares);
+	const int WhiteDarkBishopCount = NonZeros(WhiteBishopBits & Bitboards::DarkSquares);
+	const int BlackLightBishopCount = NonZeros(BlackBishopBits & Bitboards::LightSquares);
+	const int BlackDarkBishopCount = NonZeros(BlackBishopBits & Bitboards::DarkSquares);
 
 	bool flag = false;
 	if (WhitePieceCount == 0 && BlackPieceCount == 0) flag = true;
@@ -508,23 +508,6 @@ uint64_t Board::GenerateKingAttacks(int from) {
 	return KingMoveBits[from];
 }
 
-uint64_t Board::GeneratePawnAttacks(int pieceColor, int from) {
-	uint64_t squares = 0ULL;
-	int rank = GetSquareRank(from);
-	int file = GetSquareFile(from);
-	if (pieceColor == PieceColor::White) {
-		squares = WhitePawnAttacks[from];
-		if ((from - 1 == EnPassantSquare) && (file != 0)) SetBitTrue(squares, (uint64_t)from - 1);
-		if ((from + 1 == EnPassantSquare) && (file != 7)) SetBitTrue(squares, (uint64_t)from + 1);
-	}
-	else {
-		squares = BlackPawnAttacks[from];
-		if ((from - 1 == EnPassantSquare) && (file != 0)) SetBitTrue(squares, (uint64_t)from - 1);
-		if ((from + 1 == EnPassantSquare) && (file != 7)) SetBitTrue(squares, (uint64_t)from + 1);
-	}
-	return squares;
-}
-
 
 void Board::GenerateKnightMoves(int home) {
 	auto lookup = KnightMoves[home];
@@ -549,9 +532,9 @@ void Board::GenerateSlidingMoves(int piece, int home) {
 	int rankDirection = 0;
 	int fileDirection = 0;
 
-	int pieceType = TypeOfPiece(piece);
-	int minDir = ((pieceType == PieceType::Rook) || (pieceType == PieceType::Queen)) ? 1 : 5;
-	int maxDir = ((pieceType == PieceType::Bishop) || (pieceType == PieceType::Queen)) ? 8 : 4;
+	const int pieceType = TypeOfPiece(piece);
+	const int minDir = ((pieceType == PieceType::Rook) || (pieceType == PieceType::Queen)) ? 1 : 5;
+	const int maxDir = ((pieceType == PieceType::Bishop) || (pieceType == PieceType::Queen)) ? 8 : 4;
 
 	for (int direction = minDir; direction <= maxDir; direction++) {
 		switch (direction) {
@@ -586,7 +569,7 @@ void Board::GenerateSlidingMoves(int piece, int home) {
 }
 
 inline uint64_t Board::GenerateSlidingAttacksShiftDown(int direction, uint64_t boundMask, uint64_t propagatingPieces, uint64_t friendlyPieces, uint64_t opponentPieces) {
-	uint64_t blockingFriends = friendlyPieces & ~propagatingPieces;
+	const uint64_t blockingFriends = friendlyPieces & ~propagatingPieces;
 	uint64_t fill = ((propagatingPieces & boundMask) >> direction) & ~blockingFriends;
 	uint64_t lastFill = fill;
 	for (int i = 0; i < 7; i++) {
@@ -601,7 +584,7 @@ inline uint64_t Board::GenerateSlidingAttacksShiftDown(int direction, uint64_t b
 }
 
 inline uint64_t Board::GenerateSlidingAttacksShiftUp(int direction, uint64_t boundMask, uint64_t propagatingPieces, uint64_t friendlyPieces, uint64_t opponentPieces) {
-	uint64_t blockingFriends = friendlyPieces & ~propagatingPieces;
+	const uint64_t blockingFriends = friendlyPieces & ~propagatingPieces;
 	uint64_t fill = ((propagatingPieces & boundMask) << direction) & ~blockingFriends;
 	uint64_t lastFill = fill;
 	for (int i = 0; i < 7; i++) {
@@ -616,8 +599,8 @@ inline uint64_t Board::GenerateSlidingAttacksShiftUp(int direction, uint64_t bou
 }
 
 void Board::GenerateKingMoves(int home) {
-	auto lookup = KingMoves[home];
-	for (int l : lookup) {
+	const auto lookup = KingMoves[home];
+	for (const int l : lookup) {
 		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
 		MoveList.push_back(Move(home, l));
 	}
@@ -625,10 +608,10 @@ void Board::GenerateKingMoves(int home) {
 }
 
 void Board::GeneratePawnMoves(int home) {
-	int piece = GetPieceAt(home);
-	int color = ColorOfPiece(piece);
-	int file = GetSquareFile(home);
-	int rank = GetSquareRank(home);
+	const int piece = GetPieceAt(home);
+	const int color = ColorOfPiece(piece);
+	const int file = GetSquareFile(home);
+	const int rank = GetSquareRank(home);
 	int target;
 
 	if (color == PieceColor::White) {
