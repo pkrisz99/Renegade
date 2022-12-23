@@ -120,4 +120,5 @@ int Heuristics::CalculateMoveOrderScore(Board board, Move m, int level) {
 
 	if (IsKillerMove(m, level)) orderScore += 200000;
 	if (IsPvMove(m, level)) orderScore += 100000;
+	return orderScore;
 }

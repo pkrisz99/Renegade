@@ -175,7 +175,8 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 
 	// Return result for terminal nodes
 	if (depth <= 0) {
-		int e = StaticEvaluation(board, level);
+		//int e = StaticEvaluation(board, level);
+		int e = SearchQuiescence(board, level, alpha, beta);
 		if (board.State == GameState::Playing) Explored = false;
 		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
@@ -292,8 +293,8 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta) {
 
 	// Update alpha-beta bounds, return static eval if no captures left
 	int staticEval = StaticEvaluation(board, level);
-	if (captureMoves.size() == 0) return alpha;
 	if (staticEval >= beta) return beta;
+	if (staticEval < alpha - 1000) return alpha; // Delta pruning
 	if (staticEval > alpha) alpha = staticEval;
 
 	// Order capture moves
@@ -312,7 +313,7 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta) {
 		if (!board.IsLegalMove(m, board.Turn)) continue;
 		Board b = board.Copy();
 		b.Push(m);
-		int childEval = SearchQuiescence(b, level + 1, -beta, -alpha);
+		int childEval = -SearchQuiescence(b, level + 1, -beta, -alpha);
 		if (childEval >= beta) return beta;
 		if (childEval > alpha) alpha = childEval;
 	}
@@ -432,7 +433,7 @@ int Search::GetBookSize() {
 // Communicating the search results -------------------------------------------
 
 void Search::PrintInfo(Evaluation e) {
-	cout << "info depth " << e.depth /* << " seldepth " << e.seldepth*/ << " score cp " << e.score << " nodes " << e.nodes << /* " qnodes " << e.qnodes << */ " nps " << e.nps
+	cout << "info depth " << e.depth << " seldepth " << e.seldepth << " score cp " << e.score << " nodes " << e.nodes << /* " qnodes " << e.qnodes << */ " nps " << e.nps
 		<< " time " << e.time << " hashfull " << e.hashfull << " pv";
 
 	for (Move move : e.pv)

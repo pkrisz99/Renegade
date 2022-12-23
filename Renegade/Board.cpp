@@ -903,10 +903,10 @@ std::vector<Move> Board::GenerateLegalMoves(int side) {
 
 std::vector<Move> Board::GenerateCaptureMoves(int side) { // + todo: check for promotions
 	std::vector<Move> CaptureMoves;
-	std::vector<Move> LegalMoves = GenerateLegalMoves(side);
-	// todo: check en passant
+	std::vector<Move> PseudoLegalMoves = GenerateMoves(side);
+	// todo: check en passant + extend for promotions
 
-	for (const Move& m : LegalMoves) {
+	for (const Move& m : PseudoLegalMoves) {
 		if (side == Side::White) {
 			uint64_t opponentOccupance = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 			if (CheckBit(opponentOccupance, m.to)) CaptureMoves.push_back(m);
@@ -916,6 +916,7 @@ std::vector<Move> Board::GenerateCaptureMoves(int side) { // + todo: check for p
 			if (CheckBit(opponentOccupance, m.to)) CaptureMoves.push_back(m);
 		}
 	}
+
 	return CaptureMoves;
 }
 
