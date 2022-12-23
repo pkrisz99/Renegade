@@ -327,10 +327,10 @@ int Search::StaticEvaluation(Board board, int level) {
 	if (board.State == GameState::Draw) return 0;
 	if (board.State == GameState::WhiteVictory) {
 		if (board.Turn == Turn::White) return MateEval - (level + 1) / 2;
-		if (board.Turn == Turn::Black) return -MateEval + (level + 1) / 2;
+		if (board.Turn == Turn::Black) return -MateEval + level / 2;
 	}
 	else if (board.State == GameState::BlackVictory) {
-		if (board.Turn == Turn::White) return -MateEval + (level + 1) / 2;
+		if (board.Turn == Turn::White) return -MateEval + level / 2;
 		if (board.Turn == Turn::Black) return MateEval - (level + 1) / 2;
 	}
 
