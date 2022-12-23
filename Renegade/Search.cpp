@@ -433,7 +433,17 @@ int Search::GetBookSize() {
 // Communicating the search results -------------------------------------------
 
 void Search::PrintInfo(Evaluation e) {
-	cout << "info depth " << e.depth << " seldepth " << e.seldepth << " score cp " << e.score << " nodes " << e.nodes << /* " qnodes " << e.qnodes << */ " nps " << e.nps
+	std::string score;
+	if ((abs(e.score) > MateEval - 1000) && (abs(e.score) <= MateEval)) {
+		int movesToMate = MateEval - abs(e.score);
+		if (e.score > 0) score = "mate " + std::to_string(movesToMate);
+		else score = "mate -" + std::to_string(movesToMate);
+	}
+	else {
+		score = "cp " + std::to_string(e.score);
+	}
+
+	cout << "info depth " << e.depth << " seldepth " << e.seldepth << " score " << score << " nodes " << e.nodes << /* " qnodes " << e.qnodes << */ " nps " << e.nps
 		<< " time " << e.time << " hashfull " << e.hashfull << " pv";
 
 	for (Move move : e.pv)
