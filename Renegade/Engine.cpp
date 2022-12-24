@@ -128,6 +128,9 @@ void Engine::Start() {
 					cout << "- entry " << i << ": " << std::hex << board.PastHashes[i] << std::dec << endl;
 				}
 			}
+			if (parts[1] == "phase") {
+				cout << "Game phase: " << Search.CalculateGamePhase(board) << endl;
+			}
 			if (parts[1] == "runtime") {
 				cout << "Timing test suite:" << endl;
 				int64_t nanoseconds = 0;

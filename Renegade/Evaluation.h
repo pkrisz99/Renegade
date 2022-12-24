@@ -12,6 +12,9 @@ static const int BishopValue = 300;
 static const int RookValue = 500;
 static const int QueenValue = 900;
 
+// Source of values:
+// https://www.chessprogramming.org/Simplified_Evaluation_Function
+
 static const int PawnPSQT[64] = {
 	 0,   0,   0,   0,   0,   0,   0,   0,
      0,   0,   0,   0,   0,   0,   0,   0,
@@ -66,6 +69,28 @@ static const int QueenPSQT[64] = {
 	-20, -10, -10,  -5,  -5, -10, -10, -20
 };
 
+static const int KingEarlyPSQT[64] = {
+	 20,  30,  10,   0,   0,  10,  30,  20,
+	 20,  20,   0,   0,   0,   0,  20,  20,
+	-10, -20, -20, -20, -20, -20, -20, -10,
+	-20, -30, -30, -40, -40, -30, -30, -20,
+	-30, -40, -40, -50, -50, -40, -40, -30,
+	-30, -40, -40, -50, -50, -40, -40, -30,
+	-30, -40, -40, -50, -50, -40, -40, -30,
+	-30, -40, -40, -50, -50, -40, -40, -30
+};
+
+static const int KingLatePSQT[64] = {
+	-50, -30, -30, -30, -30, -30, -30, -50,
+	-30, -30,   0,   0,   0,   0, -30, -30,
+	-30, -10,  20,  30,  30,  20, -10, -30,
+	-30, -10,  30,  40,  40,  30, -10, -30,
+	-30, -10,  30,  40,  40,  30, -10, -30,
+	-30, -10,  20,  30,  30,  20, -10, -30,
+	-30, -20, -10,   0,   0, -10, -20, -30,
+	-50, -40, -30, -20, -20, -30, -40, -50
+};
+
 class Evaluation
 {
 public:
@@ -83,3 +108,6 @@ public:
 	Move BestMove();
 };
 
+static const int GetKingPSQT(int square, float phase) {
+	return (int)((1 - phase) * (float)KingEarlyPSQT[square] + phase * (float)KingLatePSQT[square]);
+}

@@ -104,7 +104,7 @@ int Heuristics::CalculateMoveOrderScore(Board board, Move m, int level) {
 	int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 10000 };
 	if (attackedPiece != PieceType::None) {
-		orderScore = values[attackedPiece] - values[attackingPiece] + 10;
+		orderScore = values[attackedPiece] - values[attackingPiece] + 10000;
 	}
 
 	if (m.flag == MoveFlag::PromotionToQueen) orderScore += 900;

@@ -296,6 +296,7 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta) {
 	if (staticEval >= beta) return beta;
 	if (staticEval < alpha - 1000) return alpha; // Delta pruning
 	if (staticEval > alpha) alpha = staticEval;
+	if (board.State != GameState::Playing) return alpha;
 
 	// Order capture moves
 	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
@@ -318,6 +319,13 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta) {
 		if (childEval > alpha) alpha = childEval;
 	}
 	return alpha;
+}
+
+// Returns 0 at startpos, returns 1 at the endgame
+float Search::CalculateGamePhase(Board board) {
+	int remainingPieces = NonZeros(board.GetOccupancy());
+	float phase = (32.f - remainingPieces) / (32.f - 4.f);
+	return std::clamp(phase, 0.f, 1.f);
 }
 
 int Search::StaticEvaluation(Board board, int level) {
@@ -351,6 +359,7 @@ int Search::StaticEvaluation(Board board, int level) {
 	if (NonZeros(board.BlackBishopBits) >= 2) score -= 50;
 
 	uint64_t occupancy = board.GetOccupancy();
+	float phase = CalculateGamePhase(board);
 	while (occupancy != 0) {
 		uint64_t i = 64 - __lzcnt64(occupancy) - 1;
 		SetBitFalse(occupancy, i);
@@ -360,12 +369,14 @@ int Search::StaticEvaluation(Board board, int level) {
 		else if (piece == Piece::WhiteBishop) score += BishopPSQT[i];
 		else if (piece == Piece::WhiteRook) score += RookPSQT[i];
 		else if (piece == Piece::WhiteQueen) score += QueenPSQT[i];
+		else if (piece == Piece::WhiteKing) score += GetKingPSQT(i, phase);
 
 		if (piece == Piece::BlackPawn) score -= PawnPSQT[63 - i];
 		else if (piece == Piece::BlackKnight) score -= KnightPSQT[63 - i];
 		else if (piece == Piece::BlackBishop) score -= BishopPSQT[63 - i];
 		else if (piece == Piece::BlackRook) score -= RookPSQT[63 - i];
 		else if (piece == Piece::BlackQueen) score -= QueenPSQT[63 - i];
+		else if (piece == Piece::BlackKing) score -= GetKingPSQT(63 - i, phase);
 	}
 
 	if (!board.Turn) score *= -1;

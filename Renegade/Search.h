@@ -33,6 +33,7 @@ public:
 	int StaticEvaluation(Board board, int level);
 	SearchConstraints CalculateConstraints(SearchParams params, bool turn);
 	int SearchQuiescence(Board board, int level, int alpha, int beta);
+	float CalculateGamePhase(Board board);
 
 	// Opening book
 	void InitOpeningBook();
