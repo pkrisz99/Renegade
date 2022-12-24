@@ -244,36 +244,36 @@ static bool startsWith(std::string big, std::string small) {
 
 
 // 0: 1st rank ... 7: 8th rank
-static int GetSquareRank(int square) {
+constexpr static int GetSquareRank(int square) {
 	return square / 8;
 }
 
 // 0: A ... 7: H
-static int GetSquareFile(int square) {
+constexpr static int GetSquareFile(int square) {
 	return square % 8;
 }
 
 // 0: None, 1: White, 2: Black
-static int ColorOfPiece(int piece) {
+constexpr static int ColorOfPiece(int piece) {
 	if (piece == 0) return PieceColor::None;
 	if ((piece > 0) && (piece < 7)) return PieceColor::White;
 	return PieceColor::Black;
 }
 
-static int TypeOfPiece(int piece) {
+constexpr static int TypeOfPiece(int piece) {
 	return piece % 7;
 }
 
-static int TurnToPieceColor(bool turn) {
+constexpr static int TurnToPieceColor(bool turn) {
 	if (turn == Turn::White) return PieceColor::White;
 	return PieceColor::Black;
 }
 
-static int Square(int rank, int file) {
+constexpr static int Square(int rank, int file) {
 	return rank * 8 + file;
 }
 
-static int SquareToNum(std::string sq) {
+constexpr static int SquareToNum(std::string sq) {
 	int file = sq[0] - 'a';
 	int rank = sq[1] - '1';
 	return Square(rank, file);
