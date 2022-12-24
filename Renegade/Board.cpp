@@ -114,10 +114,7 @@ Board::Board(const Board &b) {
 	State = b.State;
 	DrawCheck = b.DrawCheck;
 	StartingPosition = b.StartingPosition;
-
-	PastHashes = std::vector<uint64_t>();
-	//PastHashes.reserve(b.PastHashes.size()+1);
-	std::vector<uint64_t> PastHashes(b.PastHashes.begin(), b.PastHashes.end());
+	PastHashes = std::vector<uint64_t>(b.PastHashes.begin(), b.PastHashes.end());
 }
 
 void Board::Draw(uint64_t customBits = 0) {
