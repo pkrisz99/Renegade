@@ -149,8 +149,8 @@ struct BookEntry {
 
 struct EngineSettings {
 	bool UseBook;
-	bool QSearch;
 	int Hash;
+	bool ExtendedOutput;
 };
 
 static std::string StateString(GameState s) {

@@ -96,8 +96,10 @@ Evaluation Search::SearchMoves(Board board, SearchParams params, EngineSettings 
 
 	Constraints = CalculateConstraints(params, board.Turn);
 
-	//cout << "info string Renegade searching for time: (" << Constraints.SearchTimeMin << ".." << Constraints.SearchTimeMax
-	//	<< ") depth: " << Constraints.MaxDepth << " nodes: " << Constraints.MaxNodes << endl;
+	if (settings.ExtendedOutput) {
+		cout << "info string Renegade searching for time: (" << Constraints.SearchTimeMin << ".." << Constraints.SearchTimeMax
+			<< ") depth: " << Constraints.MaxDepth << " nodes: " << Constraints.MaxNodes << endl;
+	}
 
 	// Check for book moves
 	if (settings.UseBook) {
@@ -127,10 +129,11 @@ Evaluation Search::SearchMoves(Board board, SearchParams params, EngineSettings 
 		if ((Depth >= 100) || (Explored)) finished = true;
 		if (Aborting) {
 			e.nodes = EvaluatedNodes;
+			e.qnodes = EvaluatedQuiescenceNodes;
 			e.time = elapsedMs;
 			e.nps = (int)(EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count());
 			e.hashfull = Heuristics.GetHashfull();
-			PrintInfo(e);
+			PrintInfo(e, settings);
 			break;
 		}
 
@@ -147,7 +150,7 @@ Evaluation Search::SearchMoves(Board board, SearchParams params, EngineSettings 
 
 		Heuristics.SetPv(e.pv);
 		//for (int i = 0; i < e.pv.size(); i++) cout << e.pv[i].ToString() << endl;
-		PrintInfo(e);
+		PrintInfo(e, settings);
 	}
 	PrintBestmove(e.BestMove());
 
@@ -176,7 +179,7 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 	// Return result for terminal nodes
 	if (depth <= 0) {
 		//int e = StaticEvaluation(board, level);
-		int e = SearchQuiescence(board, level, alpha, beta);
+		int e = SearchQuiescence(board, level, alpha, beta, true);
 		if (board.State == GameState::Playing) Explored = false;
 		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
@@ -288,8 +291,9 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 	return e;
 }
 
-int Search::SearchQuiescence(Board board, int level, int alpha, int beta) {
+int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool rootNode) {
 	std::vector<Move> captureMoves = board.GenerateCaptureMoves(board.Turn);
+	if (!rootNode) EvaluatedQuiescenceNodes += 1;
 
 	// Update alpha-beta bounds, return static eval if no captures left
 	int staticEval = StaticEvaluation(board, level);
@@ -314,7 +318,7 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta) {
 		if (!board.IsLegalMove(m, board.Turn)) continue;
 		Board b = board.Copy();
 		b.Push(m);
-		int childEval = -SearchQuiescence(b, level + 1, -beta, -alpha);
+		int childEval = -SearchQuiescence(b, level + 1, -beta, -alpha, false);
 		if (childEval >= beta) return beta;
 		if (childEval > alpha) alpha = childEval;
 	}
@@ -443,7 +447,7 @@ int Search::GetBookSize() {
 
 // Communicating the search results -------------------------------------------
 
-void Search::PrintInfo(Evaluation e) {
+void Search::PrintInfo(Evaluation e, EngineSettings settings) {
 	std::string score;
 	if ((abs(e.score) > MateEval - 1000) && (abs(e.score) <= MateEval)) {
 		int movesToMate = MateEval - abs(e.score);
@@ -454,8 +458,13 @@ void Search::PrintInfo(Evaluation e) {
 		score = "cp " + std::to_string(e.score);
 	}
 
-	cout << "info depth " << e.depth << " seldepth " << e.seldepth << " score " << score << " nodes " << e.nodes << /* " qnodes " << e.qnodes << */ " nps " << e.nps
-		<< " time " << e.time << " hashfull " << e.hashfull << " pv";
+	std::string extended;
+	if (settings.ExtendedOutput) {
+		extended = " qnodes " + std::to_string(e.qnodes);
+	}
+
+	cout << "info depth " << e.depth << " seldepth " << e.seldepth << " score " << score << " nodes " << e.nodes << " nps " << e.nps
+		<< " time " << e.time << " hashfull " << e.hashfull << extended << " pv";
 
 	for (Move move : e.pv)
 		cout << " " << move.ToString();

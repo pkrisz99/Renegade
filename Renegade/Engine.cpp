@@ -5,6 +5,7 @@ Engine::Engine() {
 	Settings = EngineSettings();
 	Settings.Hash = 64;
 	Settings.UseBook = false;
+	Settings.ExtendedOutput = false;
 }
 
 
@@ -29,6 +30,7 @@ void Engine::Start() {
 			cout << "id author Krisztian Peocz" << endl;
 			cout << "option name Hash type spin default 64 min 0 max 256" << endl;
 			cout << "option name OwnBook type check default false" << endl;
+			cout << "option name ExtendedOutput type check default false" << endl;
 			cout << "uciok" << endl;
 			continue;
 		}
@@ -47,6 +49,11 @@ void Engine::Start() {
 			continue;
 		}
 
+		if (cmd == "stop") {
+			// todo: handle this
+			continue;
+		}
+
 		// Set option
 		if (parts[0] == "setoption") {
 
@@ -58,10 +65,10 @@ void Engine::Start() {
 				else if (parts[4] == "false") Settings.UseBook = false;
 				else cout << "Unknown value: '" << parts[4] << "'" << endl;
 			}
-			else if (parts[2] == "qsearch") {
+			else if (parts[2] == "extendedoutput") {
 				parts[4] = lowercase(parts[4]);
-				if (parts[4] == "true") Settings.QSearch = true;
-				else if (parts[4] == "false") Settings.QSearch = false;
+				if (parts[4] == "true") Settings.ExtendedOutput = true;
+				else if (parts[4] == "false") Settings.ExtendedOutput = false;
 				else cout << "Unknown value: '" << parts[4] << "'" << endl;
 			}
 			else if (parts[2] == "hash") {
@@ -112,6 +119,7 @@ void Engine::Start() {
 			if (parts[1] == "settings") {
 				cout << "Hash: " << Settings.Hash << endl;
 				cout << "OwnBook: " << Settings.UseBook << endl;
+				cout << "ExtendedOutput: " << Settings.ExtendedOutput << endl;
 			}
 			if (parts[1] == "sizeof") {
 				cout << "sizeof HashEntry:         " << sizeof(HashEntry) << endl;

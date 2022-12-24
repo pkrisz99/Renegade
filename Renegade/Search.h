@@ -32,7 +32,7 @@ public:
 	int SearchRecursive(Board board, int depth, int level, int alpha, int beta, bool canNullMove);
 	int StaticEvaluation(Board board, int level);
 	SearchConstraints CalculateConstraints(SearchParams params, bool turn);
-	int SearchQuiescence(Board board, int level, int alpha, int beta);
+	int SearchQuiescence(Board board, int level, int alpha, int beta, bool rootNode);
 	float CalculateGamePhase(Board board);
 
 	// Opening book
@@ -42,7 +42,7 @@ public:
 	int GetBookSize();
 
 	// Communication
-	void PrintInfo(Evaluation e);
+	void PrintInfo(Evaluation e, EngineSettings settings);
 	void PrintBestmove(Move move);
 
 	int EvaluatedNodes;
