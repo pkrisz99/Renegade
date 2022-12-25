@@ -884,31 +884,31 @@ uint64_t Board::CalculateAttackedSquares(int colorOfPieces) {
 
 }
 
-std::vector<Move> Board::GenerateLegalMoves(int side) {
+std::vector<Move> Board::GenerateLegalMoves(int turn) {
 	std::vector<Move> LegalMoves;
 	if (State != GameState::Playing) return LegalMoves;
 
-	std::vector<Move> PossibleMoves = GenerateMoves(side);
+	std::vector<Move> PossibleMoves = GenerateMoves(turn);
 
 	for (const Move& m : PossibleMoves) {
-		if (IsLegalMove(m, side)) LegalMoves.push_back(m);
+		if (IsLegalMove(m, turn)) LegalMoves.push_back(m);
 	}
 
 	return LegalMoves;
 	// Filter attacked, parried squares, pins
 }
 
-std::vector<Move> Board::GenerateCaptureMoves(int side) { // + todo: check for promotions
+std::vector<Move> Board::GenerateCaptureMoves(int turn) { // + todo: check for promotions
 	std::vector<Move> CaptureMoves;
-	std::vector<Move> PseudoLegalMoves = GenerateMoves(side);
+	std::vector<Move> PseudoLegalMoves = GenerateMoves(turn);
 	// todo: check en passant + extend for promotions
 
 	for (const Move& m : PseudoLegalMoves) {
-		if (side == Side::White) {
+		if (turn == Turn::White) {
 			uint64_t opponentOccupance = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 			if (CheckBit(opponentOccupance, m.to)) CaptureMoves.push_back(m);
 		}
-		else if (side == Side::Black) {
+		else if (turn == Turn::Black) {
 			uint64_t opponentOccupance = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
 			if (CheckBit(opponentOccupance, m.to)) CaptureMoves.push_back(m);
 		}
@@ -917,12 +917,12 @@ std::vector<Move> Board::GenerateCaptureMoves(int side) { // + todo: check for p
 	return CaptureMoves;
 }
 
-std::vector<Move> Board::GenerateMoves(int side) {
+std::vector<Move> Board::GenerateMoves(int turn) {
 	//std::vector<Move> PossibleMoves;
 	MoveList.clear();
 	MoveList.reserve(10);
-	int myColor = SideToPieceColor(side);
-	uint64_t occupancy = GetOccupancy(SideToPieceColor(side));
+	int myColor = TurnToPieceColor(turn);
+	uint64_t occupancy = GetOccupancy(TurnToPieceColor(turn));
 	while (occupancy != 0) {
 		uint64_t i = 64 - __lzcnt64(occupancy) - 1;
 		SetBitFalse(occupancy, i);
@@ -946,20 +946,20 @@ std::vector<Move> Board::GenerateMoves(int side) {
 	return MoveList;
 }
 
-bool Board::AreThereLegalMoves(int side, uint64_t previousAttackMap) {  
+bool Board::AreThereLegalMoves(int turn, uint64_t previousAttackMap) {  
 	MoveList.clear();
 	MoveList.reserve(10);
 	bool hasMoves = false;
-	int myColor = SideToPieceColor(side);
+	int myColor = TurnToPieceColor(turn);
 
 	// Quick king test - if the king can move to a free square without being attacked, then we have a legal move
-	uint64_t kingBits = side == Side::White ? WhiteKingBits : BlackKingBits;
+	uint64_t kingBits = turn == Turn::White ? WhiteKingBits : BlackKingBits;
 	uint64_t sq = 64 - __lzcnt64(kingBits) - 1;
 	uint64_t kingMoveBits = GenerateKingAttacks((int)sq);
 	uint64_t fastKingCheck = (~previousAttackMap) & (~GetOccupancy()) & kingMoveBits;
 	if (fastKingCheck != 0) return true;
 
-	uint64_t occupancy = GetOccupancy(SideToPieceColor(side));
+	uint64_t occupancy = GetOccupancy(TurnToPieceColor(turn));
 	while (occupancy != 0) {
 		uint64_t i = 64 - __lzcnt64(occupancy) - 1;
 		SetBitFalse(occupancy, i);
@@ -980,7 +980,7 @@ bool Board::AreThereLegalMoves(int side, uint64_t previousAttackMap) {
 
 		if (MoveList.size() != 0) {
 			for (Move m : MoveList) {
-				if (IsLegalMove(m, side)) {
+				if (IsLegalMove(m, turn)) {
 					MoveList.clear();
 					hasMoves = true;
 					break;
@@ -994,7 +994,7 @@ bool Board::AreThereLegalMoves(int side, uint64_t previousAttackMap) {
 	return hasMoves;
 }
 
-bool Board::IsLegalMove(Move m, int side) {
+bool Board::IsLegalMove(Move m, int turn) {
 
 	// Backup variables
 	uint64_t whitePawnBits = WhitePawnBits;

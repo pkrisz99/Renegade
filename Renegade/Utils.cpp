@@ -11,14 +11,8 @@
 #endif
 
 const std::string Version = "0.6.0";
-
 typedef std::chrono::high_resolution_clock Clock;
 
-
-namespace Side {
-	static const bool White = true;
-	static const bool Black = false;
-}
 
 namespace MoveFlag {
 	static const int ShortCastle = 1;
@@ -174,11 +168,6 @@ static void SetBitFalse(uint64_t& number, uint64_t place) {
 
 static bool CheckBit(uint64_t& number, uint64_t place) {
 	return (number >> place) & 1ULL;
-}
-
-static int SideToPieceColor(bool side) {
-	if (side == Side::White) return PieceColor::White;
-	return PieceColor::Black;
 }
 
 static std::string PolyglotMoveToString(int from, int to, int promotion) {

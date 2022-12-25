@@ -37,13 +37,13 @@ public:
 	uint64_t GetOccupancy();
 	uint64_t GetOccupancy(int pieceColor);
 
-	bool AreThereLegalMoves(int side, uint64_t previousAttackMap);
-	bool IsLegalMove(Move m, int side);
+	bool AreThereLegalMoves(int turn, uint64_t previousAttackMap);
+	bool IsLegalMove(Move m, int turn);
 	void TryMove(Move move);
-	vector<Move> GenerateMoves(int side);
-	vector<Move> GenerateLegalMoves(int side);
-	vector<Move> GenerateCaptureMoves(int side);
-	uint64_t CalculateAttackedSquares(int side);
+	vector<Move> GenerateMoves(int turn);
+	vector<Move> GenerateLegalMoves(int turn);
+	vector<Move> GenerateCaptureMoves(int turn);
+	uint64_t CalculateAttackedSquares(int turn);
 
 	void GenerateKnightMoves(int home);
 	void GenerateKingMoves(int home);
