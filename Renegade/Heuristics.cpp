@@ -7,7 +7,7 @@ Heuristics::Heuristics() {
 	PvMoves = std::vector<Move>();
 }
 
-void Heuristics::AddEntry(uint64_t hash, int score, int scoreType) {
+void Heuristics::AddEntry(const uint64_t hash, const int score, const int scoreType) {
 	if (ApproxHashSize + sizeof(HashEntry) >= MaximumHashSize) return;
 	HashedEntryCount += 1;
 	HashEntry entry;
@@ -17,7 +17,7 @@ void Heuristics::AddEntry(uint64_t hash, int score, int scoreType) {
 	ApproxHashSize += sizeof(HashEntry); // Is this good?
 }
 
-std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(uint64_t hash) {
+const std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(const uint64_t hash) {
 
 	if (Hashes.find(hash) != Hashes.end()) {
 		HashEntry entry = Hashes[hash];
@@ -48,38 +48,38 @@ void Heuristics::ClearPv() {
 	PvMoves.clear();
 }
 
-void Heuristics::SetPv(std::vector<Move> pv) {
+void Heuristics::SetPv(const std::vector<Move> pv) {
 	PvMoves = pv;
 }
 
-void Heuristics::AddKillerMove(Move move, int level) {
+void Heuristics::AddKillerMove(const Move move, const int level) {
 	if (IsKillerMove(move, level)) return;
 	KillerMoves[level][1] = KillerMoves[level][0];
 	KillerMoves[level][0] = move;
 }
 
-bool Heuristics::IsKillerMove(Move move, int level) {
+const bool Heuristics::IsKillerMove(const Move move, const int level) {
 	if ((KillerMoves[level][0].from == move.from) && (KillerMoves[level][0].to == move.to)) return true;
 	if ((KillerMoves[level][1].from == move.from) && (KillerMoves[level][1].to == move.to)) return true;
 	return false;
 }
 
-bool Heuristics::IsPvMove(Move move, int level) {
+const bool Heuristics::IsPvMove(const Move move, const int level) {
 	if (level > PvMoves.size()) return false;
 	if ((move.from == PvMoves[level-1].from) && (move.to == PvMoves[level-1].to)) return true;
 	return false;
 }
 
-void Heuristics::SetHashSize(int megabytes) {
+void Heuristics::SetHashSize(const int megabytes) {
 	MaximumHashSize = megabytes * 1024ULL * 1024ULL;
 }
 
-int Heuristics::GetHashfull() {
+const int Heuristics::GetHashfull() {
 	if (MaximumHashSize <= 0) return -1;
 	return (int)(ApproxHashSize * 1000ULL / MaximumHashSize);
 }
 
-void Heuristics::UpdatePvTable(Move move, int level) {
+void Heuristics::UpdatePvTable(const Move move, const int level) {
 	PvTable[level][level] = move;
 	for (int i = level + 1; i < 20; i++) {
 		Move lowerMove = PvTable[level + 1][i];
@@ -88,7 +88,7 @@ void Heuristics::UpdatePvTable(Move move, int level) {
 	}
 }
 
-std::vector<Move> Heuristics::GetPvLine() {
+const std::vector<Move> Heuristics::GetPvLine() {
 	std::vector<Move> list = std::vector<Move>();
 	for (int i = 1; i < 20; i++) {
 		Move m = PvTable[1][i];
@@ -98,10 +98,10 @@ std::vector<Move> Heuristics::GetPvLine() {
 	return list;
 }
 
-int Heuristics::CalculateMoveOrderScore(Board board, Move m, int level) {
+const int Heuristics::CalculateMoveOrderScore(Board board, const Move m, const int level) {
 	int orderScore = 0;
-	int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
-	int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
+	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
+	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 10000 };
 	if (attackedPiece != PieceType::None) {
 		orderScore = values[attackedPiece] - values[attackingPiece] + 10000;

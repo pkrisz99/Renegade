@@ -513,16 +513,11 @@ void Board::GenerateKnightMoves(const int home) {
 }
 
 void Board::GenerateSlidingMoves(const int piece, const int home) {
-	uint64_t friendlyOccupance = 0ULL;
-	uint64_t opponentOccupance = 0ULL;
-	if (ColorOfPiece(piece) == PieceColor::White) {
-		friendlyOccupance = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
-		opponentOccupance = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
-	}
-	else if (ColorOfPiece(piece) == PieceColor::Black) {
-		opponentOccupance = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
-		friendlyOccupance = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
-	}
+
+	const int myColor = ColorOfPiece(piece);
+	const int opponentColor = (myColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+	const uint64_t friendlyOccupance = GetOccupancy(myColor);
+	const uint64_t opponentOccupance = GetOccupancy(opponentColor);
 
 	int rankDirection;
 	int fileDirection;
@@ -807,14 +802,14 @@ uint64_t Board::CalculateAttackedSquares(int colorOfPieces) {
 	if (colorOfPieces == PieceColor::White) {
 		parallelSliders = WhiteRookBits | WhiteQueenBits;
 		diagonalSliders = WhiteBishopBits | WhiteQueenBits;
-		friendlyPieces = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
-		opponentPieces = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
+		friendlyPieces = GetOccupancy(PieceColor::White);
+		opponentPieces = GetOccupancy(PieceColor::Black);
 	}
 	else {
 		parallelSliders = BlackRookBits | BlackQueenBits;
 		diagonalSliders = BlackBishopBits | BlackQueenBits;
-		opponentPieces = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
-		friendlyPieces = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
+		friendlyPieces = GetOccupancy(PieceColor::Black);
+		opponentPieces = GetOccupancy(PieceColor::White);
 	}
 
 	// Sliding piece attack generation
@@ -902,16 +897,9 @@ std::vector<Move> Board::GenerateNonQuietMoves(const int turn) { // + todo: chec
 	// todo: check en passant + extend for promotions
 
 	for (const Move& m : PseudoLegalMoves) {
-		if (turn == Turn::White) {
-			uint64_t opponentOccupance = BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
-			if (CheckBit(opponentOccupance, m.to)) CaptureMoves.push_back(m);
-		}
-		else if (turn == Turn::Black) {
-			uint64_t opponentOccupance = WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
-			if (CheckBit(opponentOccupance, m.to)) CaptureMoves.push_back(m);
-		}
+		uint64_t opponentOccupance = GetOccupancy(Turn == Turn::White ? PieceColor::Black : PieceColor::White);
+		if (CheckBit(opponentOccupance, m.to)) CaptureMoves.push_back(m);
 	}
-
 	return CaptureMoves;
 }
 

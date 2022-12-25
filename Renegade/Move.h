@@ -10,8 +10,8 @@ public:
 	Move(int from, int to);
 	Move(int from, int to, int flag);
 	void SetFlag(int flag);
-	std::string ToString();
-	bool IsNotNull();
+	const std::string ToString();
+	const bool IsNotNull();
 
 	int from;
 	int to;

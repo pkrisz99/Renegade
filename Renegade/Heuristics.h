@@ -21,19 +21,19 @@ class Heuristics
 {
 public:
 	Heuristics();
-	void AddEntry(uint64_t hash, int score, int scoreType);
-	void AddKillerMove(Move m, int level);
-	bool IsKillerMove(Move move, int level);
-	bool IsPvMove(Move move, int level);
-	void SetPv(std::vector<Move> pv);
+	void AddEntry(const uint64_t hash, const int score, const int scoreType);
+	void AddKillerMove(const Move m, const int level);
+	const bool IsKillerMove(const Move move, const int level);
+	const bool IsPvMove(const Move move, const int level);
+	void SetPv(const std::vector<Move> pv);
 	void ClearEntries();
 	void ClearPv();
-	std::tuple<bool, HashEntry> RetrieveEntry(uint64_t hash);
-	void SetHashSize(int megabytes);
-	int GetHashfull();
-	void UpdatePvTable(Move move, int level);
-	std::vector<Move> GetPvLine();
-	int CalculateMoveOrderScore(Board board, Move m, int level);
+	const std::tuple<bool, HashEntry> RetrieveEntry(const uint64_t hash);
+	void SetHashSize(const int megabytes);
+	const int GetHashfull();
+	void UpdatePvTable(const Move move, const int level);
+	const std::vector<Move> GetPvLine();
+	const int CalculateMoveOrderScore(Board board, const Move m, const int level);
 
 	std::unordered_map<uint64_t, HashEntry> Hashes;
 	int HashedEntryCount;

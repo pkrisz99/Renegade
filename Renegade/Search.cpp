@@ -15,23 +15,23 @@ void Search::Reset() {
 
 // Perft methods ----------------------------------------------------------------------------------
 
-void Search::Perft(Board board, int depth, PerftType type) {
+const void Search::Perft(Board board, const int depth, const PerftType type) {
 	Board b = board.Copy();
 	b.DrawCheck = false;
 
 	auto t0 = Clock::now();
-	int r = PerftRecursive(b, depth, depth, type);
+	const int r = PerftRecursive(b, depth, depth, type);
 	auto t1 = Clock::now();
 
-	float seconds = (float)((t1 - t0).count() / 1e9);
-	float speed = r / seconds / 1000000;
+	const float seconds = (float)((t1 - t0).count() / 1e9);
+	const float speed = r / seconds / 1000000;
 	if ((type == PerftType::Normal) || (type == PerftType::PerftDiv)) {
 		cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps | No bulk counting" << endl;
 	}
 	else cout << r << endl;
 }
 
-int Search::PerftRecursive(Board board, int depth, int originalDepth, PerftType type) {
+const int Search::PerftRecursive(Board board, const int depth, const int originalDepth, const PerftType type) {
 	std::vector<Move> moves = board.GenerateLegalMoves(board.Turn);
 	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << moves.size() << "): " << endl;
 	int count = 0;
@@ -53,7 +53,7 @@ int Search::PerftRecursive(Board board, int depth, int originalDepth, PerftType 
 }
 
 // Time allocation
-SearchConstraints Search::CalculateConstraints(SearchParams params, bool turn) {
+const SearchConstraints Search::CalculateConstraints(const SearchParams params, const bool turn) {
 	SearchConstraints constraints = SearchConstraints();
 	constraints.MaxNodes = -1;
 	constraints.MaxDepth = -1;
@@ -328,14 +328,14 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 }
 
 // Returns 0 at startpos, returns 1 at the endgame
-float Search::CalculateGamePhase(Board board) {
+const float Search::CalculateGamePhase(Board board) {
 	int remainingPieces = Popcount(board.GetOccupancy());
 	float phase = (32.f - remainingPieces) / (32.f - 4.f);
 	return std::clamp(phase, 0.f, 1.f);
 }
 
 // Performs a static evaluation of the position
-int Search::StaticEvaluation(Board board, int level) {
+int Search::StaticEvaluation(Board board, const int level) {
 	EvaluatedNodes += 1;
 	if (level > SelDepth) SelDepth = level;
 	// 1. is over?
@@ -415,7 +415,7 @@ void Search::InitOpeningBook() {
 
 }
 
-std::string Search::GetBookMove(uint64_t hash) {
+const std::string Search::GetBookMove(const uint64_t hash) {
 	// should take about 2-3 ms for Human.bin (~900k entries) 
 	std::vector<string> matches;
 	for (const BookEntry& e : BookEntries) {
@@ -439,18 +439,18 @@ std::string Search::GetBookMove(uint64_t hash) {
 	return matches[random_pos];
 }
 
-BookEntry Search::GetBookEntry(int item) {
+const BookEntry Search::GetBookEntry(int item) {
 	return BookEntries[item];
 }
 
-int Search::GetBookSize() {
+const int Search::GetBookSize() {
 	return BookEntries.size();
 }
 
 
 // Communicating the search results ---------------------------------------------------------------
 
-void Search::PrintInfo(Evaluation e, EngineSettings settings) {
+const void Search::PrintInfo(const Evaluation e, const EngineSettings settings) {
 	std::string score;
 	if ((abs(e.score) > MateEval - 1000) && (abs(e.score) <= MateEval)) {
 		int movesToMate = MateEval - abs(e.score);
@@ -474,6 +474,6 @@ void Search::PrintInfo(Evaluation e, EngineSettings settings) {
 	cout << endl;
 }
 
-void Search::PrintBestmove(Move move) {
+const void Search::PrintBestmove(Move move) {
 	cout << "bestmove " << move.ToString() << endl;
 }

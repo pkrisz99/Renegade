@@ -21,7 +21,7 @@ void Move::SetFlag(int flag) {
 	this->flag = flag;
 }
 
-std::string Move::ToString() {
+const std::string Move::ToString() {
 	if ((from == 0) && (to == 0)) return "0000";
 
 	int file1 = from % 8;
@@ -45,6 +45,6 @@ std::string Move::ToString() {
 
 }
 
-bool Move::IsNotNull() {
+const bool Move::IsNotNull() {
 	return (from != 0) || (to != 0);
 }

@@ -24,26 +24,26 @@ public:
 	void Reset();
 
 	// Perft methods
-	void Perft(Board b, int depth, PerftType type);
-	int PerftRecursive(Board b, int depth, int originalDepth, PerftType type);
+	const void Perft(Board b, const int depth, const PerftType type);
+	const int PerftRecursive(Board b, const int depth, const int originalDepth, const PerftType type);
 
 	// Move search
-	Evaluation SearchMoves(Board board, SearchParams params, EngineSettings settings);
+	Evaluation SearchMoves(Board board, const SearchParams params, const EngineSettings settings);
 	int SearchRecursive(Board board, int depth, int level, int alpha, int beta, bool canNullMove);
-	int StaticEvaluation(Board board, int level);
-	SearchConstraints CalculateConstraints(SearchParams params, bool turn);
+	int StaticEvaluation(Board board, const int level);
+	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn);
 	int SearchQuiescence(Board board, int level, int alpha, int beta, bool rootNode);
-	float CalculateGamePhase(Board board);
+	const float CalculateGamePhase(Board board);
 
 	// Opening book
 	void InitOpeningBook();
-	std::string GetBookMove(uint64_t hash);
-	BookEntry GetBookEntry(int item);
-	int GetBookSize();
+	const std::string GetBookMove(const uint64_t hash);
+	const BookEntry GetBookEntry(const int item);
+	const int GetBookSize();
 
 	// Communication
-	void PrintInfo(Evaluation e, EngineSettings settings);
-	void PrintBestmove(Move move);
+	const void PrintInfo(const Evaluation e, const EngineSettings settings);
+	const void PrintBestmove(Move move);
 
 	int EvaluatedNodes;
 	int EvaluatedQuiescenceNodes;
