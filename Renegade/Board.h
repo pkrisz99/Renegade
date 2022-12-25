@@ -27,36 +27,36 @@ class Board
 public:
 	Board();
 	Board(const Board &b);
-	Board(string fen);
-	void Push(Move move);
-	bool PushUci(string ucistr);
+	Board(const string fen);
+	void Push(const Move move);
+	bool PushUci(const string ucistr);
 	Board Copy();
-	void Draw(uint64_t customBits);
-	int GetPieceAt(int place);
-	uint64_t Hash(bool hashPlys);
-	uint64_t GetOccupancy();
-	uint64_t GetOccupancy(int pieceColor);
+	const void Draw(const uint64_t customBits);
+	const int GetPieceAt(const int place);
+	const uint64_t Hash(const bool hashPlys);
+	const uint64_t GetOccupancy();
+	const uint64_t GetOccupancy(const int pieceColor);
 
-	bool AreThereLegalMoves(int turn, uint64_t previousAttackMap);
-	bool IsLegalMove(Move m, int turn);
-	void TryMove(Move move);
-	vector<Move> GenerateMoves(int turn);
-	vector<Move> GenerateLegalMoves(int turn);
-	vector<Move> GenerateCaptureMoves(int turn);
-	uint64_t CalculateAttackedSquares(int turn);
+	bool AreThereLegalMoves(const int turn, const uint64_t previousAttackMap);
+	bool IsLegalMove(const Move m, const int turn);
+	void TryMove(const Move move);
+	vector<Move> GeneratePseudoLegalMoves(const int turn);
+	vector<Move> GenerateLegalMoves(const int turn);
+	vector<Move> GenerateNonQuietMoves(const int turn);
+	uint64_t CalculateAttackedSquares(const int turn);
 
-	void GenerateKnightMoves(int home);
-	void GenerateKingMoves(int home);
-	void GeneratePawnMoves(int home);
+	void GenerateKnightMoves(const int home);
+	void GenerateKingMoves(const int home);
+	void GeneratePawnMoves(const int home);
 	void GenerateCastlingMoves();
-	void GenerateSlidingMoves(int piece, int home);
+	void GenerateSlidingMoves(const int piece, const int home);
 
-	uint64_t GenerateKnightAttacks(int from);
-	uint64_t GenerateKingAttacks(int from);
-	uint64_t GenerateSlidingAttacksShiftUp(int direction, uint64_t boundMask, uint64_t propagatingPieces,
-		uint64_t friendlyPieces, uint64_t opponentPieces);
-	uint64_t GenerateSlidingAttacksShiftDown(int direction, uint64_t boundMask, uint64_t propagatingPieces,
-		uint64_t friendlyPieces, uint64_t opponentPieces);
+	const uint64_t GenerateKnightAttacks(const int from);
+	const uint64_t GenerateKingAttacks(const int from);
+	const uint64_t GenerateSlidingAttacksShiftUp(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
+		const uint64_t friendlyPieces, const uint64_t opponentPieces);
+	const uint64_t GenerateSlidingAttacksShiftDown(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
+		const uint64_t friendlyPieces, const uint64_t opponentPieces);
 
 	// Board variables:
 	uint64_t WhitePawnBits;

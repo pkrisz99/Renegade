@@ -13,7 +13,7 @@ void Search::Reset() {
 	InitOpeningBook();
 }
 
-// Perft methods --------------------------------------------------------------
+// Perft methods ----------------------------------------------------------------------------------
 
 void Search::Perft(Board board, int depth, PerftType type) {
 	Board b = board.Copy();
@@ -83,6 +83,8 @@ SearchConstraints Search::CalculateConstraints(SearchParams params, bool turn) {
 	// Default: go infinite
 	return constraints;
 }
+
+// Negamax search routine and handling ------------------------------------------------------------
 
 Evaluation Search::SearchMoves(Board board, SearchParams params, EngineSettings settings) {
 
@@ -204,7 +206,7 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 	// Null-move pruning
 	bool kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
 	bool inCheck = (board.AttackedSquares & kingBits) != 0;
-	int remainingPieces = NonZeros(board.GetOccupancy());
+	int remainingPieces = Popcount(board.GetOccupancy());
 	int reduction = 2;
 	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1) && (remainingPieces > 5)) {
 		Move m = Move();
@@ -220,7 +222,7 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 	std::vector<Move> bestMoves;
 
 	// Generate moves - if there are no legal moves, we return the eval
-	std::vector<Move> pseudoMoves = board.GenerateMoves(board.Turn);
+	std::vector<Move> pseudoMoves = board.GeneratePseudoLegalMoves(board.Turn);
 
 	// Move ordering
 	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
@@ -292,7 +294,7 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 }
 
 int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool rootNode) {
-	std::vector<Move> captureMoves = board.GenerateCaptureMoves(board.Turn);
+	std::vector<Move> captureMoves = board.GenerateNonQuietMoves(board.Turn);
 	if (!rootNode) EvaluatedQuiescenceNodes += 1;
 
 	// Update alpha-beta bounds, return static eval if no captures left
@@ -327,11 +329,12 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 
 // Returns 0 at startpos, returns 1 at the endgame
 float Search::CalculateGamePhase(Board board) {
-	int remainingPieces = NonZeros(board.GetOccupancy());
+	int remainingPieces = Popcount(board.GetOccupancy());
 	float phase = (32.f - remainingPieces) / (32.f - 4.f);
 	return std::clamp(phase, 0.f, 1.f);
 }
 
+// Performs a static evaluation of the position
 int Search::StaticEvaluation(Board board, int level) {
 	EvaluatedNodes += 1;
 	if (level > SelDepth) SelDepth = level;
@@ -348,19 +351,19 @@ int Search::StaticEvaluation(Board board, int level) {
 
 	// 2. Materials
 	int score = 0;
-	score += NonZeros(board.WhitePawnBits) * PawnValue;
-	score += NonZeros(board.WhiteKnightBits) * KnightValue;
-	score += NonZeros(board.WhiteBishopBits) * BishopValue;
-	score += NonZeros(board.WhiteRookBits) * RookValue;
-	score += NonZeros(board.WhiteQueenBits) * QueenValue;
-	score -= NonZeros(board.BlackPawnBits) * PawnValue;
-	score -= NonZeros(board.BlackKnightBits) * KnightValue;
-	score -= NonZeros(board.BlackBishopBits) * BishopValue;
-	score -= NonZeros(board.BlackRookBits) * RookValue;
-	score -= NonZeros(board.BlackQueenBits) * QueenValue;
+	score += Popcount(board.WhitePawnBits) * PawnValue;
+	score += Popcount(board.WhiteKnightBits) * KnightValue;
+	score += Popcount(board.WhiteBishopBits) * BishopValue;
+	score += Popcount(board.WhiteRookBits) * RookValue;
+	score += Popcount(board.WhiteQueenBits) * QueenValue;
+	score -= Popcount(board.BlackPawnBits) * PawnValue;
+	score -= Popcount(board.BlackKnightBits) * KnightValue;
+	score -= Popcount(board.BlackBishopBits) * BishopValue;
+	score -= Popcount(board.BlackRookBits) * RookValue;
+	score -= Popcount(board.BlackQueenBits) * QueenValue;
 
-	if (NonZeros(board.WhiteBishopBits) >= 2) score += 50;
-	if (NonZeros(board.BlackBishopBits) >= 2) score -= 50;
+	if (Popcount(board.WhiteBishopBits) >= 2) score += 50;
+	if (Popcount(board.BlackBishopBits) >= 2) score -= 50;
 
 	uint64_t occupancy = board.GetOccupancy();
 	float phase = CalculateGamePhase(board);
@@ -387,7 +390,7 @@ int Search::StaticEvaluation(Board board, int level) {
 	return score;
 }
 
-// Opening book ---------------------------------------------------------------
+// Opening book -----------------------------------------------------------------------------------
 
 void Search::InitOpeningBook() {
 	std::ifstream ifs("book.bin", std::ios::in | std::ios::binary);
@@ -445,7 +448,7 @@ int Search::GetBookSize() {
 }
 
 
-// Communicating the search results -------------------------------------------
+// Communicating the search results ---------------------------------------------------------------
 
 void Search::PrintInfo(Evaluation e, EngineSettings settings) {
 	std::string score;

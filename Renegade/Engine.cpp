@@ -16,7 +16,7 @@ void Engine::Start() {
 	std::string cmd = "";
 	while (getline(cin, cmd)) {
 
-		cmd = trimstr(cmd);
+		cmd = Trim(cmd);
 		if (cmd.size() == 0) continue;
 		std::stringstream ss(cmd);
 		std::istream_iterator<std::string> begin(ss);
@@ -57,16 +57,16 @@ void Engine::Start() {
 		// Set option
 		if (parts[0] == "setoption") {
 
-			parts[2] = lowercase(parts[2]);
+			ConvertToLowercase(parts[2]);
 
 			if (parts[2] == "ownbook") {
-				parts[4] = lowercase(parts[4]);
+				ConvertToLowercase(parts[4]);
 				if (parts[4] == "true") Settings.UseBook = true;
 				else if (parts[4] == "false") Settings.UseBook = false;
 				else cout << "Unknown value: '" << parts[4] << "'" << endl;
 			}
 			else if (parts[2] == "extendedoutput") {
-				parts[4] = lowercase(parts[4]);
+				ConvertToLowercase(parts[4]);
 				if (parts[4] == "true") Settings.ExtendedOutput = true;
 				else if (parts[4] == "false") Settings.ExtendedOutput = false;
 				else cout << "Unknown value: '" << parts[4] << "'" << endl;
@@ -87,7 +87,7 @@ void Engine::Start() {
 			if (parts[1] == "attackmap") board.Draw(board.AttackedSquares);
 			if (parts[1] == "enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
 			if (parts[1] == "pseudolegal") {
-				std::vector<Move> v = board.GenerateMoves(board.Turn);
+				std::vector<Move> v = board.GeneratePseudoLegalMoves(board.Turn);
 				for (Move m : v) cout << m.ToString() << " ";
 				cout << endl;
 			}
@@ -165,7 +165,7 @@ void Engine::Start() {
 				dummy = 0;
 				for (int i = 0; i < 100000; i++) {
 					auto t0 = Clock::now();
-					board.GenerateMoves(board.Turn);
+					board.GeneratePseudoLegalMoves(board.Turn);
 					auto t1 = Clock::now();
 					nanoseconds += (t1 - t0).count();
 				}
