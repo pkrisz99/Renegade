@@ -120,7 +120,7 @@ Evaluation Search::SearchMoves(Board board, SearchParams params, EngineSettings 
 		Depth += 1;
 		SelDepth = 0;
 		Explored = true;
-		int result = SearchRecursive(board, Depth, 1, NegativeInfinity, PositiveInfinity, true);
+		int result = SearchRecursive(board, Depth, 0, NegativeInfinity, PositiveInfinity, true);
 		Heuristics.SetHashSize(settings.Hash);
 
 		// Check limits
@@ -151,7 +151,6 @@ Evaluation Search::SearchMoves(Board board, SearchParams params, EngineSettings 
 		e.pv = Heuristics.GetPvLine();
 
 		Heuristics.SetPv(e.pv);
-		//for (int i = 0; i < e.pv.size(); i++) cout << e.pv[i].ToString() << endl;
 		PrintInfo(e, settings);
 	}
 	PrintBestmove(e.BestMove());
@@ -297,12 +296,16 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 	std::vector<Move> captureMoves = board.GenerateNonQuietMoves(board.Turn);
 	if (!rootNode) EvaluatedQuiescenceNodes += 1;
 
-	// Update alpha-beta bounds, return static eval if no captures left
+	// Update alpha-beta bounds, return alpha if no captures left
 	int staticEval = StaticEvaluation(board, level);
 	if (staticEval >= beta) return beta;
 	if (staticEval < alpha - 1000) return alpha; // Delta pruning
 	if (staticEval > alpha) alpha = staticEval;
 	if (board.State != GameState::Playing) return alpha;
+
+	//bool kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
+	//bool inCheck = (board.AttackedSquares & kingBits) != 0;
+	//if (inCheck) return alpha; // Stopping qsearch if in check
 
 	// Order capture moves
 	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
@@ -342,10 +345,10 @@ int Search::StaticEvaluation(Board board, const int level) {
 	if (board.State == GameState::Draw) return 0;
 	if (board.State == GameState::WhiteVictory) {
 		if (board.Turn == Turn::White) return MateEval - (level + 1) / 2;
-		if (board.Turn == Turn::Black) return -MateEval + level / 2;
+		if (board.Turn == Turn::Black) return -MateEval + (level + 1) / 2;
 	}
 	else if (board.State == GameState::BlackVictory) {
-		if (board.Turn == Turn::White) return -MateEval + level / 2;
+		if (board.Turn == Turn::White) return -MateEval + (level + 1) / 2;
 		if (board.Turn == Turn::Black) return MateEval - (level + 1) / 2;
 	}
 

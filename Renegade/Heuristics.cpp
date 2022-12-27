@@ -65,8 +65,8 @@ const bool Heuristics::IsKillerMove(const Move move, const int level) {
 }
 
 const bool Heuristics::IsPvMove(const Move move, const int level) {
-	if (level > PvMoves.size()) return false;
-	if ((move.from == PvMoves[level-1].from) && (move.to == PvMoves[level-1].to)) return true;
+	if (level >= PvMoves.size()) return false;
+	if ((move.from == PvMoves[level].from) && (move.to == PvMoves[level].to)) return true;
 	return false;
 }
 
@@ -90,8 +90,8 @@ void Heuristics::UpdatePvTable(const Move move, const int level) {
 
 const std::vector<Move> Heuristics::GetPvLine() {
 	std::vector<Move> list = std::vector<Move>();
-	for (int i = 1; i < 20; i++) {
-		Move m = PvTable[1][i];
+	for (int i = 0; i < 20; i++) {
+		Move m = PvTable[0][i];
 		if ((m.from == 0) && (m.to == 0)) break;
 		list.push_back(m);
 	}
