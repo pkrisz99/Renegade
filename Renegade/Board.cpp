@@ -79,7 +79,8 @@ Board::Board(const string fen) {
 
 	HalfmoveClock = stoi(parts[4]);
 	FullmoveClock = stoi(parts[5]);
-	PastHashes.push_back(Hash(false));
+	HashValue = HashInternal();
+	PastHashes.push_back(HashValue);
 }
 
 Board::Board() {
@@ -115,6 +116,7 @@ Board::Board(const Board &b) {
 	DrawCheck = b.DrawCheck;
 	StartingPosition = b.StartingPosition;
 	PastHashes = std::vector<uint64_t>(b.PastHashes.begin(), b.PastHashes.end());
+	HashValue = b.HashValue;
 }
 
 const void Board::Draw(const uint64_t customBits = 0) {
@@ -179,7 +181,7 @@ const void Board::Draw(const uint64_t customBits = 0) {
 
 }
 
-const uint64_t Board::Hash(const bool hashPlys) {
+const uint64_t Board::HashInternal() {
 	uint64_t hash = 0ULL;
 
 	// Pieces
@@ -225,10 +227,12 @@ const uint64_t Board::Hash(const bool hashPlys) {
 	// Turn
 	if (Turn == Turn::White) hash ^= Zobrist[780];
 
-	// Ply number - internal only
-	if (hashPlys) hash ^= (FullmoveClock * 0xE0C754AULL);
-
 	return hash;
+}
+
+const uint64_t Board::Hash(const bool hashPlys) {
+	if (hashPlys) return HashValue ^ (FullmoveClock * 0xE0C754AULL);
+	return HashValue;
 }
 
 const int Board::GetPieceAt(const int place) {
@@ -435,8 +439,8 @@ void Board::Push(const Move move) {
 	else inCheck = Popcount(AttackedSquares & BlackKingBits);
 
 	// Add current hash to list
-	const uint64_t hash = Hash(false);
-	PastHashes.push_back(hash);
+	HashValue = HashInternal();
+	PastHashes.push_back(HashValue);
 	
 	// Check checkmates & stalemates
 	const bool hasMoves = AreThereLegalMoves(Turn, previousAttackMap);
@@ -451,9 +455,8 @@ void Board::Push(const Move move) {
 	if ((State != GameState::Playing) || (!DrawCheck)) return;
 
 	// Threefold repetition check
-	// optimalization idea: only check the last 'HalfmoveClock' moves?
 	if (DrawCheck) {
-		const int64_t stateCount = std::count(PastHashes.begin(), PastHashes.end(), hash);
+		const int64_t stateCount = std::count(PastHashes.end() - HalfmoveClock, PastHashes.end(), HashValue);
 		if (stateCount >= 3) {
 			State = GameState::Draw;
 			return;
@@ -461,31 +464,35 @@ void Board::Push(const Move move) {
 	}
 
 	// Insufficient material check
-	const int WhitePawnCount = Popcount(WhitePawnBits);
-	const int WhiteKnightCount = Popcount(WhiteKnightBits);
-	const int WhiteBishopCount = Popcount(WhiteBishopBits);
-	const int WhiteRookCount = Popcount(WhiteRookBits);
-	const int WhiteQueenCount = Popcount(WhiteQueenBits);
-	const int BlackPawnCount = Popcount(BlackPawnBits);
-	const int BlackKnightCount = Popcount(BlackKnightBits);
-	const int BlackBishopCount = Popcount(BlackBishopBits);
-	const int BlackRookCount = Popcount(BlackRookBits);
-	const int BlackQueenCount = Popcount(BlackQueenBits);
-	const int WhitePieceCount = WhitePawnCount + WhiteKnightCount + WhiteBishopCount + WhiteRookCount + WhiteQueenCount;
-	const int BlackPieceCount = BlackPawnCount + BlackKnightCount + BlackBishopCount + BlackRookCount + BlackQueenCount;
-	const int WhiteLightBishopCount = Popcount(WhiteBishopBits & Bitboards::LightSquares);
-	const int WhiteDarkBishopCount = Popcount(WhiteBishopBits & Bitboards::DarkSquares);
-	const int BlackLightBishopCount = Popcount(BlackBishopBits & Bitboards::LightSquares);
-	const int BlackDarkBishopCount = Popcount(BlackBishopBits & Bitboards::DarkSquares);
-
+	// I think this neglects some cases when pawns can't move
 	bool flag = false;
-	if (WhitePieceCount == 0 && BlackPieceCount == 0) flag = true;
-	if (WhitePieceCount == 1 && WhiteKnightCount == 1 && BlackPieceCount == 0) flag = true;
-	if (BlackPieceCount == 1 && BlackKnightCount == 1 && WhitePieceCount == 0) flag = true;
-	if (WhitePieceCount == 1 && WhiteBishopCount == 1 && BlackPieceCount == 0) flag = true;
-	if (BlackPieceCount == 1 && BlackBishopCount == 1 && WhitePieceCount == 0) flag = true;
-	if (WhitePieceCount == 1 && WhiteLightBishopCount == 1 && BlackPieceCount == 1 && BlackLightBishopCount == 1) flag = true;
-	if (WhitePieceCount == 1 && WhiteDarkBishopCount == 1 && BlackPieceCount == 1 && BlackDarkBishopCount == 1) flag = true;
+	const int PieceCount = Popcount(GetOccupancy());
+	if (PieceCount <= 4) {
+		const int WhitePawnCount = Popcount(WhitePawnBits);
+		const int WhiteKnightCount = Popcount(WhiteKnightBits);
+		const int WhiteBishopCount = Popcount(WhiteBishopBits);
+		const int WhiteRookCount = Popcount(WhiteRookBits);
+		const int WhiteQueenCount = Popcount(WhiteQueenBits);
+		const int BlackPawnCount = Popcount(BlackPawnBits);
+		const int BlackKnightCount = Popcount(BlackKnightBits);
+		const int BlackBishopCount = Popcount(BlackBishopBits);
+		const int BlackRookCount = Popcount(BlackRookBits);
+		const int BlackQueenCount = Popcount(BlackQueenBits);
+		const int WhitePieceCount = WhitePawnCount + WhiteKnightCount + WhiteBishopCount + WhiteRookCount + WhiteQueenCount;
+		const int BlackPieceCount = BlackPawnCount + BlackKnightCount + BlackBishopCount + BlackRookCount + BlackQueenCount;
+		const int WhiteLightBishopCount = Popcount(WhiteBishopBits & Bitboards::LightSquares);
+		const int WhiteDarkBishopCount = Popcount(WhiteBishopBits & Bitboards::DarkSquares);
+		const int BlackLightBishopCount = Popcount(BlackBishopBits & Bitboards::LightSquares);
+		const int BlackDarkBishopCount = Popcount(BlackBishopBits & Bitboards::DarkSquares);
+
+		if (WhitePieceCount == 0 && BlackPieceCount == 0) flag = true;
+		if (WhitePieceCount == 1 && WhiteKnightCount == 1 && BlackPieceCount == 0) flag = true;
+		if (BlackPieceCount == 1 && BlackKnightCount == 1 && WhitePieceCount == 0) flag = true;
+		if (WhitePieceCount == 1 && WhiteBishopCount == 1 && BlackPieceCount == 0) flag = true;
+		if (BlackPieceCount == 1 && BlackBishopCount == 1 && WhitePieceCount == 0) flag = true;
+		if (WhitePieceCount == 1 && WhiteLightBishopCount == 1 && BlackPieceCount == 1 && BlackLightBishopCount == 1) flag = true;
+		if (WhitePieceCount == 1 && WhiteDarkBishopCount == 1 && BlackPieceCount == 1 && BlackDarkBishopCount == 1) flag = true;
+	}
 
 	if (flag) State = GameState::Draw;
 	if (State != GameState::Playing) return;
@@ -894,8 +901,6 @@ std::vector<Move> Board::GenerateLegalMoves(const int turn) {
 std::vector<Move> Board::GenerateNonQuietMoves(const int turn) {
 	std::vector<Move> CaptureMoves;
 	std::vector<Move> PseudoLegalMoves = GeneratePseudoLegalMoves(turn);
-	// todo: check en passant + extend for promotions
-
 	for (const Move& m : PseudoLegalMoves) {
 		uint64_t opponentOccupance = GetOccupancy(Turn == Turn::White ? PieceColor::Black : PieceColor::White);
 		if (CheckBit(opponentOccupance, m.to) || (m.flag == MoveFlag::PromotionToQueen) || (m.flag == MoveFlag::EnPassantPerformed)) CaptureMoves.push_back(m);
@@ -904,7 +909,6 @@ std::vector<Move> Board::GenerateNonQuietMoves(const int turn) {
 }
 
 std::vector<Move> Board::GeneratePseudoLegalMoves(const int turn) {
-	//std::vector<Move> PossibleMoves;
 	MoveList.clear();
 	MoveList.reserve(10);
 	const int myColor = TurnToPieceColor(turn);

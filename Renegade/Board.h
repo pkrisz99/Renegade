@@ -34,6 +34,7 @@ public:
 	const void Draw(const uint64_t customBits);
 	const int GetPieceAt(const int place);
 	const uint64_t Hash(const bool hashPlys);
+	const uint64_t HashInternal();
 	const uint64_t GetOccupancy();
 	const uint64_t GetOccupancy(const int pieceColor);
 
@@ -83,6 +84,7 @@ public:
 	GameState State;
 	std::vector<uint64_t> PastHashes;
 	std::vector<Move> MoveList;
+	uint64_t HashValue;
 
 	// Board settings:
 	bool StartingPosition;
