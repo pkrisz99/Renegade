@@ -111,6 +111,7 @@ const int Heuristics::CalculateMoveOrderScore(Board board, const Move m, const i
 	else if (m.flag == MoveFlag::PromotionToRook) orderScore += 500;
 	else if (m.flag == MoveFlag::PromotionToBishop) orderScore += 300;
 	else if (m.flag == MoveFlag::PromotionToKnight) orderScore += 300;
+	else if (m.flag == MoveFlag::EnPassantPerformed) orderScore += 100;
 
 	if (attackingPiece == PieceType::Pawn) orderScore += PawnPSQT[m.to] - PawnPSQT[m.from];
 	else if (attackingPiece == PieceType::Knight) orderScore += KnightPSQT[m.to] - KnightPSQT[m.from];

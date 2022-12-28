@@ -280,7 +280,7 @@ bool Board::PushUci(const string ucistr) {
 	if (TypeOfPiece(piece) == PieceType::Pawn) {
 		int f1 = sq1 / 8;
 		int f2 = sq2 / 8;
-		if (abs(f2 - f1) > 1) move.flag = MoveFlag::EnPassant;
+		if (abs(f2 - f1) > 1) move.flag = MoveFlag::EnPassantPossible;
 	}
 
 	// En passant performed
@@ -403,7 +403,7 @@ void Board::TryMove(const Move move) {
 	if ((move.to == 56) || (move.from == 56)) BlackRightToLongCastle = false;
 
 	// 4. Update en passant
-	if (move.flag == MoveFlag::EnPassant) {
+	if (move.flag == MoveFlag::EnPassantPossible) {
 		if (Turn == Turn::White) {
 			EnPassantSquare = move.to - 8;
 		}
@@ -627,7 +627,7 @@ void Board::GeneratePawnMoves(const int home) {
 		target = home + 7;
 		if ((file != 0) && ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target==EnPassantSquare) && (ColorOfPiece(GetPieceAt(target)) == 0))) {
 			if (GetSquareRank(target) != 7) {
-				Move m = Move(home, target);
+				Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 				MoveList.push_back(m);
 			} else { // Promote
 				Move m1 = Move(home, target, MoveFlag::PromotionToKnight);
@@ -646,7 +646,7 @@ void Board::GeneratePawnMoves(const int home) {
 		if (file != 7) {
 			if ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare) && (ColorOfPiece(GetPieceAt(target)) == 0)) {
 				if (GetSquareRank(target) != 7) {
-					Move m = Move(home, target);
+					Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 					MoveList.push_back(m);
 				}
 				else { // Promote
@@ -667,7 +667,7 @@ void Board::GeneratePawnMoves(const int home) {
 			bool free1 = GetPieceAt(home + 8) == 0;
 			bool free2 = GetPieceAt(home + 16) == 0;
 			if (free1 && free2) {
-				Move m = Move(home, home+16, MoveFlag::EnPassant);
+				Move m = Move(home, home+16, MoveFlag::EnPassantPossible);
 				MoveList.push_back(m);
 			}
 		}
@@ -696,7 +696,7 @@ void Board::GeneratePawnMoves(const int home) {
 		target = home - 7;
 		if ((file != 7) && ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare) && (ColorOfPiece(GetPieceAt(target)) == 0))) {
 			if (GetSquareRank(target) != 0) {
-				Move m = Move(home, target);
+				Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 				MoveList.push_back(m);
 			} else { // Promote
 				Move m1 = Move(home, target, MoveFlag::PromotionToKnight);
@@ -715,7 +715,7 @@ void Board::GeneratePawnMoves(const int home) {
 		if (file != 0) {
 			if ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare) && (ColorOfPiece(GetPieceAt(target)) == 0)) {
 				if (GetSquareRank(target) != 0) {
-					Move m = Move(home, target);
+					Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 					MoveList.push_back(m);
 				}
 				else { // Promote
@@ -736,7 +736,7 @@ void Board::GeneratePawnMoves(const int home) {
 			bool free1 = GetPieceAt(home - 8) == 0;
 			bool free2 = GetPieceAt(home - 16) == 0;
 			if (free1 && free2) {
-				Move m = Move(home, home - 16, MoveFlag::EnPassant);
+				Move m = Move(home, home - 16, MoveFlag::EnPassantPossible);
 				MoveList.push_back(m);
 			}
 		}
@@ -891,14 +891,14 @@ std::vector<Move> Board::GenerateLegalMoves(const int turn) {
 	// Filter attacked, parried squares, pins
 }
 
-std::vector<Move> Board::GenerateNonQuietMoves(const int turn) { // + todo: check for promotions
+std::vector<Move> Board::GenerateNonQuietMoves(const int turn) {
 	std::vector<Move> CaptureMoves;
 	std::vector<Move> PseudoLegalMoves = GeneratePseudoLegalMoves(turn);
 	// todo: check en passant + extend for promotions
 
 	for (const Move& m : PseudoLegalMoves) {
 		uint64_t opponentOccupance = GetOccupancy(Turn == Turn::White ? PieceColor::Black : PieceColor::White);
-		if (CheckBit(opponentOccupance, m.to)) CaptureMoves.push_back(m);
+		if (CheckBit(opponentOccupance, m.to) || (m.flag == MoveFlag::PromotionToQueen) || (m.flag == MoveFlag::EnPassantPerformed)) CaptureMoves.push_back(m);
 	}
 	return CaptureMoves;
 }

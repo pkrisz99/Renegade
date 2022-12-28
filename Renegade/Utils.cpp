@@ -25,8 +25,9 @@ namespace MoveFlag {
 	static const int PromotionToBishop = 4;
 	static const int PromotionToRook = 5;
 	static const int PromotionToQueen = 6;
-	static const int EnPassant = 7;
+	static const int EnPassantPossible = 7;
 	static const int NullMove = 8;
+	static const int EnPassantPerformed = 9;
 }
 
 namespace Turn {
