@@ -107,17 +107,17 @@ const int Heuristics::CalculateMoveOrderScore(Board board, const Move m, const i
 		orderScore = values[attackedPiece] - values[attackingPiece] + 10000;
 	}
 
-	if (m.flag == MoveFlag::PromotionToQueen) orderScore += 900;
-	else if (m.flag == MoveFlag::PromotionToRook) orderScore += 500;
-	else if (m.flag == MoveFlag::PromotionToBishop) orderScore += 300;
-	else if (m.flag == MoveFlag::PromotionToKnight) orderScore += 300;
+	if (m.flag == MoveFlag::PromotionToQueen) orderScore += Weights::QueenValue;
+	else if (m.flag == MoveFlag::PromotionToRook) orderScore += Weights::RookValue;
+	else if (m.flag == MoveFlag::PromotionToBishop) orderScore += Weights::BishopValue;
+	else if (m.flag == MoveFlag::PromotionToKnight) orderScore += Weights::KnightValue;
 	else if (m.flag == MoveFlag::EnPassantPerformed) orderScore += 100;
 
-	if (attackingPiece == PieceType::Pawn) orderScore += PawnPSQT[m.to] - PawnPSQT[m.from];
-	else if (attackingPiece == PieceType::Knight) orderScore += KnightPSQT[m.to] - KnightPSQT[m.from];
-	else if (attackingPiece == PieceType::Bishop) orderScore += BishopPSQT[m.to] - BishopPSQT[m.from];
-	else if (attackingPiece == PieceType::Rook) orderScore += RookPSQT[m.to] - RookPSQT[m.from];
-	else if (attackingPiece == PieceType::Queen) orderScore += QueenPSQT[m.to] - QueenPSQT[m.from];
+	if (attackingPiece == PieceType::Pawn) orderScore += Weights::PawnPSQT[m.to] - Weights::PawnPSQT[m.from];
+	else if (attackingPiece == PieceType::Knight) orderScore += Weights::KnightPSQT[m.to] - Weights::KnightPSQT[m.from];
+	else if (attackingPiece == PieceType::Bishop) orderScore += Weights::BishopPSQT[m.to] - Weights::BishopPSQT[m.from];
+	else if (attackingPiece == PieceType::Rook) orderScore += Weights::RookPSQT[m.to] - Weights::RookPSQT[m.from];
+	else if (attackingPiece == PieceType::Queen) orderScore += Weights::QueenPSQT[m.to] - Weights::QueenPSQT[m.from];
 
 	if (IsKillerMove(m, level)) orderScore += 200000;
 	if (IsPvMove(m, level)) orderScore += 100000;

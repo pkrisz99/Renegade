@@ -86,7 +86,7 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 
 // Negamax search routine and handling ------------------------------------------------------------
 
-Evaluation Search::SearchMoves(Board board, SearchParams params, EngineSettings settings) {
+Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings settings) {
 
 	StartSearchTime = Clock::now();
 	int elapsedMs = 0;
@@ -160,7 +160,7 @@ Evaluation Search::SearchMoves(Board board, SearchParams params, EngineSettings 
 	return e;
 }
 
-int Search::SearchRecursive(Board board, int depth, int level, int alpha, int beta, bool canNullMove) {
+int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int beta, bool canNullMove) {
 
 	// Check limits
 	if (Aborting) return NoEval;
@@ -282,7 +282,7 @@ int Search::SearchRecursive(Board board, int depth, int level, int alpha, int be
 
 	// Case when there was no legal move 
 	if (legalMoveCount == 0) {
-		int e = StaticEvaluation(board, level);
+		int e = StaticEvaluation<Weights>(board, level);
 		Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
 	}
@@ -297,7 +297,7 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 	if (!rootNode) EvaluatedQuiescenceNodes += 1;
 
 	// Update alpha-beta bounds, return alpha if no captures left
-	int staticEval = StaticEvaluation(board, level);
+	int staticEval = StaticEvaluation<Weights>(board, level);
 	if (staticEval >= beta) return beta;
 	if (staticEval < alpha - 1000) return alpha; // Delta pruning
 	if (staticEval > alpha) alpha = staticEval;
@@ -330,15 +330,9 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 	return alpha;
 }
 
-// Returns 0 at startpos, returns 1 at the endgame
-const float Search::CalculateGamePhase(Board board) {
-	int remainingPieces = Popcount(board.GetOccupancy());
-	float phase = (32.f - remainingPieces) / (32.f - 4.f);
-	return std::clamp(phase, 0.f, 1.f);
-}
-
 // Performs a static evaluation of the position
-int Search::StaticEvaluation(Board board, const int level) {
+template <typename W>
+int Search::StaticEvaluation(Board &board, const int level) {
 	EvaluatedNodes += 1;
 	if (level > SelDepth) SelDepth = level;
 	// 1. is over?
@@ -354,19 +348,19 @@ int Search::StaticEvaluation(Board board, const int level) {
 
 	// 2. Materials
 	int score = 0;
-	score += Popcount(board.WhitePawnBits) * PawnValue;
-	score += Popcount(board.WhiteKnightBits) * KnightValue;
-	score += Popcount(board.WhiteBishopBits) * BishopValue;
-	score += Popcount(board.WhiteRookBits) * RookValue;
-	score += Popcount(board.WhiteQueenBits) * QueenValue;
-	score -= Popcount(board.BlackPawnBits) * PawnValue;
-	score -= Popcount(board.BlackKnightBits) * KnightValue;
-	score -= Popcount(board.BlackBishopBits) * BishopValue;
-	score -= Popcount(board.BlackRookBits) * RookValue;
-	score -= Popcount(board.BlackQueenBits) * QueenValue;
+	score += Popcount(board.WhitePawnBits) * W::PawnValue;
+	score += Popcount(board.WhiteKnightBits) * W::KnightValue;
+	score += Popcount(board.WhiteBishopBits) * W::BishopValue;
+	score += Popcount(board.WhiteRookBits) * W::RookValue;
+	score += Popcount(board.WhiteQueenBits) * W::QueenValue;
+	score -= Popcount(board.BlackPawnBits) * W::PawnValue;
+	score -= Popcount(board.BlackKnightBits) * W::KnightValue;
+	score -= Popcount(board.BlackBishopBits) * W::BishopValue;
+	score -= Popcount(board.BlackRookBits) * W::RookValue;
+	score -= Popcount(board.BlackQueenBits) * W::QueenValue;
 
-	if (Popcount(board.WhiteBishopBits) >= 2) score += 50;
-	if (Popcount(board.BlackBishopBits) >= 2) score -= 50;
+	if (Popcount(board.WhiteBishopBits) >= 2) score += W::BishopPairBonus;
+	if (Popcount(board.BlackBishopBits) >= 2) score -= W::BishopPairBonus;
 
 	uint64_t occupancy = board.GetOccupancy();
 	float phase = CalculateGamePhase(board);
@@ -374,19 +368,19 @@ int Search::StaticEvaluation(Board board, const int level) {
 		uint64_t i = 64 - __lzcnt64(occupancy) - 1;
 		SetBitFalse(occupancy, i);
 		int piece = board.GetPieceAt(i);
-		if (piece == Piece::WhitePawn) score += PawnPSQT[i];
-		else if (piece == Piece::WhiteKnight) score += KnightPSQT[i];
-		else if (piece == Piece::WhiteBishop) score += BishopPSQT[i];
-		else if (piece == Piece::WhiteRook) score += RookPSQT[i];
-		else if (piece == Piece::WhiteQueen) score += QueenPSQT[i];
-		else if (piece == Piece::WhiteKing) score += GetKingPSQT(i, phase);
+		if (piece == Piece::WhitePawn) score += W::PawnPSQT[i];
+		else if (piece == Piece::WhiteKnight) score += W::KnightPSQT[i];
+		else if (piece == Piece::WhiteBishop) score += W::BishopPSQT[i];
+		else if (piece == Piece::WhiteRook) score += W::RookPSQT[i];
+		else if (piece == Piece::WhiteQueen) score += W::QueenPSQT[i];
+		else if (piece == Piece::WhiteKing) score += GetTaperedPSQT(W::KingEarlyPSQT[i], W::KingLatePSQT[i], phase);
 
-		if (piece == Piece::BlackPawn) score -= PawnPSQT[63 - i];
-		else if (piece == Piece::BlackKnight) score -= KnightPSQT[63 - i];
-		else if (piece == Piece::BlackBishop) score -= BishopPSQT[63 - i];
-		else if (piece == Piece::BlackRook) score -= RookPSQT[63 - i];
-		else if (piece == Piece::BlackQueen) score -= QueenPSQT[63 - i];
-		else if (piece == Piece::BlackKing) score -= GetKingPSQT(63 - i, phase);
+		if (piece == Piece::BlackPawn) score -= W::PawnPSQT[63 - i];
+		else if (piece == Piece::BlackKnight) score -= W::KnightPSQT[63 - i];
+		else if (piece == Piece::BlackBishop) score -= W::BishopPSQT[63 - i];
+		else if (piece == Piece::BlackRook) score -= W::RookPSQT[63 - i];
+		else if (piece == Piece::BlackQueen) score -= W::QueenPSQT[63 - i];
+		else if (piece == Piece::BlackKing) score -= GetTaperedPSQT(W::KingEarlyPSQT[63 - i], W::KingLatePSQT[63 - i], phase);
 	}
 
 	if (!board.Turn) score *= -1;

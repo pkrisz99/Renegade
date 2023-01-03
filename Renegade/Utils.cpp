@@ -10,7 +10,7 @@
 	#include <stdio.h>
 #endif
 
-const std::string Version = "0.6.0";
+const std::string Version = "0.6.0+";
 typedef std::chrono::high_resolution_clock Clock;
 
 static const std::string starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -256,6 +256,12 @@ static bool StartsWith(const std::string big, const std::string small) {
 	return big.compare(0, small.length(), small) == 0;
 }
 
+static std::vector<std::string> Split(const std::string cmd) {
+	std::stringstream ss(cmd);
+	std::istream_iterator<std::string> begin(ss);
+	std::istream_iterator<std::string> end;
+	return std::vector<std::string>(begin, end);
+}
 
 // Precomputed arrays -----------------------------------------------------------------------------
 

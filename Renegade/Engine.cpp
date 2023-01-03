@@ -18,10 +18,7 @@ void Engine::Start() {
 
 		cmd = Trim(cmd);
 		if (cmd.size() == 0) continue;
-		std::stringstream ss(cmd);
-		std::istream_iterator<std::string> begin(ss);
-		std::istream_iterator<std::string> end;
-		std::vector<std::string> parts(begin, end);
+		std::vector<std::string> parts = Split(cmd);
 
 		if (cmd == "quit") break;
 
@@ -51,6 +48,11 @@ void Engine::Start() {
 
 		if (cmd == "stop") {
 			// todo: handle this
+			continue;
+		}
+
+		if (cmd == "tuner") {
+			Tuning Tuner("d");
 			continue;
 		}
 
@@ -128,7 +130,7 @@ void Engine::Start() {
 				cout << "sizeof int:               " << sizeof(int) << endl;
 			}
 			if (parts[1] == "eval") {
-				cout << "Static evaluation: " << Search.StaticEvaluation(board, 0) << endl;
+				cout << "Static evaluation: " << Search.StaticEvaluation<Weights>(board, 0) << endl;
 			}
 			if (parts[1] == "pasthashes") {
 				cout << "Past hashes size: " << board.PastHashes.size() << endl;
@@ -137,7 +139,7 @@ void Engine::Start() {
 				}
 			}
 			if (parts[1] == "phase") {
-				cout << "Game phase: " << Search.CalculateGamePhase(board) << endl;
+				cout << "Game phase: " << CalculateGamePhase(board) << endl;
 			}
 			if (parts[1] == "runtime") {
 				cout << "Timing test suite:" << endl;
@@ -145,7 +147,7 @@ void Engine::Start() {
 				uint64_t dummy = 0;
 				for (int i = 0; i < 100000; i++) {
 					auto t0 = Clock::now();
-					dummy = Search.StaticEvaluation(board, 0);
+					dummy = Search.StaticEvaluation<Weights>(board, 0);
 					auto t1 = Clock::now();
 					nanoseconds += (t1 - t0).count();
 					if (dummy > 10000000) break;

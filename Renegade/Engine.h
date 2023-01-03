@@ -15,6 +15,7 @@
 #include <random>
 #include <filesystem>
 #include "Search.h"
+#include "Tuning.h"
 
 class Engine
 {
