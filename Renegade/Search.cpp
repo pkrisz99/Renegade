@@ -216,11 +216,9 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		if ((-nullMoveEval >= beta) && (abs(nullMoveEval) < MateEval - 1000)) return beta;
 	}
 
-	// Initalize variables
+	// Initalize variables, and generate moves - if there are no legal moves, we'll return alpha
 	int bestScore = NoEval;
 	std::vector<Move> bestMoves;
-
-	// Generate moves - if there are no legal moves, we return the eval
 	std::vector<Move> pseudoMoves = board.GeneratePseudoLegalMoves(board.Turn);
 
 	// Move ordering

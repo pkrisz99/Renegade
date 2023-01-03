@@ -35,7 +35,7 @@ Tuning::Tuning(const std::string dataset) {
 	cout << "Number of positions loaded: " << loadedBoards.size() << endl;
 	cout << "Finding best K..." << endl;
 	double K = FindBestK(loadedBoards, loadedResults);
-	cout << "\nBest K found: K=" << K << endl;
+	cout << "Best K found: K=" << K << endl;
 
 	const float trainRatio = 0.85;
 	for (int i = 0; i < trainRatio * lines; i++) {
@@ -47,7 +47,7 @@ Tuning::Tuning(const std::string dataset) {
 		TestResults.push_back(loadedResults[i]);
 	}
 	cout << "Train size: " << TrainBoards.size() << endl;
-	cout << "Test size:  " << TestBoards.size() << endl;
+	cout << "Test size:  " << TestBoards.size() << '\n' << endl;
 
 	Tune(K);
 
@@ -88,7 +88,6 @@ const double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& r
 			bestError = Kerror;
 			bestK = K;
 		}
-		cout << ".";
 		K += step;
 	}
 	return bestK;
@@ -143,6 +142,12 @@ const void Tuning::Tune(const double K) {
 
 		}
 
+		cout << "\n\nWeights:" << endl;
+		for (int i = 0; i <= 64 * 7 + 5; i++) {
+			cout << GetWeightById(i) << ", ";
+			if (i % 64 == 63) cout << "\n";
+		}
+
 		cout << "\nChanges made this iteration: " << improvements << endl;
 		if (improvements == 0) break;
 
@@ -154,19 +159,14 @@ const void Tuning::Tune(const double K) {
 		else {
 			cout << "Worsened test MSE: " << testMSE << " -> " << newTestMSE << '\n' << endl;
 			cout << "Stopping." << endl;
+			if (step > 1) step /= 2;
+			else break;
 		}
 		
 
 		step -= 1;
 		if (step == 0) step = 1;
 		iterations += 1;
-	}
-
-	cout << "\n\n" << endl;
-
-	for (int i = 0; i <= 64 * 7 + 5; i++) {
-		cout << GetWeightById(i) << ", ";
-		if (i % 64 == 63) cout << "\n";
 	}
 
 	cout << "\nCompleted." << endl;
