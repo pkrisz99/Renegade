@@ -5,20 +5,7 @@ Tuning::Tuning(const std::string dataset) {
 	cout << "Note: may take a looong time" << endl;
 
 	// Initialize temporary weights
-	
-	Temp.PawnValue = Weights::PawnValue;
-	Temp.KnightValue = Weights::KnightValue;
-	Temp.BishopValue = Weights::BishopValue;
-	Temp.RookValue = Weights::RookValue;
-	Temp.QueenValue = Weights::QueenValue;
-	Temp.BishopPairBonus = Weights::BishopPairBonus;
-	for (int i = 0; i < 64; i++) Temp.PawnPSQT[i] = Weights::PawnPSQT[i];
-	for (int i = 0; i < 64; i++) Temp.KnightPSQT[i] = Weights::KnightPSQT[i];
-	for (int i = 0; i < 64; i++) Temp.BishopPSQT[i] = Weights::BishopPSQT[i];
-	for (int i = 0; i < 64; i++) Temp.RookPSQT[i] = Weights::RookPSQT[i];
-	for (int i = 0; i < 64; i++) Temp.QueenPSQT[i] = Weights::QueenPSQT[i];
-	for (int i = 0; i < 64; i++) Temp.KingEarlyPSQT[i] = Weights::KingEarlyPSQT[i];
-	for (int i = 0; i < 64; i++) Temp.KingLatePSQT[i] = Weights::KingLatePSQT[i];
+	for (int i = 0; i < WeightsSize; i++) TempWeights[i] = Weights[i];
 
 	std::ifstream ifs("positions.txt");
 	std::string line;
@@ -69,7 +56,8 @@ const double Tuning::Sigmoid(const int score, const double K) {
 const double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) {
 	double totalError = 0;
 	for (int i = 0; i < boards.size(); i++) {
-		totalError += pow((results[i] - Sigmoid(Evaluate(boards[i]), K)), 2);
+		const int sign = boards[i].Turn == Turn::White ? 1 : -1; // Whoops, this is *kinda* needed
+		totalError += pow((results[i] - Sigmoid(sign * EvaluateBoard(boards[i], 0, TempWeights), K)), 2);
 	}
 	return totalError / boards.size();
 }
@@ -107,7 +95,7 @@ const void Tuning::Tune(const double K) {
 		improvements = 0;
 
 
-		for (int i = 0; i <= 7 * 64 + 5; i++) {
+		for (int i = 0; i < WeightsSize; i++) {
 			int weightCurrent = GetWeightById(i);
 			int weightPlus = weightCurrent + step;
 			int weightMinus = weightCurrent - step;
@@ -158,7 +146,6 @@ const void Tuning::Tune(const double K) {
 		}
 		else {
 			cout << "Worsened test MSE: " << testMSE << " -> " << newTestMSE << '\n' << endl;
-			cout << "Stopping." << endl;
 			if (step > 1) step /= 2;
 			else break;
 		}
@@ -168,95 +155,14 @@ const void Tuning::Tune(const double K) {
 		if (step == 0) step = 1;
 		iterations += 1;
 	}
-
+	cout << "Stopping." << endl;
 	cout << "\nCompleted." << endl;
 }
 
 const int Tuning::GetWeightById(const int id) {
-	if (id < 64 * 1) { return Temp.PawnPSQT[id % 64]; }
-	if (id < 64 * 2) { return Temp.KnightPSQT[id % 64]; }
-	if (id < 64 * 3) { return Temp.BishopPSQT[id % 64]; }
-	if (id < 64 * 4) { return Temp.RookPSQT[id % 64]; }
-	if (id < 64 * 5) { return Temp.QueenPSQT[id % 64]; }
-	if (id < 64 * 6) { return Temp.KingEarlyPSQT[id % 64]; }
-	if (id < 64 * 7) { return Temp.KingLatePSQT[id % 64]; }
-
-	if (id == 64 * 7) { return Temp.PawnValue; }
-	if (id == 64 * 7 + 1) { return Temp.KnightValue; }
-	if (id == 64 * 7 + 2) { return Temp.BishopValue; }
-	if (id == 64 * 7 + 3) { return Temp.RookValue; }
-	if (id == 64 * 7 + 4) { return Temp.QueenValue; }
-	if (id == 64 * 7 + 5) { return Temp.BishopPairBonus; }
+	return TempWeights[id];
 }
 
 const void Tuning::UpdateWeightById(const int id, const int value) {
-	if (id < 64 * 1) { Temp.PawnPSQT[id % 64] = value; return; }
-	if (id < 64 * 2) { Temp.KnightPSQT[id % 64] = value; return; }
-	if (id < 64 * 3) { Temp.BishopPSQT[id % 64] = value; return; }
-	if (id < 64 * 4) { Temp.RookPSQT[id % 64] = value; return; }
-	if (id < 64 * 5) { Temp.QueenPSQT[id % 64] = value; return; }
-	if (id < 64 * 6) { Temp.KingEarlyPSQT[id % 64] = value; return; }
-	if (id < 64 * 7) { Temp.KingLatePSQT[id % 64] = value; return; }
-
-	if (id == 64 * 7) { Temp.PawnValue = value; return; }
-	if (id == 64 * 7 + 1) { Temp.KnightValue = value; return; }
-	if (id == 64 * 7 + 2) { Temp.BishopValue = value; return; }
-	if (id == 64 * 7 + 3) { Temp.RookValue = value; return; }
-	if (id == 64 * 7 + 4) { Temp.QueenValue = value; return; }
-	if (id == 64 * 7 + 5) { Temp.BishopPairBonus = value; return; }
-}
-
-
-// Evaluation function cloned from search
-// There's surely a way of merging these two together without sacrificing performance
-const int Tuning::Evaluate(Board &board) {
-
-	if (board.State == GameState::Draw) return 0;
-	if (board.State == GameState::WhiteVictory) {
-		if (board.Turn == Turn::White) return MateEval;
-		if (board.Turn == Turn::Black) return -MateEval;
-	}
-	else if (board.State == GameState::BlackVictory) {
-		if (board.Turn == Turn::White) return -MateEval;
-		if (board.Turn == Turn::Black) return MateEval;
-	}
-
-	// 2. Materials
-	int score = 0;
-	score += Popcount(board.WhitePawnBits) * Temp.PawnValue;
-	score += Popcount(board.WhiteKnightBits) * Temp.KnightValue;
-	score += Popcount(board.WhiteBishopBits) * Temp.BishopValue;
-	score += Popcount(board.WhiteRookBits) * Temp.RookValue;
-	score += Popcount(board.WhiteQueenBits) * Temp.QueenValue;
-	score -= Popcount(board.BlackPawnBits) * Temp.PawnValue;
-	score -= Popcount(board.BlackKnightBits) * Temp.KnightValue;
-	score -= Popcount(board.BlackBishopBits) * Temp.BishopValue;
-	score -= Popcount(board.BlackRookBits) * Temp.RookValue;
-	score -= Popcount(board.BlackQueenBits) * Temp.QueenValue;
-
-	if (Popcount(board.WhiteBishopBits) >= 2) score += Temp.BishopPairBonus;
-	if (Popcount(board.BlackBishopBits) >= 2) score -= Temp.BishopPairBonus;
-
-	uint64_t occupancy = board.GetOccupancy();
-	float phase = CalculateGamePhase(board);
-	while (occupancy != 0) {
-		uint64_t i = 64 - __lzcnt64(occupancy) - 1;
-		SetBitFalse(occupancy, i);
-		int piece = board.GetPieceAt(i);
-		if (piece == Piece::WhitePawn) score += Temp.PawnPSQT[i];
-		else if (piece == Piece::WhiteKnight) score += Temp.KnightPSQT[i];
-		else if (piece == Piece::WhiteBishop) score += Temp.BishopPSQT[i];
-		else if (piece == Piece::WhiteRook) score += Temp.RookPSQT[i];
-		else if (piece == Piece::WhiteQueen) score += Temp.QueenPSQT[i];
-		else if (piece == Piece::WhiteKing) score += GetTaperedPSQT(Temp.KingEarlyPSQT[i], Temp.KingLatePSQT[i], phase);
-
-		if (piece == Piece::BlackPawn) score -= Temp.PawnPSQT[63 - i];
-		else if (piece == Piece::BlackKnight) score -= Temp.KnightPSQT[63 - i];
-		else if (piece == Piece::BlackBishop) score -= Temp.BishopPSQT[63 - i];
-		else if (piece == Piece::BlackRook) score -= Temp.RookPSQT[63 - i];
-		else if (piece == Piece::BlackQueen) score -= Temp.QueenPSQT[63 - i];
-		else if (piece == Piece::BlackKing) score -= GetTaperedPSQT(Temp.KingEarlyPSQT[63 - i], Temp.KingLatePSQT[63 - i], phase);
-	}
-
-	return score;
+	TempWeights[id] = value;
 }

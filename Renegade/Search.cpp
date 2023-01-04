@@ -280,7 +280,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Case when there was no legal move 
 	if (legalMoveCount == 0) {
-		int e = StaticEvaluation<Weights>(board, level);
+		int e = StaticEvaluation(board, level);
 		Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
 	}
@@ -295,7 +295,7 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 	if (!rootNode) EvaluatedQuiescenceNodes += 1;
 
 	// Update alpha-beta bounds, return alpha if no captures left
-	int staticEval = StaticEvaluation<Weights>(board, level);
+	int staticEval = StaticEvaluation(board, level);
 	if (staticEval >= beta) return beta;
 	if (staticEval < alpha - 1000) return alpha; // Delta pruning
 	if (staticEval > alpha) alpha = staticEval;
@@ -328,62 +328,12 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 	return alpha;
 }
 
-// Performs a static evaluation of the position
-template <typename W>
-int Search::StaticEvaluation(Board &board, const int level) {
+int Search::StaticEvaluation(Board &board, int level) {
 	EvaluatedNodes += 1;
 	if (level > SelDepth) SelDepth = level;
-	// 1. is over?
-	if (board.State == GameState::Draw) return 0;
-	if (board.State == GameState::WhiteVictory) {
-		if (board.Turn == Turn::White) return MateEval - (level + 1) / 2;
-		if (board.Turn == Turn::Black) return -MateEval + (level + 1) / 2;
-	}
-	else if (board.State == GameState::BlackVictory) {
-		if (board.Turn == Turn::White) return -MateEval + (level + 1) / 2;
-		if (board.Turn == Turn::Black) return MateEval - (level + 1) / 2;
-	}
-
-	// 2. Materials
-	int score = 0;
-	score += Popcount(board.WhitePawnBits) * W::PawnValue;
-	score += Popcount(board.WhiteKnightBits) * W::KnightValue;
-	score += Popcount(board.WhiteBishopBits) * W::BishopValue;
-	score += Popcount(board.WhiteRookBits) * W::RookValue;
-	score += Popcount(board.WhiteQueenBits) * W::QueenValue;
-	score -= Popcount(board.BlackPawnBits) * W::PawnValue;
-	score -= Popcount(board.BlackKnightBits) * W::KnightValue;
-	score -= Popcount(board.BlackBishopBits) * W::BishopValue;
-	score -= Popcount(board.BlackRookBits) * W::RookValue;
-	score -= Popcount(board.BlackQueenBits) * W::QueenValue;
-
-	if (Popcount(board.WhiteBishopBits) >= 2) score += W::BishopPairBonus;
-	if (Popcount(board.BlackBishopBits) >= 2) score -= W::BishopPairBonus;
-
-	uint64_t occupancy = board.GetOccupancy();
-	float phase = CalculateGamePhase(board);
-	while (occupancy != 0) {
-		uint64_t i = 64 - __lzcnt64(occupancy) - 1;
-		SetBitFalse(occupancy, i);
-		int piece = board.GetPieceAt(i);
-		if (piece == Piece::WhitePawn) score += W::PawnPSQT[i];
-		else if (piece == Piece::WhiteKnight) score += W::KnightPSQT[i];
-		else if (piece == Piece::WhiteBishop) score += W::BishopPSQT[i];
-		else if (piece == Piece::WhiteRook) score += W::RookPSQT[i];
-		else if (piece == Piece::WhiteQueen) score += W::QueenPSQT[i];
-		else if (piece == Piece::WhiteKing) score += GetTaperedPSQT(W::KingEarlyPSQT[i], W::KingLatePSQT[i], phase);
-
-		if (piece == Piece::BlackPawn) score -= W::PawnPSQT[63 - i];
-		else if (piece == Piece::BlackKnight) score -= W::KnightPSQT[63 - i];
-		else if (piece == Piece::BlackBishop) score -= W::BishopPSQT[63 - i];
-		else if (piece == Piece::BlackRook) score -= W::RookPSQT[63 - i];
-		else if (piece == Piece::BlackQueen) score -= W::QueenPSQT[63 - i];
-		else if (piece == Piece::BlackKing) score -= GetTaperedPSQT(W::KingEarlyPSQT[63 - i], W::KingLatePSQT[63 - i], phase);
-	}
-
-	if (!board.Turn) score *= -1;
-	return score;
+	return EvaluateBoard(board, level);
 }
+
 
 // Opening book -----------------------------------------------------------------------------------
 

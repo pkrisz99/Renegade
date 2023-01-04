@@ -16,26 +16,8 @@
 class Tuning
 {
 public:
-	class TempWeights {
-	public:
-		int PawnValue;
-		int KnightValue;
-		int BishopValue;
-		int RookValue;
-		int QueenValue;
-		int BishopPairBonus;
-		int PawnPSQT[64];
-		int KnightPSQT[64];
-		int BishopPSQT[64];
-		int RookPSQT[64];
-		int QueenPSQT[64];
-		int KingEarlyPSQT[64];
-		int KingLatePSQT[64];
-	};
-
 	Tuning(const std::string dataset);
 	const float ConvertResult(const std::string str);
-	const int Evaluate(Board &b);
 	const double Sigmoid(const int score, const double K);
 	const double FindBestK(std::vector<Board>& boards, std::vector<float>& results);
 	const double CalculateMSE(const double K, std::vector<Board> &boards, std::vector<float> &results);
@@ -47,7 +29,7 @@ public:
 	std::vector<Board> TrainBoards;
 	std::vector<float> TestResults;
 	std::vector<Board> TestBoards;
-	TempWeights Temp;
+	int TempWeights[WeightsSize];
 
 
 };

@@ -130,7 +130,7 @@ void Engine::Start() {
 				cout << "sizeof int:               " << sizeof(int) << endl;
 			}
 			if (parts[1] == "eval") {
-				cout << "Static evaluation: " << Search.StaticEvaluation<Weights>(board, 0) << endl;
+				cout << "Static evaluation: " << EvaluateBoard(board, 0) << endl;
 			}
 			if (parts[1] == "pasthashes") {
 				cout << "Past hashes size: " << board.PastHashes.size() << endl;
@@ -147,7 +147,7 @@ void Engine::Start() {
 				uint64_t dummy = 0;
 				for (int i = 0; i < 100000; i++) {
 					auto t0 = Clock::now();
-					dummy = Search.StaticEvaluation<Weights>(board, 0);
+					dummy = EvaluateBoard(board, 0);
 					auto t1 = Clock::now();
 					nanoseconds += (t1 - t0).count();
 					if (dummy > 10000000) break;
