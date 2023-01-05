@@ -140,15 +140,15 @@ struct EngineSettings {
 
 // Bitwise operations  ----------------------------------------------------------------------------
 
-static void SetBitTrue(uint64_t& number, const uint64_t place) {
+static inline void SetBitTrue(uint64_t& number, const uint64_t place) {
 	number |= 1ULL << place;
 }
 
-static void SetBitFalse(uint64_t& number, const uint64_t place) {
+static inline void SetBitFalse(uint64_t& number, const uint64_t place) {
 	number &= ~(1ULL << place);
 }
 
-static bool CheckBit(const uint64_t& number, const uint64_t place) {
+static inline bool CheckBit(const uint64_t& number, const uint64_t place) {
 	return (number >> place) & 1ULL;
 }
 

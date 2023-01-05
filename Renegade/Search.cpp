@@ -222,7 +222,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	std::vector<Move> pseudoMoves = board.GeneratePseudoLegalMoves(board.Turn);
 
 	// Move ordering
-	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
+	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>(pseudoMoves.size());
 	for (const Move& m : pseudoMoves) {
 		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level);
 		order.push_back({ m, orderScore });
@@ -306,7 +306,7 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 	//if (inCheck) return alpha; // Stopping qsearch if in check
 
 	// Order capture moves
-	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
+	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>(captureMoves.size());
 	for (const Move& m : captureMoves) {
 		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level);
 		order.push_back({ m, orderScore });

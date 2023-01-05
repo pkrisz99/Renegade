@@ -141,6 +141,10 @@ void Engine::Start() {
 			if (parts[1] == "phase") {
 				cout << "Game phase: " << CalculateGamePhase(board) << endl;
 			}
+			if (parts[1] == "weight") {
+				const int id = stoi(parts[2]);
+				cout << "Weight: " << id << "/" << WeightsSize << ": " << Weights[id] << endl;
+			}
 			if (parts[1] == "runtime") {
 				cout << "Timing test suite:" << endl;
 				int64_t nanoseconds = 0;

@@ -124,14 +124,14 @@ const void Tuning::Tune(const double K) {
 				newMSE = weightCurrentMSE;
 			}
 
-			cout << "Iteration " << iterations << " param " << i << ": " << weightCurrent << " -> " << newWeight << " (" << weightCurrentMSE << " -> " << newMSE << ")" << endl;
+			//cout << "Iteration " << iterations << " param " << i << ": " << weightCurrent << " -> " << newWeight << " (" << weightCurrentMSE << " -> " << newMSE << ")" << endl;
 
 			UpdateWeightById(i, newWeight);
 
 		}
 
 		cout << "\n\nWeights:" << endl;
-		for (int i = 0; i <= 64 * 7 + 5; i++) {
+		for (int i = 0; i <= WeightsSize; i++) {
 			cout << GetWeightById(i) << ", ";
 			if (i % 64 == 63) cout << "\n";
 		}
