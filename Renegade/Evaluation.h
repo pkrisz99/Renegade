@@ -279,7 +279,7 @@ static const int TaperedValue(const int earlyValue, const int lateValue, const f
 	return (int)((1 - phase) * (float)earlyValue + phase * (float)lateValue);
 }
 
-static const int CalculateGamePhase(Board &board) {
+static const float CalculateGamePhase(Board &board) {
 	int remainingPieces = Popcount(board.GetOccupancy());
 	float phase = (32.f - remainingPieces) / (32.f - 4.f);
 	return std::clamp(phase, 0.f, 1.f);

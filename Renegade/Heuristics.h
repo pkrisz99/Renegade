@@ -33,7 +33,7 @@ public:
 	const int GetHashfull();
 	void UpdatePvTable(const Move move, const int level);
 	const std::vector<Move> GetPvLine();
-	const int CalculateMoveOrderScore(Board board, const Move m, const int level);
+	const int CalculateMoveOrderScore(Board board, const Move m, const int level, const float phase);
 
 	std::unordered_map<uint64_t, HashEntry> Hashes;
 	int HashedEntryCount;

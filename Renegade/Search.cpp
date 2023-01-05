@@ -222,9 +222,10 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	std::vector<Move> pseudoMoves = board.GeneratePseudoLegalMoves(board.Turn);
 
 	// Move ordering
-	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>(pseudoMoves.size());
+	const float phase = CalculateGamePhase(board);
+	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
 	for (const Move& m : pseudoMoves) {
-		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level);
+		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level, phase);
 		order.push_back({ m, orderScore });
 	}
 	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
@@ -301,14 +302,11 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 	if (staticEval > alpha) alpha = staticEval;
 	if (board.State != GameState::Playing) return alpha;
 
-	//bool kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
-	//bool inCheck = (board.AttackedSquares & kingBits) != 0;
-	//if (inCheck) return alpha; // Stopping qsearch if in check
-
 	// Order capture moves
-	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>(captureMoves.size());
+	const float phase = CalculateGamePhase(board);
+	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
 	for (const Move& m : captureMoves) {
-		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level);
+		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level, phase);
 		order.push_back({ m, orderScore });
 	}
 	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {

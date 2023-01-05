@@ -98,7 +98,7 @@ const std::vector<Move> Heuristics::GetPvLine() {
 	return list;
 }
 
-const int Heuristics::CalculateMoveOrderScore(Board board, const Move m, const int level) {
+const int Heuristics::CalculateMoveOrderScore(Board board, const Move m, const int level, const float phase) {
 	int orderScore = 0;
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
@@ -113,12 +113,15 @@ const int Heuristics::CalculateMoveOrderScore(Board board, const Move m, const i
 	else if (m.flag == MoveFlag::PromotionToKnight) orderScore += 300; // Weights::KnightValue;
 	else if (m.flag == MoveFlag::EnPassantPerformed) orderScore += 100;
 
-	/*
-	if (attackingPiece == PieceType::Pawn) orderScore += Weights::PawnPSQT[m.to] - Weights::PawnPSQT[m.from];
-	else if (attackingPiece == PieceType::Knight) orderScore += Weights::KnightPSQT[m.to] - Weights::KnightPSQT[m.from];
-	else if (attackingPiece == PieceType::Bishop) orderScore += Weights::BishopPSQT[m.to] - Weights::BishopPSQT[m.from];
-	else if (attackingPiece == PieceType::Rook) orderScore += Weights::RookPSQT[m.to] - Weights::RookPSQT[m.from];
-	else if (attackingPiece == PieceType::Queen) orderScore += Weights::QueenPSQT[m.to] - Weights::QueenPSQT[m.from];*/
+	int turn = board.Turn;
+	if (turn == Turn::White) {
+		orderScore -= TaperedValue(Weights[IndexEarlyPSQT(attackingPiece, m.from)], Weights[IndexLatePSQT(attackingPiece, m.from)], phase);
+		orderScore += TaperedValue(Weights[IndexEarlyPSQT(attackingPiece, m.to)], Weights[IndexLatePSQT(attackingPiece, m.to)], phase);
+	}
+	else {
+		orderScore -= TaperedValue(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.from])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.from])], phase);
+		orderScore += TaperedValue(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.to])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.to])], phase);
+	}
 
 	if (IsKillerMove(m, level)) orderScore += 200000;
 	if (IsPvMove(m, level)) orderScore += 100000;
