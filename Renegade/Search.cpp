@@ -32,11 +32,11 @@ const void Search::Perft(Board board, const int depth, const PerftType type) {
 }
 
 const int Search::PerftRecursive(Board board, const int depth, const int originalDepth, const PerftType type) {
-	MoveList.clear();
-	board.GenerateLegalMoves(MoveList, board.Turn);
-	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << MoveList.size() << "): " << endl;
+	std::vector<Move> moves;
+	board.GenerateLegalMoves(moves, board.Turn);
+	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << moves.size() << "): " << endl;
 	int count = 0;
-	for (Move m : MoveList) {
+	for (Move m : moves) {
 		int r;
 		if (depth == 1) {
 			r = 1;

@@ -78,6 +78,7 @@ Board::Board(const std::string fen) {
 	FullmoveClock = stoi(parts[5]);
 	HashValue = HashInternal();
 	PastHashes.push_back(HashValue);
+	for (int i = 0; i < 64; i++) OccupancyInts[i] = GetPieceAtFromBitboards(i);
 }
 
 Board::Board() {
@@ -116,6 +117,7 @@ Board::Board(const Board &b) {
 	std::copy(std::begin(b.PastHashes), std::end(b.PastHashes), std::begin(PastHashes));
 	//PastHashes = std::vector<uint64_t>(b.PastHashes.begin(), b.PastHashes.end());
 	HashValue = b.HashValue;
+	std::copy(std::begin(b.OccupancyInts), std::end(b.OccupancyInts), std::begin(OccupancyInts));
 }
 
 const void Board::Draw(const uint64_t customBits = 0) {
@@ -235,6 +237,11 @@ const uint64_t Board::Hash(const bool hashPlys) {
 }
 
 const int Board::GetPieceAt(const int place) {
+	return GetPieceAtFromBitboards(place);
+	//return OccupancyInts[place];
+}
+
+const int Board::GetPieceAtFromBitboards(const int place) {
 	if (CheckBit(WhitePawnBits, place)) return Piece::WhitePawn;
 	if (CheckBit(BlackPawnBits, place)) return Piece::BlackPawn;
 	if (CheckBit(WhiteKnightBits, place)) return Piece::WhiteKnight;
@@ -425,6 +432,7 @@ void Board::TryMove(const Move move) {
 void Board::Push(const Move move) {
 
 	if (move.flag != MoveFlag::NullMove) TryMove(move);
+	for (int i = 0; i < 64; i++) OccupancyInts[i] = GetPieceAtFromBitboards(i);
 
 	// Increment timers
 	Turn = !Turn;
@@ -958,6 +966,7 @@ bool Board::IsLegalMove(const Move m, const int turn) {
 	const int halfmoveClock = HalfmoveClock;
 	const uint64_t attackedSquares = AttackedSquares;
 	const GameState state = State;
+	int occupancyInts[64];
 
 	// Push move
 	TryMove(m);

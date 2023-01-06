@@ -19,6 +19,7 @@ public:
 	Board Copy();
 	const void Draw(const uint64_t customBits);
 	const int GetPieceAt(const int place);
+	const int GetPieceAtFromBitboards(const int place);
 	const uint64_t Hash(const bool hashPlys);
 	const uint64_t HashInternal();
 	const uint64_t GetOccupancy();
@@ -70,6 +71,7 @@ public:
 	GameState State;
 	std::vector<uint64_t> PastHashes;
 	uint64_t HashValue;
+	int OccupancyInts[64];
 
 	// Board settings:
 	bool StartingPosition;
