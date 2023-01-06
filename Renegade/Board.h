@@ -26,7 +26,7 @@ public:
 	const uint64_t GetOccupancy();
 	const uint64_t GetOccupancy(const int pieceColor);
 
-	bool AreThereLegalMoves(const int turn, const uint64_t previousAttackMap);
+	bool AreThereLegalMoves(const bool turn, const uint64_t previousAttackMap);
 	bool IsLegalMove(const Move m, const int turn);
 	void TryMove(const Move move);
 	void GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, const bool quiescenceOnly);

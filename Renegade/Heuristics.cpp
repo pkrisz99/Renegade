@@ -113,7 +113,7 @@ const int Heuristics::CalculateMoveOrderScore(Board board, const Move m, const i
 	else if (m.flag == MoveFlag::PromotionToKnight) orderScore += 300; // Weights::KnightValue;
 	else if (m.flag == MoveFlag::EnPassantPerformed) orderScore += 100;
 
-	int turn = board.Turn;
+	bool turn = board.Turn;
 	if (turn == Turn::White) {
 		orderScore -= TaperedValue(Weights[IndexEarlyPSQT(attackingPiece, m.from)], Weights[IndexLatePSQT(attackingPiece, m.from)], phase);
 		orderScore += TaperedValue(Weights[IndexEarlyPSQT(attackingPiece, m.to)], Weights[IndexLatePSQT(attackingPiece, m.to)], phase);

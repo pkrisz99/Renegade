@@ -12,97 +12,6 @@ const static int WeightsSize = 781;
 // Source of values:
 // https://www.chessprogramming.org/Simplified_Evaluation_Function
 
-/*
-const class Weights {
-public:
-
-	static const int PawnValue = 100;
-	static const int KnightValue = 300;
-	static const int BishopValue = 300;
-	static const int RookValue = 500;
-	static const int QueenValue = 900;
-	static constexpr int PieceMaterial[] = { 0, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, 0 };
-
-	static const int BishopPairBonus = 50;
-
-	static constexpr int PawnPSQT[64] = {
-		 0,   0,   0,   0,   0,   0,   0,   0,
-		 0,   0,   0,   0,   0,   0,   0,   0,
-		10,  10,  15,  20,  20,  15,  10,  10,
-		20,  25,  30,  35,  35,  30,  25,  20,
-		40,  45,  50,  60,  60,  50,  45,  40,
-		70,  80,  80,  80,  80,  80,  80,  70,
-	   140, 150, 160, 160, 160, 160, 150, 140,
-		 0,   0,   0,   0,   0,   0,   0,   0 };
-
-	static constexpr int KnightPSQT[64] = {
-		-50, -40, -30, -30, -30, -30, -40, -50,
-		-40, -20,   0,   5,   5,   0, -20, -40,
-		-30,   5,  10,  15,  15,  10,   5, -30,
-		-30,   0,  15,  20,  20,  15,   0, -30,
-		-30,   5,  15,  20,  20,  15,   5, -30,
-		-30,   0,  10,  15,  15,  10,   0, -30,
-		-40, -20,   0,   0,   0,   0, -20, -40,
-		-50, -40, -30, -30, -30, -30, -40, -50
-	};
-
-	static constexpr int BishopPSQT[64] = {
-		-20, -10, -10, -10, -10, -10, -10, -20,
-		-10,   5,   0,   0,   0,   0,   5, -10,
-		-10,  10,  10,  10,  10,  10,  10, -10,
-		-10,   0,  10,  10,  10,  10,   0, -10,
-		-10,   5,   5,  10,  10,   5,   5, -10,
-		-10,   0,   5,  10,  10,   5,   0, -10,
-		-10,   0,   0,   0,   0,   0,   0, -10,
-		-20, -10, -10, -10, -10, -10, -10, -20
-	};
-
-	static constexpr int RookPSQT[64] = {
-		 0,  0,  0,  5,  5,  0,  0,  0,
-		-5,  0,  0,  0,  0,  0,  0, -5,
-		-5,  0,  0,  0,  0,  0,  0, -5,
-		-5,  0,  0,  0,  0,  0,  0, -5,
-		-5,  0,  0,  0,  0,  0,  0, -5,
-		-5,  0,  0,  0,  0,  0,  0, -5,
-		 5, 10, 10, 10, 10, 10, 10,  5,
-		 0,  0,  0,  0,  0,  0,  0,  0
-	};
-
-	static constexpr int QueenPSQT[64] = {
-		-20, -10, -10,  -5,  -5, -10, -10, -20,
-		-10,   0,   5,   0,   0,   0,   0, -10,
-		-10,   5,   5,   5,   5,   5,   0, -10,
-		  0,   0,   5,   5,   5,   5,   0,  -5,
-		 -5,   0,   5,   5,   5,   5,   0,  -5,
-		-10,   0,   5,   5,   5,   5,   0, -10,
-		-10,   0,   0,   0,   0,   0,   0, -10,
-		-20, -10, -10,  -5,  -5, -10, -10, -20
-	};
-
-	static constexpr int KingEarlyPSQT[64] = {
-		 20,  30,  10,   0,   0,  10,  30,  20,
-		 20,  20,   0,   0,   0,   0,  20,  20,
-		-10, -20, -20, -20, -20, -20, -20, -10,
-		-20, -30, -30, -40, -40, -30, -30, -20,
-		-30, -40, -40, -50, -50, -40, -40, -30,
-		-30, -40, -40, -50, -50, -40, -40, -30,
-		-30, -40, -40, -50, -50, -40, -40, -30,
-		-30, -40, -40, -50, -50, -40, -40, -30
-	};
-
-	static constexpr int KingLatePSQT[64] = {
-		-50, -30, -30, -30, -30, -30, -30, -50,
-		-30, -30,   0,   0,   0,   0, -30, -30,
-		-30, -10,  20,  30,  30,  20, -10, -30,
-		-30, -10,  30,  40,  40,  30, -10, -30,
-		-30, -10,  30,  40,  40,  30, -10, -30,
-		-30, -10,  20,  30,  30,  20, -10, -30,
-		-30, -20, -10,   0,   0, -10, -20, -30,
-		-50, -40, -30, -20, -20, -30, -40, -50
-	};
-
-};*/
-
 static const int Weights[WeightsSize] = {
 
 	// 1. Pawn early PSQT
@@ -336,7 +245,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	uint64_t occupancy = board.GetOccupancy();
 	float phase = CalculateGamePhase(board);
 	while (occupancy != 0) {
-		uint64_t i = 63ULL - Lzcount(occupancy);
+		int i = 63 - Lzcount(occupancy);
 		SetBitFalse(occupancy, i);
 		int piece = board.GetPieceAt(i);
 		int pieceType = TypeOfPiece(piece);

@@ -24,12 +24,12 @@ Tuning::Tuning(const std::string dataset) {
 	double K = FindBestK(loadedBoards, loadedResults);
 	cout << "Best K found: K=" << K << endl;
 
-	const float trainRatio = 0.85;
+	const double trainRatio = 0.85;
 	for (int i = 0; i < trainRatio * lines; i++) {
 		TrainBoards.push_back(loadedBoards[i]);
 		TrainResults.push_back(loadedResults[i]);
 	}
-	for (int i = trainRatio * lines; i < lines; i++) {
+	for (int i = static_cast<int>(trainRatio * lines); i < lines; i++) {
 		TestBoards.push_back(loadedBoards[i]);
 		TestResults.push_back(loadedResults[i]);
 	}

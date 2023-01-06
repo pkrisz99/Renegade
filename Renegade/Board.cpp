@@ -952,7 +952,7 @@ void Board::GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, c
 	const int myColor = TurnToPieceColor(turn);
 	uint64_t occupancy = GetOccupancy(TurnToPieceColor(turn));
 	while (occupancy != 0) {
-		uint64_t i = 63ULL - Lzcount(occupancy);
+		int i = 63 - Lzcount(occupancy);
 		SetBitFalse(occupancy, i);
 
 		int piece = GetPieceAt(i);
@@ -972,7 +972,7 @@ void Board::GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, c
 	}
 }
 
-bool Board::AreThereLegalMoves(const int turn, const uint64_t previousAttackMap) {
+bool Board::AreThereLegalMoves(const bool turn, const uint64_t previousAttackMap) {
 	bool hasMoves = false;
 	const int myColor = TurnToPieceColor(turn);
 
@@ -986,7 +986,7 @@ bool Board::AreThereLegalMoves(const int turn, const uint64_t previousAttackMap)
 	std::vector<Move> moves;
 	uint64_t occupancy = GetOccupancy(TurnToPieceColor(turn));
 	while (occupancy != 0) {
-		uint64_t i = 63ULL - Lzcount(occupancy);
+		int i = 63 - Lzcount(occupancy);
 		SetBitFalse(occupancy, i);
 		int piece = GetPieceAt(i);
 		int color = ColorOfPiece(piece);
@@ -1043,7 +1043,6 @@ bool Board::IsLegalMove(const Move m, const int turn) {
 	const int halfmoveClock = HalfmoveClock;
 	const uint64_t attackedSquares = AttackedSquares;
 	const GameState state = State;
-	int occupancyInts[64];
 
 	// Push move
 	TryMove(m);

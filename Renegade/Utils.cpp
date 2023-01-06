@@ -159,23 +159,14 @@ static inline bool CheckBit(const uint64_t& number, const uint64_t place) {
 
 static inline int Popcount(const uint64_t number) {
 #ifdef _MSC_VER
-	return (int)__popcnt64(number);
+	return static_cast<int>(__popcnt64(number));
 #else
-	return __builtin_popcount(number); // likely wrong
+	return static_cast<int>(__builtin_popcount(number)); // likely wrong
 #endif
-
-/* Fallback version:
-size_t zeros = 0;
-for (size_t i = 0; i < CHAR_BIT * sizeof number; ++i) {
-	if ((number & (1ULL << i)) == 0)
-		++zeros;
-}
-return CHAR_BIT * sizeof number - zeros;
-*/
 }
 
-static inline uint64_t Lzcount(const uint64_t number) {
-	return __lzcnt64(number);
+static inline int Lzcount(const uint64_t number) {
+	return static_cast<int>(__lzcnt64(number));
 }
 
 // Board helper functions -------------------------------------------------------------------------

@@ -382,7 +382,7 @@ const std::string Search::GetBookMove(const uint64_t hash) {
 
 	//cout << matches.size() << endl;
 	if (matches.size() == 0) return "";
-	std::srand(std::time(0));
+	std::srand(static_cast<unsigned int>(std::time(0)));
 	int random_pos = std::rand() % matches.size();
 
 	return matches[random_pos];
@@ -393,7 +393,7 @@ const BookEntry Search::GetBookEntry(int item) {
 }
 
 const int Search::GetBookSize() {
-	return BookEntries.size();
+	return static_cast<int>(BookEntries.size());
 }
 
 
