@@ -345,6 +345,7 @@ bool Board::PushUci(const std::string ucistr) {
 	const int extra = ucistr[4];
 	Move move = Move(sq1, sq2);
 	const int piece = GetPieceAt(sq1);
+	const int capturedPiece = GetPieceAt(sq2);
 
 	// Promotions
 	if (extra == 'q') move.flag = MoveFlag::PromotionToQueen;
@@ -366,7 +367,11 @@ bool Board::PushUci(const std::string ucistr) {
 	}
 
 	// En passant performed
-	// ???
+	if (TypeOfPiece(piece) == PieceType::Pawn) {
+		if ((TypeOfPiece(capturedPiece) == 0) && (GetSquareFile(sq1) != GetSquareFile(sq2))) {
+			move.flag = MoveFlag::EnPassantPerformed;
+		}
+	}
 
 	std::vector<Move> legalMoves;
 	legalMoves.reserve(7);
