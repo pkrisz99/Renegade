@@ -9,13 +9,6 @@
 #include "Utils.cpp"
 #include <intrin.h>
 
-using std::cout;
-using std::endl;
-using std::cin;
-using std::string;
-using std::vector;
-using std::get;
-
 /*
 * This is the board representation of Renegade.
 * Square 0 = A1, 1 = B1 ... 8 = A2 ... 63 = H8
@@ -27,9 +20,9 @@ class Board
 public:
 	Board();
 	Board(const Board &b);
-	Board(const string fen);
+	Board(const std::string fen);
 	void Push(const Move move);
-	bool PushUci(const string ucistr);
+	bool PushUci(const std::string ucistr);
 	Board Copy();
 	const void Draw(const uint64_t customBits);
 	const int GetPieceAt(const int place);

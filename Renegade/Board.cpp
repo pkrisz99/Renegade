@@ -2,7 +2,7 @@
 
 #pragma once
 
-Board::Board(const string fen) {
+Board::Board(const std::string fen) {
 
 	WhitePawnBits = 0L;
 	WhiteKnightBits = 0L;
@@ -115,22 +115,24 @@ Board::Board(const Board &b) {
 	State = b.State;
 	DrawCheck = b.DrawCheck;
 	StartingPosition = b.StartingPosition;
-	PastHashes = std::vector<uint64_t>(b.PastHashes.begin(), b.PastHashes.end());
+	PastHashes.reserve(b.PastHashes.size() + 1);
+	std::copy(std::begin(b.PastHashes), std::end(b.PastHashes), std::begin(PastHashes));
+	//PastHashes = std::vector<uint64_t>(b.PastHashes.begin(), b.PastHashes.end());
 	HashValue = b.HashValue;
 }
 
 const void Board::Draw(const uint64_t customBits = 0) {
 
-	const string side = Turn ? "white" : "black";
+	const std::string side = Turn ? "white" : "black";
 	cout << "    Move: " << FullmoveClock << " - " << side << " to play" << endl;;
 	
-	const string WhiteOnLightSquare = "\033[31;47m";
-	const string WhiteOnDarkSquare = "\033[31;43m";
-	const string BlackOnLightSquare = "\033[30;47m";
-	const string BlackOnDarkSquare = "\033[30;43m";
-	const string Default = "\033[0m";
-	const string WhiteOnTarget = "\033[31;45m";
-	const string BlackOnTarget = "\033[30;45m";
+	const std::string WhiteOnLightSquare = "\033[31;47m";
+	const std::string WhiteOnDarkSquare = "\033[31;43m";
+	const std::string BlackOnLightSquare = "\033[30;47m";
+	const std::string BlackOnDarkSquare = "\033[30;43m";
+	const std::string Default = "\033[0m";
+	const std::string WhiteOnTarget = "\033[31;45m";
+	const std::string BlackOnTarget = "\033[30;45m";
 
 	cout << "    ------------------------ " << endl;
 	// https://stackoverflow.com/questions/2616906/how-do-i-output-coloured-text-to-a-linux-terminal
@@ -155,7 +157,7 @@ const void Board::Draw(const uint64_t customBits = 0) {
 			case Piece::BlackKing: piece = 'k'; break;
 			}
 
-			string CellStyle;
+			std::string CellStyle;
 
 			if ((i + j) % 2 == 1) {
 				if (pieceColor == PieceColor::Black) CellStyle = BlackOnLightSquare;
@@ -261,7 +263,7 @@ const uint64_t Board::GetOccupancy(const int pieceColor) {
 	return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 }
 
-bool Board::PushUci(const string ucistr) {
+bool Board::PushUci(const std::string ucistr) {
 	const int sq1 = SquareToNum(ucistr.substr(0, 2));
 	const int sq2 = SquareToNum(ucistr.substr(2, 2));
 	const int extra = ucistr[4];

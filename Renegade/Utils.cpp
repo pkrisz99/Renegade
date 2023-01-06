@@ -10,6 +10,11 @@
 	#include <stdio.h>
 #endif
 
+using std::cout;
+using std::cin;
+using std::endl;
+using std::get;
+
 const std::string Version = "0.6.0+";
 typedef std::chrono::high_resolution_clock Clock;
 

@@ -224,7 +224,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Move ordering
 	const float phase = CalculateGamePhase(board);
-	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
+	std::vector<std::tuple<Move, int>> order = std::vector<std::tuple<Move, int>>();
 	order.reserve(MoveList.size());
 	for (const Move& m : MoveList) {
 		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level, phase);
@@ -309,7 +309,7 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 
 	// Order capture moves
 	const float phase = CalculateGamePhase(board);
-	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
+	std::vector<std::tuple<Move, int>> order = std::vector<std::tuple<Move, int>>();
 	order.reserve(MoveList.size());
 	for (const Move& m : MoveList) {
 		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level, phase);
@@ -366,7 +366,7 @@ void Search::InitOpeningBook() {
 
 const std::string Search::GetBookMove(const uint64_t hash) {
 	// should take about 2-3 ms for Human.bin (~900k entries) 
-	std::vector<string> matches;
+	std::vector<std::string> matches;
 	for (const BookEntry& e : BookEntries) {
 		if (e.hash != hash) continue;
 
