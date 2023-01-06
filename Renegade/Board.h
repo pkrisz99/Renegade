@@ -41,16 +41,16 @@ public:
 	bool AreThereLegalMoves(const int turn, const uint64_t previousAttackMap);
 	bool IsLegalMove(const Move m, const int turn);
 	void TryMove(const Move move);
-	vector<Move> GeneratePseudoLegalMoves(const int turn);
-	vector<Move> GenerateLegalMoves(const int turn);
-	vector<Move> GenerateNonQuietMoves(const int turn);
+	void GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, const bool quiescenceOnly);
+	void GenerateLegalMoves(std::vector<Move>& moves, const int turn);
+	void GenerateNonQuietMoves(std::vector<Move>& moves, const int turn);
 	uint64_t CalculateAttackedSquares(const int turn);
 
-	void GenerateKnightMoves(const int home);
-	void GenerateKingMoves(const int home);
-	void GeneratePawnMoves(const int home);
-	void GenerateCastlingMoves();
-	void GenerateSlidingMoves(const int piece, const int home);
+	void GenerateKnightMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
+	void GenerateKingMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
+	void GeneratePawnMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
+	void GenerateCastlingMoves(std::vector<Move>& moves);
+	void GenerateSlidingMoves(std::vector<Move>& moves, const int piece, const int home, const bool quiescenceOnly);
 
 	const uint64_t GenerateKnightAttacks(const int from);
 	const uint64_t GenerateKingAttacks(const int from);
@@ -83,7 +83,6 @@ public:
 	int FullmoveClock;
 	GameState State;
 	std::vector<uint64_t> PastHashes;
-	std::vector<Move> MoveList;
 	uint64_t HashValue;
 
 	// Board settings:

@@ -32,10 +32,11 @@ const void Search::Perft(Board board, const int depth, const PerftType type) {
 }
 
 const int Search::PerftRecursive(Board board, const int depth, const int originalDepth, const PerftType type) {
-	std::vector<Move> moves = board.GenerateLegalMoves(board.Turn);
-	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << moves.size() << "): " << endl;
+	MoveList.clear();
+	board.GenerateLegalMoves(MoveList, board.Turn);
+	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << MoveList.size() << "): " << endl;
 	int count = 0;
-	for (Move m : moves) {
+	for (Move m : MoveList) {
 		int r;
 		if (depth == 1) {
 			r = 1;
@@ -218,14 +219,14 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Initalize variables, and generate moves - if there are no legal moves, we'll return alpha
 	int bestScore = NoEval;
-	std::vector<Move> bestMoves;
-	std::vector<Move> pseudoMoves = board.GeneratePseudoLegalMoves(board.Turn);
+	MoveList.clear();
+	board.GeneratePseudoLegalMoves(MoveList, board.Turn, false);
 
 	// Move ordering
 	const float phase = CalculateGamePhase(board);
 	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
-	order.reserve(pseudoMoves.size());
-	for (const Move& m : pseudoMoves) {
+	order.reserve(MoveList.size());
+	for (const Move& m : MoveList) {
 		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level, phase);
 		order.push_back({ m, orderScore });
 	}
@@ -295,7 +296,8 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 }
 
 int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool rootNode) {
-	std::vector<Move> captureMoves = board.GenerateNonQuietMoves(board.Turn);
+	MoveList.clear();
+	board.GeneratePseudoLegalMoves(MoveList, board.Turn, true);
 	if (!rootNode) EvaluatedQuiescenceNodes += 1;
 
 	// Update alpha-beta bounds, return alpha if no captures left
@@ -308,8 +310,8 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 	// Order capture moves
 	const float phase = CalculateGamePhase(board);
 	std::vector<std::tuple<Move, int>> order = vector<std::tuple<Move, int>>();
-	order.reserve(captureMoves.size());
-	for (const Move& m : captureMoves) {
+	order.reserve(MoveList.size());
+	for (const Move& m : MoveList) {
 		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level, phase);
 		order.push_back({ m, orderScore });
 	}

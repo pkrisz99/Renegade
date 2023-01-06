@@ -89,7 +89,8 @@ void Engine::Start() {
 			if (parts[1] == "attackmap") board.Draw(board.AttackedSquares);
 			if (parts[1] == "enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
 			if (parts[1] == "pseudolegal") {
-				std::vector<Move> v = board.GeneratePseudoLegalMoves(board.Turn);
+				std::vector<Move> v;
+				board.GeneratePseudoLegalMoves(v, board.Turn, false);
 				for (Move m : v) cout << m.ToString() << " ";
 				cout << endl;
 			}
@@ -144,58 +145,6 @@ void Engine::Start() {
 			if (parts[1] == "weight") {
 				const int id = stoi(parts[2]);
 				cout << "Weight: " << id << "/" << WeightsSize << ": " << Weights[id] << endl;
-			}
-			if (parts[1] == "runtime") {
-				cout << "Timing test suite:" << endl;
-				int64_t nanoseconds = 0;
-				uint64_t dummy = 0;
-				for (int i = 0; i < 100000; i++) {
-					auto t0 = Clock::now();
-					dummy = EvaluateBoard(board, 0);
-					auto t1 = Clock::now();
-					nanoseconds += (t1 - t0).count();
-					if (dummy > 10000000) break;
-				}
-				cout << "- static evaluation: " << nanoseconds / 1e8 << " us" << endl;
-				nanoseconds = 0;
-				std::vector<Move> dummyMoves;
-				for (int i = 0; i < 100000; i++) {
-					auto t0 = Clock::now();
-					dummyMoves = board.GenerateLegalMoves(board.Turn);
-					auto t1 = Clock::now();
-					nanoseconds += (t1 - t0).count();
-					if (dummyMoves.size() < 0) break;
-				}
-				cout << "- legal move gen: " << nanoseconds / 1e8 << " us" << endl;
-				nanoseconds = 0;
-				dummy = 0;
-				for (int i = 0; i < 100000; i++) {
-					auto t0 = Clock::now();
-					board.GeneratePseudoLegalMoves(board.Turn);
-					auto t1 = Clock::now();
-					nanoseconds += (t1 - t0).count();
-				}
-				cout << "- pseudo move gen: " << nanoseconds / 1e8 << " us" << endl;
-				nanoseconds = 0;
-				dummy = 0;
-				for (int i = 0; i < 100000; i++) {
-					auto t0 = Clock::now();
-					dummy = board.CalculateAttackedSquares(TurnToPieceColor(!board.Turn));
-					auto t1 = Clock::now();
-					nanoseconds += (t1 - t0).count();
-					if (dummy == 0) break; // impossible condition on purpose
-				}
-				cout << "- attack map calc: " << nanoseconds / 1e8 << " us" << endl;
-				dummy = 0ULL;
-				for (int i = 0; i < 100000; i++) {
-					auto t0 = Clock::now();
-					dummy = board.Hash(true);
-					auto t1 = Clock::now();
-					nanoseconds += (t1 - t0).count();
-					if (dummy == 0) break; // (almost) impossible condition on purpose
-				}
-				cout << "- hashing: " << nanoseconds / 1e8 << " us" << endl;
-				
 			}
 			continue;
 		}
