@@ -311,7 +311,7 @@ inline static constexpr int IndexEarlyPSQT(const int pieceType, const int locati
 }
 
 inline static constexpr int IndexLatePSQT(const int pieceType, const int location) {
-	return (pieceType + 6) * 64 + location;
+	return (pieceType + 5) * 64 + location;
 }
 
 inline static constexpr int IndexPieceValueEarly(const int pieceType) {

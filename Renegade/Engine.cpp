@@ -211,7 +211,7 @@ void Engine::Start() {
 			if ((parts[1] == "startpos") || (parts[1] == "kiwipete")) {
 				if (parts[1] == "startpos") board = Board(starting_fen);
 				if (parts[1] == "kiwipete") board = Board(kiwipete_fen);
-				if (parts[2] == "moves") {
+				if ((parts.size() > 2) && (parts[2] == "moves")) {
 					for (int i = 3; i < parts.size(); i++) {
 						bool r = board.PushUci(parts[i]);
 						if (!r) cout << "!!! Error: invalid pushuci move !!!" << endl;

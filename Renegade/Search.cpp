@@ -203,7 +203,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	// Null-move pruning
-	bool kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
+	uint64_t kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
 	bool inCheck = (board.AttackedSquares & kingBits) != 0;
 	int remainingPieces = Popcount(board.GetOccupancy());
 	int reduction = 2;
