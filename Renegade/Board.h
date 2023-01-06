@@ -20,6 +20,7 @@ public:
 	const void Draw(const uint64_t customBits);
 	const int GetPieceAt(const int place);
 	const int GetPieceAtFromBitboards(const int place);
+	void GenerateOccupancy();
 	const uint64_t Hash(const bool hashPlys);
 	const uint64_t HashInternal();
 	const uint64_t GetOccupancy();

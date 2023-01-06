@@ -78,7 +78,7 @@ Board::Board(const std::string fen) {
 	FullmoveClock = stoi(parts[5]);
 	HashValue = HashInternal();
 	PastHashes.push_back(HashValue);
-	for (int i = 0; i < 64; i++) OccupancyInts[i] = GetPieceAtFromBitboards(i);
+	GenerateOccupancy();
 }
 
 Board::Board() {
@@ -257,6 +257,78 @@ const int Board::GetPieceAtFromBitboards(const int place) {
 	return 0;
 }
 
+void Board::GenerateOccupancy() {
+	//for (int i = 0; i < 64; i++) OccupancyInts[i] = GetPieceAtFromBitboards(i);
+	
+	for (int i = 0; i < 64; i++) OccupancyInts[i] = 0;
+	uint64_t bits = WhitePawnBits;
+	while (Popcount(bits) != 0) {
+		uint64_t sq = 63ULL - Lzcount(bits);
+		OccupancyInts[sq] = Piece::WhitePawn;
+		SetBitFalse(bits, sq);
+	}
+	bits = BlackPawnBits;
+	while (Popcount(bits) != 0) {
+		uint64_t sq = 63ULL - Lzcount(bits);
+		OccupancyInts[sq] = Piece::BlackPawn;
+		SetBitFalse(bits, sq);
+	}
+	bits = WhiteKnightBits;
+	while (Popcount(bits) != 0) {
+		uint64_t sq = 63ULL - Lzcount(bits);
+		OccupancyInts[sq] = Piece::WhiteKnight;
+		SetBitFalse(bits, sq);
+	}
+	bits = BlackKnightBits;
+	while (Popcount(bits) != 0) {
+		uint64_t sq = 63ULL - Lzcount(bits);
+		OccupancyInts[sq] = Piece::BlackKnight;
+		SetBitFalse(bits, sq);
+	}
+	bits = WhiteBishopBits;
+	while (Popcount(bits) != 0) {
+		uint64_t sq = 63ULL - Lzcount(bits);
+		OccupancyInts[sq] = Piece::WhiteBishop;
+		SetBitFalse(bits, sq);
+	}
+	bits = BlackBishopBits;
+	while (Popcount(bits) != 0) {
+		uint64_t sq = 63ULL - Lzcount(bits);
+		OccupancyInts[sq] = Piece::BlackBishop;
+		SetBitFalse(bits, sq);
+	}
+	bits = WhiteRookBits;
+	while (Popcount(bits) != 0) {
+		uint64_t sq = 63ULL - Lzcount(bits);
+		OccupancyInts[sq] = Piece::WhiteRook;
+		SetBitFalse(bits, sq);
+	}
+	bits = BlackRookBits;
+	while (Popcount(bits) != 0) {
+		uint64_t sq = 63ULL - Lzcount(bits);
+		OccupancyInts[sq] = Piece::BlackRook;
+		SetBitFalse(bits, sq);
+	}
+	bits = WhiteQueenBits;
+	while (Popcount(bits) != 0) {
+		uint64_t sq = 63ULL - Lzcount(bits);
+		OccupancyInts[sq] = Piece::WhiteQueen;
+		SetBitFalse(bits, sq);
+	}
+	bits = BlackQueenBits;
+	while (Popcount(bits) != 0) {
+		uint64_t sq = 63ULL - Lzcount(bits);
+		OccupancyInts[sq] = Piece::BlackQueen;
+		SetBitFalse(bits, sq);
+	}
+
+	uint64_t sq = 63ULL - Lzcount(WhiteKingBits);
+	OccupancyInts[sq] = Piece::WhiteKing;
+
+	sq = 63ULL - Lzcount(BlackKingBits);
+	OccupancyInts[sq] = Piece::BlackKing;
+}
+
 const uint64_t Board::GetOccupancy() {
 	return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits
 		| BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
@@ -432,7 +504,7 @@ void Board::TryMove(const Move move) {
 void Board::Push(const Move move) {
 
 	if (move.flag != MoveFlag::NullMove) TryMove(move);
-	for (int i = 0; i < 64; i++) OccupancyInts[i] = GetPieceAtFromBitboards(i);
+	GenerateOccupancy();
 
 	// Increment timers
 	Turn = !Turn;
