@@ -1,6 +1,6 @@
 #pragma once
-#include "Move.h"
 #include "Board.h"
+#include "Move.h"
 
 static const int MateEval = 1000000;
 static const int NoEval = -666666666;
@@ -336,7 +336,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	uint64_t occupancy = board.GetOccupancy();
 	float phase = CalculateGamePhase(board);
 	while (occupancy != 0) {
-		uint64_t i = 64 - __lzcnt64(occupancy) - 1;
+		uint64_t i = 63ULL - Lzcount(occupancy);
 		SetBitFalse(occupancy, i);
 		int piece = board.GetPieceAt(i);
 		int pieceType = TypeOfPiece(piece);

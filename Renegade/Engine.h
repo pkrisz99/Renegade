@@ -2,20 +2,15 @@
 #include "Board.h"
 #include "Evaluation.h"
 #include "Heuristics.h"
-#include <string>
-#include <tuple>
-#include <chrono>
-#include <iostream>
-#include <iomanip>
-#include <thread>
-#include <algorithm>
-#include <unordered_map>
-#include <fstream>
-#include <vector>
-#include <random>
-#include <filesystem>
 #include "Search.h"
 #include "Tuning.h"
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <random>
+#include <thread>
+#include <tuple>
+
 
 class Engine
 {

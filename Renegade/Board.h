@@ -1,13 +1,6 @@
 #pragma once
-
-#include <string>
-#include <iostream>
-#include <string>
-#include <vector>
-#include <sstream>
 #include "Move.h"
 #include "Utils.cpp"
-#include <intrin.h>
 
 /*
 * This is the board representation of Renegade.

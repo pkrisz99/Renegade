@@ -1,10 +1,9 @@
 #pragma once
-#include <unordered_map>
 #include "Evaluation.h"
-#include "Utils.cpp"
 #include "Board.h"
-#include <queue>
+#include "Utils.cpp"
 #include <array>
+#include <unordered_map>
 
 namespace ScoreType {
 	static const int Exact = 0;

@@ -28,10 +28,7 @@ Board::Board(const std::string fen) {
 	StartingPosition = (fen == starting_fen);
 	PastHashes = std::vector<uint64_t>();
 
-	std::stringstream ss(fen);
-	std::istream_iterator<std::string> begin(ss);
-	std::istream_iterator<std::string> end;
-	std::vector<std::string> parts(begin, end);
+	std::vector<std::string> parts = Split(fen);
 	int place = 56;
 
 	for (char f : parts[0]) {
@@ -184,12 +181,12 @@ const void Board::Draw(const uint64_t customBits = 0) {
 }
 
 const uint64_t Board::HashInternal() {
-	uint64_t hash = 0ULL;
+	uint64_t hash = 0;
 
 	// Pieces
 	uint64_t occupancy = GetOccupancy();
 	while (Popcount(occupancy) != 0) {
-		uint64_t sq = 64 - __lzcnt64(occupancy) - 1;
+		uint64_t sq = 63ULL - Lzcount(occupancy);
 		SetBitFalse(occupancy, sq);
 
 		if (CheckBit(BlackPawnBits, sq)) hash ^= Zobrist[64 * 0 + sq];
@@ -506,14 +503,6 @@ void Board::Push(const Move move) {
 
 }
 
-const uint64_t Board::GenerateKnightAttacks(const int from) {
-	return KnightMoveBits[from];
-}
-
-const uint64_t Board::GenerateKingAttacks(const int from) {
-	return KingMoveBits[from];
-}
-
 
 void Board::GenerateKnightMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
 	const auto lookup = KnightMoves[home];
@@ -597,6 +586,14 @@ const uint64_t Board::GenerateSlidingAttacksShiftUp(const int direction, const u
 	}
 	fill |= ((propagatingPieces & boundMask) << direction) & ~blockingFriends;
 	return fill;
+}
+
+const uint64_t Board::GenerateKnightAttacks(const int from) {
+	return KnightMoveBits[from];
+}
+
+const uint64_t Board::GenerateKingAttacks(const int from) {
+	return KingMoveBits[from];
 }
 
 void Board::GenerateKingMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
@@ -806,16 +803,8 @@ uint64_t Board::CalculateAttackedSquares(int colorOfPieces) {
 	squares |= GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, diagonalSliders, friendlyPieces, opponentPieces); // Left-up
 
 	// King attack gen
-	const uint64_t kingBits = colorOfPieces == PieceColor::White ? WhiteKingBits : BlackKingBits;
-	uint64_t fill = 0;
-	fill |= (kingBits & ~Bitboards::FileH) << 1;
-	fill |= (kingBits & ~Bitboards::FileA) >> 1;
-	fill |= (kingBits & ~Bitboards::Rank8) << 8;
-	fill |= (kingBits & ~Bitboards::Rank1) >> 8;
-	fill |= (kingBits & ~Bitboards::FileA & ~Bitboards::Rank8) << 7;
-	fill |= (kingBits & ~Bitboards::FileH & ~Bitboards::Rank8) << 9;
-	fill |= (kingBits & ~Bitboards::FileH & ~Bitboards::Rank1) >> 7;
-	fill |= (kingBits & ~Bitboards::FileA & ~Bitboards::Rank1) >> 9;
+	uint64_t kingSquare = 63ULL - Lzcount(colorOfPieces == PieceColor::White ? WhiteKingBits : BlackKingBits);
+	uint64_t fill = KingMoveBits[kingSquare];
 	fill = fill & ~friendlyPieces;
 	squares |= fill;
 
@@ -823,7 +812,7 @@ uint64_t Board::CalculateAttackedSquares(int colorOfPieces) {
 	uint64_t knightBits = colorOfPieces == PieceColor::White ? WhiteKnightBits : BlackKnightBits;
 	fill = 0;
 	while (Popcount(knightBits) != 0) {
-		uint64_t sq = 64 - __lzcnt64(knightBits) - 1;
+		uint64_t sq = 63ULL - Lzcount(knightBits);
 		fill |= GenerateKnightAttacks((int)sq);
 		SetBitFalse(knightBits, sq);
 	}
@@ -878,7 +867,7 @@ void Board::GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, c
 	const int myColor = TurnToPieceColor(turn);
 	uint64_t occupancy = GetOccupancy(TurnToPieceColor(turn));
 	while (occupancy != 0) {
-		uint64_t i = 64 - __lzcnt64(occupancy) - 1;
+		uint64_t i = 63ULL - Lzcount(occupancy);
 		SetBitFalse(occupancy, i);
 
 		int piece = GetPieceAt(i);
@@ -904,7 +893,7 @@ bool Board::AreThereLegalMoves(const int turn, const uint64_t previousAttackMap)
 
 	// Quick king test - if the king can move to a free square without being attacked, then we have a legal move
 	const uint64_t kingBits = turn == Turn::White ? WhiteKingBits : BlackKingBits;
-	const uint64_t sq = 64 - __lzcnt64(kingBits) - 1;
+	const uint64_t sq = 63ULL - Lzcount(kingBits);
 	const uint64_t kingMoveBits = GenerateKingAttacks((int)sq);
 	const uint64_t fastKingCheck = (~previousAttackMap) & (~GetOccupancy()) & kingMoveBits;
 	if (fastKingCheck != 0) return true;
@@ -912,7 +901,7 @@ bool Board::AreThereLegalMoves(const int turn, const uint64_t previousAttackMap)
 	std::vector<Move> moves;
 	uint64_t occupancy = GetOccupancy(TurnToPieceColor(turn));
 	while (occupancy != 0) {
-		uint64_t i = 64 - __lzcnt64(occupancy) - 1;
+		uint64_t i = 63ULL - Lzcount(occupancy);
 		SetBitFalse(occupancy, i);
 		int piece = GetPieceAt(i);
 		int color = ColorOfPiece(piece);
@@ -1006,9 +995,7 @@ bool Board::IsLegalMove(const Move m, const int turn) {
 	State = state;
 	AttackedSquares = attackedSquares;
 
-
 	return !inCheck;
-	
 }
 
 Board Board::Copy() {

@@ -1,8 +1,8 @@
 #pragma once
-#include <vector>
-#include <string>
 #include <iostream>
 #include <chrono>
+#include <string>
+#include <vector>
 
 #ifdef _MSC_VER
 	#include <intrin.h>
@@ -157,7 +157,7 @@ static inline bool CheckBit(const uint64_t& number, const uint64_t place) {
 	return (number >> place) & 1ULL;
 }
 
-static int Popcount(const uint64_t number) {
+static inline int Popcount(const uint64_t number) {
 #ifdef _MSC_VER
 	return (int)__popcnt64(number);
 #else
@@ -172,6 +172,10 @@ for (size_t i = 0; i < CHAR_BIT * sizeof number; ++i) {
 }
 return CHAR_BIT * sizeof number - zeros;
 */
+}
+
+static inline uint64_t Lzcount(const uint64_t number) {
+	return __lzcnt64(number);
 }
 
 // Board helper functions -------------------------------------------------------------------------

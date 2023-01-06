@@ -4,16 +4,11 @@
 #include "Evaluation.h"
 #include "Heuristics.h"
 #include "Utils.cpp"
-#include <string>
 #include <tuple>
-#include <chrono>
-#include <iostream>
 #include <iomanip>
-#include <thread>
 #include <algorithm>
 #include <unordered_map>
 #include <fstream>
-#include <vector>
 #include <random>
 #include <filesystem>
 
