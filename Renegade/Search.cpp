@@ -180,6 +180,11 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		}
 	}
 
+	// Check extensions
+	uint64_t kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
+	bool inCheck = (board.AttackedSquares & kingBits) != 0;
+	if (inCheck && (depth == 0) && (level < Depth + 10)) depth = 1;
+
 	// Return result for terminal nodes
 	if (depth <= 0) {
 		//int e = StaticEvaluation(board, level);
@@ -207,8 +212,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	// Null-move pruning
-	uint64_t kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
-	bool inCheck = (board.AttackedSquares & kingBits) != 0;
 	int remainingPieces = Popcount(board.GetOccupancy());
 	int reduction = 2;
 	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1) && (remainingPieces > 5)) {
