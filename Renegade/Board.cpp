@@ -508,7 +508,18 @@ void Board::TryMove(const Move move) {
 
 void Board::Push(const Move move) {
 
-	if (move.flag != MoveFlag::NullMove) TryMove(move);
+	if (move.flag != MoveFlag::NullMove) {
+		TryMove(move);
+	}
+	else {
+		// Handle null moves efficiently
+		Turn = !Turn;
+		const uint64_t previousAttackMap = AttackedSquares;
+		AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
+		//const bool hasMoves = AreThereLegalMoves(Turn, previousAttackMap);
+		HashValue =	HashInternal();
+		return;
+	}
 	GenerateOccupancy();
 
 	// Increment timers
@@ -520,9 +531,9 @@ void Board::Push(const Move move) {
 	AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
 
 	// Get state after
-	int inCheck = 0;
-	if (Turn == Turn::White) inCheck = Popcount(AttackedSquares & WhiteKingBits);
-	else inCheck = Popcount(AttackedSquares & BlackKingBits);
+	bool inCheck = 0;
+	if (Turn == Turn::White) inCheck = (AttackedSquares & WhiteKingBits) != 0;
+	else inCheck = (AttackedSquares & BlackKingBits) != 0;
 
 	// Add current hash to list
 	HashValue = HashInternal();
