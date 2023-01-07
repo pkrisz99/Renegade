@@ -86,7 +86,7 @@ Board::Board() {
 	StartingPosition = true;
 }
 
-Board::Board(const Board &b) {
+Board::Board(const Board& b) {
 	WhitePawnBits = b.WhitePawnBits;
 	WhiteKnightBits = b.WhiteKnightBits;
 	WhiteBishopBits = b.WhiteBishopBits;
@@ -113,11 +113,11 @@ Board::Board(const Board &b) {
 	State = b.State;
 	DrawCheck = b.DrawCheck;
 	StartingPosition = b.StartingPosition;
-	PastHashes.reserve(b.PastHashes.size() + 1);
-	//std::copy(std::begin(b.PastHashes), std::end(b.PastHashes), std::begin(PastHashes));
-	PastHashes = std::vector<uint64_t>(b.PastHashes.begin(), b.PastHashes.end());
-	HashValue = b.HashValue;
 	std::copy(std::begin(b.OccupancyInts), std::end(b.OccupancyInts), std::begin(OccupancyInts));
+
+	HashValue = b.HashValue;
+	PastHashes.reserve(b.PastHashes.size() + 1);
+	std::copy(std::begin(b.PastHashes), std::end(b.PastHashes), std::begin(PastHashes));
 }
 
 const void Board::Draw(const uint64_t customBits = 0) {
@@ -450,6 +450,7 @@ void Board::TryMove(const Move move) {
 
 	if (targetPiece != 0) HalfmoveClock = 0;
 	if (TypeOfPiece(piece) == PieceType::Pawn) HalfmoveClock = 0;
+	if (move.flag == MoveFlag::EnPassantPerformed) HalfmoveClock = 0;
 
 	// 2. Handle castling
 	if ((Turn == Turn::White) && (move.flag == MoveFlag::ShortCastle)) {
@@ -509,6 +510,7 @@ void Board::TryMove(const Move move) {
 void Board::Push(const Move move) {
 
 	if (move.flag != MoveFlag::NullMove) {
+		HalfmoveClock += 1;
 		TryMove(move);
 	}
 	else {
@@ -524,7 +526,6 @@ void Board::Push(const Move move) {
 
 	// Increment timers
 	Turn = !Turn;
-	HalfmoveClock += 1;
 	if (Turn == Turn::White) FullmoveClock += 1;
 
 	const uint64_t previousAttackMap = AttackedSquares;
@@ -535,7 +536,8 @@ void Board::Push(const Move move) {
 	if (Turn == Turn::White) inCheck = (AttackedSquares & WhiteKingBits) != 0;
 	else inCheck = (AttackedSquares & BlackKingBits) != 0;
 
-	// Add current hash to list
+	// Add current hash to list - bug: HalfmoveClock should be 0
+	if (HalfmoveClock == 0) PastHashes.clear();
 	HashValue = HashInternal();
 	PastHashes.push_back(HashValue);
 	
@@ -595,7 +597,7 @@ void Board::Push(const Move move) {
 	if (State != GameState::Playing) return;
 	
 	// Check clocks...
-	if (HalfmoveClock > 100) State = GameState::Draw;
+	if (HalfmoveClock >= 100) State = GameState::Draw;
 
 }
 
