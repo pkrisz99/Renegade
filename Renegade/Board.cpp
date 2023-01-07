@@ -117,7 +117,7 @@ Board::Board(const Board& b) {
 
 	HashValue = b.HashValue;
 	PastHashes.reserve(b.PastHashes.size() + 1);
-	std::copy(std::begin(b.PastHashes), std::end(b.PastHashes), std::begin(PastHashes));
+	PastHashes = b.PastHashes;
 }
 
 const void Board::Draw(const uint64_t customBits = 0) {
