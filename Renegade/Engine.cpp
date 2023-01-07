@@ -195,15 +195,15 @@ void Engine::Start() {
 			}
 
 			SearchParams params;
-			for (int i = 1; i < parts.size(); i++) {
-				if (parts[i] == "wtime") { params.wtime = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "btime") { params.btime = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "movestogo") { params.movestogo = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "winc") { params.winc = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "binc") { params.binc = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "nodes") { params.nodes = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "depth") { params.depth = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "movetime") { params.movetime = stoi(parts[i + 1]); i++; }
+			for (uint64_t i = 1; i < parts.size(); i++) {
+				if (parts[i] == "wtime") { params.wtime = stoi(parts[i + 1ull]); i++; }
+				if (parts[i] == "btime") { params.btime = stoi(parts[i + 1ull]); i++; }
+				if (parts[i] == "movestogo") { params.movestogo = stoi(parts[i + 1ull]); i++; }
+				if (parts[i] == "winc") { params.winc = stoi(parts[i + 1ull]); i++; }
+				if (parts[i] == "binc") { params.binc = stoi(parts[i + 1ull]); i++; }
+				if (parts[i] == "nodes") { params.nodes = stoi(parts[i + 1ull]); i++; }
+				if (parts[i] == "depth") { params.depth = stoi(parts[i + 1ull]); i++; }
+				if (parts[i] == "movetime") { params.movetime = stoi(parts[i + 1ull]); i++; }
 			}
 
 			Search.SearchMoves(board, params, Settings);

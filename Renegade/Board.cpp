@@ -114,8 +114,8 @@ Board::Board(const Board &b) {
 	DrawCheck = b.DrawCheck;
 	StartingPosition = b.StartingPosition;
 	PastHashes.reserve(b.PastHashes.size() + 1);
-	std::copy(std::begin(b.PastHashes), std::end(b.PastHashes), std::begin(PastHashes));
-	//PastHashes = std::vector<uint64_t>(b.PastHashes.begin(), b.PastHashes.end());
+	//std::copy(std::begin(b.PastHashes), std::end(b.PastHashes), std::begin(PastHashes));
+	PastHashes = std::vector<uint64_t>(b.PastHashes.begin(), b.PastHashes.end());
 	HashValue = b.HashValue;
 	std::copy(std::begin(b.OccupancyInts), std::end(b.OccupancyInts), std::begin(OccupancyInts));
 }

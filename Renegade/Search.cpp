@@ -73,11 +73,13 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 
 	// Handle wtime, btime, winc, binc
 	int myTime = turn ? params.wtime : params.btime;
+	int myInc = turn ? params.winc : params.binc;
 	if (myTime != 0) {
-		int maxTime = (int)(myTime * 0.5);
-		int minTime = (int)(myTime * 0.015);
+		int maxTime = (int)(myTime * 0.4);
+		int minTime = (int)((myTime + myInc * 5.0) * 0.015);
 		constraints.SearchTimeMax = maxTime;
 		constraints.SearchTimeMin = minTime;
+		if (constraints.SearchTimeMin > constraints.SearchTimeMax) constraints.SearchTimeMin = constraints.SearchTimeMax;
 		return constraints;
 	}
 
@@ -181,6 +183,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	// Return result for terminal nodes
 	if (depth <= 0) {
 		//int e = StaticEvaluation(board, level);
+		if (depth < 0) cout << "Check depth: " << depth << endl;
 		int e = SearchQuiescence(board, level, alpha, beta, true);
 		if (board.State == GameState::Playing) Explored = false;
 		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
