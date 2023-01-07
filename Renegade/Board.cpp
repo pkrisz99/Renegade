@@ -542,15 +542,24 @@ void Board::Push(const Move move) {
 	PastHashes.push_back(HashValue);
 	
 	// Check checkmates & stalemates
-	const bool hasMoves = AreThereLegalMoves(Turn, previousAttackMap);
-	if (!hasMoves) {
-		if (inCheck) {
-			if (Turn == Turn::Black) State = GameState::WhiteVictory;
-			else State = GameState::BlackVictory;
-		} else {
-			State = GameState::Draw;
+	// Trying to optimize for not calling the expensive AreThereLegalMoves()
+	// If we are not in check and have enough pieces, it shouldn't be an issue
+	const int pieceCount = Popcount(GetOccupancy());
+	const int pieceCountComingPlayer = Popcount(GetOccupancy(TurnToPieceColor(Turn)));
+	const int notPawnOrKingCount = pieceCountComingPlayer - (Turn == Turn::White) ? Popcount(WhitePawnBits | WhiteKingBits) : Popcount(BlackPawnBits | BlackKingBits);
+	const bool checkGameEnd = (notPawnOrKingCount <= 1) || inCheck;
+	if (checkGameEnd) {
+		if (!AreThereLegalMoves(Turn, previousAttackMap)) {
+			if (inCheck) {
+				if (Turn == Turn::Black) State = GameState::WhiteVictory;
+				else State = GameState::BlackVictory;
+			}
+			else {
+				State = GameState::Draw;
+			}
 		}
 	}
+
 	if ((State != GameState::Playing) || (!DrawCheck)) return;
 
 	// Threefold repetition check
@@ -565,8 +574,7 @@ void Board::Push(const Move move) {
 	// Insufficient material check
 	// I think this neglects some cases when pawns can't move
 	bool flag = false;
-	const int PieceCount = Popcount(GetOccupancy());
-	if (PieceCount <= 4) {
+	if (pieceCount <= 4) {
 		const int WhitePawnCount = Popcount(WhitePawnBits);
 		const int WhiteKnightCount = Popcount(WhiteKnightBits);
 		const int WhiteBishopCount = Popcount(WhiteBishopBits);
