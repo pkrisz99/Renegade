@@ -261,7 +261,11 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 		}
 	}
 
+	// Tempo bonus
+	score -= TaperedValue(20, 0, phase);
+
 	if (!board.Turn) score *= -1;
+
 	return score;
 }
 
