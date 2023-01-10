@@ -225,7 +225,7 @@ inline static constexpr int IndexBishopPairBonus() {
 
 inline static const int EvaluateBoard(Board& board, const int level, const int weights[WeightsSize]) {
 
-	// 1. is over?
+	// Game over?
 	if (board.State == GameState::Draw) return 0;
 	if (board.State == GameState::WhiteVictory) {
 		if (board.Turn == Turn::White) return MateEval - (level + 1) / 2;
@@ -236,12 +236,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 		if (board.Turn == Turn::Black) return MateEval - (level + 1) / 2;
 	}
 
-	// 2. Materials
 	int score = 0;
-
-	if (Popcount(board.WhiteBishopBits) >= 2) score += weights[IndexBishopPairBonus()];
-	if (Popcount(board.BlackBishopBits) >= 2) score -= weights[IndexBishopPairBonus()];
-
 	uint64_t occupancy = board.GetOccupancy();
 	float phase = CalculateGamePhase(board);
 	while (occupancy != 0) {
@@ -259,6 +254,31 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 			score -= TaperedValue(weights[IndexEarlyPSQT(pieceType, Mirror[i])], weights[IndexLatePSQT(pieceType, Mirror[i])], phase);
 			score -= TaperedValue(weights[IndexPieceValueEarly(pieceType)], weights[IndexPieceValueLate(pieceType)], phase);
 		}
+
+		// Passed pawn bonus
+		const int PassedPawnBonus = 10;
+		if (piece == Piece::WhitePawn) {
+			if (((WhitePassedPawnMask[i] & board.BlackPawnBits) == 0) && ((WhitePassedPawnFilter[i] & board.WhitePawnBits) == 0)) score += PassedPawnBonus;
+		}
+		else if (piece == Piece::BlackPawn) {
+			if (((BlackPassedPawnMask[i] & board.WhitePawnBits) == 0) && ((BlackPassedPawnFilter[i] & board.BlackPawnBits) == 0)) score -= PassedPawnBonus;
+		}
+	}
+
+	// Bishop pair bonus
+	if (Popcount(board.WhiteBishopBits) >= 2) score += weights[IndexBishopPairBonus()];
+	if (Popcount(board.BlackBishopBits) >= 2) score -= weights[IndexBishopPairBonus()];
+
+	// Doubled pawn penalties
+	const int DoublePawnPenalty = -15;
+	const int TripledPawnPenalty = -30;
+	for (int i = 0; i < 8; i++) {
+		const int whitePawnsOnFile = Popcount(board.WhitePawnBits & Files[i]);
+		const int blackPawnsOnFile = Popcount(board.BlackPawnBits & Files[i]);
+		if (whitePawnsOnFile == 2) score += DoublePawnPenalty;
+		if (whitePawnsOnFile > 2) score += TripledPawnPenalty;
+		if (blackPawnsOnFile == 2) score -= DoublePawnPenalty;
+		if (blackPawnsOnFile > 2) score -= TripledPawnPenalty;
 	}
 
 	// Tempo bonus

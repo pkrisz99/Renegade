@@ -87,6 +87,16 @@ void Engine::Start() {
 		if (parts[0] == "debug") {
 			if (parts[1] == "draw") board.Draw(0ULL);
 			if (parts[1] == "attackmap") board.Draw(board.AttackedSquares);
+			if (parts[1] == "whitepassedpawn") {
+				int sq = stoi(parts[2]);
+				board.Draw(WhitePassedPawnMask[sq]);
+				board.Draw(WhitePassedPawnFilter[sq]);
+			}
+			if (parts[1] == "blackpassedpawn") {
+				int sq = stoi(parts[2]);
+				board.Draw(BlackPassedPawnMask[sq]);
+				board.Draw(BlackPassedPawnFilter[sq]);
+			}
 			if (parts[1] == "enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
 			if (parts[1] == "halfmovecounter") cout << "Half move counter: " << board.HalfmoveClock << endl;
 			if (parts[1] == "fullmovecounter") cout << "Full move counter: " << board.FullmoveClock << endl;
