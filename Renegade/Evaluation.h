@@ -137,26 +137,26 @@ static const int Weights[WeightsSize] = {
 
 	// 13. Material early values
 	100,
-	300,
-	300,
+	305,
+	310,
 	500,
-	900,
+	950,
 	0,
 
 	// 14. Material late values
 	100,
-	300,
-	300,
+	280,
+	330,
 	500,
-	900,
+	950,
 	0,
 
 	// 15. Bishop pair bonus
-	50,
-	50,
+	30,
+	40,
 
 	// 16. Tempo bonus
-	20,
+	10,
 	0,
 
 	// 17. Doubled and tripled pawn penalty
@@ -166,8 +166,8 @@ static const int Weights[WeightsSize] = {
 	-30,
 
 	// 18. Passed pawn bonus
-	10,
-	15,
+	5,
+	25,
 };
 
 class Evaluation
