@@ -7,7 +7,7 @@ static const int NoEval = -666666666;
 static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
 static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
-const static int WeightsSize = 781;
+const static int WeightsSize = 790;
 
 // Source of values:
 // https://www.chessprogramming.org/Simplified_Evaluation_Function
@@ -152,7 +152,22 @@ static const int Weights[WeightsSize] = {
 	0,
 
 	// 15. Bishop pair bonus
-	50
+	50,
+	50,
+
+	// 16. Tempo bonus
+	20,
+	0,
+
+	// 17. Doubled and tripled pawn penalty
+	-15,
+	-15,
+	-30,
+	-30,
+
+	// 18. Passed pawn bonus
+	10,
+	15,
 };
 
 class Evaluation
@@ -200,7 +215,7 @@ static const float CalculateGamePhase(Board &board) {
 
 // 768-773: Material value early (includes king as well)
 // 774-779: Material value early (includes king as well)
-// 780: Bishop pair bonus
+// 780-781: Bishop pair bonus
 
 
 inline static constexpr int IndexEarlyPSQT(const int pieceType, const int location) {
@@ -219,9 +234,18 @@ inline static constexpr int IndexPieceValueLate(const int pieceType) {
 	return 773 + pieceType;
 }
 
-inline static constexpr int IndexBishopPairBonus() {
-	return 780;
-}
+const int IndexBishopPairEarly = 780;
+const int IndexBishopPairLate = 781;
+const int IndexTempoEarly = 782;
+const int IndexTempoLate = 783;
+const int IndexDoubledPawnEarly = 784;
+const int IndexDoubledPawnLate = 785;
+const int IndexTripledPawnEarly = 786;
+const int IndexTripledPawnLate = 787;
+const int IndexPassedPawnEarly = 788;
+const int IndexPassedPawnLate = 789;
+
+
 
 inline static const int EvaluateBoard(Board& board, const int level, const int weights[WeightsSize]) {
 
@@ -256,35 +280,34 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 		}
 
 		// Passed pawn bonus
-		const int PassedPawnBonus = 10;
 		if (piece == Piece::WhitePawn) {
-			if (((WhitePassedPawnMask[i] & board.BlackPawnBits) == 0) && ((WhitePassedPawnFilter[i] & board.WhitePawnBits) == 0)) score += PassedPawnBonus;
+			if (((WhitePassedPawnMask[i] & board.BlackPawnBits) == 0) && ((WhitePassedPawnFilter[i] & board.WhitePawnBits) == 0))
+				score += TaperedValue(weights[IndexPassedPawnEarly], weights[IndexPassedPawnLate], phase);
 		}
 		else if (piece == Piece::BlackPawn) {
-			if (((BlackPassedPawnMask[i] & board.WhitePawnBits) == 0) && ((BlackPassedPawnFilter[i] & board.BlackPawnBits) == 0)) score -= PassedPawnBonus;
+			if (((BlackPassedPawnMask[i] & board.WhitePawnBits) == 0) && ((BlackPassedPawnFilter[i] & board.BlackPawnBits) == 0))
+				score -= TaperedValue(weights[IndexPassedPawnEarly], weights[IndexPassedPawnLate], phase);
 		}
 	}
 
 	// Bishop pair bonus
-	if (Popcount(board.WhiteBishopBits) >= 2) score += weights[IndexBishopPairBonus()];
-	if (Popcount(board.BlackBishopBits) >= 2) score -= weights[IndexBishopPairBonus()];
+	if (Popcount(board.WhiteBishopBits) >= 2) score += TaperedValue(weights[IndexBishopPairEarly], weights[IndexBishopPairLate], phase);
+	if (Popcount(board.BlackBishopBits) >= 2) score -= TaperedValue(weights[IndexBishopPairEarly], weights[IndexBishopPairLate], phase);
 
 	// Doubled pawn penalties
-	const int DoublePawnPenalty = -15;
-	const int TripledPawnPenalty = -30;
 	for (int i = 0; i < 8; i++) {
 		const int whitePawnsOnFile = Popcount(board.WhitePawnBits & Files[i]);
 		const int blackPawnsOnFile = Popcount(board.BlackPawnBits & Files[i]);
-		if (whitePawnsOnFile == 2) score += DoublePawnPenalty;
-		if (whitePawnsOnFile > 2) score += TripledPawnPenalty;
-		if (blackPawnsOnFile == 2) score -= DoublePawnPenalty;
-		if (blackPawnsOnFile > 2) score -= TripledPawnPenalty;
+		if (whitePawnsOnFile == 2) score += TaperedValue(weights[IndexDoubledPawnEarly], weights[IndexDoubledPawnLate], phase);
+		if (whitePawnsOnFile > 2) score += TaperedValue(weights[IndexTripledPawnEarly], weights[IndexTripledPawnLate], phase);
+		if (blackPawnsOnFile == 2) score -= TaperedValue(weights[IndexDoubledPawnEarly], weights[IndexDoubledPawnLate], phase);
+		if (blackPawnsOnFile > 2) score -= TaperedValue(weights[IndexTripledPawnEarly], weights[IndexTripledPawnLate], phase);
 	}
 
-	// Tempo bonus
-	score -= TaperedValue(20, 0, phase);
-
 	if (!board.Turn) score *= -1;
+
+	// Tempo bonus
+	score -= TaperedValue(weights[IndexTempoEarly], weights[IndexTempoLate], phase);
 
 	return score;
 }

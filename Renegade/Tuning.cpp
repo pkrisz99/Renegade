@@ -1,18 +1,24 @@
 #include "Tuning.h"
 
 Tuning::Tuning(const std::string dataset) {
+	cout << "\nThis is the tuner for Renegade, based on Texel's method." << endl;
+	cout << "Positions are loaded from positions.txt" << endl;
+	cout << "How many positions to load (-1 for all of them)? ";
+	int positionsToLoad;
+	cin >> positionsToLoad;
 	cout << "\nStarting tuning..." << endl;
 	cout << "Note: may take a looong time" << endl;
 
 	// Initialize temporary weights
 	for (int i = 0; i < WeightsSize; i++) TempWeights[i] = Weights[i];
 
+	// Load into memory
 	std::ifstream ifs("positions.txt");
 	std::string line;
 	int lines = 0;
 	std::vector<Board> loadedBoards;
 	std::vector<float> loadedResults;
-	while (std::getline(ifs, line)) {
+	while (std::getline(ifs, line) && ((lines < positionsToLoad) || (positionsToLoad == -1))) {
 		lines += 1;
 		std::string fen = line.substr(0, line.size() - 6);
 		std::string result = line.substr(line.size() - 5);
@@ -20,10 +26,13 @@ Tuning::Tuning(const std::string dataset) {
 		loadedBoards.push_back(Board(fen));
 	}
 	cout << "Number of positions loaded: " << loadedBoards.size() << endl;
+
+	// K parameter selection
 	cout << "Finding best K..." << endl;
 	double K = FindBestK(loadedBoards, loadedResults);
 	cout << "Best K found: K=" << K << endl;
 
+	// Splitting into train and test datasets
 	const double trainRatio = 0.85;
 	for (int i = 0; i < trainRatio * lines; i++) {
 		TrainBoards.push_back(loadedBoards[i]);
@@ -36,6 +45,7 @@ Tuning::Tuning(const std::string dataset) {
 	cout << "Train size: " << TrainBoards.size() << endl;
 	cout << "Test size:  " << TestBoards.size() << '\n' << endl;
 
+	// Start tuning
 	Tune(K);
 
 }
@@ -83,7 +93,7 @@ const double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& r
 
 const void Tuning::Tune(const double K) {
 	int improvements = 0;
-	int step = 10;
+	int step = 5;
 	int iterations = 1;
 	double testMSE = CalculateMSE(K, TestBoards, TestResults);
 
@@ -96,6 +106,7 @@ const void Tuning::Tune(const double K) {
 
 
 		for (int i = 0; i < WeightsSize; i++) {
+			cout << "Iteration " << iterations << ", tuning parameter " << i + 1 << " of " << WeightsSize << "...      " << '\r' << std::flush;
 			int weightCurrent = GetWeightById(i);
 			int weightPlus = weightCurrent + step;
 			int weightMinus = weightCurrent - step;
@@ -130,13 +141,14 @@ const void Tuning::Tune(const double K) {
 
 		}
 
-		cout << "\n\nWeights:" << endl;
+		for (int j = 0; j < 50; j++) cout << " ";
+		cout << "\n\n\nWeights:" << endl;
 		for (int i = 0; i <= WeightsSize; i++) {
 			cout << GetWeightById(i) << ", ";
 			if (i % 64 == 63) cout << "\n";
 		}
 
-		cout << "\nChanges made this iteration: " << improvements << endl;
+		cout << "\nChanges made during iteration " << iterations << ": " << improvements << endl;
 		if (improvements == 0) break;
 
 		double newTestMSE = CalculateMSE(K, TestBoards, TestResults);
@@ -147,7 +159,7 @@ const void Tuning::Tune(const double K) {
 		else {
 			cout << "Worsened test MSE: " << testMSE << " -> " << newTestMSE << '\n' << endl;
 			if (step > 1) step /= 2;
-			else break;
+			//else break;
 		}
 		
 
