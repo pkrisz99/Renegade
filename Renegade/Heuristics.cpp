@@ -98,20 +98,21 @@ const std::vector<Move> Heuristics::GetPvLine() {
 	return list;
 }
 
-const int Heuristics::CalculateMoveOrderScore(Board board, const Move m, const int level, const float phase) {
+// Move ordering scoring function
+const int Heuristics::CalculateOrderScore(Board board, const Move m, const int level, const float phase) {
 	int orderScore = 0;
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
-	const int values[] = { 0, 100, 300, 300, 500, 900, 10000 };
+	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
 	if (attackedPiece != PieceType::None) {
 		orderScore = values[attackedPiece] - values[attackingPiece] + 10000;
 	}
 
-	if (m.flag == MoveFlag::PromotionToQueen) orderScore += 900; // Weights::QueenValue;
-	else if (m.flag == MoveFlag::PromotionToRook) orderScore += 500; //Weights::RookValue;
-	else if (m.flag == MoveFlag::PromotionToBishop) orderScore += 300; // Weights::BishopValue;
-	else if (m.flag == MoveFlag::PromotionToKnight) orderScore += 300; // Weights::KnightValue;
-	else if (m.flag == MoveFlag::EnPassantPerformed) orderScore += 100;
+	if (m.flag == MoveFlag::PromotionToQueen) orderScore += 950 + 20000;
+	else if (m.flag == MoveFlag::PromotionToRook) orderScore += 500 + 20000;
+	else if (m.flag == MoveFlag::PromotionToBishop) orderScore += 290 + 1000;
+	else if (m.flag == MoveFlag::PromotionToKnight) orderScore += 310 + 1000;
+	else if (m.flag == MoveFlag::EnPassantPerformed) orderScore += 100 + 10000;
 
 	bool turn = board.Turn;
 	if (turn == Turn::White) {

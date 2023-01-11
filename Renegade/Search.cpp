@@ -233,7 +233,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	std::vector<std::tuple<Move, int>> order = std::vector<std::tuple<Move, int>>();
 	order.reserve(MoveList.size());
 	for (const Move& m : MoveList) {
-		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level, phase);
+		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase);
 		order.push_back({ m, orderScore });
 	}
 	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
@@ -318,7 +318,7 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 	std::vector<std::tuple<Move, int>> order = std::vector<std::tuple<Move, int>>();
 	order.reserve(MoveList.size());
 	for (const Move& m : MoveList) {
-		int orderScore = Heuristics.CalculateMoveOrderScore(board, m, level, phase);
+		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase);
 		order.push_back({ m, orderScore });
 	}
 	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
