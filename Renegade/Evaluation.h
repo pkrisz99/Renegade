@@ -194,7 +194,7 @@ static const int Weights[WeightsSize] = {
 	15,
 
 	// 20. King safety weight
-	-50
+	-84
 };
 
 class Evaluation

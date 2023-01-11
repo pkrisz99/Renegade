@@ -167,7 +167,7 @@ const void Board::Draw(const uint64_t customBits = 0) {
 				else CellStyle = WhiteOnDarkSquare;
 			}
 
-			if (CheckBit(customBits, (uint64_t)i * 8 + j)) {
+			if (CheckBit(customBits, static_cast<uint64_t>(i * 8 + j))) {
 				if (pieceColor == PieceColor::Black) CellStyle = BlackOnTarget;
 				else  CellStyle = WhiteOnTarget;
 			}
@@ -429,10 +429,10 @@ void Board::TryMove(const Move move) {
 	else if (targetPiece == Piece::BlackKing) SetBitFalse(BlackKingBits, move.to); // ????
 
 	if ((piece == Piece::WhitePawn) && (move.to == EnPassantSquare) ) {
-		SetBitFalse(BlackPawnBits, (uint64_t)(EnPassantSquare)-8);
+		SetBitFalse(BlackPawnBits, static_cast<uint64_t>((EnPassantSquare)-8));
 	}
 	if ((piece == Piece::BlackPawn) && (move.to == EnPassantSquare)) {
-		SetBitFalse(WhitePawnBits, (uint64_t)(EnPassantSquare)+8);
+		SetBitFalse(WhitePawnBits, static_cast<uint64_t>((EnPassantSquare)+8));
 	}
 
 	if (piece == Piece::WhitePawn) {
@@ -919,7 +919,7 @@ uint64_t Board::CalculateAttackedSquares(int colorOfPieces) {
 	fill = 0;
 	while (Popcount(knightBits) != 0) {
 		uint64_t sq = 63ULL - Lzcount(knightBits);
-		fill |= GenerateKnightAttacks((int)sq);
+		fill |= GenerateKnightAttacks(static_cast<int>(sq));
 		SetBitFalse(knightBits, sq);
 	}
 	fill = fill & ~friendlyPieces;
@@ -1000,7 +1000,7 @@ bool Board::AreThereLegalMoves(const bool turn, const uint64_t previousAttackMap
 	// Quick king test - if the king can move to a free square without being attacked, then we have a legal move
 	const uint64_t kingBits = turn == Turn::White ? WhiteKingBits : BlackKingBits;
 	const uint64_t sq = 63ULL - Lzcount(kingBits);
-	const uint64_t kingMoveBits = GenerateKingAttacks((int)sq);
+	const uint64_t kingMoveBits = GenerateKingAttacks(static_cast<int>(sq));
 	const uint64_t fastKingCheck = (~previousAttackMap) & (~GetOccupancy()) & kingMoveBits;
 	if (fastKingCheck != 0) return true;
 

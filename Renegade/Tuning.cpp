@@ -60,7 +60,7 @@ const float Tuning::ConvertResult(const std::string str) {
 
 
 const double Tuning::Sigmoid(const int score, const double K) {
-	return 1 / (1 + pow(10, -K * (double)score / 400.0));
+	return 1.0 / (1.0 + pow(10.0, -K * score / 400.0));
 }
 
 const double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) {
@@ -73,8 +73,8 @@ const double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, st
 }
 
 const double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results) {
-	double K = 0.65;
-	const double maxK = 0.75;
+	double K = 0.67;
+	const double maxK = 0.72;
 	const double step = 0.001;
 
 	double bestK = 0;
@@ -100,12 +100,19 @@ const void Tuning::Tune(const double K) {
 	std::cout << std::fixed;
 	std::cout << std::setprecision(6);
 
+	// Change these to tune a specific weight
+	std::vector<int> weightsForTuning;
+	//weightsForTuning = { IndexTempoEarly, IndexTempoLate };
+	for (int i = 0; i < WeightsSize; i++) weightsForTuning.push_back(i);
+
+	// Main optimizer loop
+	// To do: use an efficient (e.g. adam) optimizer
 	while (true) {
 		int paramId = 0;
 		improvements = 0;
 
 
-		for (int i = 0; i < WeightsSize; i++) {
+		for (const int i: weightsForTuning) {
 			cout << "Iteration " << iterations << ", tuning parameter " << i + 1 << " of " << WeightsSize << "...      " << '\r' << std::flush;
 			int weightCurrent = GetWeightById(i);
 			int weightPlus = weightCurrent + step;
@@ -143,7 +150,8 @@ const void Tuning::Tune(const double K) {
 
 		for (int j = 0; j < 50; j++) cout << " ";
 		cout << "\n\n\nWeights:" << endl;
-		for (int i = 0; i <= WeightsSize; i++) {
+
+		for (const int i: weightsForTuning) {
 			cout << GetWeightById(i) << ", ";
 			if (i % 64 == 63) cout << "\n";
 		}
