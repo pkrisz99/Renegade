@@ -7,10 +7,30 @@ static const int NoEval = -666666666;
 static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
 static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
-const static int WeightsSize = 790;
+const static int WeightsSize = 793;
 
 // Source of values:
 // https://www.chessprogramming.org/Simplified_Evaluation_Function
+
+// Weight indices:
+
+//   0- 63: Pawn early PSQT
+//  64-127: Knight early PSQT
+// 128-191: Bishop early PSQT
+// 192-255: Rook early PSQT
+// 256-319: Queen early PSQT
+// 320-383: King early PSQT
+
+// 384-447: Pawn late PSQT
+// 448-511: Knight late PSQT
+// 512-575: Bishop late PSQT
+// 576-639: Rook late PSQT
+// 640-703: Queen late PSQT
+// 704-767: King late PSQT
+
+// 768-773: Material value early (includes king as well)
+// 774-779: Material value early (includes king as well)
+// 780+: Other
 
 static const int Weights[WeightsSize] = {
 
@@ -106,14 +126,14 @@ static const int Weights[WeightsSize] = {
 	-20, -10, -10, -10, -10, -10, -10, -20,
 
 	// 10. Rook late PSQT
-	0,  0,  0,  5,  5,  0,  0,  0,
+	 0,  0,  0,  5,  5,  0,  0,  0,
 	-5,  0,  0,  0,  0,  0,  0, -5,
 	-5,  0,  0,  0,  0,  0,  0, -5,
 	-5,  0,  0,  0,  0,  0,  0, -5,
 	-5,  0,  0,  0,  0,  0,  0, -5,
 	-5,  0,  0,  0,  0,  0,  0, -5,
-	5, 10, 10, 10, 10, 10, 10,  5,
-	0,  0,  0,  0,  0,  0,  0,  0,
+	 5, 10, 10, 10, 10, 10, 10,  5,
+	 0,  0,  0,  0,  0,  0,  0,  0,
 
 	// 11. Queen late PSQT
 	-20, -10, -10,  -5,  -5, -10, -10, -20,
@@ -127,11 +147,11 @@ static const int Weights[WeightsSize] = {
 
 	// 12. King late PSQT
 	-50, -30, -30, -30, -30, -30, -30, -50,
-	-30, -30,   0,  0,  0,  0, -30, -30,
-	-30, -10,  20, 30, 30, 20, -10, -30,
-	-30, -10,  30, 40, 40, 30, -10, -30,
-	-30, -10,  30, 40, 40, 30, -10, -30,
-	-30, -10,  20, 30, 30, 20, -10, -30,
+	-30, -30,   0,   0,   0,   0, -30, -30,
+	-30, -10,  20,  30,  30,  20, -10, -30,
+	-30, -10,  30,  40,  40,  30, -10, -30,
+	-30, -10,  30,  40,  40,  30, -10, -30,
+	-30, -10,  20,  30,  30,  20, -10, -30,
 	-30, -20, -10,   0,   0, -10, -20, -30,
 	-50, -40, -30, -20, -20, -30, -40, -50,
 
@@ -151,23 +171,30 @@ static const int Weights[WeightsSize] = {
 	950,
 	0,
 
-	// 15. Bishop pair bonus
+	// 15. Bishop pair bonus (early & late game)
 	30,
 	40,
 
-	// 16. Tempo bonus
-	10,
+	// 16. Tempo bonus (early & late game)
+	15,
 	0,
 
-	// 17. Doubled and tripled pawn penalty
+	// 17. Doubled and tripled pawn penalty (early doubled, late doubled, early tripled, late tripled)
 	-15,
-	-15,
+	-20,
 	-30,
-	-30,
+	-40,
 
-	// 18. Passed pawn bonus
+	// 18. Passed pawn bonus (early & late game)
 	5,
 	25,
+
+	// 19. Defended pawn bonus (early & late game)
+	10,
+	15,
+
+	// 20. King safety weight
+	-50
 };
 
 class Evaluation
@@ -187,8 +214,12 @@ public:
 	Move BestMove();
 };
 
-static const int TaperedValue(const int earlyValue, const int lateValue, const float phase) {
+static const int LinearTaper(const int earlyValue, const int lateValue, const float phase) {
 	return (int)((1 - phase) * (float)earlyValue + phase * (float)lateValue);
+}
+
+static const int SigmoidishTaper(const int lateValue, const float phase) {
+	return (int) (( 1.f / (1.f + std::exp(-6*phase+3))) * lateValue);
 }
 
 static const float CalculateGamePhase(Board &board) {
@@ -196,26 +227,6 @@ static const float CalculateGamePhase(Board &board) {
 	float phase = (32.f - remainingPieces) / (32.f - 4.f);
 	return std::clamp(phase, 0.f, 1.f);
 }
-
-// Weight indices:
-
-//   0- 63: Pawn early PSQT
-//  64-127: Knight early PSQT
-// 128-191: Bishop early PSQT
-// 192-255: Rook early PSQT
-// 256-319: Queen early PSQT
-// 320-383: King early PSQT
-
-// 384-447: Pawn late PSQT
-// 448-511: Knight late PSQT
-// 512-575: Bishop late PSQT
-// 576-639: Rook late PSQT
-// 640-703: Queen late PSQT
-// 704-767: King late PSQT
-
-// 768-773: Material value early (includes king as well)
-// 774-779: Material value early (includes king as well)
-// 780-781: Bishop pair bonus
 
 
 inline static constexpr int IndexEarlyPSQT(const int pieceType, const int location) {
@@ -245,6 +256,9 @@ const int IndexTripledPawnLate = 787;
 const int IndexPassedPawnEarly = 788;
 const int IndexPassedPawnLate = 789;
 
+const int IndexDefendedPawnEarly = 790;
+const int IndexDefendedPawnLate = 791;
+const int IndexKingSafety = 792;
 
 
 inline static const int EvaluateBoard(Board& board, const int level, const int weights[WeightsSize]) {
@@ -263,6 +277,10 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	int score = 0;
 	uint64_t occupancy = board.GetOccupancy();
 	float phase = CalculateGamePhase(board);
+	uint64_t ourAttacks = board.CalculateAttackedSquares(board.Turn); // Opponent attacks are stored in the board
+	uint64_t whiteAttacks = board.Turn ? ourAttacks : board.AttackedSquares;
+	uint64_t blackAttacks = board.Turn ? board.AttackedSquares : ourAttacks;
+
 	while (occupancy != 0) {
 		int i = 63 - Lzcount(occupancy);
 		SetBitFalse(occupancy, i);
@@ -271,43 +289,60 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 		int pieceColor = ColorOfPiece(piece);
 
 		if (pieceColor == PieceColor::White) {
-			score += TaperedValue(weights[IndexEarlyPSQT(pieceType, i)], weights[IndexLatePSQT(pieceType, i)], phase);
-			score += TaperedValue(weights[IndexPieceValueEarly(pieceType)], weights[IndexPieceValueLate(pieceType)], phase);
+			score += LinearTaper(weights[IndexEarlyPSQT(pieceType, i)], weights[IndexLatePSQT(pieceType, i)], phase);
+			score += LinearTaper(weights[IndexPieceValueEarly(pieceType)], weights[IndexPieceValueLate(pieceType)], phase);
 		}
 		else if (pieceColor == PieceColor::Black) {
-			score -= TaperedValue(weights[IndexEarlyPSQT(pieceType, Mirror[i])], weights[IndexLatePSQT(pieceType, Mirror[i])], phase);
-			score -= TaperedValue(weights[IndexPieceValueEarly(pieceType)], weights[IndexPieceValueLate(pieceType)], phase);
+			score -= LinearTaper(weights[IndexEarlyPSQT(pieceType, Mirror[i])], weights[IndexLatePSQT(pieceType, Mirror[i])], phase);
+			score -= LinearTaper(weights[IndexPieceValueEarly(pieceType)], weights[IndexPieceValueLate(pieceType)], phase);
 		}
 
 		// Passed pawn bonus
 		if (piece == Piece::WhitePawn) {
 			if (((WhitePassedPawnMask[i] & board.BlackPawnBits) == 0) && ((WhitePassedPawnFilter[i] & board.WhitePawnBits) == 0))
-				score += TaperedValue(weights[IndexPassedPawnEarly], weights[IndexPassedPawnLate], phase);
+				score += LinearTaper(weights[IndexPassedPawnEarly], weights[IndexPassedPawnLate], phase);
 		}
 		else if (piece == Piece::BlackPawn) {
 			if (((BlackPassedPawnMask[i] & board.WhitePawnBits) == 0) && ((BlackPassedPawnFilter[i] & board.BlackPawnBits) == 0))
-				score -= TaperedValue(weights[IndexPassedPawnEarly], weights[IndexPassedPawnLate], phase);
+				score -= LinearTaper(weights[IndexPassedPawnEarly], weights[IndexPassedPawnLate], phase);
+		}
+
+		// Very rudimentary king safety
+		if (piece == Piece::WhiteKing) {
+			const float kingSafety = Popcount((SquareBits[i] | KingMoveBits[i]) & blackAttacks) / (Popcount(KingMoveBits[i]) + 1.f);
+			score += SigmoidishTaper(weights[IndexKingSafety], kingSafety);
+		}
+		else if (piece == Piece::BlackKing) {
+			const float kingSafety = Popcount((SquareBits[i] | KingMoveBits[i]) & whiteAttacks) / (Popcount(KingMoveBits[i]) + 1.f);
+			score -= SigmoidishTaper(weights[IndexKingSafety], kingSafety);
 		}
 	}
 
 	// Bishop pair bonus
-	if (Popcount(board.WhiteBishopBits) >= 2) score += TaperedValue(weights[IndexBishopPairEarly], weights[IndexBishopPairLate], phase);
-	if (Popcount(board.BlackBishopBits) >= 2) score -= TaperedValue(weights[IndexBishopPairEarly], weights[IndexBishopPairLate], phase);
+	if (Popcount(board.WhiteBishopBits) >= 2) score += LinearTaper(weights[IndexBishopPairEarly], weights[IndexBishopPairLate], phase);
+	if (Popcount(board.BlackBishopBits) >= 2) score -= LinearTaper(weights[IndexBishopPairEarly], weights[IndexBishopPairLate], phase);
 
 	// Doubled pawn penalties
 	for (int i = 0; i < 8; i++) {
 		const int whitePawnsOnFile = Popcount(board.WhitePawnBits & Files[i]);
 		const int blackPawnsOnFile = Popcount(board.BlackPawnBits & Files[i]);
-		if (whitePawnsOnFile == 2) score += TaperedValue(weights[IndexDoubledPawnEarly], weights[IndexDoubledPawnLate], phase);
-		if (whitePawnsOnFile > 2) score += TaperedValue(weights[IndexTripledPawnEarly], weights[IndexTripledPawnLate], phase);
-		if (blackPawnsOnFile == 2) score -= TaperedValue(weights[IndexDoubledPawnEarly], weights[IndexDoubledPawnLate], phase);
-		if (blackPawnsOnFile > 2) score -= TaperedValue(weights[IndexTripledPawnEarly], weights[IndexTripledPawnLate], phase);
+		if (whitePawnsOnFile == 2) score += LinearTaper(weights[IndexDoubledPawnEarly], weights[IndexDoubledPawnLate], phase);
+		if (whitePawnsOnFile > 2) score += LinearTaper(weights[IndexTripledPawnEarly], weights[IndexTripledPawnLate], phase);
+		if (blackPawnsOnFile == 2) score -= LinearTaper(weights[IndexDoubledPawnEarly], weights[IndexDoubledPawnLate], phase);
+		if (blackPawnsOnFile > 2) score -= LinearTaper(weights[IndexTripledPawnEarly], weights[IndexTripledPawnLate], phase);
 	}
+
+	// Pawns defending pawns
+	int whiteDefendedPawns = Popcount((board.WhitePawnBits & !Bitboards::FileA & (board.WhitePawnBits << 7)) | (board.WhitePawnBits & !Bitboards::FileH & (board.WhitePawnBits << 9)));
+	int blackDefendedPawns = Popcount((board.BlackPawnBits & !Bitboards::FileA & (board.BlackPawnBits >> 9)) | (board.BlackPawnBits & !Bitboards::FileH & (board.BlackPawnBits >> 7)));
+	const int defendingBonus = LinearTaper(weights[IndexDefendedPawnEarly], weights[IndexDefendedPawnLate], phase);
+	score += defendingBonus * whiteDefendedPawns;
+	score -= defendingBonus * blackDefendedPawns;
 
 	if (!board.Turn) score *= -1;
 
 	// Tempo bonus
-	score -= TaperedValue(weights[IndexTempoEarly], weights[IndexTempoLate], phase);
+	score += LinearTaper(weights[IndexTempoEarly], weights[IndexTempoLate], phase);
 
 	return score;
 }
