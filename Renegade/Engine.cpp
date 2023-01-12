@@ -11,7 +11,7 @@ Engine::Engine() {
 
 // Start UCI protocol
 void Engine::Start() {
-	Board board = Board(starting_fen);
+	Board board = Board(FEN::StartPos);
 	cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
 	std::string cmd = "";
 	while (getline(cin, cmd)) {
@@ -85,7 +85,6 @@ void Engine::Start() {
 
 		// Debug commands
 		if (parts[0] == "debug") {
-			if (parts[1] == "draw") board.Draw(0ULL);
 			if (parts[1] == "attackmap") board.Draw(board.AttackedSquares);
 			if (parts[1] == "whitepassedpawn") {
 				int sq = stoi(parts[2]);
@@ -142,9 +141,6 @@ void Engine::Start() {
 				cout << "sizeof std::vector<Move>: " << sizeof(std::vector<Move>) << endl;
 				cout << "sizeof int:               " << sizeof(int) << endl;
 			}
-			if (parts[1] == "eval") {
-				cout << "Static evaluation: " << EvaluateBoard(board, 0) << endl;
-			}
 			if (parts[1] == "pasthashes") {
 				cout << "Past hashes size: " << board.PastHashes.size() << endl;
 				for (int i = 0; i < board.PastHashes.size(); i++) {
@@ -161,17 +157,43 @@ void Engine::Start() {
 			continue;
 		}
 
-		if (cmd == "nb") { // shorthand for no book (useful for testing)
-			Settings.UseBook = false;
+		// Custom commands
+		if (parts[0] == "help") {
+			cout << "\nRenegade is a basic chess engine written in C++. It is a command line "
+				<< "application supporting the UCI protocol, for example 'position startpos' "
+				<< "sets up the board and 'go depth 5' initiates a 5 ply deep search." << endl;
+			cout << "There are some additional commands supported as well, including: "
+				<< "\n- draw: draws the current board"
+				<< "\n- eval: prints the static evaluation of the position"
+				<< "\n- fen: displays the current position's FEN string"
+				<< "\n- go perft [n] & go perftdiv [n]: calculates the number of possible positions (incl. duplicates)" << endl;
+			continue;
+		}
+		if (parts[0] == "draw") {
+			board.Draw(0ULL);
+			continue;
+		}
+		if (parts[0] == "eval") {
+			cout << "Static evaluation: " << EvaluateBoard(board, 0) << " (for the side to come)" << endl;
+			continue;
+		}
+		if (parts[0] == "fen") {
+			cout << "Position FEN: " << board.GetFEN() << endl;
+			continue;
+		}
+		if (parts[0] == "clear") {
+			ClearScreen();
 			continue;
 		}
 
 		// Position command
 		if (parts[0] == "position") {
 
-			if ((parts[1] == "startpos") || (parts[1] == "kiwipete")) {
-				if (parts[1] == "startpos") board = Board(starting_fen);
-				if (parts[1] == "kiwipete") board = Board(kiwipete_fen);
+			if ((parts[1] == "startpos") || (parts[1] == "kiwipete") || (parts[1] == "lasker")) {
+				if (parts[1] == "startpos") board = Board(FEN::StartPos);
+				else if (parts[1] == "kiwipete") board = Board(FEN::Kiwipete);
+				else if (parts[1] == "lasker") board = Board(FEN::Lasker);
+
 				if ((parts.size() > 2) && (parts[2] == "moves")) {
 					for (int i = 3; i < parts.size(); i++) {
 						bool r = board.PushUci(parts[i]);
@@ -181,8 +203,13 @@ void Engine::Start() {
 			}
 
 			if (parts[1] == "fen") {
-				std::string fen = parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " " + parts[6] + " " + parts[7];
+				std::string fen;
+				if (parts.size() >= 8)
+					fen = parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " " + parts[6] + " " + parts[7];
+				else
+					fen = parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " 0 1";
 				board = Board(fen);
+
 				if (parts[8] == "moves") {
 					for (int i = 9; i < parts.size(); i++) {
 						bool r = board.PushUci(parts[i]);
@@ -215,7 +242,9 @@ void Engine::Start() {
 				if (parts[i] == "binc") { params.binc = stoi(parts[i + 1ull]); i++; }
 				if (parts[i] == "nodes") { params.nodes = stoi(parts[i + 1ull]); i++; }
 				if (parts[i] == "depth") { params.depth = stoi(parts[i + 1ull]); i++; }
+				if (parts[i] == "mate") { params.depth = stoi(parts[i + 1ull]); i++; } // To do: search for mates only
 				if (parts[i] == "movetime") { params.movetime = stoi(parts[i + 1ull]); i++; }
+				if (parts[i] == "searchmoves") { cout << "info string Searchmoves parameter is not yet implemented!" << endl; }
 			}
 
 			Search.SearchMoves(board, params, Settings);
@@ -229,7 +258,7 @@ void Engine::Start() {
 }
 
 void Engine::Play() {
-	Board board = Board(starting_fen);
+	Board board = Board(FEN::StartPos);
 
 	cout << "c - Computer, h - Human" << endl;
 	cout << "White player? ";
@@ -243,7 +272,7 @@ void Engine::Play() {
 	if ((black != 'c') && (black != 'h')) return;
 
 	while (board.State == GameState::Playing) {
-		cout << "\033[2J\033[1;1H" << endl;
+		ClearScreen();
 		board.Draw(0);
 
 		char player = board.Turn ? white : black;

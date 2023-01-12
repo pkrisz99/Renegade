@@ -18,9 +18,6 @@ typedef std::chrono::high_resolution_clock Clock;
 
 const std::string Version = "0.6.0+";
 
-static const std::string starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-static const std::string kiwipete_fen = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-
 // Board constants  -------------------------------------------------------------------------------
 
 namespace MoveFlag {
@@ -101,6 +98,26 @@ namespace Squares {
 	static const int G8 = 62;
 	static const int H8 = 63;
 }
+
+namespace FEN {
+	static const std::string StartPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+	// Test position shorthands:
+	static const std::string Kiwipete = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"; // Famous testing position
+	static const std::string Lasker = "rn3r2/pbppq1p1/1p2pN1k/4N3/3P4/3B4/PPP2PPP/R3K2R w KQ - 1 13"; // Lasker-Thomas, London 1912 (mate in 5 test position)
+}
+
+const char PieceChars[] = {' ', 'P', 'N', 'B', 'R', 'Q', 'K', ' ', 'p', 'n', 'b', 'r', 'q', 'k'};
+
+const std::array<std::string, 64> SquareStrings = {
+	"a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
+	"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
+	"a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
+	"a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
+	"a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
+	"a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
+	"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
+	"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
+};
 
 // Structures  ------------------------------------------------------------------------------------
 
@@ -295,6 +312,10 @@ static std::vector<std::string> Split(const std::string cmd) {
 	std::istream_iterator<std::string> begin(ss);
 	std::istream_iterator<std::string> end;
 	return std::vector<std::string>(begin, end);
+}
+
+static void ClearScreen() {
+	cout << "\033[2J\033[1;1H" << endl;
 }
 
 // Precomputed arrays -----------------------------------------------------------------------------

@@ -14,38 +14,25 @@ public:
 	Board();
 	Board(const Board &b);
 	Board(const std::string fen);
+	Board Copy();
+
 	void Push(const Move move);
 	bool PushUci(const std::string ucistr);
-	Board Copy();
 	const void Draw(const uint64_t customBits);
+	const std::string GetFEN();
+
 	const int GetPieceAt(const int place);
-	const int GetPieceAtFromBitboards(const int place);
-	void GenerateOccupancy();
-	const uint64_t Hash(const bool hashPlys);
-	const uint64_t HashInternal();
 	const uint64_t GetOccupancy();
 	const uint64_t GetOccupancy(const int pieceColor);
+	const uint64_t Hash(const bool hashPlys);
+	const uint64_t HashInternal();
 
 	bool AreThereLegalMoves(const bool turn, const uint64_t previousAttackMap);
 	bool IsLegalMove(const Move m, const int turn);
-	void TryMove(const Move move);
 	void GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, const bool quiescenceOnly);
 	void GenerateLegalMoves(std::vector<Move>& moves, const int turn);
 	void GenerateNonQuietMoves(std::vector<Move>& moves, const int turn);
 	uint64_t CalculateAttackedSquares(const int turn);
-
-	void GenerateKnightMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
-	void GenerateKingMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
-	void GeneratePawnMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
-	void GenerateCastlingMoves(std::vector<Move>& moves);
-	void GenerateSlidingMoves(std::vector<Move>& moves, const int piece, const int home, const bool quiescenceOnly);
-
-	const uint64_t GenerateKnightAttacks(const int from);
-	const uint64_t GenerateKingAttacks(const int from);
-	const uint64_t GenerateSlidingAttacksShiftUp(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
-		const uint64_t friendlyPieces, const uint64_t opponentPieces);
-	const uint64_t GenerateSlidingAttacksShiftDown(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
-		const uint64_t friendlyPieces, const uint64_t opponentPieces);
 
 	// Board variables:
 	uint64_t WhitePawnBits;
@@ -75,8 +62,24 @@ public:
 	int OccupancyInts[64];
 
 	// Board settings:
-	bool StartingPosition;
 	bool DrawCheck = true;
 
+private:
+	const int GetPieceAtFromBitboards(const int place);
+	void GenerateOccupancy();
+	void TryMove(const Move move);
+
+	void GenerateKnightMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
+	void GenerateKingMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
+	void GeneratePawnMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
+	void GenerateCastlingMoves(std::vector<Move>& moves);
+	void GenerateSlidingMoves(std::vector<Move>& moves, const int piece, const int home, const bool quiescenceOnly);
+
+	const uint64_t GenerateKnightAttacks(const int from);
+	const uint64_t GenerateKingAttacks(const int from);
+	const uint64_t GenerateSlidingAttacksShiftUp(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
+		const uint64_t friendlyPieces, const uint64_t opponentPieces);
+	const uint64_t GenerateSlidingAttacksShiftDown(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
+		const uint64_t friendlyPieces, const uint64_t opponentPieces);
 };
 

@@ -25,7 +25,6 @@ Board::Board(const std::string fen) {
 	FullmoveClock = 0;
 	Turn = Turn::White;
 	State = GameState::Playing;
-	StartingPosition = (fen == starting_fen);
 	PastHashes = std::vector<uint64_t>();
 
 	std::vector<std::string> parts = Split(fen);
@@ -83,7 +82,6 @@ Board::Board(const std::string fen) {
 
 Board::Board() {
 	Board(starting_fen);
-	StartingPosition = true;
 }
 
 Board::Board(const Board& b) {
@@ -112,7 +110,6 @@ Board::Board(const Board& b) {
 	FullmoveClock = b.FullmoveClock;
 	State = b.State;
 	DrawCheck = b.DrawCheck;
-	StartingPosition = b.StartingPosition;
 	std::copy(std::begin(b.OccupancyInts), std::end(b.OccupancyInts), std::begin(OccupancyInts));
 
 	HashValue = b.HashValue;
@@ -140,21 +137,7 @@ const void Board::Draw(const uint64_t customBits = 0) {
 		for (int j = 0; j <= 7; j++) {
 			const int pieceId = GetPieceAt(i * 8 + j);
 			const int pieceColor = ColorOfPiece(pieceId);
-			char piece = ' ';
-			switch (pieceId) {
-			case Piece::WhitePawn: piece = 'P'; break;
-			case Piece::WhiteKnight: piece = 'N'; break;
-			case Piece::WhiteBishop: piece = 'B'; break;
-			case Piece::WhiteRook: piece = 'R'; break;
-			case Piece::WhiteQueen: piece = 'Q'; break;
-			case Piece::WhiteKing: piece = 'K'; break;
-			case Piece::BlackPawn: piece = 'p'; break;
-			case Piece::BlackKnight: piece = 'n'; break;
-			case Piece::BlackBishop: piece = 'b'; break;
-			case Piece::BlackRook: piece = 'r'; break;
-			case Piece::BlackQueen: piece = 'q'; break;
-			case Piece::BlackKing: piece = 'k'; break;
-			}
+			char piece = PieceChars[pieceId];
 
 			std::string CellStyle;
 
@@ -167,7 +150,7 @@ const void Board::Draw(const uint64_t customBits = 0) {
 				else CellStyle = WhiteOnDarkSquare;
 			}
 
-			if (CheckBit(customBits, static_cast<uint64_t>(i * 8 + j))) {
+			if (CheckBit(customBits, static_cast<uint64_t>(i) * 8 + static_cast<uint64_t>(j) )) {
 				if (pieceColor == PieceColor::Black) CellStyle = BlackOnTarget;
 				else  CellStyle = WhiteOnTarget;
 			}
@@ -180,6 +163,54 @@ const void Board::Draw(const uint64_t customBits = 0) {
 	cout << "    ------------------------ " << endl;
 	cout << "     a  b  c  d  e  f  g  h" << endl;
 
+}
+
+const std::string Board::GetFEN() {
+	std::string result;
+	for (int r = 7; r >= 0; r--) {
+		int spaces = 0;
+		for (int f = 0; f < 8; f++) {
+			int piece = GetPieceAt(Square(r, f));
+			if (piece == 0) {
+				spaces += 1;
+			}
+			else {
+				if (spaces != 0) result += std::to_string(spaces);
+				result += PieceChars[piece];
+				spaces = 0;
+			}
+		}
+		if (spaces != 0) result += std::to_string(spaces);
+		if (r != 0) result += '/';
+	}
+
+	if (Turn == Turn::White) result += " w ";
+	else if (Turn == Turn::Black) result += " b ";
+	
+	bool castlingPossible = false;
+	if (WhiteRightToShortCastle) { result += 'K'; castlingPossible = true; }
+	if (WhiteRightToLongCastle) { result += 'Q'; castlingPossible = true; }
+	if (BlackRightToShortCastle) { result += 'k'; castlingPossible = true; }
+	if (BlackRightToLongCastle) { result += 'q'; castlingPossible = true; }
+	if (!castlingPossible) result += '-';
+	result += ' ';
+
+	bool enPassantPossible = false;
+	if ((EnPassantSquare != -1) && (Turn == Turn::White)) {
+		bool fromRight = (((WhitePawnBits & ~Bitboards::FileA) << 7) & SquareBits[EnPassantSquare]) != 0ULL;
+		bool fromLeft = (((WhitePawnBits & ~Bitboards::FileH) << 9) & SquareBits[EnPassantSquare]) != 0ULL;
+		if (fromLeft || fromRight) enPassantPossible = true;
+	}
+	if ((EnPassantSquare != -1) && (Turn == Turn::Black)) {
+		bool fromRight = (((BlackPawnBits & ~Bitboards::FileA) >> 9) & SquareBits[EnPassantSquare]) != 0ULL;
+		bool fromLeft = (((BlackPawnBits & ~Bitboards::FileH) >> 7) & SquareBits[EnPassantSquare]) != 0ULL;
+		if (fromLeft || fromRight) enPassantPossible = true;
+	}
+	if (enPassantPossible) result += SquareStrings[EnPassantSquare];
+	else result += '-';
+
+	result += ' ' + std::to_string(HalfmoveClock) + ' ' + std::to_string(FullmoveClock);
+	return result;
 }
 
 const uint64_t Board::HashInternal() {
@@ -429,10 +460,10 @@ void Board::TryMove(const Move move) {
 	else if (targetPiece == Piece::BlackKing) SetBitFalse(BlackKingBits, move.to); // ????
 
 	if ((piece == Piece::WhitePawn) && (move.to == EnPassantSquare) ) {
-		SetBitFalse(BlackPawnBits, static_cast<uint64_t>((EnPassantSquare)-8));
+		SetBitFalse(BlackPawnBits, static_cast<uint64_t>((EnPassantSquare)-8ULL));
 	}
 	if ((piece == Piece::BlackPawn) && (move.to == EnPassantSquare)) {
-		SetBitFalse(WhitePawnBits, static_cast<uint64_t>((EnPassantSquare)+8));
+		SetBitFalse(WhitePawnBits, static_cast<uint64_t>((EnPassantSquare)+8ULL));
 	}
 
 	if (piece == Piece::WhitePawn) {
