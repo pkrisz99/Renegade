@@ -247,7 +247,24 @@ void Engine::Start() {
 				if (parts[i] == "searchmoves") { cout << "info string Searchmoves parameter is not yet implemented!" << endl; }
 			}
 
-			Search.SearchMoves(board, params, Settings);
+			 
+			// Some sketchy multithreading
+			std::thread th([&]() {
+				Search.SearchMoves(board, params, Settings);
+			});
+
+			bool stopping = false;
+			while (!stopping) {
+				std::string input;
+				cin >> input;
+				if (input == "stop") {
+					Search.Aborting.store(true);
+					stopping = true;
+				}
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			}
+			th.join();
+
 			continue;
 		}
 

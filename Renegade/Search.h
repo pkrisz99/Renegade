@@ -11,6 +11,8 @@
 #include <fstream>
 #include <random>
 #include <filesystem>
+#include <atomic>
+#include <thread>
 
 class Search
 {
@@ -47,7 +49,7 @@ public:
 	std::vector<BookEntry> BookEntries;
 	Heuristics Heuristics;
 	SearchConstraints Constraints;
-	bool Aborting = false;
+	std::atomic<bool> Aborting = false;
 	std::chrono::steady_clock::time_point StartSearchTime;
 	bool Explored;
 	std::vector<Move> MoveList;
