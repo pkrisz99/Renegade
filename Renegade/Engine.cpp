@@ -3,7 +3,7 @@
 Engine::Engine() {
 	Search.Reset();
 	Settings = EngineSettings();
-	Settings.Hash = 64;
+	Settings.Hash = 16;
 	Settings.UseBook = false;
 	Settings.ExtendedOutput = false;
 }
@@ -25,7 +25,7 @@ void Engine::Start() {
 		if (cmd == "uci") {
 			cout << "id name Renegade " << Version << endl;
 			cout << "id author Krisztian Peocz" << endl;
-			cout << "option name Hash type spin default 64 min 0 max 256" << endl;
+			cout << "option name Hash type spin default 16 min 0 max 256" << endl;
 			cout << "option name OwnBook type check default false" << endl;
 			cout << "option name ExtendedOutput type check default false" << endl;
 			cout << "uciok" << endl;

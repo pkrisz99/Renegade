@@ -79,9 +79,9 @@ const int Heuristics::GetHashfull() {
 	return (int)(ApproxHashSize * 1000ULL / MaximumHashSize);
 }
 
-void Heuristics::UpdatePvTable(const Move move, const int level) {
+void Heuristics::UpdatePvTable(const Move move, const int level, const int depth) {
 	PvTable[level][level] = move;
-	for (int i = level + 1; i < 20; i++) {
+	for (int i = level + 1; i < std::min(depth,20); i++) {
 		Move lowerMove = PvTable[level + 1][i];
 		if ((lowerMove.from == 0) && (lowerMove.to == 0)) break;
 		PvTable[level][i] = lowerMove;

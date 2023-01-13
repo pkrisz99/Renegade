@@ -283,7 +283,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 				scoreType = ScoreType::Exact;
 				alpha = bestScore;
 				pvSearch = true;
-				Heuristics.UpdatePvTable(m, level);
+				Heuristics.UpdatePvTable(m, level, Depth);
 			}
 		}
 

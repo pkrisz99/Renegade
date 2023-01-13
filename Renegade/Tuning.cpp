@@ -93,7 +93,6 @@ const double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& r
 
 const void Tuning::Tune(const double K) {
 	int improvements = 0;
-	int step = 5;
 	int iterations = 1;
 	double testMSE = CalculateMSE(K, TestBoards, TestResults);
 
@@ -101,6 +100,7 @@ const void Tuning::Tune(const double K) {
 	std::cout << std::setprecision(6);
 
 	// Change these to tune a specific weight
+	int step = 2;
 	std::vector<int> weightsForTuning;
 	//weightsForTuning = { IndexTempoEarly, IndexTempoLate };
 	for (int i = 0; i < WeightsSize; i++) weightsForTuning.push_back(i);

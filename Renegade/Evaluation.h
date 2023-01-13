@@ -191,7 +191,7 @@ static const int Weights[WeightsSize] = {
 
 	// 19. Defended pawn bonus (early & late game)
 	10,
-	15,
+	0,
 
 	// 20. King safety weight
 	-84
@@ -333,8 +333,8 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	}
 
 	// Pawns defending pawns
-	int whiteDefendedPawns = Popcount((board.WhitePawnBits & !Bitboards::FileA & (board.WhitePawnBits << 7)) | (board.WhitePawnBits & !Bitboards::FileH & (board.WhitePawnBits << 9)));
-	int blackDefendedPawns = Popcount((board.BlackPawnBits & !Bitboards::FileA & (board.BlackPawnBits >> 9)) | (board.BlackPawnBits & !Bitboards::FileH & (board.BlackPawnBits >> 7)));
+	int whiteDefendedPawns = Popcount((board.WhitePawnBits & ~Bitboards::FileA & (board.WhitePawnBits << 7)) | (board.WhitePawnBits & ~Bitboards::FileH & (board.WhitePawnBits << 9)));
+	int blackDefendedPawns = Popcount((board.BlackPawnBits & ~Bitboards::FileA & (board.BlackPawnBits >> 9)) | (board.BlackPawnBits & ~Bitboards::FileH & (board.BlackPawnBits >> 7)));
 	const int defendingBonus = LinearTaper(weights[IndexDefendedPawnEarly], weights[IndexDefendedPawnLate], phase);
 	score += defendingBonus * whiteDefendedPawns;
 	score -= defendingBonus * blackDefendedPawns;
