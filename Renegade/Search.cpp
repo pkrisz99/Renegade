@@ -373,7 +373,6 @@ void Search::InitOpeningBook() {
 }
 
 const std::string Search::GetBookMove(const uint64_t hash) {
-	// should take about 2-3 ms for Human.bin (~900k entries) 
 	std::vector<std::string> matches;
 	for (const BookEntry& e : BookEntries) {
 		if (e.hash != hash) continue;

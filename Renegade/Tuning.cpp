@@ -73,9 +73,9 @@ const double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, st
 }
 
 const double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results) {
-	double K = 0.67;
-	const double maxK = 0.72;
-	const double step = 0.001;
+	double K = 0.69;
+	const double maxK = 0.71;
+	const double step = 0.002;
 
 	double bestK = 0;
 	double bestError = 1;

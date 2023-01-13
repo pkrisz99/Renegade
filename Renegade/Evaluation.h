@@ -176,7 +176,7 @@ static const int Weights[WeightsSize] = {
 	40,
 
 	// 16. Tempo bonus (early & late game)
-	15,
+	18,
 	0,
 
 	// 17. Doubled and tripled pawn penalty (early doubled, late doubled, early tripled, late tripled)
@@ -190,7 +190,7 @@ static const int Weights[WeightsSize] = {
 	25,
 
 	// 19. Defended pawn bonus (early & late game)
-	10,
+	0,
 	0,
 
 	// 20. King safety weight
@@ -332,12 +332,13 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 		if (blackPawnsOnFile > 2) score -= LinearTaper(weights[IndexTripledPawnEarly], weights[IndexTripledPawnLate], phase);
 	}
 
-	// Pawns defending pawns
+	// Pawns defending pawns - currently unused
+	/*
 	int whiteDefendedPawns = Popcount((board.WhitePawnBits & ~Bitboards::FileA & (board.WhitePawnBits << 7)) | (board.WhitePawnBits & ~Bitboards::FileH & (board.WhitePawnBits << 9)));
 	int blackDefendedPawns = Popcount((board.BlackPawnBits & ~Bitboards::FileA & (board.BlackPawnBits >> 9)) | (board.BlackPawnBits & ~Bitboards::FileH & (board.BlackPawnBits >> 7)));
 	const int defendingBonus = LinearTaper(weights[IndexDefendedPawnEarly], weights[IndexDefendedPawnLate], phase);
 	score += defendingBonus * whiteDefendedPawns;
-	score -= defendingBonus * blackDefendedPawns;
+	score -= defendingBonus * blackDefendedPawns; */
 
 	if (!board.Turn) score *= -1;
 
