@@ -6,11 +6,10 @@
 
 // This is the header file of Renegade's tuner. It is based on the Texel tuning method, and runs until no improvement can be found.
 // It is almost like a single layer neural network. Uses separate training and test datasets.
-
-// For the test run of 2.43 million positions on a ~5 year old laptop:
-// - About 1 GB RAM needed, loads quite quickly
-// - K determination takes about 90 seconds
-// - Iterations take roughly 15 minutes each.
+// 
+// Recommended to run this on at least a million positions, depending on the number of parameters to be tuned, it can take about a
+// minute, or a day.
+// Edit `Tuning.cpp` to customize the tuning behavior.
 
 class Tuning
 {

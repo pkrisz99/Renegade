@@ -160,9 +160,11 @@ Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings
 
 	Heuristics.ClearEntries();
 	Heuristics.ClearPv();
+	Aborting = true;
 	return e;
 }
 
+// Recursively called during the negamax search
 int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int beta, bool canNullMove) {
 
 	// Check limits
@@ -301,6 +303,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	return e;
 }
 
+// Quiescence search: for captures (incl. en passant) and promotions only
 int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool rootNode) {
 	MoveList.clear();
 	board.GeneratePseudoLegalMoves(MoveList, board.Turn, true);

@@ -370,6 +370,7 @@ const uint64_t Board::GetOccupancy(const int pieceColor) {
 	return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 }
 
+// Converts the uci move input to the engine's own representation, and then plays it
 bool Board::PushUci(const std::string ucistr) {
 	const int sq1 = SquareToNum(ucistr.substr(0, 2));
 	const int sq2 = SquareToNum(ucistr.substr(2, 2));
@@ -424,6 +425,7 @@ bool Board::PushUci(const std::string ucistr) {
 
 }
 
+// Updating bitboard fields
 void Board::TryMove(const Move move) {
 	
 	const int piece = GetPieceAt(move.from);
@@ -678,7 +680,6 @@ void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece, cons
 		int file = GetSquareFile(home);
 		int rank = GetSquareRank(home);
 
-		// To do: how to handle the king? appearantly it works without it, but no idea why
 		for (int i = 1; i < 8; i++) {
 			file += fileDirection;
 			rank += rankDirection;
@@ -695,6 +696,8 @@ void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece, cons
 
 }
 
+// Sliding attack generation, the idea being that this function does multiple pieces at once.
+// Also who doesn't like this level of bit fiddling?
 const uint64_t Board::GenerateSlidingAttacksShiftDown(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces, const uint64_t friendlyPieces, const uint64_t opponentPieces) {
 	const uint64_t blockingFriends = friendlyPieces & ~propagatingPieces;
 	uint64_t fill = ((propagatingPieces & boundMask) >> direction) & ~blockingFriends;
@@ -909,6 +912,7 @@ void Board::GenerateCastlingMoves(std::vector<Move>& moves) {
 	}
 }
 
+// Attack maps are an integral part of this engine, they are used to check the legality of pseudolegal moves
 uint64_t Board::CalculateAttackedSquares(int colorOfPieces) {
 	uint64_t squares = 0ULL;
 	uint64_t parallelSliders = 0;
@@ -1071,9 +1075,9 @@ bool Board::AreThereLegalMoves(const bool turn, const uint64_t previousAttackMap
 	return hasMoves;
 }
 
+// We try to call this function as little as possible
+// It pretends to make a move, check its legality and then revert the variables
 bool Board::IsLegalMove(const Move m, const int turn) {
-
-	// Backup variables
 	const uint64_t whitePawnBits = WhitePawnBits;
 	const uint64_t whiteKnightBits = WhiteKnightBits;
 	const uint64_t whiteBishopBits = WhiteBishopBits;

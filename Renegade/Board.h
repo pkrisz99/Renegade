@@ -4,7 +4,8 @@
 
 /*
 * This is the board representation of Renegade.
-* Square 0 = A1, 1 = B1 ... 8 = A2 ... 63 = H8
+* It also includes logic for move generation and handles game state as well.
+* A generic bitboard approach is used, pseudolegal moves are filtered via attack map generation.
 */
 
 class Board

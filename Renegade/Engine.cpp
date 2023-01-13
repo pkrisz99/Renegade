@@ -4,7 +4,7 @@ Engine::Engine() {
 	Search.Reset();
 	Settings = EngineSettings();
 	Settings.Hash = 16;
-	Settings.UseBook = false;
+	Settings.UseBook = true;
 	Settings.ExtendedOutput = false;
 }
 
@@ -254,7 +254,7 @@ void Engine::Start() {
 		cout << "Unknown command: '" << parts[0] << "'" << endl;
 
 	}
-	cout << "Renegade UCI interface ended" << endl;
+	cout << "Stopping engine." << endl;
 }
 
 void Engine::Play() {
