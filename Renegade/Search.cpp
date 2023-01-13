@@ -1,6 +1,7 @@
 #include "Search.h"
 
 Search::Search() {
+	Reset();
 }
 
 void Search::Reset() {
@@ -75,7 +76,7 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 	int myInc = turn ? params.winc : params.binc;
 	if (myTime != 0) {
 		int maxTime = (int)(myTime * 0.4);
-		int minTime = (int)((myTime + myInc * 5.0) * 0.015);
+		int minTime = (int)((myTime + myInc * 10.0) * 0.015);
 		constraints.SearchTimeMax = maxTime;
 		constraints.SearchTimeMin = minTime;
 		if (constraints.SearchTimeMin > constraints.SearchTimeMax) constraints.SearchTimeMin = constraints.SearchTimeMax;

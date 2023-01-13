@@ -1,7 +1,6 @@
 #include "Engine.h"
 
 Engine::Engine() {
-	Search.Reset();
 	Settings = EngineSettings();
 	Settings.Hash = 16;
 	Settings.UseBook = false;
