@@ -268,8 +268,7 @@ const uint64_t Board::Hash(const bool hashPlys) {
 }
 
 const int Board::GetPieceAt(const int place) {
-	return GetPieceAtFromBitboards(place);
-	//return OccupancyInts[place];
+	return OccupancyInts[place];
 }
 
 const int Board::GetPieceAtFromBitboards(const int place) {

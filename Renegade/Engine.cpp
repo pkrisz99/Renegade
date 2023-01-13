@@ -4,7 +4,7 @@ Engine::Engine() {
 	Search.Reset();
 	Settings = EngineSettings();
 	Settings.Hash = 16;
-	Settings.UseBook = true;
+	Settings.UseBook = false;
 	Settings.ExtendedOutput = false;
 }
 

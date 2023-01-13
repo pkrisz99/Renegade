@@ -1,7 +1,6 @@
 #include "Search.h"
 
 Search::Search() {
-	Reset();
 }
 
 void Search::Reset() {
