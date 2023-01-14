@@ -39,8 +39,8 @@ void Heuristics::ClearEntries() {
 		a[1] = Move(0, 0);
 		KillerMoves.push_back(a);
 	}
-	for (int i = 0; i < 30; i++) {
-		for (int j = 0; j < 30; j++) PvTable[i][j] = Move();
+	for (int i = 0; i < PvSize; i++) {
+		for (int j = 0; j < PvSize; j++) PvTable[i][j] = Move();
 	}
 }
 
@@ -59,14 +59,14 @@ void Heuristics::AddKillerMove(const Move move, const int level) {
 }
 
 const bool Heuristics::IsKillerMove(const Move move, const int level) {
-	if ((KillerMoves[level][0].from == move.from) && (KillerMoves[level][0].to == move.to)) return true;
-	if ((KillerMoves[level][1].from == move.from) && (KillerMoves[level][1].to == move.to)) return true;
+	if (KillerMoves[level][0] == move) return true;
+	if (KillerMoves[level][1] == move) return true;
 	return false;
 }
 
 const bool Heuristics::IsPvMove(const Move move, const int level) {
 	if (level >= PvMoves.size()) return false;
-	if ((move.from == PvMoves[level].from) && (move.to == PvMoves[level].to)) return true;
+	if (move == PvMoves[level]) return true;
 	return false;
 }
 
@@ -81,18 +81,17 @@ const int Heuristics::GetHashfull() {
 
 void Heuristics::UpdatePvTable(const Move move, const int level, const bool leaf) {
 	PvTable[level][level] = move;
-	for (int i = level + 1; i < 20; i++) {
+	for (int i = level + 1; i < PvSize; i++) {
 		Move lowerMove = PvTable[level + 1][i];
-		if ((lowerMove.from == 0) && (lowerMove.to == 0)) break;
+		if (lowerMove.IsEmpty()) break;
 		PvTable[level][i] = lowerMove;
 	}
 	if (leaf) {
-		for (int i = level + 1; i < 20; i++) {
-			if ((PvTable[level][i].from == 0) && (PvTable[level][i].to == 0)) break;
+		for (int i = level + 1; i < PvSize; i++) {
+			if (PvTable[level][i].IsEmpty()) break;
 			PvTable[level][i] = Move();
 		}
 	}
-
 	/*cout << "[" << endl;
 	for (int i = 0; i < 6; i++) {
 		for (int j = 0; j < 6; j++) {
@@ -105,9 +104,9 @@ void Heuristics::UpdatePvTable(const Move move, const int level, const bool leaf
 
 const std::vector<Move> Heuristics::GetPvLine() {
 	std::vector<Move> list = std::vector<Move>();
-	for (int i = 0; i < 20; i++) {
+	for (int i = 0; i < PvSize; i++) {
 		Move m = PvTable[0][i];
-		if ((m.from == 0) && (m.to == 0)) break;
+		if (m.IsEmpty()) break;
 		list.push_back(m);
 	}
 	return list;

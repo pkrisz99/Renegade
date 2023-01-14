@@ -48,3 +48,7 @@ const std::string Move::ToString() {
 const bool Move::IsNotNull() {
 	return (from != 0) || (to != 0);
 }
+
+const bool Move::IsEmpty() {
+	return (from == 0) && (to == 0) && (flag == 0);
+}

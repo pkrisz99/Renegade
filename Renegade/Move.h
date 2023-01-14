@@ -12,6 +12,7 @@ public:
 	void SetFlag(int flag);
 	const std::string ToString();
 	const bool IsNotNull();
+	const bool IsEmpty();
 
 	int from;
 	int to;

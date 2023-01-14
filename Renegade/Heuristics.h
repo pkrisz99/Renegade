@@ -19,6 +19,8 @@ struct HashEntry {
 class Heuristics
 {
 public:
+	static const int PvSize = 20;
+
 	Heuristics();
 	void AddEntry(const uint64_t hash, const int score, const int scoreType);
 	void AddKillerMove(const Move m, const int level);
@@ -40,8 +42,9 @@ public:
 	std::vector<std::array<Move, 2>> KillerMoves;
 	std::vector<Move> PvMoves;
 	uint64_t MaximumHashSize;
-	Move PvTable[30][30];
+	Move PvTable[PvSize][PvSize];
 
 	const HashEntry NoEntry = { -1, ScoreType::Exact};
+
 };
 
