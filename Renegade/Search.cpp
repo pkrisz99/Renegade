@@ -136,7 +136,7 @@ Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings
 			e.nodes = EvaluatedNodes;
 			e.qnodes = EvaluatedQuiescenceNodes;
 			e.time = elapsedMs;
-			e.nps = (int)(EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count());
+			e.nps = static_cast<int>(EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count());
 			e.hashfull = Heuristics.GetHashfull();
 			PrintInfo(e, settings);
 			break;
@@ -149,9 +149,22 @@ Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings
 		e.nodes = EvaluatedNodes;
 		e.qnodes = EvaluatedQuiescenceNodes;
 		e.time = elapsedMs;
-		e.nps = (int)(EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count());
+		e.nps = static_cast<int>(EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count());
 		e.hashfull = Heuristics.GetHashfull();
-		e.pv = Heuristics.GetPvLine();
+
+		// Check PV validity (note & todo: may not be correct)
+		e.pv.clear();
+		std::vector<Move> returnedPVs = Heuristics.GetPvLine();
+		Board b = board.Copy();
+		for (const Move& m : returnedPVs) {
+			std::vector<Move> legalMoves;
+			b.GenerateLegalMoves(legalMoves, b.Turn);
+			if (std::find(legalMoves.begin(), legalMoves.end(), m) != legalMoves.end()) {
+				e.pv.push_back(m);
+				b.Push(m);
+			}
+			else break;
+		}
 
 		Heuristics.SetPv(e.pv);
 		PrintInfo(e, settings);
@@ -197,10 +210,8 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		return e;
 	}
 
-	// Calculate hash
+	// Calculate and check hash
 	uint64_t hash = board.Hash(true);
-
-	// Check hash
 	std::tuple<bool, HashEntry> retrieved = Heuristics.RetrieveEntry(hash);
 	if (get<0>(retrieved)) {
 		HashEntry entry = get<1>(retrieved);
@@ -278,6 +289,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 				if (true) Heuristics.AddKillerMove(m, level);
 				int e = beta;
 				Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
+				if (pvNode) Heuristics.UpdatePvTable(m, level, depth == 1);
 				return e;
 			}
 
@@ -285,7 +297,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 				scoreType = ScoreType::Exact;
 				alpha = bestScore;
 				pvSearch = true;
-				Heuristics.UpdatePvTable(m, level, Depth);
+				if (pvNode) Heuristics.UpdatePvTable(m, level, depth == 1);
 			}
 		}
 

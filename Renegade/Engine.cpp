@@ -51,7 +51,7 @@ void Engine::Start() {
 		}
 
 		if (cmd == "tuner") {
-			Tuning Tuner("d");
+			Tuning tuner = Tuning();
 			continue;
 		}
 

@@ -1,6 +1,6 @@
 #include "Tuning.h"
 
-Tuning::Tuning(const std::string dataset) {
+Tuning::Tuning() {
 	cout << "\nThis is the tuner for Renegade, based on Texel's method." << endl;
 	cout << "Positions are loaded from positions.txt" << endl;
 	cout << "How many positions to load (-1 for all of them)? ";

@@ -1075,7 +1075,8 @@ bool Board::AreThereLegalMoves(const bool turn, const uint64_t previousAttackMap
 }
 
 // We try to call this function as little as possible
-// It pretends to make a move, check its legality and then revert the variables
+// Pretends to make a move, check its legality and then revert the variables
+// It only cares about whether the king will be in check, completely invalid moves won't be noticed
 bool Board::IsLegalMove(const Move m, const int turn) {
 	const uint64_t whitePawnBits = WhitePawnBits;
 	const uint64_t whiteKnightBits = WhiteKnightBits;

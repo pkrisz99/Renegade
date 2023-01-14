@@ -14,7 +14,7 @@
 class Tuning
 {
 public:
-	Tuning(const std::string dataset);
+	Tuning();
 	const float ConvertResult(const std::string str);
 	const double Sigmoid(const int score, const double K);
 	const double FindBestK(std::vector<Board>& boards, std::vector<float>& results);

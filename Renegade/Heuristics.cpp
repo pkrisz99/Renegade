@@ -76,16 +76,31 @@ void Heuristics::SetHashSize(const int megabytes) {
 
 const int Heuristics::GetHashfull() {
 	if (MaximumHashSize <= 0) return -1;
-	return (int)(ApproxHashSize * 1000ULL / MaximumHashSize);
+	return static_cast<int>(ApproxHashSize * 1000ULL / MaximumHashSize);
 }
 
-void Heuristics::UpdatePvTable(const Move move, const int level, const int depth) {
+void Heuristics::UpdatePvTable(const Move move, const int level, const bool leaf) {
 	PvTable[level][level] = move;
-	for (int i = level + 1; i < std::min(depth,20); i++) {
+	for (int i = level + 1; i < 20; i++) {
 		Move lowerMove = PvTable[level + 1][i];
 		if ((lowerMove.from == 0) && (lowerMove.to == 0)) break;
 		PvTable[level][i] = lowerMove;
 	}
+	if (leaf) {
+		for (int i = level + 1; i < 20; i++) {
+			if ((PvTable[level][i].from == 0) && (PvTable[level][i].to == 0)) break;
+			PvTable[level][i] = Move();
+		}
+	}
+
+	/*cout << "[" << endl;
+	for (int i = 0; i < 6; i++) {
+		for (int j = 0; j < 6; j++) {
+			cout << " " << PvTable[i][j].ToString();
+		}
+		cout << endl;
+	}
+	cout << "]" << endl;*/
 }
 
 const std::vector<Move> Heuristics::GetPvLine() {
