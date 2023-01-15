@@ -6,9 +6,9 @@ The engine is moderately strong, and regularly competes on Lichess over at https
 
 
 ## Features
-**Board representation >** Bitboards with a generated lookup table, threefold repetition detection, checkmate and stalemate detection  
+**Board representation >** Bitboards with a generated lookup table, threefold repetition, insufficient material, checkmate and stalemate detection  
 
-**Move generation >** Pseudolegal, attack map generation for legality checking, lookup tables, parallel sliding attack generation  
+**Move generation >** Pseudolegal, attack map generation for legality checking, lookup tables, parallel bitwise sliding attack generation  
 
 **Search >** Alpha-beta pruning, iterative deepening, move ordering, principal variation search, quiescence search, transposition table, killer move heuristic, null move pruning, delta pruning, check extensions  
 
@@ -49,4 +49,4 @@ Most UCI commands are supported including limiting search to a specific depth, t
 Furthermore, there are some custom commands, including `eval`, `draw` and `fen`. Perft test can be accessed by typing `go perft [n]` or `go perftdiv [n]`.
 
 ## Acknowledgments
-Getting this far would not have been possible without the contributors of the [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page), and I'm grateful for [Maksim Korzh](https://youtube.com/playlist?list=PLmN0neTso3Jxh8ZIylk74JpwfiWNI76Cs) and [Bluefever Software](https://youtube.com/playlist?list=PLZ1QII7yudbc-Ky058TEaOstZHVbT-2hg) for making a video series on this subject. 
+Getting this far would not have been possible without the contributors of the [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page), and I'm deeply grateful for [Maksim Korzh](https://youtube.com/playlist?list=PLmN0neTso3Jxh8ZIylk74JpwfiWNI76Cs) and [Bluefever Software](https://youtube.com/playlist?list=PLZ1QII7yudbc-Ky058TEaOstZHVbT-2hg) for making a video series on this subject. 
