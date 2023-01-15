@@ -2,19 +2,17 @@
 
 Heuristics::Heuristics() {
 	HashedEntryCount = 0;
-	ApproxHashSize = 0;
 	KillerMoves.reserve(100);
 	PvMoves = std::vector<Move>();
 }
 
 void Heuristics::AddEntry(const uint64_t hash, const int score, const int scoreType) {
-	if (ApproxHashSize + sizeof(HashEntry) >= MaximumHashSize) return;
+	if (EstimateAllocatedMemory() >= MaximumHashMemory) return;
 	HashedEntryCount += 1;
 	HashEntry entry;
 	entry.score = score;
 	entry.scoreType = scoreType;
 	Hashes[hash] = entry;
-	ApproxHashSize += sizeof(HashEntry); // Is this good?
 }
 
 const std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(const uint64_t hash) {
@@ -29,7 +27,6 @@ const std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(const uint64_t hash)
 void Heuristics::ClearEntries() {
 	Hashes.clear();
 	HashedEntryCount = 0;
-	ApproxHashSize = 0;
 
 	KillerMoves.clear();
 	KillerMoves.reserve(100);
@@ -42,6 +39,14 @@ void Heuristics::ClearEntries() {
 	for (int i = 0; i < PvSize; i++) {
 		for (int j = 0; j < PvSize; j++) PvTable[i][j] = Move();
 	}
+}
+
+const int Heuristics::EstimateAllocatedMemory() {
+	// https://stackoverflow.com/questions/25375202/how-to-measure-the-memory-usage-of-stdunordered-map
+	// (data list + bucket index) * 1.5
+	const int dataListSize = Hashes.size() * (sizeof(HashEntry) + sizeof(void*));
+	const int bucketIndexSize = Hashes.bucket_count() * (sizeof(void*) + sizeof(size_t));
+	return static_cast<int>((dataListSize + bucketIndexSize) * 1.5);
 }
 
 void Heuristics::ClearPv() {
@@ -71,12 +76,12 @@ const bool Heuristics::IsPvMove(const Move move, const int level) {
 }
 
 void Heuristics::SetHashSize(const int megabytes) {
-	MaximumHashSize = megabytes * 1024ULL * 1024ULL;
+	MaximumHashMemory = megabytes * 1024ULL * 1024ULL;
 }
 
 const int Heuristics::GetHashfull() {
-	if (MaximumHashSize <= 0) return -1;
-	return static_cast<int>(ApproxHashSize * 1000ULL / MaximumHashSize);
+	if (MaximumHashMemory <= 0) return -1;
+	return static_cast<int>(EstimateAllocatedMemory() * 1000ULL / MaximumHashMemory);
 }
 
 void Heuristics::UpdatePvTable(const Move move, const int level, const bool leaf) {

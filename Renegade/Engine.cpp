@@ -2,7 +2,7 @@
 
 Engine::Engine() {
 	Settings = EngineSettings();
-	Settings.Hash = 16;
+	Settings.Hash = 64;
 	Settings.UseBook = false;
 	Settings.ExtendedOutput = false;
 }
@@ -24,7 +24,7 @@ void Engine::Start() {
 		if (cmd == "uci") {
 			cout << "id name Renegade " << Version << endl;
 			cout << "id author Krisztian Peocz" << endl;
-			cout << "option name Hash type spin default 16 min 0 max 256" << endl;
+			cout << "option name Hash type spin default 64 min 0 max 256" << endl;
 			cout << "option name OwnBook type check default false" << endl;
 			cout << "option name ExtendedOutput type check default false" << endl;
 			cout << "uciok" << endl;
@@ -136,6 +136,7 @@ void Engine::Start() {
 			}
 			if (parts[1] == "sizeof") {
 				cout << "sizeof HashEntry:         " << sizeof(HashEntry) << endl;
+				cout << "sizeof HashMap:           " << sizeof(Search.Heuristics.Hashes) << endl;
 				cout << "sizeof Move:              " << sizeof(Move) << endl;
 				cout << "sizeof std::vector<Move>: " << sizeof(std::vector<Move>) << endl;
 				cout << "sizeof int:               " << sizeof(int) << endl;
