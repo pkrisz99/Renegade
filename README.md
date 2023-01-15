@@ -1,6 +1,6 @@
 # Renegade chess engine ♞
 
-Renegade is a chess engine written in C++ using Visual Studio 2019. It values readability and simplicity, and uses the UCI protocol to communicate, making it easy to connect it to chess frontends. Under construction since October 2022.  
+Renegade is a chess engine written in C++ using Visual Studio 2019. It values readability and simplicity, and uses the UCI protocol to communicate, making it easy to connect it to chess frontends. Under construction since October 7, 2022 and released publicly on January 15, 2023.  
 
 The engine is moderately strong, and regularly competes on Lichess over at https://lichess.org/@/RenegadeEngine.
 
@@ -30,17 +30,18 @@ The project can be compiled using Visual Studio 2019 with C++20 features enabled
 
 
 ## Usage
-Like most chess engines, this is a command line application, and it uses the UCI protocol, which is widely supported by chess frontends.
+Like most chess engines, this is a command line application implementing the UCI protocol, which is widely supported by graphical chess programs.
 If you are familiar with the protocol, you can also try running it by itself.  
 
 Example output:
 ```
-Renegade chess engine 0.6.0 [Dec 24 2022 23:21:29]
-go depth 4
-info depth 1 seldepth 2 score cp 50 nodes 20 nps 192678 time 0 hashfull 0 pv g1f3
-info depth 2 seldepth 3 score cp 0 nodes 59 nps 30182 time 1 hashfull 0 pv g1f3 g8f6
-info depth 3 seldepth 4 score cp 50 nodes 523 nps 104189 time 5 hashfull 0 pv g1f3 g8f6 b1c3
-info depth 4 seldepth 9 score cp 0 nodes 1388 nps 90673 time 15 hashfull 0 pv g1f3 g8f6 b1c3 b8c6
+Renegade chess engine 0.7.0 [Jan 15 2023 20:52:03]
+go depth 5
+info depth 1 seldepth 1 score cp 32 nodes 20 nps 170068 time 0 hashfull 0 pv g1f3
+info depth 2 seldepth 2 score cp 18 nodes 59 nps 26823 time 2 hashfull 0 pv g1f3 g8f6
+info depth 3 seldepth 3 score cp 32 nodes 523 nps 129870 time 4 hashfull 0 pv g1f3 g8f6 b1c3
+info depth 4 seldepth 8 score cp 18 nodes 1354 nps 167069 time 8 hashfull 0 pv g1f3 g8f6 b1c3 b8c6
+info depth 5 seldepth 9 score cp 22 nodes 8514 nps 325346 time 26 hashfull 0 pv g1f3 g8f6 b1c3 b8c6 e2e4
 bestmove g1f3
 ```
 

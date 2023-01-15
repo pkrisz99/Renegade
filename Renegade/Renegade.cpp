@@ -8,7 +8,7 @@
 // - Heuristics.cpp : collection of methods to make search more efficient (e.g. transposition table stuff)
 // - Move.cpp       : move representation
 // - Evaluation.cpp : static board evaluation
-// - Tuner.cpp      : Engine parameter tuner
+// - Tuner.cpp      : engine parameter tuner
 // - Utils.cpp      : other misc functions, lookup tables and shared variables
 
 // Requirements:

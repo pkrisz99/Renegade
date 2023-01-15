@@ -44,8 +44,8 @@ void Heuristics::ClearEntries() {
 const int Heuristics::EstimateAllocatedMemory() {
 	// https://stackoverflow.com/questions/25375202/how-to-measure-the-memory-usage-of-stdunordered-map
 	// (data list + bucket index) * 1.5
-	const int dataListSize = Hashes.size() * (sizeof(HashEntry) + sizeof(void*));
-	const int bucketIndexSize = Hashes.bucket_count() * (sizeof(void*) + sizeof(size_t));
+	const size_t dataListSize = Hashes.size() * (sizeof(HashEntry) + sizeof(void*));
+	const size_t bucketIndexSize = Hashes.bucket_count() * (sizeof(void*) + sizeof(size_t));
 	return static_cast<int>((dataListSize + bucketIndexSize) * 1.5);
 }
 
