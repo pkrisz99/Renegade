@@ -2,8 +2,7 @@
 
 #pragma once
 
-Board::Board(const std::string fen) {
-
+void Board::Setup(const std::string fen) {
 	WhitePawnBits = 0L;
 	WhiteKnightBits = 0L;
 	WhiteBishopBits = 0L;
@@ -81,7 +80,11 @@ Board::Board(const std::string fen) {
 }
 
 Board::Board() {
-	Board(starting_fen);
+	Setup(FEN::StartPos);
+}
+
+Board::Board(const std::string fen) {
+	Setup(fen);
 }
 
 Board::Board(const Board& b) {

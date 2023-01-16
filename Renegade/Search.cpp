@@ -9,7 +9,6 @@ void Search::Reset() {
 	EvaluatedQuiescenceNodes = 0;
 	SelDepth = 0;
 	Depth = 0;
-	//Heuristics = Heuristics();
 	InitOpeningBook();
 }
 
@@ -230,9 +229,9 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1) && (remainingPieces > 5)) {
 		Move m = Move();
 		m.SetFlag(MoveFlag::NullMove);
-		Board b = board.Copy();
-		b.Push(m);
-		int nullMoveEval = SearchRecursive(b, depth - 1 - reduction, level + 1, -beta, -beta + 1, false);
+		Boards[level] = board;
+		Boards[level].Push(m);
+		int nullMoveEval = SearchRecursive(Boards[level], depth - 1 - reduction, level + 1, -beta, -beta + 1, false);
 		if ((-nullMoveEval >= beta) && (abs(nullMoveEval) < MateEval - 1000)) return beta;
 	}
 
@@ -262,9 +261,9 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		Move m = get<0>(o);
 		if (!board.IsLegalMove(m, board.Turn)) continue;
 		legalMoveCount += 1;
-		Board b = board.Copy();
+		Boards[level] = board;
+		Board& b = Boards[level];
 		b.Push(m);
-		//eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
 
 		// Principal variation search - questionable gains
 		int childEval;
@@ -342,9 +341,10 @@ int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool 
 	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
 		Move m = get<0>(o);
 		if (!board.IsLegalMove(m, board.Turn)) continue;
-		Board b = board.Copy();
-		b.Push(m);
-		int childEval = -SearchQuiescence(b, level + 1, -beta, -alpha, false);
+		//Board b = board.Copy();
+		Boards[level] = board;
+		Boards[level].Push(m);
+		int childEval = -SearchQuiescence(Boards[level], level + 1, -beta, -alpha, false);
 		if (childEval >= beta) return beta;
 		if (childEval > alpha) alpha = childEval;
 	}

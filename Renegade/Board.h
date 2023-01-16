@@ -16,6 +16,7 @@ public:
 	Board(const Board &b);
 	Board(const std::string fen);
 	Board Copy();
+	void Setup(const std::string fen);
 
 	void Push(const Move move);
 	bool PushUci(const std::string ucistr);
