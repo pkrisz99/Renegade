@@ -27,7 +27,7 @@ public:
 	int SearchRecursive(Board &board, int depth, int level, int alpha, int beta, bool canNullMove);
 	int StaticEvaluation(Board &board, const int level);
 	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn);
-	int SearchQuiescence(Board board, int level, int alpha, int beta, bool rootNode);
+	int SearchQuiescence(Board &board, int level, int alpha, int beta, bool rootNode);
 
 	// Opening book
 	void InitOpeningBook();
@@ -50,7 +50,10 @@ public:
 	bool Aborting = false;
 	std::chrono::steady_clock::time_point StartSearchTime;
 	bool Explored;
+
+	// Reused variables
 	std::vector<Move> MoveList;
+	std::vector<std::tuple<Move, int>> MoveOrder[100];
 
 };
 

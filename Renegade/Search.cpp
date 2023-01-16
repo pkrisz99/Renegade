@@ -243,13 +243,12 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Move ordering
 	const float phase = CalculateGamePhase(board);
-	std::vector<std::tuple<Move, int>> order = std::vector<std::tuple<Move, int>>();
-	order.reserve(MoveList.size());
+	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
 		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase);
-		order.push_back({ m, orderScore });
+		MoveOrder[level].push_back({ m, orderScore });
 	}
-	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
+	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
 		return get<1>(t1) > get<1>(t2);
 	});
 
@@ -259,7 +258,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	bool pvSearch = false;
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
-	for (const std::tuple<Move, int>& o : order) {
+	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
 		Move m = get<0>(o);
 		if (!board.IsLegalMove(m, board.Turn)) continue;
 		legalMoveCount += 1;
@@ -316,7 +315,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 }
 
 // Quiescence search: for captures (incl. en passant) and promotions only
-int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool rootNode) {
+int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool rootNode) {
 	MoveList.clear();
 	board.GeneratePseudoLegalMoves(MoveList, board.Turn, true);
 	if (!rootNode) EvaluatedQuiescenceNodes += 1;
@@ -330,18 +329,17 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 
 	// Order capture moves
 	const float phase = CalculateGamePhase(board);
-	std::vector<std::tuple<Move, int>> order = std::vector<std::tuple<Move, int>>();
-	order.reserve(MoveList.size());
+	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
 		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase);
-		order.push_back({ m, orderScore });
+		MoveOrder[level].push_back({ m, orderScore });
 	}
-	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
+	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
 		return get<1>(t1) > get<1>(t2);
 	});
 
 	// Search recursively
-	for (const std::tuple<Move, int>& o : order) {
+	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
 		Move m = get<0>(o);
 		if (!board.IsLegalMove(m, board.Turn)) continue;
 		Board b = board.Copy();
