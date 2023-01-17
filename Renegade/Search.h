@@ -28,6 +28,7 @@ public:
 	int StaticEvaluation(Board &board, const int level);
 	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn);
 	int SearchQuiescence(Board &board, int level, int alpha, int beta, bool rootNode);
+	const int CalculateDeltaMargin(Board& board);
 
 	// Opening book
 	void InitOpeningBook();

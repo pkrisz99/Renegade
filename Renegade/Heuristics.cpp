@@ -15,7 +15,7 @@ void Heuristics::AddEntry(const uint64_t hash, const int score, const int scoreT
 	Hashes[hash] = entry;
 }
 
-const std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(const uint64_t hash) {
+const std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(const uint64_t &hash) {
 
 	if (Hashes.find(hash) != Hashes.end()) {
 		HashEntry entry = Hashes[hash];

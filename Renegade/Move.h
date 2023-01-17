@@ -13,6 +13,7 @@ public:
 	const std::string ToString();
 	const bool IsNotNull();
 	const bool IsEmpty();
+	const bool IsUnderpromotion();
 
 	int from;
 	int to;

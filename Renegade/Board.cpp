@@ -120,6 +120,11 @@ Board::Board(const Board& b) {
 	PastHashes = b.PastHashes;
 }
 
+Board Board::Copy() {
+	return Board(*this);
+}
+
+
 const void Board::Draw(const uint64_t customBits = 0) {
 
 	const std::string side = Turn ? "white" : "black";
@@ -1140,8 +1145,4 @@ bool Board::IsLegalMove(const Move m, const int turn) {
 	AttackedSquares = attackedSquares;
 
 	return !inCheck;
-}
-
-Board Board::Copy() {
-	return Board(*this);
 }

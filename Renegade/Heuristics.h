@@ -29,7 +29,7 @@ public:
 	void SetPv(const std::vector<Move> pv);
 	void ClearEntries();
 	void ClearPv();
-	const std::tuple<bool, HashEntry> RetrieveEntry(const uint64_t hash);
+	const std::tuple<bool, HashEntry> RetrieveEntry(const uint64_t &hash);
 	void SetHashSize(const int megabytes);
 	const int GetHashfull();
 	void UpdatePvTable(const Move move, const int level, const bool leaf);

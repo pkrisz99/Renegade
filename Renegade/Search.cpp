@@ -319,6 +319,9 @@ int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool 
 	board.GeneratePseudoLegalMoves(MoveList, board.Turn, true);
 	if (!rootNode) EvaluatedQuiescenceNodes += 1;
 
+	// Calculate delta pruning margin (~11% node reduction @ depth=8)
+	int delta = CalculateDeltaMargin(board);
+
 	// Update alpha-beta bounds, return alpha if no captures left
 	int staticEval = StaticEvaluation(board, level);
 	if (staticEval >= beta) return beta;
@@ -341,10 +344,14 @@ int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool 
 	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
 		Move m = get<0>(o);
 		if (!board.IsLegalMove(m, board.Turn)) continue;
-		//Board b = board.Copy();
+
+		// Limiting quiescence search to not try underpromotions (experiments show a 0.9% underpromotion rate)
+		if ((level <= Depth + 3) && (level >= 5) && (m.IsUnderpromotion())) continue;
+
 		Boards[level] = board;
-		Boards[level].Push(m);
-		int childEval = -SearchQuiescence(Boards[level], level + 1, -beta, -alpha, false);
+		Board& b = Boards[level];
+		b.Push(m);
+		int childEval = -SearchQuiescence(b, level + 1, -beta, -alpha, false);
 		if (childEval >= beta) return beta;
 		if (childEval > alpha) alpha = childEval;
 	}
@@ -355,6 +362,12 @@ int Search::StaticEvaluation(Board &board, int level) {
 	EvaluatedNodes += 1;
 	if (level > SelDepth) SelDepth = level;
 	return EvaluateBoard(board, level);
+}
+
+const int Search::CalculateDeltaMargin(Board &board) {
+	if ((board.WhiteQueenBits | board.BlackQueenBits) > 0) return 1000;
+	if ((board.WhiteRookBits | board.BlackRookBits) > 0) return 600;
+	return 400;
 }
 
 
