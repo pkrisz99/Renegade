@@ -224,9 +224,10 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	// Null-move pruning
-	int remainingPieces = Popcount(board.GetOccupancy());
+	int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
+	int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
 	int reduction = 2;
-	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1) && (remainingPieces > 5)) {
+	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1) && ((friendlyPieces - friendlyPawns) > 2)) {
 		Move m = Move();
 		m.SetFlag(MoveFlag::NullMove);
 		Boards[level] = board;
