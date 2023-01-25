@@ -920,7 +920,7 @@ void Board::GenerateCastlingMoves(std::vector<Move>& moves) {
 }
 
 // Attack maps are an integral part of this engine, they are used to check the legality of pseudolegal moves
-uint64_t Board::CalculateAttackedSquares(int colorOfPieces) {
+const uint64_t Board::CalculateAttackedSquares(const int colorOfPieces) {
 	uint64_t squares = 0ULL;
 	uint64_t parallelSliders = 0;
 	uint64_t diagonalSliders = 0;
@@ -1145,4 +1145,11 @@ bool Board::IsLegalMove(const Move m, const int turn) {
 	AttackedSquares = attackedSquares;
 
 	return !inCheck;
+}
+
+const bool Board::IsMoveQuiet(const Move& move) {
+	if (GetPieceAt(move.to) != Piece::None) return false;
+	if ((move.flag == MoveFlag::PromotionToQueen) || (move.flag == MoveFlag::PromotionToKnight) || (move.flag == MoveFlag::PromotionToRook) || (move.flag == MoveFlag::PromotionToBishop)) return false;
+	if (move.flag == MoveFlag::EnPassantPerformed) return false;
+	return true;
 }

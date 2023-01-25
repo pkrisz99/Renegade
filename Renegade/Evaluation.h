@@ -194,7 +194,26 @@ static const int Weights[WeightsSize] = {
 	0,
 
 	// 20. King safety weight
-	-84
+	-84,
+
+	/*
+	// 21. Pawn mobility (early & late game)
+	2, 10, // added if pawn can move
+
+	// 22. Knight mobility
+	25
+
+	// 23. Bishop mobility...
+	30,
+	
+	// 24. Rook mobility....
+	
+	// 25. Queen mobility...
+
+	// 26. King mobility...*/
+
+
+	// +: outposts, isolated pawns, open files...
 };
 
 class Evaluation
@@ -226,6 +245,48 @@ static const float CalculateGamePhase(Board &board) {
 	int remainingPieces = Popcount(board.GetOccupancy());
 	float phase = (32.f - remainingPieces) / (32.f - 4.f);
 	return std::clamp(phase, 0.f, 1.f);
+}
+
+static const std::tuple<int, uint64_t> KnightMobility(int square, uint64_t friendlyPieces) {
+	uint64_t mobility = KnightMoveBits[square] & ~friendlyPieces;
+	float mobilityPhase = Popcount(mobility) / 8.f;
+	return  { LinearTaper(-22, 22, mobilityPhase), mobility };
+}
+
+static const std::tuple<int, uint64_t> RookMobility(Board& board, int square, uint64_t friendlyPieces, uint64_t opponentPieces) {
+	uint64_t verticalMobility = (board.GenerateSlidingAttacksShiftDown(8, ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(8, ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces))
+		& ~SquareBits[square];
+	uint64_t horizontalMobility = (board.GenerateSlidingAttacksShiftDown(1, ~Bitboards::FileA, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(1, ~Bitboards::FileH, SquareBits[square], friendlyPieces, opponentPieces))
+		& ~SquareBits[square];
+	float horizontalMobilityPhase = Popcount(horizontalMobility) / 7.f;
+	float verticalMobilityPhase = Popcount(verticalMobility) / 7.f;
+	return  { LinearTaper(-16, 16, horizontalMobilityPhase) + LinearTaper(-20, 20, verticalMobilityPhase), verticalMobility | horizontalMobility };
+}
+
+static const std::tuple<int, uint64_t> BishopMobility(Board& board, int square, uint64_t friendlyPieces, uint64_t opponentPieces) {
+	uint64_t mobility = (board.GenerateSlidingAttacksShiftDown(7, ~Bitboards::FileH & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftDown(9, ~Bitboards::FileA & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(9, ~Bitboards::FileH & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces))
+		& ~SquareBits[square];
+	float mobilityPhase = Popcount(mobility) / 13.f;
+	return { LinearTaper(-16, 16, mobilityPhase), mobility };
+}
+
+static const std::tuple<int, uint64_t> QueenMobility(Board& board, int square, uint64_t friendlyPieces, uint64_t opponentPieces) {
+	uint64_t mobility = (board.GenerateSlidingAttacksShiftDown(8, ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(8, ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftDown(1, ~Bitboards::FileA, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(1, ~Bitboards::FileH, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftDown(7, ~Bitboards::FileH & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftDown(9, ~Bitboards::FileA & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(9, ~Bitboards::FileH & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces))
+		& ~SquareBits[square];
+	float mobilityPhase = Popcount(mobility) / 27.f;
+	return { LinearTaper(-32, 32, mobilityPhase), mobility };
 }
 
 
@@ -276,10 +337,18 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 
 	int score = 0;
 	uint64_t occupancy = board.GetOccupancy();
+	uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
+	uint64_t blackPieces = board.GetOccupancy(PieceColor::Black);
 	float phase = CalculateGamePhase(board);
-	uint64_t ourAttacks = board.CalculateAttackedSquares(board.Turn); // Opponent attacks are stored in the board
-	uint64_t whiteAttacks = board.Turn ? ourAttacks : board.AttackedSquares;
-	uint64_t blackAttacks = board.Turn ? board.AttackedSquares : ourAttacks;
+	//uint64_t ourAttacks = board.CalculateAttackedSquares(board.Turn); // Opponent attacks are stored in the board
+	//uint64_t whiteAttacks = board.Turn ? ourAttacks : board.AttackedSquares;
+	//uint64_t blackAttacks = board.Turn ? board.AttackedSquares : ourAttacks;
+
+	int mobilityScore = 0;
+	uint64_t whiteAttacks = 0;
+	uint64_t blackAttacks = 0;
+	uint64_t allOccupancy = occupancy;
+	std::tuple<int, uint64_t> mob;
 
 	while (occupancy != 0) {
 		int i = 63 - Lzcount(occupancy);
@@ -307,16 +376,84 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				score -= LinearTaper(weights[IndexPassedPawnEarly], weights[IndexPassedPawnLate], phase);
 		}
 
-		// Very rudimentary king safety
-		if (piece == Piece::WhiteKing) {
-			const float kingSafety = Popcount((SquareBits[i] | KingMoveBits[i]) & blackAttacks) / (Popcount(KingMoveBits[i]) + 1.f);
-			score += SigmoidishTaper(weights[IndexKingSafety], kingSafety);
-		}
-		else if (piece == Piece::BlackKing) {
-			const float kingSafety = Popcount((SquareBits[i] | KingMoveBits[i]) & whiteAttacks) / (Popcount(KingMoveBits[i]) + 1.f);
-			score -= SigmoidishTaper(weights[IndexKingSafety], kingSafety);
+		// Mobility - todo: make this prettier
+		switch (piece) {
+		case Piece::WhitePawn:
+			whiteAttacks |= WhitePawnAttacks[i] & ~whitePieces;
+			break;
+		case Piece::BlackPawn:
+			blackAttacks |= BlackPawnAttacks[i] & ~blackPieces;
+			break;
+
+		case Piece::WhiteKnight:
+			mob = KnightMobility(i, whitePieces);
+			mobilityScore += get<0>(mob);
+			whiteAttacks |= get<1>(mob);
+			break;
+		case Piece::BlackKnight:
+			mob = KnightMobility(i, blackPieces);
+			mobilityScore -= get<0>(mob);
+			blackAttacks |= get<1>(mob);
+			break;
+
+		case Piece::WhiteBishop:
+			mob = BishopMobility(board, i, whitePieces, blackPieces);
+			mobilityScore += get<0>(mob);
+			whiteAttacks |= get<1>(mob);
+			break;
+		case Piece::BlackBishop:
+			mob = BishopMobility(board, i, blackPieces, whitePieces);
+			mobilityScore -= get<0>(mob);
+			blackAttacks |= get<1>(mob);
+			break;
+
+		case Piece::WhiteRook:
+			mob = RookMobility(board, i, whitePieces, blackPieces);
+			mobilityScore += get<0>(mob);
+			whiteAttacks |= get<1>(mob);
+			break;
+		case Piece::BlackRook:
+			mob = RookMobility(board, i, blackPieces, whitePieces);
+			mobilityScore -= get<0>(mob);
+			blackAttacks |= get<1>(mob);
+			break;
+
+		case Piece::WhiteQueen:
+			mob = QueenMobility(board, i, whitePieces, blackPieces);
+			mobilityScore += get<0>(mob);
+			whiteAttacks |= get<1>(mob);
+			break;
+		case Piece::BlackQueen:
+			mob = QueenMobility(board, i, blackPieces, whitePieces);
+			mobilityScore -= get<0>(mob);
+			blackAttacks |= get<1>(mob);
+			break;
+		
+		case Piece::WhiteKing:
+			whiteAttacks |= (KingMoveBits[i] & ~whitePieces);
+			break;
+		case Piece::BlackKing:
+			blackAttacks |= (KingMoveBits[i] & ~blackPieces);
+			break;
 		}
 	}
+
+	// Taper mobility contribution to eval score
+	// To avoid putting the queen out too early
+	//score += LinearTaper(0, mobilityScore, std::min(phase * 7.f, 1.f));
+
+	// Very rudimentary king safety
+	whiteAttacks &= ~whitePieces;
+	blackAttacks &= ~blackPieces;
+
+	int whiteKingSquare = 63 - Lzcount(board.WhiteKingBits);
+	const float whiteKingSafety = Popcount((SquareBits[whiteKingSquare] | KingMoveBits[whiteKingSquare]) & blackAttacks) / (Popcount(KingMoveBits[whiteKingSquare]) + 1.f);
+	score += SigmoidishTaper(weights[IndexKingSafety], whiteKingSafety);
+
+	int blackKingSquare = 63 - Lzcount(board.BlackKingBits);
+	const float blackKingSafety = Popcount((SquareBits[blackKingSquare] | KingMoveBits[blackKingSquare]) & whiteAttacks) / (Popcount(KingMoveBits[blackKingSquare]) + 1.f);
+	score -= SigmoidishTaper(weights[IndexKingSafety], blackKingSafety);
+	
 
 	// Bishop pair bonus
 	if (Popcount(board.WhiteBishopBits) >= 2) score += LinearTaper(weights[IndexBishopPairEarly], weights[IndexBishopPairLate], phase);
@@ -339,6 +476,10 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	const int defendingBonus = LinearTaper(weights[IndexDefendedPawnEarly], weights[IndexDefendedPawnLate], phase);
 	score += defendingBonus * whiteDefendedPawns;
 	score -= defendingBonus * blackDefendedPawns; */
+
+	// Attacked square count
+	//const int controlWeight = 2;
+	//score += (Popcount(whiteAttacks) - Popcount(blackAttacks)) * controlWeight;
 
 	if (!board.Turn) score *= -1;
 

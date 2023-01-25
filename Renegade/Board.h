@@ -34,7 +34,13 @@ public:
 	void GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, const bool quiescenceOnly);
 	void GenerateLegalMoves(std::vector<Move>& moves, const int turn);
 	void GenerateNonQuietMoves(std::vector<Move>& moves, const int turn);
-	uint64_t CalculateAttackedSquares(const int turn);
+	const uint64_t CalculateAttackedSquares(const int colorOfPieces);
+	const bool IsMoveQuiet(const Move& move);
+
+	const uint64_t GenerateSlidingAttacksShiftUp(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
+		const uint64_t friendlyPieces, const uint64_t opponentPieces);
+	const uint64_t GenerateSlidingAttacksShiftDown(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
+		const uint64_t friendlyPieces, const uint64_t opponentPieces);
 
 	// Board variables:
 	uint64_t WhitePawnBits;
@@ -79,9 +85,6 @@ private:
 
 	const uint64_t GenerateKnightAttacks(const int from);
 	const uint64_t GenerateKingAttacks(const int from);
-	const uint64_t GenerateSlidingAttacksShiftUp(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
-		const uint64_t friendlyPieces, const uint64_t opponentPieces);
-	const uint64_t GenerateSlidingAttacksShiftDown(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
-		const uint64_t friendlyPieces, const uint64_t opponentPieces);
+	
 };
 
