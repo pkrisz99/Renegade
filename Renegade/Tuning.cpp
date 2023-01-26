@@ -102,8 +102,8 @@ const void Tuning::Tune(const double K) {
 	// Change these to tune a specific weight
 	int step = 2;
 	std::vector<int> weightsForTuning;
-	//weightsForTuning = { IndexTempoEarly, IndexTempoLate };
-	for (int i = 0; i < WeightsSize; i++) weightsForTuning.push_back(i);
+	//for (int i = 0; i < WeightsSize; i++) weightsForTuning.push_back(i);
+	weightsForTuning = { 887 };
 
 	// Main optimizer loop
 	// To do: use an efficient (e.g. adam) optimizer

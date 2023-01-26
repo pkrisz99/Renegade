@@ -7,7 +7,7 @@ static const int NoEval = -666666666;
 static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
 static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
-const static int WeightsSize = 887;
+const static int WeightsSize = 888;
 
 // Source of values:
 // https://www.chessprogramming.org/Simplified_Evaluation_Function
@@ -216,7 +216,8 @@ static const int Weights[WeightsSize] = {
 	-13, -12, -11, -10,  -9,  -8,  -7,  -6,  -5,  -4, -3, -2, -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 13,
 	-39, -36, -33, -30, -27, -24, -21, -18, -15, -12, -9, -6, -3,  0,  3,  6,  9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 40,
 
-	// 26. King mobility...*/
+	// 26. King safety multiplier
+	-15
 
 
 	// +: outposts, isolated pawns, open files...
@@ -353,7 +354,7 @@ const int IndexPassedPawnLate = 789;
 
 const int IndexDefendedPawnEarly = 790;
 const int IndexDefendedPawnLate = 791;
-const int IndexKingSafety = 792;
+const int IndexKingSafety = 887;
 
 
 inline static const int EvaluateBoard(Board& board, const int level, const int weights[WeightsSize]) {
@@ -374,15 +375,25 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
 	uint64_t blackPieces = board.GetOccupancy(PieceColor::Black);
 	float phase = CalculateGamePhase(board);
-	//uint64_t ourAttacks = board.CalculateAttackedSquares(board.Turn); // Opponent attacks are stored in the board
-	//uint64_t whiteAttacks = board.Turn ? ourAttacks : board.AttackedSquares;
-	//uint64_t blackAttacks = board.Turn ? board.AttackedSquares : ourAttacks;
 
 	int mobilityScore = 0;
 	uint64_t whiteAttacks = 0;
 	uint64_t blackAttacks = 0;
 	uint64_t allOccupancy = occupancy;
 	std::tuple<int, uint64_t> mob;
+
+
+	int whiteDangerScore = 0;
+	int blackDangerScore = 0;
+	int whiteDangerPieces = 0;
+	int blackDangerPieces = 0;
+	const int dangerWeights[] = { 0, 1, 2, 2, 3, 5, 0};
+
+	int whiteKingSquare = 63 - Lzcount(board.WhiteKingBits);
+	uint64_t whiteKingZone = SquareBits[whiteKingSquare] | KingMoveBits[whiteKingSquare];
+	int blackKingSquare = 63 - Lzcount(board.BlackKingBits);
+	uint64_t blackKingZone = SquareBits[blackKingSquare] | KingMoveBits[blackKingSquare];
+	uint64_t attacks;
 
 	while (occupancy != 0) {
 		int i = 63 - Lzcount(occupancy);
@@ -413,54 +424,104 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 		// Mobility - todo: make this prettier
 		switch (piece) {
 		case Piece::WhitePawn:
-			whiteAttacks |= WhitePawnAttacks[i] & ~whitePieces;
+			attacks = WhitePawnAttacks[i] & ~whitePieces;
+			whiteAttacks |= attacks;
+			if ((blackKingZone & attacks) != 0) {
+				blackDangerScore += dangerWeights[PieceType::Pawn];
+				blackDangerPieces += 1;
+			}
 			break;
 		case Piece::BlackPawn:
-			blackAttacks |= BlackPawnAttacks[i] & ~blackPieces;
+			attacks = BlackPawnAttacks[i] & ~blackPieces;
+			blackAttacks |= attacks;
+			if ((whiteKingZone & attacks) != 0) {
+				whiteDangerScore += dangerWeights[PieceType::Pawn];
+				whiteDangerPieces += 1;
+			}
 			break;
 
 		case Piece::WhiteKnight:
 			mob = KnightMobility(i, whitePieces, weights);
 			mobilityScore += get<0>(mob);
-			whiteAttacks |= get<1>(mob);
+			attacks = get<1>(mob);
+			whiteAttacks |= attacks;
+			if ((blackKingZone & attacks) != 0) {
+				blackDangerScore += dangerWeights[PieceType::Knight];
+				blackDangerPieces += 1;
+			}
 			break;
 		case Piece::BlackKnight:
 			mob = KnightMobility(i, blackPieces, weights);
 			mobilityScore -= get<0>(mob);
-			blackAttacks |= get<1>(mob);
+			attacks = get<1>(mob);
+			blackAttacks |= attacks;
+			if ((whiteKingZone & attacks) != 0) {
+				whiteDangerScore += dangerWeights[PieceType::Knight];
+				whiteDangerPieces += 1;
+			}
 			break;
 
 		case Piece::WhiteBishop:
 			mob = BishopMobility(board, i, whitePieces, blackPieces, weights);
 			mobilityScore += get<0>(mob);
-			whiteAttacks |= get<1>(mob);
+			attacks = get<1>(mob);
+			whiteAttacks |= attacks;
+			if ((blackKingZone & attacks) != 0) {
+				blackDangerScore += dangerWeights[PieceType::Bishop];
+				blackDangerPieces += 1;
+			}
 			break;
 		case Piece::BlackBishop:
 			mob = BishopMobility(board, i, blackPieces, whitePieces, weights);
 			mobilityScore -= get<0>(mob);
-			blackAttacks |= get<1>(mob);
+			attacks = get<1>(mob);
+			blackAttacks |= attacks;
+			if ((whiteKingZone & attacks) != 0) {
+				whiteDangerScore += dangerWeights[PieceType::Bishop];
+				whiteDangerPieces += 1;
+			}
 			break;
 
 		case Piece::WhiteRook:
 			mob = RookMobility(board, i, whitePieces, blackPieces, weights);
 			mobilityScore += get<0>(mob);
-			whiteAttacks |= get<1>(mob);
+			attacks = get<1>(mob);
+			whiteAttacks |= attacks;
+			if ((blackKingZone & attacks) != 0) {
+				blackDangerScore += dangerWeights[PieceType::Rook];
+				blackDangerPieces += 1;
+			}
 			break;
 		case Piece::BlackRook:
 			mob = RookMobility(board, i, blackPieces, whitePieces, weights);
 			mobilityScore -= get<0>(mob);
-			blackAttacks |= get<1>(mob);
+			attacks = get<1>(mob);
+			blackAttacks |= attacks;
+			if ((whiteKingZone & attacks) != 0) {
+				whiteDangerScore += dangerWeights[PieceType::Rook];
+				whiteDangerPieces += 1;
+			}
 			break;
 
 		case Piece::WhiteQueen:
 			mob = QueenMobility(board, i, whitePieces, blackPieces, phase, weights);
 			mobilityScore += get<0>(mob);
-			whiteAttacks |= get<1>(mob);
+			attacks = get<1>(mob);
+			whiteAttacks |= attacks;
+			if ((blackKingZone & attacks) != 0) {
+				blackDangerScore += dangerWeights[PieceType::Queen];
+				blackDangerPieces += 1;
+			}
 			break;
 		case Piece::BlackQueen:
 			mob = QueenMobility(board, i, blackPieces, whitePieces, phase, weights);
 			mobilityScore -= get<0>(mob);
-			blackAttacks |= get<1>(mob);
+			attacks = get<1>(mob);
+			blackAttacks |= attacks;
+			if ((whiteKingZone & attacks) != 0) {
+				whiteDangerScore += dangerWeights[PieceType::Queen];
+				whiteDangerPieces += 1;
+			}
 			break;
 		
 		case Piece::WhiteKing:
@@ -477,16 +538,17 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	score += LinearTaper(0, mobilityScore, std::min(phase * 7.f, 1.f));
 
 	// Very rudimentary king safety
-	whiteAttacks &= ~whitePieces;
-	blackAttacks &= ~blackPieces;
+	//whiteAttacks &= ~whitePieces;
+	//blackAttacks &= ~blackPieces;
 
-	int whiteKingSquare = 63 - Lzcount(board.WhiteKingBits);
-	const float whiteKingSafety = Popcount((SquareBits[whiteKingSquare] | KingMoveBits[whiteKingSquare]) & blackAttacks) / (Popcount(KingMoveBits[whiteKingSquare]) + 1.f);
-	score += SigmoidishTaper(weights[IndexKingSafety], whiteKingSafety);
-
-	int blackKingSquare = 63 - Lzcount(board.BlackKingBits);
-	const float blackKingSafety = Popcount((SquareBits[blackKingSquare] | KingMoveBits[blackKingSquare]) & whiteAttacks) / (Popcount(KingMoveBits[blackKingSquare]) + 1.f);
-	score -= SigmoidishTaper(weights[IndexKingSafety], blackKingSafety);
+	// Todo: Idea: more severe penalty if king is in the corner
+	const float dangerPieces[] = { 0.f, 0.5f, 0.8f, 0.9f, 1.f };
+	int whiteKingSafety = whiteDangerScore * dangerPieces[std::min(whiteDangerPieces, 4)];
+	int blackKingSafety = blackDangerScore * dangerPieces[std::min(blackDangerPieces, 4)];
+	score += whiteKingSafety * weights[IndexKingSafety];
+	score -= blackKingSafety * weights[IndexKingSafety];
+	//score += SigmoidishTaper(weights[IndexKingSafety], whiteKingSafety);
+	//score -= SigmoidishTaper(weights[IndexKingSafety], blackKingSafety);
 	
 
 	// Bishop pair bonus
