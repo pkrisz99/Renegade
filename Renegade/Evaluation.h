@@ -7,7 +7,7 @@ static const int NoEval = -666666666;
 static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
 static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
-const static int WeightsSize = 793;
+const static int WeightsSize = 887;
 
 // Source of values:
 // https://www.chessprogramming.org/Simplified_Evaluation_Function
@@ -196,19 +196,25 @@ static const int Weights[WeightsSize] = {
 	// 20. King safety weight
 	-84,
 
-	/*
-	// 21. Pawn mobility (early & late game)
-	2, 10, // added if pawn can move
+	
+	// 21. Pawn mobility
+	//2, 10, // added if pawn can move
 
 	// 22. Knight mobility
-	25
+	-22, -16, -11 -6, 0, 6, 11, 16, 22,
 
-	// 23. Bishop mobility...
-	30,
+	// 23. Bishop mobility
+	-18, -15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15, 17, 18,
 	
-	// 24. Rook mobility....
+	// 24. Rook vertical mobility
+	-17, -12, -7, -2, 2, 7, 12, 17,
+
+	// 25. Rook horizontal mobility
+	-14, -10, -7, -3, 3, 7, 10, 14,
 	
-	// 25. Queen mobility...
+	// 26. Queen mobility (early & late game)
+	-13, -12, -11, -10,  -9,  -8,  -7,  -6,  -5,  -4, -3, -2, -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 13,
+	-39, -36, -33, -30, -27, -24, -21, -18, -15, -12, -9, -6, -3,  0,  3,  6,  9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 40,
 
 	// 26. King mobility...*/
 
@@ -247,49 +253,6 @@ static const float CalculateGamePhase(Board &board) {
 	return std::clamp(phase, 0.f, 1.f);
 }
 
-static const std::tuple<int, uint64_t> KnightMobility(int square, uint64_t friendlyPieces) {
-	uint64_t mobility = KnightMoveBits[square] & ~friendlyPieces;
-	float mobilityPhase = Popcount(mobility) / 8.f;
-	return  { LinearTaper(-22, 22, mobilityPhase), mobility };
-}
-
-static const std::tuple<int, uint64_t> RookMobility(Board& board, int square, uint64_t friendlyPieces, uint64_t opponentPieces) {
-	uint64_t verticalMobility = (board.GenerateSlidingAttacksShiftDown(8, ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(8, ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces))
-		& ~SquareBits[square];
-	uint64_t horizontalMobility = (board.GenerateSlidingAttacksShiftDown(1, ~Bitboards::FileA, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(1, ~Bitboards::FileH, SquareBits[square], friendlyPieces, opponentPieces))
-		& ~SquareBits[square];
-	float horizontalMobilityPhase = Popcount(horizontalMobility) / 7.f;
-	float verticalMobilityPhase = Popcount(verticalMobility) / 7.f;
-	return  { LinearTaper(-16, 16, horizontalMobilityPhase) + LinearTaper(-20, 20, verticalMobilityPhase), verticalMobility | horizontalMobility };
-}
-
-static const std::tuple<int, uint64_t> BishopMobility(Board& board, int square, uint64_t friendlyPieces, uint64_t opponentPieces) {
-	uint64_t mobility = (board.GenerateSlidingAttacksShiftDown(7, ~Bitboards::FileH & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftDown(9, ~Bitboards::FileA & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(9, ~Bitboards::FileH & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces))
-		& ~SquareBits[square];
-	float mobilityPhase = Popcount(mobility) / 13.f;
-	return { LinearTaper(-16, 16, mobilityPhase), mobility };
-}
-
-static const std::tuple<int, uint64_t> QueenMobility(Board& board, int square, uint64_t friendlyPieces, uint64_t opponentPieces) {
-	uint64_t mobility = (board.GenerateSlidingAttacksShiftDown(8, ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(8, ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftDown(1, ~Bitboards::FileA, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(1, ~Bitboards::FileH, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftDown(7, ~Bitboards::FileH & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftDown(9, ~Bitboards::FileA & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(9, ~Bitboards::FileH & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces))
-		& ~SquareBits[square];
-	float mobilityPhase = Popcount(mobility) / 27.f;
-	return { LinearTaper(-32, 32, mobilityPhase), mobility };
-}
-
-
 inline static constexpr int IndexEarlyPSQT(const int pieceType, const int location) {
 	return (pieceType - 1) * 64 + location;
 }
@@ -305,6 +268,77 @@ inline static constexpr int IndexPieceValueEarly(const int pieceType) {
 inline static constexpr int IndexPieceValueLate(const int pieceType) {
 	return 773 + pieceType;
 }
+
+
+inline static constexpr int IndexKnightMobility(const int mobility) {
+	return 793 + mobility;
+}
+
+inline static constexpr int IndexBishopMobility(const int mobility) {
+	return 801 + mobility;
+}
+
+inline static constexpr int IndexRookVerticalMobility(const int mobility) {
+	return 815 + mobility;
+}
+
+inline static constexpr int IndexRookHorizontalMobility(const int mobility) {
+	return 823 + mobility;
+}
+
+inline static constexpr int IndexQueenEarlyMobility(const int mobility) {
+	return 831 + mobility;
+}
+
+inline static constexpr int IndexQueenLateMobility(const int mobility) {
+	return 859 + mobility;
+}
+
+static const std::tuple<int, uint64_t> KnightMobility(int square, uint64_t friendlyPieces, const int weights[WeightsSize]) {
+	uint64_t mobility = KnightMoveBits[square] & ~friendlyPieces;
+	int mobilityCount = Popcount(mobility);
+	return  { weights[IndexKnightMobility(mobilityCount)], mobility };
+}
+
+static const std::tuple<int, uint64_t> RookMobility(Board& board, int square, uint64_t friendlyPieces, uint64_t opponentPieces, const int weights[WeightsSize]) {
+	uint64_t verticalMobility = (board.GenerateSlidingAttacksShiftDown(8, ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(8, ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces))
+		& ~SquareBits[square];
+	uint64_t horizontalMobility = (board.GenerateSlidingAttacksShiftDown(1, ~Bitboards::FileA, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(1, ~Bitboards::FileH, SquareBits[square], friendlyPieces, opponentPieces))
+		& ~SquareBits[square];
+	int horizontalMobilityCount = Popcount(horizontalMobility);
+	int verticalMobilityCount = Popcount(verticalMobility);
+	return  { weights[IndexRookVerticalMobility(verticalMobilityCount)] + weights[IndexRookHorizontalMobility(horizontalMobilityCount)], verticalMobility + horizontalMobility };
+}
+
+static const std::tuple<int, uint64_t> BishopMobility(Board& board, int square, uint64_t friendlyPieces, uint64_t opponentPieces, const int weights[WeightsSize]) {
+	uint64_t mobility = (board.GenerateSlidingAttacksShiftDown(7, ~Bitboards::FileH & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftDown(9, ~Bitboards::FileA & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(9, ~Bitboards::FileH & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces))
+		& ~SquareBits[square];
+	int mobilityCount = Popcount(mobility);
+	return { weights[IndexBishopMobility(mobilityCount)], mobility };
+}
+
+static const std::tuple<int, uint64_t> QueenMobility(Board& board, int square, uint64_t friendlyPieces, uint64_t opponentPieces, float phase, const int weights[WeightsSize]) {
+	uint64_t mobility = (board.GenerateSlidingAttacksShiftDown(8, ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(8, ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftDown(1, ~Bitboards::FileA, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(1, ~Bitboards::FileH, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftDown(7, ~Bitboards::FileH & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftDown(9, ~Bitboards::FileA & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(9, ~Bitboards::FileH & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces)
+		| board.GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces))
+		& ~SquareBits[square];
+	int mobilityCount = Popcount(mobility);
+	int earlyScore = weights[IndexQueenEarlyMobility(mobilityCount)];
+	int lateScore = weights[IndexQueenLateMobility(mobilityCount)];
+	int score = LinearTaper(earlyScore, lateScore, phase);
+	return { score, mobility };
+}
+
 
 const int IndexBishopPairEarly = 780;
 const int IndexBishopPairLate = 781;
@@ -386,45 +420,45 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 			break;
 
 		case Piece::WhiteKnight:
-			mob = KnightMobility(i, whitePieces);
+			mob = KnightMobility(i, whitePieces, weights);
 			mobilityScore += get<0>(mob);
 			whiteAttacks |= get<1>(mob);
 			break;
 		case Piece::BlackKnight:
-			mob = KnightMobility(i, blackPieces);
+			mob = KnightMobility(i, blackPieces, weights);
 			mobilityScore -= get<0>(mob);
 			blackAttacks |= get<1>(mob);
 			break;
 
 		case Piece::WhiteBishop:
-			mob = BishopMobility(board, i, whitePieces, blackPieces);
+			mob = BishopMobility(board, i, whitePieces, blackPieces, weights);
 			mobilityScore += get<0>(mob);
 			whiteAttacks |= get<1>(mob);
 			break;
 		case Piece::BlackBishop:
-			mob = BishopMobility(board, i, blackPieces, whitePieces);
+			mob = BishopMobility(board, i, blackPieces, whitePieces, weights);
 			mobilityScore -= get<0>(mob);
 			blackAttacks |= get<1>(mob);
 			break;
 
 		case Piece::WhiteRook:
-			mob = RookMobility(board, i, whitePieces, blackPieces);
+			mob = RookMobility(board, i, whitePieces, blackPieces, weights);
 			mobilityScore += get<0>(mob);
 			whiteAttacks |= get<1>(mob);
 			break;
 		case Piece::BlackRook:
-			mob = RookMobility(board, i, blackPieces, whitePieces);
+			mob = RookMobility(board, i, blackPieces, whitePieces, weights);
 			mobilityScore -= get<0>(mob);
 			blackAttacks |= get<1>(mob);
 			break;
 
 		case Piece::WhiteQueen:
-			mob = QueenMobility(board, i, whitePieces, blackPieces);
+			mob = QueenMobility(board, i, whitePieces, blackPieces, phase, weights);
 			mobilityScore += get<0>(mob);
 			whiteAttacks |= get<1>(mob);
 			break;
 		case Piece::BlackQueen:
-			mob = QueenMobility(board, i, blackPieces, whitePieces);
+			mob = QueenMobility(board, i, blackPieces, whitePieces, phase, weights);
 			mobilityScore -= get<0>(mob);
 			blackAttacks |= get<1>(mob);
 			break;
@@ -440,7 +474,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 
 	// Taper mobility contribution to eval score
 	// To avoid putting the queen out too early
-	//score += LinearTaper(0, mobilityScore, std::min(phase * 7.f, 1.f));
+	score += LinearTaper(0, mobilityScore, std::min(phase * 7.f, 1.f));
 
 	// Very rudimentary king safety
 	whiteAttacks &= ~whitePieces;
