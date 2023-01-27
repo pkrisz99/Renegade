@@ -586,8 +586,8 @@ void Board::Push(const Move move) {
 	// If we are not in check and have enough pieces, it shouldn't be an issue
 	const int pieceCount = Popcount(GetOccupancy());
 	const int pieceCountComingPlayer = Popcount(GetOccupancy(TurnToPieceColor(Turn)));
-	const int notPawnOrKingCount = pieceCountComingPlayer - (Turn == Turn::White) ? Popcount(WhitePawnBits | WhiteKingBits) : Popcount(BlackPawnBits | BlackKingBits);
-	const bool checkGameEnd = (notPawnOrKingCount <= 1) || inCheck;
+	const int notPawnOrKingCount = pieceCountComingPlayer - ((Turn == Turn::White) ? Popcount(WhitePawnBits | WhiteKingBits) : Popcount(BlackPawnBits | BlackKingBits));
+	const bool checkGameEnd = (notPawnOrKingCount <= 2) || inCheck;
 	if (checkGameEnd) {
 		if (!AreThereLegalMoves(Turn, previousAttackMap)) {
 			if (inCheck) {
