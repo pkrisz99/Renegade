@@ -7,7 +7,7 @@ static const int NoEval = -666666666;
 static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
 static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
-const static int WeightsSize = 888;
+const static int WeightsSize = 924;
 
 // Source of values:
 // https://www.chessprogramming.org/Simplified_Evaluation_Function
@@ -216,8 +216,15 @@ static const int Weights[WeightsSize] = {
 	-13, -12, -11, -10,  -9,  -8,  -7,  -6,  -5,  -4, -3, -2, -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 13,
 	-39, -36, -33, -30, -27, -24, -21, -18, -15, -12, -9, -6, -3,  0,  3,  6,  9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 40,
 
-	// 26. King safety multiplier
-	-15
+	// 26. King safety score
+	//-13, -18, -19, -34, -64, -82, -91, -130, -130, -160, -480, -160, -175, -190, -204, -186, -234, -249, -264, -279, -294, -309, -314, -295, -310,
+	-13, -18, -19, -34, -64, -82, -91, -130, -130, -160, -180, -200, -220, -240, -260, -280, -300, -320, -340, -360, -380, -400, -420, -440, -460,
+
+	// 27. King safety dangers
+	1, 3, 2, 4, 6,
+
+	// 28. King safety multipliers (/100)
+	50, 70, 80, 90, 95, 98, 100,
 
 
 	// +: outposts, isolated pawns, open files...
@@ -295,6 +302,10 @@ inline static constexpr int IndexQueenLateMobility(const int mobility) {
 	return 859 + mobility;
 }
 
+inline static constexpr int IndexKingSafety(const int danger) {
+	return 886 + danger;
+}
+
 static const std::tuple<int, uint64_t> KnightMobility(int square, uint64_t friendlyPieces, const int weights[WeightsSize]) {
 	uint64_t mobility = KnightMoveBits[square] & ~friendlyPieces;
 	int mobilityCount = Popcount(mobility);
@@ -354,7 +365,12 @@ const int IndexPassedPawnLate = 789;
 
 const int IndexDefendedPawnEarly = 790;
 const int IndexDefendedPawnLate = 791;
-const int IndexKingSafety = 887;
+
+const int IndexPawnDanger = 912;
+const int IndexKnightDanger = 913;
+const int IndexBishopDanger = 914;
+const int IndexRookDanger = 915;
+const int IndexQueenDanger = 916;
 
 
 inline static const int EvaluateBoard(Board& board, const int level, const int weights[WeightsSize]) {
@@ -387,7 +403,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	int blackDangerScore = 0;
 	int whiteDangerPieces = 0;
 	int blackDangerPieces = 0;
-	const int dangerWeights[] = { 0, 1, 2, 2, 3, 5, 0};
+	const int dangerWeights[] = { 0, weights[IndexPawnDanger], weights[IndexKnightDanger], weights[IndexBishopDanger], weights[IndexRookDanger], weights[IndexQueenDanger], 0};
 
 	int whiteKingSquare = 63 - Lzcount(board.WhiteKingBits);
 	uint64_t whiteKingZone = SquareBits[whiteKingSquare] | KingMoveBits[whiteKingSquare];
@@ -537,18 +553,13 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	// To avoid putting the queen out too early
 	score += LinearTaper(0, mobilityScore, std::min(phase * 7.f, 1.f));
 
-	// Very rudimentary king safety
-	//whiteAttacks &= ~whitePieces;
-	//blackAttacks &= ~blackPieces;
-
+	// King safety
 	// Todo: Idea: more severe penalty if king is in the corner
-	const float dangerPieces[] = { 0.f, 0.5f, 0.8f, 0.9f, 1.f };
-	int whiteKingSafety = whiteDangerScore * dangerPieces[std::min(whiteDangerPieces, 4)];
-	int blackKingSafety = blackDangerScore * dangerPieces[std::min(blackDangerPieces, 4)];
-	score += whiteKingSafety * weights[IndexKingSafety];
-	score -= blackKingSafety * weights[IndexKingSafety];
-	//score += SigmoidishTaper(weights[IndexKingSafety], whiteKingSafety);
-	//score -= SigmoidishTaper(weights[IndexKingSafety], blackKingSafety);
+	const int dangerPieces[] = { 0, weights[917], weights[918], weights[919], weights[920], weights[921], weights[922], weights[923] };
+	int whiteKingSafety = whiteDangerScore * dangerPieces[std::min(whiteDangerPieces, 7)] / 100;
+	int blackKingSafety = blackDangerScore * dangerPieces[std::min(blackDangerPieces, 7)] / 100;
+	if (whiteKingSafety != 0) score += weights[IndexKingSafety(std::min(whiteKingSafety, 25))];
+	if (blackKingSafety != 0) score -= weights[IndexKingSafety(std::min(blackKingSafety, 25))];
 	
 
 	// Bishop pair bonus
@@ -572,10 +583,6 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	const int defendingBonus = LinearTaper(weights[IndexDefendedPawnEarly], weights[IndexDefendedPawnLate], phase);
 	score += defendingBonus * whiteDefendedPawns;
 	score -= defendingBonus * blackDefendedPawns; */
-
-	// Attacked square count
-	//const int controlWeight = 2;
-	//score += (Popcount(whiteAttacks) - Popcount(blackAttacks)) * controlWeight;
 
 	if (!board.Turn) score *= -1;
 
