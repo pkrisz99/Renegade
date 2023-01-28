@@ -118,7 +118,7 @@ const std::vector<Move> Heuristics::GetPvLine() {
 }
 
 // Move ordering scoring function
-const int Heuristics::CalculateOrderScore(Board board, const Move m, const int level, const float phase) {
+const int Heuristics::CalculateOrderScore(Board board, const Move m, const int level, const float phase, const bool onPv) {
 	int orderScore = 0;
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
@@ -143,7 +143,7 @@ const int Heuristics::CalculateOrderScore(Board board, const Move m, const int l
 		orderScore += LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.to])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.to])], phase);
 	}
 
-	if (IsKillerMove(m, level)) orderScore += 200000;
-	if (IsPvMove(m, level)) orderScore += 100000;
+	if (IsKillerMove(m, level)) orderScore += 1000;
+	if (IsPvMove(m, level) && onPv) orderScore += 1000000;
 	return orderScore;
 }

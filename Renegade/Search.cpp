@@ -198,6 +198,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	uint64_t kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
 	bool inCheck = (board.AttackedSquares & kingBits) != 0;
 	if (inCheck && (depth == 0) && (level < Depth + 10)) depth = 1;
+	bool pvNode = beta - alpha > 1;
 
 	// Return result for terminal nodes
 	if (depth <= 0) {
@@ -207,6 +208,15 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		if (board.State == GameState::Playing) Explored = false;
 		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
+	}
+
+	// Futility pruning
+	const int futilityMargins[] = { 100, 200 };
+	bool futilityPrunable = false;
+	if ((depth <= 2) && !inCheck && pvNode) {
+		int staticEval = EvaluateBoard(board, level);
+		if ((depth == 1) && (staticEval + futilityMargins[0] < alpha)) futilityPrunable = true;
+		else if ((depth == 2) && (staticEval + futilityMargins[1] < alpha)) futilityPrunable = true;
 	}
 
 	// Calculate and check hash
@@ -227,7 +237,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
 	int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
 	int reduction = 2;
-	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1) && ((friendlyPieces - friendlyPawns) > 2)) {
+	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1) && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
 		Move m = Move();
 		m.SetFlag(MoveFlag::NullMove);
 		Boards[level] = board;
@@ -245,14 +255,12 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
-		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase);
+		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, pvNode);
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
 		return get<1>(t1) > get<1>(t2);
 	});
-
-	bool pvNode = beta - alpha > 1;
 
 	// Iterate through legal moves
 	bool pvSearch = false;
@@ -264,17 +272,38 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		legalMoveCount += 1;
 		Boards[level] = board;
 		Board& b = Boards[level];
+		bool isQuiet = b.IsMoveQuiet(m);
+
+		// Futility pruning
+		if (isQuiet && futilityPrunable) continue;
+
 		b.Push(m);
 
-		// Principal variation search - questionable gains
 		int childEval;
-		if (!pvSearch) {
-			childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
-		}
-		else {
-			childEval = SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
-			if ((alpha < -childEval) && (-childEval < beta)) {
+		bool doPvSearch = true;
+
+		// Late move reductions
+		/*
+		if ((legalMoveCount > 4) && !pvNode && !inCheck && isQuiet && (depth > 3)) {
+			int reduction = 1;
+			if (legalMoveCount > 16) reduction = 2;
+			int reducedScore = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha-1, -alpha, true);
+			if (reducedScore <= alpha) {
+				doPvSearch = false;
+				childEval = -reducedScore;
+			}
+		}*/
+
+		// Principal variation search - questionable gains
+		if (doPvSearch) {
+			if (!pvSearch) {
 				childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
+			}
+			else {
+				childEval = SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
+				if ((alpha < -childEval) && (-childEval < beta)) {
+					childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
+				}
 			}
 		}
 
@@ -284,8 +313,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			bestScore = childScore;
 
 			if (bestScore >= beta) {
-				//bool capture = board.GetPieceAt(get<0>(o).to) != Piece::None;
-				if (true) Heuristics.AddKillerMove(m, level);
+				if (isQuiet) Heuristics.AddKillerMove(m, level);
 				int e = beta;
 				Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
 				if (pvNode) Heuristics.UpdatePvTable(m, level, depth == 1);
@@ -334,7 +362,7 @@ int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool 
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
-		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase);
+		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false);
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
