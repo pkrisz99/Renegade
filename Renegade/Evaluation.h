@@ -370,17 +370,6 @@ const int IndexQueenDanger = 916;
 
 inline static const int EvaluateBoard(Board& board, const int level, const int weights[WeightsSize]) {
 
-	// Game over?
-	if (board.State == GameState::Draw) return 0;
-	if (board.State == GameState::WhiteVictory) {
-		if (board.Turn == Turn::White) return MateEval - (level + 1) / 2;
-		if (board.Turn == Turn::Black) return -MateEval + (level + 1) / 2;
-	}
-	else if (board.State == GameState::BlackVictory) {
-		if (board.Turn == Turn::White) return -MateEval + (level + 1) / 2;
-		if (board.Turn == Turn::Black) return MateEval - (level + 1) / 2;
-	}
-
 	int score = 0;
 	uint64_t occupancy = board.GetOccupancy();
 	uint64_t whitePieces = board.GetOccupancy(PieceColor::White);

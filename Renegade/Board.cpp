@@ -23,7 +23,6 @@ void Board::Setup(const std::string fen) {
 	HalfmoveClock = 0;
 	FullmoveClock = 0;
 	Turn = Turn::White;
-	State = GameState::Playing;
 	PastHashes = std::vector<uint64_t>();
 
 	std::vector<std::string> parts = Split(fen);
@@ -111,8 +110,6 @@ Board::Board(const Board& b) {
 	Turn = b.Turn;
 	HalfmoveClock = b.HalfmoveClock;
 	FullmoveClock = b.FullmoveClock;
-	State = b.State;
-	DrawCheck = b.DrawCheck;
 	std::copy(std::begin(b.OccupancyInts), std::end(b.OccupancyInts), std::begin(OccupancyInts));
 
 	HashValue = b.HashValue;
@@ -568,84 +565,16 @@ void Board::Push(const Move move) {
 	Turn = !Turn;
 	if (Turn == Turn::White) FullmoveClock += 1;
 
-	const uint64_t previousAttackMap = AttackedSquares;
-	AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
-
 	// Get state after
-	bool inCheck = 0;
+	bool inCheck = false;
+	AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
 	if (Turn == Turn::White) inCheck = (AttackedSquares & WhiteKingBits) != 0;
 	else inCheck = (AttackedSquares & BlackKingBits) != 0;
 
-	// Add current hash to list - bug: HalfmoveClock should be 0
+	// Update threefold repetition list
 	if (HalfmoveClock == 0) PastHashes.clear();
 	HashValue = HashInternal();
 	PastHashes.push_back(HashValue);
-	
-	// Check checkmates & stalemates
-	// Trying to optimize for not calling the expensive AreThereLegalMoves()
-	// If we are not in check and have enough pieces, it shouldn't be an issue
-	const int pieceCount = Popcount(GetOccupancy());
-	const int pieceCountComingPlayer = Popcount(GetOccupancy(TurnToPieceColor(Turn)));
-	const int notPawnOrKingCount = pieceCountComingPlayer - ((Turn == Turn::White) ? Popcount(WhitePawnBits | WhiteKingBits) : Popcount(BlackPawnBits | BlackKingBits));
-	const bool checkGameEnd = (notPawnOrKingCount <= 2) || inCheck;
-	if (checkGameEnd) {
-		if (!AreThereLegalMoves(Turn, previousAttackMap)) {
-			if (inCheck) {
-				if (Turn == Turn::Black) State = GameState::WhiteVictory;
-				else State = GameState::BlackVictory;
-			}
-			else {
-				State = GameState::Draw;
-			}
-		}
-	}
-
-	if ((State != GameState::Playing) || (!DrawCheck)) return;
-
-	// Threefold repetition check
-	if (DrawCheck) {
-		const int64_t stateCount = std::count(PastHashes.end() - HalfmoveClock, PastHashes.end(), HashValue);
-		if (stateCount >= 3) {
-			State = GameState::Draw;
-			return;
-		}
-	}
-
-	// Insufficient material check
-	// I think this neglects some cases when pawns can't move
-	bool flag = false;
-	if (pieceCount <= 4) {
-		const int WhitePawnCount = Popcount(WhitePawnBits);
-		const int WhiteKnightCount = Popcount(WhiteKnightBits);
-		const int WhiteBishopCount = Popcount(WhiteBishopBits);
-		const int WhiteRookCount = Popcount(WhiteRookBits);
-		const int WhiteQueenCount = Popcount(WhiteQueenBits);
-		const int BlackPawnCount = Popcount(BlackPawnBits);
-		const int BlackKnightCount = Popcount(BlackKnightBits);
-		const int BlackBishopCount = Popcount(BlackBishopBits);
-		const int BlackRookCount = Popcount(BlackRookBits);
-		const int BlackQueenCount = Popcount(BlackQueenBits);
-		const int WhitePieceCount = WhitePawnCount + WhiteKnightCount + WhiteBishopCount + WhiteRookCount + WhiteQueenCount;
-		const int BlackPieceCount = BlackPawnCount + BlackKnightCount + BlackBishopCount + BlackRookCount + BlackQueenCount;
-		const int WhiteLightBishopCount = Popcount(WhiteBishopBits & Bitboards::LightSquares);
-		const int WhiteDarkBishopCount = Popcount(WhiteBishopBits & Bitboards::DarkSquares);
-		const int BlackLightBishopCount = Popcount(BlackBishopBits & Bitboards::LightSquares);
-		const int BlackDarkBishopCount = Popcount(BlackBishopBits & Bitboards::DarkSquares);
-
-		if (WhitePieceCount == 0 && BlackPieceCount == 0) flag = true;
-		if (WhitePieceCount == 1 && WhiteKnightCount == 1 && BlackPieceCount == 0) flag = true;
-		if (BlackPieceCount == 1 && BlackKnightCount == 1 && WhitePieceCount == 0) flag = true;
-		if (WhitePieceCount == 1 && WhiteBishopCount == 1 && BlackPieceCount == 0) flag = true;
-		if (BlackPieceCount == 1 && BlackBishopCount == 1 && WhitePieceCount == 0) flag = true;
-		if (WhitePieceCount == 1 && WhiteLightBishopCount == 1 && BlackPieceCount == 1 && BlackLightBishopCount == 1) flag = true;
-		if (WhitePieceCount == 1 && WhiteDarkBishopCount == 1 && BlackPieceCount == 1 && BlackDarkBishopCount == 1) flag = true;
-	}
-
-	if (flag) State = GameState::Draw;
-	if (State != GameState::Playing) return;
-	
-	// Check clocks...
-	if (HalfmoveClock >= 100) State = GameState::Draw;
 
 }
 
@@ -999,7 +928,6 @@ const uint64_t Board::CalculateAttackedSquares(const int colorOfPieces) {
 
 void Board::GenerateLegalMoves(std::vector<Move>& moves, const int turn) {
 	std::vector<Move> legalMoves;
-	if (State != GameState::Playing) return;
 
 	GeneratePseudoLegalMoves(legalMoves, turn, false);
 	for (const Move& m : legalMoves) {
@@ -1035,16 +963,17 @@ void Board::GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, c
 	}
 }
 
-bool Board::AreThereLegalMoves(const bool turn, const uint64_t previousAttackMap) {
+bool Board::AreThereLegalMoves(const bool turn) {
 	bool hasMoves = false;
 	const int myColor = TurnToPieceColor(turn);
 
+	/*
 	// Quick king test - if the king can move to a free square without being attacked, then we have a legal move
 	const uint64_t kingBits = turn == Turn::White ? WhiteKingBits : BlackKingBits;
 	const uint64_t sq = 63ULL - Lzcount(kingBits);
 	const uint64_t kingMoveBits = GenerateKingAttacks(static_cast<int>(sq));
 	const uint64_t fastKingCheck = (~previousAttackMap) & (~GetOccupancy()) & kingMoveBits;
-	if (fastKingCheck != 0) return true;
+	if (fastKingCheck != 0) return true;*/
 
 	std::vector<Move> moves;
 	uint64_t occupancy = GetOccupancy(TurnToPieceColor(turn));
@@ -1106,7 +1035,6 @@ bool Board::IsLegalMove(const Move m, const int turn) {
 	const int fullmoveClock = FullmoveClock;
 	const int halfmoveClock = HalfmoveClock;
 	const uint64_t attackedSquares = AttackedSquares;
-	const GameState state = State;
 
 	// Push move
 	TryMove(m);
@@ -1141,7 +1069,6 @@ bool Board::IsLegalMove(const Move m, const int turn) {
 	BlackRightToLongCastle = blackLongCastle;
 	FullmoveClock = fullmoveClock;
 	HalfmoveClock = halfmoveClock;
-	State = state;
 	AttackedSquares = attackedSquares;
 
 	return !inCheck;
@@ -1152,4 +1079,72 @@ const bool Board::IsMoveQuiet(const Move& move) {
 	if ((move.flag == MoveFlag::PromotionToQueen) || (move.flag == MoveFlag::PromotionToKnight) || (move.flag == MoveFlag::PromotionToRook) || (move.flag == MoveFlag::PromotionToBishop)) return false;
 	if (move.flag == MoveFlag::EnPassantPerformed) return false;
 	return true;
+}
+
+const bool Board::IsDraw() {
+
+	// Threefold repetitions
+	const int64_t stateCount = std::count(PastHashes.end() - HalfmoveClock, PastHashes.end(), HashValue);
+	if (stateCount >= 3) {
+		return true;
+	}
+
+	// Insufficient material check
+	// I think this neglects some cases when pawns can't move
+	const int pieceCount = Popcount(GetOccupancy());
+	if (pieceCount <= 4) {
+		const int WhitePawnCount = Popcount(WhitePawnBits);
+		const int WhiteKnightCount = Popcount(WhiteKnightBits);
+		const int WhiteBishopCount = Popcount(WhiteBishopBits);
+		const int WhiteRookCount = Popcount(WhiteRookBits);
+		const int WhiteQueenCount = Popcount(WhiteQueenBits);
+		const int BlackPawnCount = Popcount(BlackPawnBits);
+		const int BlackKnightCount = Popcount(BlackKnightBits);
+		const int BlackBishopCount = Popcount(BlackBishopBits);
+		const int BlackRookCount = Popcount(BlackRookBits);
+		const int BlackQueenCount = Popcount(BlackQueenBits);
+		const int WhitePieceCount = WhitePawnCount + WhiteKnightCount + WhiteBishopCount + WhiteRookCount + WhiteQueenCount;
+		const int BlackPieceCount = BlackPawnCount + BlackKnightCount + BlackBishopCount + BlackRookCount + BlackQueenCount;
+		const int WhiteLightBishopCount = Popcount(WhiteBishopBits & Bitboards::LightSquares);
+		const int WhiteDarkBishopCount = Popcount(WhiteBishopBits & Bitboards::DarkSquares);
+		const int BlackLightBishopCount = Popcount(BlackBishopBits & Bitboards::LightSquares);
+		const int BlackDarkBishopCount = Popcount(BlackBishopBits & Bitboards::DarkSquares);
+
+		if (WhitePieceCount == 0 && BlackPieceCount == 0) return true;
+		if (WhitePieceCount == 1 && WhiteKnightCount == 1 && BlackPieceCount == 0) return true;
+		if (BlackPieceCount == 1 && BlackKnightCount == 1 && WhitePieceCount == 0) return true;
+		if (WhitePieceCount == 1 && WhiteBishopCount == 1 && BlackPieceCount == 0) return true;
+		if (BlackPieceCount == 1 && BlackBishopCount == 1 && WhitePieceCount == 0) return true;
+		if (WhitePieceCount == 1 && WhiteLightBishopCount == 1 && BlackPieceCount == 1 && BlackLightBishopCount == 1) return true;
+		if (WhitePieceCount == 1 && WhiteDarkBishopCount == 1 && BlackPieceCount == 1 && BlackDarkBishopCount == 1) return true;
+	}
+
+	// Fifty moves without progress
+	if (HalfmoveClock >= 100) return true;
+
+	// Return false otherwise
+	return false;
+}
+
+const GameState Board::GetGameState() {
+
+	// Check checkmates & stalemates
+	if (!AreThereLegalMoves(Turn)) {
+		bool inCheck = false;
+		AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
+		if (Turn == Turn::White) inCheck = (AttackedSquares & WhiteKingBits) != 0;
+		else inCheck = (AttackedSquares & BlackKingBits) != 0;
+
+		if (inCheck) {
+			if (Turn == Turn::Black) return GameState::WhiteVictory;
+			else return GameState::BlackVictory;
+		}
+		else {
+			return GameState::Draw; // Stalemate
+		}
+	}
+
+	// Check other types of draws
+	if (IsDraw()) return GameState::Draw;
+	else return GameState::Playing;
 }

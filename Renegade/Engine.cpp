@@ -271,7 +271,7 @@ void Engine::Play() {
 	if ((white != 'c') && (white != 'h')) return;
 	if ((black != 'c') && (black != 'h')) return;
 
-	while (board.State == GameState::Playing) {
+	while (board.GetGameState() == GameState::Playing) {
 		ClearScreen();
 		board.Draw(0);
 

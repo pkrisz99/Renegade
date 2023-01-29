@@ -16,7 +16,6 @@ void Search::Reset() {
 
 const void Search::Perft(Board board, const int depth, const PerftType type) {
 	Board b = board.Copy();
-	b.DrawCheck = false;
 
 	auto t0 = Clock::now();
 	const int r = PerftRecursive(b, depth, depth, type);
@@ -121,7 +120,6 @@ Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings
 		Heuristics.ClearEntries();
 		Depth += 1;
 		SelDepth = 0;
-		Explored = true;
 		int result = SearchRecursive(board, Depth, 0, NegativeInfinity, PositiveInfinity, true);
 		Heuristics.SetHashSize(settings.Hash);
 
@@ -130,7 +128,7 @@ Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings
 		elapsedMs = (int)((currentTime - StartSearchTime).count() / 1e6);
 		if ((elapsedMs >= Constraints.SearchTimeMin) && (Constraints.SearchTimeMin != -1)) finished = true;
 		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
-		if ((Depth >= 100) || (Explored)) finished = true;
+		if ((Depth >= 32)) finished = true;
 		if (Aborting) {
 			e.nodes = EvaluatedNodes;
 			e.qnodes = EvaluatedQuiescenceNodes;
@@ -202,10 +200,8 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Return result for terminal nodes
 	if (depth <= 0) {
-		//int e = StaticEvaluation(board, level);
 		if (depth < 0) cout << "Check depth: " << depth << endl;
 		int e = SearchQuiescence(board, level, alpha, beta, true);
-		if (board.State == GameState::Playing) Explored = false;
 		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
 	}
@@ -224,6 +220,11 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		if (usable) return score;
 	}
 
+	// Check for draws
+	if (board.IsDraw()) {
+		return 0;
+	}
+
 	// Null-move pruning
 	int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
 	int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
@@ -234,7 +235,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		Boards[level] = board;
 		Boards[level].Push(m);
 		int nullMoveEval = SearchRecursive(Boards[level], depth - 1 - reduction, level + 1, -beta, -beta + 1, false);
-		if ((-nullMoveEval >= beta) && (abs(nullMoveEval) < MateEval - 1000)) return beta;
+		if ((-nullMoveEval >= beta) && !IsMateScore(nullMoveEval)) return beta;
 	}
 
 	// Futility pruning
@@ -341,7 +342,10 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Case when there was no legal move 
 	if (legalMoveCount == 0) {
-		int e = StaticEvaluation(board, level);
+		int e;
+		if (!inCheck) e = 0;
+		else e = -MateEval + (level + 1) / 2;
+
 		if (e >= beta) {
 			e = beta;
 			Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
@@ -351,8 +355,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			Heuristics.AddEntry(hash, e, ScoreType::Exact);
 			return e;
 		}
-		
-		
 	}
 
 	int e = alpha;
@@ -370,11 +372,10 @@ int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool 
 	int delta = CalculateDeltaMargin(board);
 
 	// Update alpha-beta bounds, return alpha if no captures left
-	int staticEval = StaticEvaluation(board, level);
+	int staticEval = StaticEvaluation(board, level, true);
 	if (staticEval >= beta) return beta;
 	if (staticEval < alpha - 1000) return alpha; // Delta pruning
 	if (staticEval > alpha) alpha = staticEval;
-	if (board.State != GameState::Playing) return alpha;
 
 	// Order capture moves
 	const float phase = CalculateGamePhase(board);
@@ -405,9 +406,12 @@ int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool 
 	return alpha;
 }
 
-int Search::StaticEvaluation(Board &board, int level) {
+int Search::StaticEvaluation(Board &board, int level, bool checkDraws) {
 	EvaluatedNodes += 1;
 	if (level > SelDepth) SelDepth = level;
+	if (checkDraws) {
+		if (board.IsDraw()) return 0;
+	}
 	return EvaluateBoard(board, level);
 }
 

@@ -29,13 +29,15 @@ public:
 	const uint64_t Hash(const bool hashPlys);
 	const uint64_t HashInternal();
 
-	bool AreThereLegalMoves(const bool turn, const uint64_t previousAttackMap);
+	bool AreThereLegalMoves(const bool turn);
 	bool IsLegalMove(const Move m, const int turn);
 	void GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, const bool quiescenceOnly);
 	void GenerateLegalMoves(std::vector<Move>& moves, const int turn);
 	void GenerateNonQuietMoves(std::vector<Move>& moves, const int turn);
 	const uint64_t CalculateAttackedSquares(const int colorOfPieces);
 	const bool IsMoveQuiet(const Move& move);
+	const bool IsDraw();
+	const GameState GetGameState();
 
 	const uint64_t GenerateSlidingAttacksShiftUp(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
 		const uint64_t friendlyPieces, const uint64_t opponentPieces);
@@ -64,13 +66,10 @@ public:
 	bool Turn;
 	int HalfmoveClock;
 	int FullmoveClock;
-	GameState State;
 	std::vector<uint64_t> PastHashes;
 	uint64_t HashValue;
 	int OccupancyInts[64];
 
-	// Board settings:
-	bool DrawCheck = true;
 
 private:
 	const int GetPieceAtFromBitboards(const int place);
