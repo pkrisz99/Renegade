@@ -18,6 +18,19 @@ typedef std::chrono::high_resolution_clock Clock;
 
 const std::string Version = "0.7.0+";
 
+// Evaluation helpers
+
+static const int MateEval = 1000000;
+static const int NoEval = -666666666;
+static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
+static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
+
+static bool IsMateScore(const int score) {
+	if (score > MateEval - 10000) return true;
+	if (score < -MateEval + 10000) return true;
+	return false;
+}
+
 // Board constants  -------------------------------------------------------------------------------
 
 namespace MoveFlag {

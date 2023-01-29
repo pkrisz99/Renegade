@@ -210,15 +210,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		return e;
 	}
 
-	// Futility pruning
-	const int futilityMargins[] = { 100, 200 };
-	bool futilityPrunable = false;
-	if ((depth <= 2) && !inCheck && pvNode) {
-		int staticEval = EvaluateBoard(board, level);
-		if ((depth == 1) && (staticEval + futilityMargins[0] < alpha)) futilityPrunable = true;
-		else if ((depth == 2) && (staticEval + futilityMargins[1] < alpha)) futilityPrunable = true;
-	}
-
 	// Calculate and check hash
 	uint64_t hash = board.Hash(true);
 	std::tuple<bool, HashEntry> retrieved = Heuristics.RetrieveEntry(hash);
@@ -244,6 +235,26 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		Boards[level].Push(m);
 		int nullMoveEval = SearchRecursive(Boards[level], depth - 1 - reduction, level + 1, -beta, -beta + 1, false);
 		if ((-nullMoveEval >= beta) && (abs(nullMoveEval) < MateEval - 1000)) return beta;
+	}
+
+	// Futility pruning
+	int staticEval = NoEval;
+	const int futilityMargins[] = { 100, 200 };
+	bool futilityPrunable = false;
+	if ((depth <= 2) && !inCheck && !pvNode) {
+		staticEval = EvaluateBoard(board, level);
+		if ((depth == 1) && (staticEval + futilityMargins[0] < alpha)) futilityPrunable = true;
+		else if ((depth == 2) && (staticEval + futilityMargins[1] < alpha)) futilityPrunable = true;
+	}
+
+	// Razoring (?)
+	const int razoringMargin = 400;
+	if ((depth < 2) && (level > 2) && !inCheck && !pvNode) {
+		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
+		if (staticEval + razoringMargin < alpha) {
+			int e = SearchQuiescence(board, level, alpha, beta, true);
+			if (e < alpha) return alpha;
+		}
 	}
 
 	// Initalize variables, and generate moves - if there are no legal moves, we'll return alpha
@@ -275,18 +286,16 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		bool isQuiet = b.IsMoveQuiet(m);
 
 		// Futility pruning
-		if (isQuiet && futilityPrunable) continue;
+		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta)) continue;
 
 		b.Push(m);
 
 		int childEval;
 		bool doPvSearch = true;
 
-		// Late move reductions
-		/*
-		if ((legalMoveCount > 4) && !pvNode && !inCheck && isQuiet && (depth > 3)) {
+		/* Late move reductions
+		if ((legalMoveCount > 4) && !pvNode && !inCheck && isQuiet && (depth >= 3)) {
 			int reduction = 1;
-			if (legalMoveCount > 16) reduction = 2;
 			int reducedScore = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha-1, -alpha, true);
 			if (reducedScore <= alpha) {
 				doPvSearch = false;
@@ -333,8 +342,17 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	// Case when there was no legal move 
 	if (legalMoveCount == 0) {
 		int e = StaticEvaluation(board, level);
-		Heuristics.AddEntry(hash, e, ScoreType::Exact);
-		return e;
+		if (e >= beta) {
+			e = beta;
+			Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
+			return e;
+		}
+		if (e > alpha) {
+			Heuristics.AddEntry(hash, e, ScoreType::Exact);
+			return e;
+		}
+		
+		
 	}
 
 	int e = alpha;
