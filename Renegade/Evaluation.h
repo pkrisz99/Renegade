@@ -2,7 +2,7 @@
 #include "Board.h"
 #include "Move.h"
 
-const static int WeightsSize = 924;
+const static int WeightsSize = 925;
 
 // Source of values:
 // https://www.chessprogramming.org/Simplified_Evaluation_Function
@@ -196,10 +196,10 @@ static const int Weights[WeightsSize] = {
 	//2, 10, // added if pawn can move
 
 	// 22. Knight mobility
-	-22, -16, -11 -6, 0, 6, 11, 16, 22,
+	-20, -15, -10, -5, 0, 5, 10, 15, 20,
 
 	// 23. Bishop mobility
-	-18, -15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15, 17, 18,
+	-36, -30, -24, -18, -12, -6, 0, 6, 12, 18, 24, 30, 36, 36,
 	
 	// 24. Rook vertical mobility
 	-17, -12, -7, -2, 2, 7, 12, 17,
@@ -220,7 +220,6 @@ static const int Weights[WeightsSize] = {
 
 	// 28. King safety multipliers (/100)
 	50, 70, 80, 90, 95, 98, 100,
-
 
 	// +: outposts, isolated pawns, open files...
 };
@@ -278,27 +277,27 @@ inline static constexpr int IndexKnightMobility(const int mobility) {
 }
 
 inline static constexpr int IndexBishopMobility(const int mobility) {
-	return 801 + mobility;
+	return 802 + mobility;
 }
 
 inline static constexpr int IndexRookVerticalMobility(const int mobility) {
-	return 815 + mobility;
+	return 816 + mobility;
 }
 
 inline static constexpr int IndexRookHorizontalMobility(const int mobility) {
-	return 823 + mobility;
+	return 824 + mobility;
 }
 
 inline static constexpr int IndexQueenEarlyMobility(const int mobility) {
-	return 831 + mobility;
+	return 832 + mobility;
 }
 
 inline static constexpr int IndexQueenLateMobility(const int mobility) {
-	return 859 + mobility;
+	return 860 + mobility;
 }
 
 inline static constexpr int IndexKingSafety(const int danger) {
-	return 886 + danger;
+	return 887 + danger;
 }
 
 static const std::tuple<int, uint64_t> KnightMobility(int square, uint64_t friendlyPieces, const int weights[WeightsSize]) {
@@ -361,11 +360,11 @@ const int IndexPassedPawnLate = 789;
 const int IndexDefendedPawnEarly = 790;
 const int IndexDefendedPawnLate = 791;
 
-const int IndexPawnDanger = 912;
-const int IndexKnightDanger = 913;
-const int IndexBishopDanger = 914;
-const int IndexRookDanger = 915;
-const int IndexQueenDanger = 916;
+const int IndexPawnDanger = 913;
+const int IndexKnightDanger = 914;
+const int IndexBishopDanger = 915;
+const int IndexRookDanger = 916;
+const int IndexQueenDanger = 917;
 
 
 inline static const int EvaluateBoard(Board& board, const int level, const int weights[WeightsSize]) {
@@ -539,7 +538,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 
 	// King safety
 	// Todo: Idea: more severe penalty if king is in the corner
-	const int dangerPieces[] = { 0, weights[917], weights[918], weights[919], weights[920], weights[921], weights[922], weights[923] };
+	const int dangerPieces[] = { 0, weights[918], weights[919], weights[920], weights[921], weights[922], weights[923], weights[924] };
 	int whiteKingSafety = whiteDangerScore * dangerPieces[std::min(whiteDangerPieces, 7)] / 100;
 	int blackKingSafety = blackDangerScore * dangerPieces[std::min(blackDangerPieces, 7)] / 100;
 	if (whiteKingSafety != 0) score += weights[IndexKingSafety(std::min(whiteKingSafety, 25))];
