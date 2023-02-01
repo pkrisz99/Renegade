@@ -278,6 +278,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	bool pvSearch = false;
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
+	bool doLateMoveReductions = true;
 	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
 		Move m = get<0>(o);
 		if (!board.IsLegalMove(m, board.Turn)) continue;
@@ -294,13 +295,16 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		int childEval;
 		bool doPvSearch = true;
 
-		/* Late move reductions
-		if ((legalMoveCount > 4) && !pvNode && !inCheck && isQuiet && (depth >= 3)) {
-			int reduction = 1;
-			int reducedScore = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha-1, -alpha, true);
-			if (reducedScore <= alpha) {
-				doPvSearch = false;
-				childEval = -reducedScore;
+		// Late move reductions
+		/*
+		if (doLateMoveReductions) {
+			if ((legalMoveCount > 4) && !pvNode && !inCheck && isQuiet && (depth >= 3) && canNullMove) {
+				int reduction = 1;
+				int reducedScore = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha - 1, -alpha, true);
+				if (reducedScore <= alpha) {
+					childEval = -reducedScore;
+					// pvSearch = true;
+				}
 			}
 		}*/
 
@@ -335,6 +339,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 				alpha = bestScore;
 				pvSearch = true;
 				if (pvNode) Heuristics.UpdatePvTable(m, level, depth == 1);
+				doLateMoveReductions = false;
 			}
 		}
 

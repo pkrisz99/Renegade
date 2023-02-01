@@ -567,10 +567,45 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	score += defendingBonus * whiteDefendedPawns;
 	score -= defendingBonus * blackDefendedPawns; */
 
+	// Convert to the correct perspective
 	if (!board.Turn) score *= -1;
 
 	// Tempo bonus
 	score += LinearTaper(weights[IndexTempoEarly], weights[IndexTempoLate], phase);
+
+	// Drawish endgame detection
+	// To avoid simplifying down to a non-winning endgame with a nominal material advantage
+	// Probably should be expanded even more
+	bool potentiallyDrawish = false;
+	if ((whitePieces <= 3) && (blackPieces <= 3)) {
+		if (Popcount(board.WhiteRookBits | board.BlackRookBits | board.WhiteQueenBits | board.BlackQueenBits | board.WhitePawnBits | board.BlackPawnBits) == 0) potentiallyDrawish = true;
+	}
+	if (potentiallyDrawish) {
+		int whiteExtras = whitePieces - 1;
+		int blackExtras = blackPieces - 1;
+		int whiteMinors = Popcount(board.WhiteKnightBits | board.WhiteBishopBits);
+		int blackMinors = Popcount(board.BlackKnightBits | board.BlackBishopBits);
+		int whiteKnights = Popcount(board.WhiteKnightBits);
+		int blackKnights = Popcount(board.BlackKnightBits);
+		int whiteBishops = Popcount(board.WhiteBishopBits);
+		int blackBishops = Popcount(board.BlackBishopBits);
+		bool drawish =
+			// 2 minor pieces (no bishop pair) vs 1 minor piece
+			((whiteExtras == 2) && (whiteMinors == 2) && (whiteBishops != 2) && (blackExtras == 1) && (blackMinors == 1)) ||
+			((blackExtras == 2) && (blackMinors == 2) && (blackBishops != 2) && (whiteExtras == 1) && (whiteMinors == 1)) ||
+			// 2 knights vs king
+			((whiteExtras == 0) && (blackExtras == 2) && (blackKnights == 2)) ||
+			((blackExtras == 0) && (whiteExtras == 2) && (whiteKnights == 2)) ||
+			// minor piece vs minor piece
+			((whiteExtras == 1) && (whiteMinors == 1) && (blackExtras == 1) && (blackMinors == 1)) ||
+			// minor piece vs 2 knights
+			((whiteExtras == 1) && (whiteMinors == 1) && (blackExtras == 2) && (blackKnights == 2)) ||
+			((blackExtras == 1) && (blackMinors == 1) && (whiteExtras == 2) && (whiteKnights == 2)) ||
+			// 2 bishop vs 1 bishop
+			((whiteExtras == 2) && (whiteBishops == 2) && (blackExtras == 1) && (blackBishops == 1)) ||
+			((blackExtras == 2) && (blackBishops == 2) && (whiteExtras == 1) && (whiteBishops == 1));
+		if (drawish) score = score / 16;
+	}
 
 	return score;
 }
