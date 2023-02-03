@@ -250,8 +250,17 @@ static const int SigmoidishTaper(const int lateValue, const float phase) {
 }
 
 static const float CalculateGamePhase(Board &board) {
-	int remainingPieces = Popcount(board.GetOccupancy());
-	float phase = (32.f - remainingPieces) / (32.f - 4.f);
+	int remainingPawns = Popcount(board.WhitePawnBits | board.BlackPawnBits);
+	int remainingKnights = Popcount(board.WhiteKnightBits | board.BlackKnightBits);
+	int remainingBishops = Popcount(board.WhiteBishopBits | board.BlackBishopBits);
+	int remainingRooks = Popcount(board.WhiteRookBits | board.BlackRookBits);
+	int remainingQueens = Popcount(board.WhiteQueenBits | board.BlackQueenBits);
+
+	// starting: 16 + 12 + 12 + 24 + 24 = 88
+	// 88 -> 0, 10 -> 1
+	int remainingScore = remainingPawns * 1 + remainingKnights * 3 + remainingBishops * 3 + remainingRooks * 6 + remainingQueens * 12;
+
+	float phase = (88 - remainingScore) / (88.f - 10.f);
 	return std::clamp(phase, 0.f, 1.f);
 }
 
@@ -402,12 +411,16 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 		int pieceColor = ColorOfPiece(piece);
 
 		if (pieceColor == PieceColor::White) {
-			score += LinearTaper(weights[IndexEarlyPSQT(pieceType, i)], weights[IndexLatePSQT(pieceType, i)], phase);
+			int psqt = LinearTaper(weights[IndexEarlyPSQT(pieceType, i)], weights[IndexLatePSQT(pieceType, i)], phase);
 			score += LinearTaper(weights[IndexPieceValueEarly(pieceType)], weights[IndexPieceValueLate(pieceType)], phase);
+			//if ((pieceType != PieceType::Pawn) && (pieceType != PieceType::King)) psqt /= 2;
+			score += psqt;
 		}
 		else if (pieceColor == PieceColor::Black) {
-			score -= LinearTaper(weights[IndexEarlyPSQT(pieceType, Mirror[i])], weights[IndexLatePSQT(pieceType, Mirror[i])], phase);
+			int psqt = LinearTaper(weights[IndexEarlyPSQT(pieceType, Mirror[i])], weights[IndexLatePSQT(pieceType, Mirror[i])], phase);
 			score -= LinearTaper(weights[IndexPieceValueEarly(pieceType)], weights[IndexPieceValueLate(pieceType)], phase);
+			//if ((pieceType != PieceType::Pawn) && (pieceType != PieceType::King)) psqt /= 2;
+			score -= psqt;
 		}
 
 		// Passed pawn bonus

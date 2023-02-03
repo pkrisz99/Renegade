@@ -693,7 +693,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home, const bo
 		target = home + 8;
 		if (GetPieceAt(target) == 0) {
 			if (GetSquareRank(target) != 7) {
-				if (!quiescenceOnly) moves.push_back(Move(home, target));
+				if (!quiescenceOnly || (SquareRankArray[target] == 6)) moves.push_back(Move(home, target));
 			} else { // Promote
 				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
 				moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
@@ -748,7 +748,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home, const bo
 		target = home - 8;
 		if (GetPieceAt(target) == 0) {
 			if (GetSquareRank(target) != 0) {
-				if (!quiescenceOnly) moves.push_back(Move(home, target));
+				if (!quiescenceOnly || (SquareRankArray[target] == 1)) moves.push_back(Move(home, target));
 			} else { // Promote
 				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
 				moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
@@ -1077,6 +1077,8 @@ bool Board::IsLegalMove(const Move m, const int turn) {
 const bool Board::IsMoveQuiet(const Move& move) {
 	if (GetPieceAt(move.to) != Piece::None) return false;
 	if ((move.flag == MoveFlag::PromotionToQueen) || (move.flag == MoveFlag::PromotionToKnight) || (move.flag == MoveFlag::PromotionToRook) || (move.flag == MoveFlag::PromotionToBishop)) return false;
+	if ((GetPieceAt(move.from) == Piece::WhitePawn) && (SquareRankArray[move.to] >= 5)) return false;
+	if ((GetPieceAt(move.from) == Piece::BlackPawn) && (SquareRankArray[move.to] <= 2)) return false;
 	if (move.flag == MoveFlag::EnPassantPerformed) return false;
 	return true;
 }
