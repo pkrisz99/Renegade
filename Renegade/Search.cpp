@@ -51,7 +51,7 @@ const int Search::PerftRecursive(Board board, const int depth, const int origina
 	return count;
 }
 
-// Time allocation
+// Time management
 const SearchConstraints Search::CalculateConstraints(const SearchParams params, const bool turn) {
 	SearchConstraints constraints = SearchConstraints();
 	constraints.MaxNodes = -1;
@@ -73,8 +73,21 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 	int myTime = turn ? params.wtime : params.btime;
 	int myInc = turn ? params.winc : params.binc;
 	if (myTime != 0) {
-		int maxTime = (int)(myTime * 0.4);
-		int minTime = (int)((myTime + myInc * 10.0) * 0.015);
+
+		int maxTime;
+		int minTime;
+		if (params.movestogo > 0) {
+			// Repeating time control
+			maxTime = static_cast<int>((myTime / params.movestogo * 2));
+			minTime = static_cast<int>((myTime / params.movestogo * 0.3));
+			maxTime = std::min(maxTime, myTime / 2);
+		}
+		else {
+			// Sudden death 
+			maxTime = static_cast<int>(myTime * 0.333);
+			minTime = static_cast<int>((myTime + myInc * 10.0) * 0.015);
+		}
+
 		constraints.SearchTimeMax = maxTime;
 		constraints.SearchTimeMin = minTime;
 		if (constraints.SearchTimeMin > constraints.SearchTimeMax) constraints.SearchTimeMin = constraints.SearchTimeMax;
@@ -125,7 +138,7 @@ Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings
 
 		// Check limits
 		auto currentTime = Clock::now();
-		elapsedMs = (int)((currentTime - StartSearchTime).count() / 1e6);
+		elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
 		if ((elapsedMs >= Constraints.SearchTimeMin) && (Constraints.SearchTimeMin != -1)) finished = true;
 		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
 		if ((Depth >= 32)) finished = true;
