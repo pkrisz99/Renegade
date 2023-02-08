@@ -81,8 +81,8 @@ void Heuristics::SetHashSize(const int megabytes) {
 
 const int Heuristics::GetHashfull() {
 	if (MaximumHashMemory <= 0) return -1;
-	int hashfull = EstimateAllocatedMemory() * 1000ULL / MaximumHashMemory;
-	return static_cast<int>(std::min(hashfull, 1000));
+	int64_t hashfull = EstimateAllocatedMemory() * 1000 / MaximumHashMemory;
+	return static_cast<int>(std::min(hashfull, 1000LL));
 }
 
 void Heuristics::ResetHashStructure() {

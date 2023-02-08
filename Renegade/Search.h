@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Board.h"
-#include "Evaluation.h"
+#include "Results.h"
 #include "Heuristics.h"
+#include "Evaluation.cpp"
 #include "Utils.cpp"
 #include <tuple>
 #include <iomanip>
@@ -23,7 +24,7 @@ public:
 	const int PerftRecursive(Board b, const int depth, const int originalDepth, const PerftType type);
 
 	// Move search
-	Evaluation SearchMoves(Board &board, const SearchParams params, const EngineSettings settings);
+	Results SearchMoves(Board &board, const SearchParams params, const EngineSettings settings);
 	int SearchRecursive(Board &board, int depth, int level, int alpha, int beta, bool canNullMove);
 	int StaticEvaluation(Board &board, const int level, bool checkDraws);
 	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn);
@@ -37,7 +38,7 @@ public:
 	const int GetBookSize();
 
 	// Communication
-	const void PrintInfo(const Evaluation e, const EngineSettings settings);
+	const void PrintInfo(const Results e, const EngineSettings settings);
 	const void PrintBestmove(Move move);
 
 	int EvaluatedNodes;

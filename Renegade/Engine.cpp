@@ -292,7 +292,7 @@ void Engine::Play() {
 			EngineSettings s;
 			s.Hash = 2;
 			s.UseBook = false;
-			Evaluation e = Search.SearchMoves(board, p, s);
+			Results e = Search.SearchMoves(board, p, s);
 			board.Push(e.BestMove());
 			cout << "Renegade plays " << e.BestMove().ToString() << endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(3000));

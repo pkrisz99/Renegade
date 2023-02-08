@@ -100,7 +100,7 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 
 // Negamax search routine and handling ------------------------------------------------------------
 
-Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings settings) {
+Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings settings) {
 
 	StartSearchTime = Clock::now();
 	int elapsedMs = 0;
@@ -121,14 +121,14 @@ Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings
 	if (settings.UseBook) {
 		std::string bookMove = GetBookMove(board.Hash(false));
 		if (bookMove != "") {
-			Evaluation e;
+			Results e;
 			cout << "bestmove " << bookMove << endl;
 			return e;
 		}
 	}
 
 	// Iterative deepening
-	Evaluation e = Evaluation();
+	Results e = Results();
 	while (!finished) {
 		Heuristics.ClearEntries();
 		if (Heuristics.GetHashfull() > 500) Heuristics.ResetHashStructure(); // Just in case if we overallocate
@@ -500,7 +500,7 @@ const int Search::GetBookSize() {
 
 // Communicating the search results ---------------------------------------------------------------
 
-const void Search::PrintInfo(const Evaluation e, const EngineSettings settings) {
+const void Search::PrintInfo(const Results e, const EngineSettings settings) {
 	std::string score;
 	if ((abs(e.score) > MateEval - 1000) && (abs(e.score) <= MateEval)) {
 		int movesToMate = MateEval - abs(e.score);

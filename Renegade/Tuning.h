@@ -1,6 +1,6 @@
 #pragma once
 #include "Board.h"
-#include "Evaluation.h"
+#include "Evaluation.cpp"
 #include "Utils.cpp"
 #include <fstream>
 

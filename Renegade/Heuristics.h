@@ -1,6 +1,7 @@
 #pragma once
-#include "Evaluation.h"
+#include "Results.h"
 #include "Board.h"
+#include "Evaluation.cpp"
 #include "Utils.cpp"
 #include <array>
 #include <unordered_map>

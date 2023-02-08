@@ -1,7 +1,7 @@
 #pragma once
 #include "Board.h"
-#include "Evaluation.h"
 #include "Heuristics.h"
+#include "Results.h"
 #include "Search.h"
 #include "Tuning.h"
 #include <filesystem>
