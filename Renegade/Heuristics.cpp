@@ -41,7 +41,7 @@ void Heuristics::ClearEntries() {
 	}
 }
 
-const int Heuristics::EstimateAllocatedMemory() {
+const int64_t Heuristics::EstimateAllocatedMemory() {
 	// https://stackoverflow.com/questions/25375202/how-to-measure-the-memory-usage-of-stdunordered-map
 	// (data list + bucket index) * 1.5
 	const size_t dataListSize = Hashes.size() * (sizeof(HashEntry) + sizeof(void*));
@@ -81,7 +81,7 @@ void Heuristics::SetHashSize(const int megabytes) {
 
 const int Heuristics::GetHashfull() {
 	if (MaximumHashMemory <= 0) return -1;
-	int64_t hashfull = EstimateAllocatedMemory() * 1000 / MaximumHashMemory;
+	int64_t hashfull = EstimateAllocatedMemory() * 1000LL / MaximumHashMemory;
 	return static_cast<int>(std::min(hashfull, 1000LL));
 }
 

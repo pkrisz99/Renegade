@@ -36,14 +36,14 @@ public:
 	void UpdatePvTable(const Move move, const int level, const bool leaf);
 	const std::vector<Move> GetPvLine();
 	const int CalculateOrderScore(Board board, const Move m, const int level, const float phase, const bool onPv);
-	const int EstimateAllocatedMemory();
+	const int64_t EstimateAllocatedMemory();
 	void ResetHashStructure();
 
 	std::unordered_map<uint64_t, HashEntry> Hashes;
 	int HashedEntryCount;
 	std::vector<std::array<Move, 2>> KillerMoves;
 	std::vector<Move> PvMoves;
-	uint64_t MaximumHashMemory;
+	int64_t MaximumHashMemory;
 	Move PvTable[PvSize][PvSize];
 
 	const HashEntry NoEntry = { -1, ScoreType::Exact};
