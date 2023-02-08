@@ -131,6 +131,7 @@ Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings
 	Evaluation e = Evaluation();
 	while (!finished) {
 		Heuristics.ClearEntries();
+		if (Heuristics.GetHashfull() > 500) Heuristics.ResetHashStructure(); // Just in case if we overallocate
 		Depth += 1;
 		SelDepth = 0;
 		int result = SearchRecursive(board, Depth, 0, NegativeInfinity, PositiveInfinity, true);
@@ -182,6 +183,7 @@ Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings
 	PrintBestmove(e.BestMove());
 
 	Heuristics.ClearEntries();
+	if (Heuristics.GetHashfull() > 500) Heuristics.ResetHashStructure();
 	Heuristics.ClearPv();
 	Aborting = true;
 	return e;
@@ -343,7 +345,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 				if (isQuiet) Heuristics.AddKillerMove(m, level);
 				int e = beta;
 				Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
-				if (pvNode) Heuristics.UpdatePvTable(m, level, depth == 1);
 				return e;
 			}
 
@@ -351,7 +352,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 				scoreType = ScoreType::Exact;
 				alpha = bestScore;
 				pvSearch = true;
-				if (pvNode) Heuristics.UpdatePvTable(m, level, depth == 1);
+				Heuristics.UpdatePvTable(m, level, depth == 1);
 				doLateMoveReductions = false;
 			}
 		}

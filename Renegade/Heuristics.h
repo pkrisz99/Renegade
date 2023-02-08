@@ -36,6 +36,7 @@ public:
 	const std::vector<Move> GetPvLine();
 	const int CalculateOrderScore(Board board, const Move m, const int level, const float phase, const bool onPv);
 	const int EstimateAllocatedMemory();
+	void ResetHashStructure();
 
 	std::unordered_map<uint64_t, HashEntry> Hashes;
 	int HashedEntryCount;

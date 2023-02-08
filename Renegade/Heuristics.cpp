@@ -81,7 +81,14 @@ void Heuristics::SetHashSize(const int megabytes) {
 
 const int Heuristics::GetHashfull() {
 	if (MaximumHashMemory <= 0) return -1;
-	return static_cast<int>(EstimateAllocatedMemory() * 1000ULL / MaximumHashMemory);
+	int hashfull = EstimateAllocatedMemory() * 1000ULL / MaximumHashMemory;
+	return static_cast<int>(std::min(hashfull, 1000));
+}
+
+void Heuristics::ResetHashStructure() {
+	// Swap trick
+	std::unordered_map<uint64_t, HashEntry> empty;
+	std::swap(Hashes, empty);
 }
 
 void Heuristics::UpdatePvTable(const Move move, const int level, const bool leaf) {
