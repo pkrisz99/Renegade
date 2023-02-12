@@ -453,12 +453,13 @@ void Search::InitOpeningBook() {
 
 	while (ifs.read(reinterpret_cast<char*>(&buffer), 16)) {
 		BookEntry entry;
-		int b = _byteswap_ushort(0xFFFF & buffer[1]);
+		int a = _byteswap_ushort(0x0000FFFF & buffer[1]);
+		int b = _byteswap_ushort((0xFFFF0000 & buffer[1]) >> 16);
 		entry.hash = _byteswap_uint64(buffer[0]);
-		entry.to = (0b000000000111111 & b) >> 0;
-		entry.from = (0b000111111000000 & b) >> 6;
-		entry.promotion = (0b111000000000000 & b) >> 12;
-		entry.weight = 0;
+		entry.to = (0b000000000111111 & a) >> 0;
+		entry.from = (0b000111111000000 & a) >> 6;
+		entry.promotion = (0b111000000000000 & a) >> 12;
+		entry.weight = b;
 		entry.learn = 0;
 		BookEntries.push_back(entry);
 	}
@@ -468,6 +469,8 @@ void Search::InitOpeningBook() {
 
 const std::string Search::GetBookMove(const uint64_t hash) {
 	std::vector<std::string> matches;
+	std::vector<int> weights;
+	int totalWeights = 0;
 	for (const BookEntry& e : BookEntries) {
 		if (e.hash != hash) continue;
 
@@ -479,14 +482,23 @@ const std::string Search::GetBookMove(const uint64_t hash) {
 		case 4: { m.SetFlag(MoveFlag::PromotionToQueen); break; }
 		}
 		matches.push_back(m.ToString());
+		int w = std::max(e.weight, 1);
+		weights.push_back(w);
+		totalWeights += w;
 	}
 
 	//cout << matches.size() << endl;
 	if (matches.size() == 0) return "";
-	std::srand(static_cast<unsigned int>(std::time(0)));
-	int random_pos = std::rand() % matches.size();
 
-	return matches[random_pos];
+	std::srand(static_cast<unsigned int>(std::time(0)));
+	int randomInt = std::rand() % totalWeights + 1;
+
+	int sum = 0;
+	for (int i = 0; i < matches.size(); i++) {
+		sum += weights[i];
+		if (sum >= randomInt) return matches[i];
+	}
+	return "";
 }
 
 const BookEntry Search::GetBookEntry(int item) {

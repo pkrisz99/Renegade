@@ -119,7 +119,8 @@ void Engine::Start() {
 					int n = stoi(parts[3]);
 					if (n < Search.GetBookSize()) {
 						BookEntry entry = Search.GetBookEntry(n);
-						cout << "Entry " << n << ": " << std::hex << entry.hash << std::dec << PolyglotMoveToString(entry.from, entry.to, entry.promotion) << endl;
+						cout << "Entry " << n << ": " << std::hex << entry.hash << std::dec << PolyglotMoveToString(entry.from, entry.to, entry.promotion)
+							<< " (weight = " << entry.weight << ")" << endl;
 					}
 					else {
 						cout << "Entry index is out of range!" << endl;
