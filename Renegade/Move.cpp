@@ -52,3 +52,7 @@ const bool Move::IsNotNull() {
 const bool Move::IsEmpty() {
 	return (from == 0) && (to == 0) && (flag == 0);
 }
+
+const bool Move::IsUnderpromotion() {
+	return ((flag == MoveFlag::PromotionToRook) || (flag == MoveFlag::PromotionToKnight) || (flag == MoveFlag::PromotionToBishop));
+}

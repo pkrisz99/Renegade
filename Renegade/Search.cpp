@@ -9,7 +9,6 @@ void Search::Reset() {
 	EvaluatedQuiescenceNodes = 0;
 	SelDepth = 0;
 	Depth = 0;
-	//Heuristics = Heuristics();
 	InitOpeningBook();
 }
 
@@ -17,7 +16,6 @@ void Search::Reset() {
 
 const void Search::Perft(Board board, const int depth, const PerftType type) {
 	Board b = board.Copy();
-	b.DrawCheck = false;
 
 	auto t0 = Clock::now();
 	const int r = PerftRecursive(b, depth, depth, type);
@@ -53,7 +51,7 @@ const int Search::PerftRecursive(Board board, const int depth, const int origina
 	return count;
 }
 
-// Time allocation
+// Time management
 const SearchConstraints Search::CalculateConstraints(const SearchParams params, const bool turn) {
 	SearchConstraints constraints = SearchConstraints();
 	constraints.MaxNodes = -1;
@@ -75,8 +73,21 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 	int myTime = turn ? params.wtime : params.btime;
 	int myInc = turn ? params.winc : params.binc;
 	if (myTime != 0) {
-		int maxTime = (int)(myTime * 0.4);
-		int minTime = (int)((myTime + myInc * 10.0) * 0.015);
+
+		int maxTime;
+		int minTime;
+		if (params.movestogo > 0) {
+			// Repeating time control
+			maxTime = static_cast<int>((myTime / params.movestogo * 2));
+			minTime = static_cast<int>((myTime / params.movestogo * 0.3));
+			maxTime = std::min(maxTime, myTime / 2);
+		}
+		else {
+			// Sudden death 
+			maxTime = static_cast<int>(myTime * 0.333);
+			minTime = static_cast<int>((myTime + myInc * 10.0) * 0.015);
+		}
+
 		constraints.SearchTimeMax = maxTime;
 		constraints.SearchTimeMin = minTime;
 		if (constraints.SearchTimeMin > constraints.SearchTimeMax) constraints.SearchTimeMin = constraints.SearchTimeMax;
@@ -89,7 +100,7 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 
 // Negamax search routine and handling ------------------------------------------------------------
 
-Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings settings) {
+Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings settings) {
 
 	StartSearchTime = Clock::now();
 	int elapsedMs = 0;
@@ -110,28 +121,28 @@ Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings
 	if (settings.UseBook) {
 		std::string bookMove = GetBookMove(board.Hash(false));
 		if (bookMove != "") {
-			Evaluation e;
+			Results e;
 			cout << "bestmove " << bookMove << endl;
 			return e;
 		}
 	}
 
 	// Iterative deepening
-	Evaluation e = Evaluation();
+	Results e = Results();
 	while (!finished) {
 		Heuristics.ClearEntries();
+		if (Heuristics.GetHashfull() > 500) Heuristics.ResetHashStructure(); // Just in case if we overallocate
 		Depth += 1;
 		SelDepth = 0;
-		Explored = true;
 		int result = SearchRecursive(board, Depth, 0, NegativeInfinity, PositiveInfinity, true);
 		Heuristics.SetHashSize(settings.Hash);
 
 		// Check limits
 		auto currentTime = Clock::now();
-		elapsedMs = (int)((currentTime - StartSearchTime).count() / 1e6);
+		elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
 		if ((elapsedMs >= Constraints.SearchTimeMin) && (Constraints.SearchTimeMin != -1)) finished = true;
 		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
-		if ((Depth >= 100) || (Explored)) finished = true;
+		if ((Depth >= 32)) finished = true;
 		if (Aborting) {
 			e.nodes = EvaluatedNodes;
 			e.qnodes = EvaluatedQuiescenceNodes;
@@ -172,6 +183,7 @@ Evaluation Search::SearchMoves(Board &board, SearchParams params, EngineSettings
 	PrintBestmove(e.BestMove());
 
 	Heuristics.ClearEntries();
+	if (Heuristics.GetHashfull() > 500) Heuristics.ResetHashStructure();
 	Heuristics.ClearPv();
 	Aborting = true;
 	return e;
@@ -199,13 +211,12 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	uint64_t kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
 	bool inCheck = (board.AttackedSquares & kingBits) != 0;
 	if (inCheck && (depth == 0) && (level < Depth + 10)) depth = 1;
+	bool pvNode = beta - alpha > 1;
 
 	// Return result for terminal nodes
 	if (depth <= 0) {
-		//int e = StaticEvaluation(board, level);
 		if (depth < 0) cout << "Check depth: " << depth << endl;
 		int e = SearchQuiescence(board, level, alpha, beta, true);
-		if (board.State == GameState::Playing) Explored = false;
 		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
 	}
@@ -224,16 +235,42 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		if (usable) return score;
 	}
 
+	// Check for draws
+	if (board.IsDraw()) {
+		return 0;
+	}
+
 	// Null-move pruning
-	int remainingPieces = Popcount(board.GetOccupancy());
+	int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
+	int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
 	int reduction = 2;
-	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1) && (remainingPieces > 5)) {
+	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1) && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
 		Move m = Move();
 		m.SetFlag(MoveFlag::NullMove);
-		Board b = board.Copy();
-		b.Push(m);
-		int nullMoveEval = SearchRecursive(b, depth - 1 - reduction, level + 1, -beta, -beta + 1, false);
-		if ((-nullMoveEval >= beta) && (abs(nullMoveEval) < MateEval - 1000)) return beta;
+		Boards[level] = board;
+		Boards[level].Push(m);
+		int nullMoveEval = SearchRecursive(Boards[level], depth - 1 - reduction, level + 1, -beta, -beta + 1, false);
+		if ((-nullMoveEval >= beta) && !IsMateScore(nullMoveEval)) return beta;
+	}
+
+	// Futility pruning
+	int staticEval = NoEval;
+	const int futilityMargins[] = { 100, 200 };
+	bool futilityPrunable = false;
+	if ((depth <= 2) && !inCheck && !pvNode) {
+		staticEval = EvaluateBoard(board, level);
+		if ((depth == 1) && (staticEval + futilityMargins[0] < alpha)) futilityPrunable = true;
+		else if ((depth == 2) && (staticEval + futilityMargins[1] < alpha)) futilityPrunable = true;
+	}
+
+	// Razoring (?)
+	const int razoringMargin = 400;
+	if ((depth < 2) && (level > 2) && !inCheck && !pvNode) {
+		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
+		if (staticEval + razoringMargin < alpha) {
+			int e = SearchQuiescence(board, level, alpha, beta, true);
+			if (e < alpha) return alpha;
+		}
 	}
 
 	// Initalize variables, and generate moves - if there are no legal moves, we'll return alpha
@@ -243,39 +280,59 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Move ordering
 	const float phase = CalculateGamePhase(board);
-	std::vector<std::tuple<Move, int>> order = std::vector<std::tuple<Move, int>>();
-	order.reserve(MoveList.size());
+	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
-		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase);
-		order.push_back({ m, orderScore });
+		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, pvNode);
+		MoveOrder[level].push_back({ m, orderScore });
 	}
-	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
+	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
 		return get<1>(t1) > get<1>(t2);
 	});
-
-	bool pvNode = beta - alpha > 1;
 
 	// Iterate through legal moves
 	bool pvSearch = false;
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
-	for (const std::tuple<Move, int>& o : order) {
+	bool doLateMoveReductions = true;
+	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
 		Move m = get<0>(o);
 		if (!board.IsLegalMove(m, board.Turn)) continue;
 		legalMoveCount += 1;
-		Board b = board.Copy();
+		Boards[level] = board;
+		Board& b = Boards[level];
+		bool isQuiet = b.IsMoveQuiet(m);
+
+		// Futility pruning
+		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta)) continue;
+
 		b.Push(m);
-		//eval childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha);
+
+		int childEval;
+		bool doPvSearch = true;
+
+		// Late move reductions
+		/*
+		if (doLateMoveReductions) {
+			if ((legalMoveCount > 4) && !pvNode && !inCheck && isQuiet && (depth >= 3) && canNullMove) {
+				int reduction = 1;
+				int reducedScore = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha - 1, -alpha, true);
+				if (reducedScore <= alpha) {
+					childEval = -reducedScore;
+					// pvSearch = true;
+				}
+			}
+		}*/
 
 		// Principal variation search - questionable gains
-		int childEval;
-		if (!pvSearch) {
-			childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
-		}
-		else {
-			childEval = SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
-			if ((alpha < -childEval) && (-childEval < beta)) {
+		if (doPvSearch) {
+			if (!pvSearch) {
 				childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
+			}
+			else {
+				childEval = SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
+				if ((alpha < -childEval) && (-childEval < beta)) {
+					childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
+				}
 			}
 		}
 
@@ -285,11 +342,9 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			bestScore = childScore;
 
 			if (bestScore >= beta) {
-				//bool capture = board.GetPieceAt(get<0>(o).to) != Piece::None;
-				if (true) Heuristics.AddKillerMove(m, level);
+				if (isQuiet) Heuristics.AddKillerMove(m, level);
 				int e = beta;
 				Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
-				if (pvNode) Heuristics.UpdatePvTable(m, level, depth == 1);
 				return e;
 			}
 
@@ -297,7 +352,8 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 				scoreType = ScoreType::Exact;
 				alpha = bestScore;
 				pvSearch = true;
-				if (pvNode) Heuristics.UpdatePvTable(m, level, depth == 1);
+				Heuristics.UpdatePvTable(m, level, depth == 1);
+				doLateMoveReductions = false;
 			}
 		}
 
@@ -305,9 +361,19 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Case when there was no legal move 
 	if (legalMoveCount == 0) {
-		int e = StaticEvaluation(board, level);
-		Heuristics.AddEntry(hash, e, ScoreType::Exact);
-		return e;
+		int e;
+		if (!inCheck) e = 0;
+		else e = -MateEval + (level + 1) / 2;
+
+		if (e >= beta) {
+			e = beta;
+			Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
+			return e;
+		}
+		if (e > alpha) {
+			Heuristics.AddEntry(hash, e, ScoreType::Exact);
+			return e;
+		}
 	}
 
 	int e = alpha;
@@ -316,35 +382,41 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 }
 
 // Quiescence search: for captures (incl. en passant) and promotions only
-int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool rootNode) {
+int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool rootNode) {
 	MoveList.clear();
 	board.GeneratePseudoLegalMoves(MoveList, board.Turn, true);
 	if (!rootNode) EvaluatedQuiescenceNodes += 1;
 
+	// Calculate delta pruning margin (~11% node reduction @ depth=8)
+	int delta = CalculateDeltaMargin(board);
+
 	// Update alpha-beta bounds, return alpha if no captures left
-	int staticEval = StaticEvaluation(board, level);
+	int staticEval = StaticEvaluation(board, level, true);
 	if (staticEval >= beta) return beta;
 	if (staticEval < alpha - 1000) return alpha; // Delta pruning
 	if (staticEval > alpha) alpha = staticEval;
-	if (board.State != GameState::Playing) return alpha;
 
 	// Order capture moves
 	const float phase = CalculateGamePhase(board);
-	std::vector<std::tuple<Move, int>> order = std::vector<std::tuple<Move, int>>();
-	order.reserve(MoveList.size());
+	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
-		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase);
-		order.push_back({ m, orderScore });
+		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false);
+		MoveOrder[level].push_back({ m, orderScore });
 	}
-	std::sort(order.begin(), order.end(), [](auto const& t1, auto const& t2) {
+	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
 		return get<1>(t1) > get<1>(t2);
 	});
 
 	// Search recursively
-	for (const std::tuple<Move, int>& o : order) {
+	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
 		Move m = get<0>(o);
 		if (!board.IsLegalMove(m, board.Turn)) continue;
-		Board b = board.Copy();
+
+		// Limiting quiescence search to not try underpromotions (experiments show a 0.9% underpromotion rate)
+		if ((level <= Depth + 3) && (level >= 5) && (m.IsUnderpromotion())) continue;
+
+		Boards[level] = board;
+		Board& b = Boards[level];
 		b.Push(m);
 		int childEval = -SearchQuiescence(b, level + 1, -beta, -alpha, false);
 		if (childEval >= beta) return beta;
@@ -353,10 +425,19 @@ int Search::SearchQuiescence(Board board, int level, int alpha, int beta, bool r
 	return alpha;
 }
 
-int Search::StaticEvaluation(Board &board, int level) {
+int Search::StaticEvaluation(Board &board, int level, bool checkDraws) {
 	EvaluatedNodes += 1;
 	if (level > SelDepth) SelDepth = level;
+	if (checkDraws) {
+		if (board.IsDraw()) return 0;
+	}
 	return EvaluateBoard(board, level);
+}
+
+const int Search::CalculateDeltaMargin(Board &board) {
+	if ((board.WhiteQueenBits | board.BlackQueenBits) > 0) return 1000;
+	if ((board.WhiteRookBits | board.BlackRookBits) > 0) return 600;
+	return 400;
 }
 
 
@@ -372,12 +453,13 @@ void Search::InitOpeningBook() {
 
 	while (ifs.read(reinterpret_cast<char*>(&buffer), 16)) {
 		BookEntry entry;
-		int b = _byteswap_ushort(0xFFFF & buffer[1]);
+		int a = _byteswap_ushort(0x0000FFFF & buffer[1]);
+		int b = _byteswap_ushort((0xFFFF0000 & buffer[1]) >> 16);
 		entry.hash = _byteswap_uint64(buffer[0]);
-		entry.to = (0b000000000111111 & b) >> 0;
-		entry.from = (0b000111111000000 & b) >> 6;
-		entry.promotion = (0b111000000000000 & b) >> 12;
-		entry.weight = 0;
+		entry.to = (0b000000000111111 & a) >> 0;
+		entry.from = (0b000111111000000 & a) >> 6;
+		entry.promotion = (0b111000000000000 & a) >> 12;
+		entry.weight = b;
 		entry.learn = 0;
 		BookEntries.push_back(entry);
 	}
@@ -387,6 +469,8 @@ void Search::InitOpeningBook() {
 
 const std::string Search::GetBookMove(const uint64_t hash) {
 	std::vector<std::string> matches;
+	std::vector<int> weights;
+	int totalWeights = 0;
 	for (const BookEntry& e : BookEntries) {
 		if (e.hash != hash) continue;
 
@@ -398,14 +482,20 @@ const std::string Search::GetBookMove(const uint64_t hash) {
 		case 4: { m.SetFlag(MoveFlag::PromotionToQueen); break; }
 		}
 		matches.push_back(m.ToString());
+		int w = std::max(e.weight, 1);
+		weights.push_back(w);
+		totalWeights += w;
 	}
 
-	//cout << matches.size() << endl;
 	if (matches.size() == 0) return "";
-	std::srand(static_cast<unsigned int>(std::time(0)));
-	int random_pos = std::rand() % matches.size();
 
-	return matches[random_pos];
+	int randomInt = std::rand() % totalWeights + 1;
+	int sum = 0;
+	for (int i = 0; i < matches.size(); i++) {
+		sum += weights[i];
+		if (sum >= randomInt) return matches[i];
+	}
+	return "";
 }
 
 const BookEntry Search::GetBookEntry(int item) {
@@ -419,7 +509,7 @@ const int Search::GetBookSize() {
 
 // Communicating the search results ---------------------------------------------------------------
 
-const void Search::PrintInfo(const Evaluation e, const EngineSettings settings) {
+const void Search::PrintInfo(const Results e, const EngineSettings settings) {
 	std::string score;
 	if ((abs(e.score) > MateEval - 1000) && (abs(e.score) <= MateEval)) {
 		int movesToMate = MateEval - abs(e.score);

@@ -134,6 +134,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -149,6 +150,7 @@
     <ClCompile Include="Move.cpp" />
     <ClCompile Include="Heuristics.cpp" />
     <ClCompile Include="Renegade.cpp" />
+    <ClCompile Include="Results.cpp" />
     <ClCompile Include="Search.cpp" />
     <ClCompile Include="Tuning.cpp" />
     <ClCompile Include="Utils.cpp" />
@@ -156,9 +158,9 @@
   <ItemGroup>
     <ClInclude Include="Board.h" />
     <ClInclude Include="Engine.h" />
-    <ClInclude Include="Evaluation.h" />
     <ClInclude Include="Move.h" />
     <ClInclude Include="Heuristics.h" />
+    <ClInclude Include="Results.h" />
     <ClInclude Include="Search.h" />
     <ClInclude Include="Tuning.h" />
   </ItemGroup>

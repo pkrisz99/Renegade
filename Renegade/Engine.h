@@ -1,7 +1,7 @@
 #pragma once
 #include "Board.h"
-#include "Evaluation.h"
 #include "Heuristics.h"
+#include "Results.h"
 #include "Search.h"
 #include "Tuning.h"
 #include <filesystem>
@@ -18,7 +18,11 @@ public:
 	Engine();
 	void Start();
 	void Play();
+	const void DrawBoard(Board b, uint64_t customBits = 0);
+	const void PrintHeader();
+
 	Search Search;
 	EngineSettings Settings;
+	bool Fancy = true;
 };
 

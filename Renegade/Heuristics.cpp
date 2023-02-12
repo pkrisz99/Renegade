@@ -15,7 +15,7 @@ void Heuristics::AddEntry(const uint64_t hash, const int score, const int scoreT
 	Hashes[hash] = entry;
 }
 
-const std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(const uint64_t hash) {
+const std::tuple<bool, HashEntry> Heuristics::RetrieveEntry(const uint64_t &hash) {
 
 	if (Hashes.find(hash) != Hashes.end()) {
 		HashEntry entry = Hashes[hash];
@@ -41,7 +41,7 @@ void Heuristics::ClearEntries() {
 	}
 }
 
-const int Heuristics::EstimateAllocatedMemory() {
+const int64_t Heuristics::EstimateAllocatedMemory() {
 	// https://stackoverflow.com/questions/25375202/how-to-measure-the-memory-usage-of-stdunordered-map
 	// (data list + bucket index) * 1.5
 	const size_t dataListSize = Hashes.size() * (sizeof(HashEntry) + sizeof(void*));
@@ -81,7 +81,14 @@ void Heuristics::SetHashSize(const int megabytes) {
 
 const int Heuristics::GetHashfull() {
 	if (MaximumHashMemory <= 0) return -1;
-	return static_cast<int>(EstimateAllocatedMemory() * 1000ULL / MaximumHashMemory);
+	int64_t hashfull = EstimateAllocatedMemory() * 1000LL / MaximumHashMemory;
+	return static_cast<int>(std::min(hashfull, 1000LL));
+}
+
+void Heuristics::ResetHashStructure() {
+	// Swap trick
+	std::unordered_map<uint64_t, HashEntry> empty;
+	std::swap(Hashes, empty);
 }
 
 void Heuristics::UpdatePvTable(const Move move, const int level, const bool leaf) {
@@ -118,7 +125,7 @@ const std::vector<Move> Heuristics::GetPvLine() {
 }
 
 // Move ordering scoring function
-const int Heuristics::CalculateOrderScore(Board board, const Move m, const int level, const float phase) {
+const int Heuristics::CalculateOrderScore(Board board, const Move m, const int level, const float phase, const bool onPv) {
 	int orderScore = 0;
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
@@ -143,7 +150,7 @@ const int Heuristics::CalculateOrderScore(Board board, const Move m, const int l
 		orderScore += LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.to])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.to])], phase);
 	}
 
-	if (IsKillerMove(m, level)) orderScore += 200000;
-	if (IsPvMove(m, level)) orderScore += 100000;
+	if (IsKillerMove(m, level)) orderScore += 1000;
+	if (IsPvMove(m, level) && onPv) orderScore += 1000000;
 	return orderScore;
 }
