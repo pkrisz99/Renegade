@@ -20,7 +20,6 @@ public:
 
 	void Push(const Move move);
 	bool PushUci(const std::string ucistr);
-	const void Draw(const uint64_t customBits);
 	const std::string GetFEN();
 
 	const int GetPieceAt(const int place);

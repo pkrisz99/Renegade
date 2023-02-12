@@ -7,11 +7,14 @@ Engine::Engine() {
 	Settings.ExtendedOutput = false;
 }
 
+const void Engine::PrintHeader() {
+	cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
+}
 
 // Start UCI protocol
 void Engine::Start() {
 	Board board = Board(FEN::StartPos);
-	cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
+	PrintHeader();
 	std::string cmd = "";
 	while (getline(cin, cmd)) {
 
@@ -84,16 +87,16 @@ void Engine::Start() {
 
 		// Debug commands
 		if (parts[0] == "debug") {
-			if (parts[1] == "attackmap") board.Draw(board.AttackedSquares);
+			if (parts[1] == "attackmap") DrawBoard(board, board.AttackedSquares);
 			if (parts[1] == "whitepassedpawn") {
 				int sq = stoi(parts[2]);
-				board.Draw(WhitePassedPawnMask[sq]);
-				board.Draw(WhitePassedPawnFilter[sq]);
+				DrawBoard(board, WhitePassedPawnMask[sq]);
+				DrawBoard(board, WhitePassedPawnFilter[sq]);
 			}
 			if (parts[1] == "blackpassedpawn") {
 				int sq = stoi(parts[2]);
-				board.Draw(BlackPassedPawnMask[sq]);
-				board.Draw(BlackPassedPawnFilter[sq]);
+				DrawBoard(board, BlackPassedPawnMask[sq]);
+				DrawBoard(board, BlackPassedPawnFilter[sq]);
 			}
 			if (parts[1] == "enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
 			if (parts[1] == "halfmovecounter") cout << "Half move counter: " << board.HalfmoveClock << endl;
@@ -164,13 +167,14 @@ void Engine::Start() {
 				<< "sets up the board and 'go depth 5' initiates a 5 ply deep search." << endl;
 			cout << "There are some additional commands supported as well, including: "
 				<< "\n- draw: draws the current board"
+				<< "\n- fancy & plain: sets board drawing style"
 				<< "\n- eval: prints the static evaluation of the position"
 				<< "\n- fen: displays the current position's FEN string"
-				<< "\n- go perft [n] & go perftdiv [n]: calculates the number of possible positions (incl. duplicates)" << endl;
+				<< "\n- go perft [n] & go perftdiv [n]: retuns the number of possible positions after n plys (incl. duplicates)" << endl;
 			continue;
 		}
 		if (parts[0] == "draw") {
-			board.Draw(0ULL);
+			DrawBoard(board);
 			continue;
 		}
 		if (parts[0] == "eval") {
@@ -182,7 +186,16 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "clear") {
-			ClearScreen();
+			ClearScreen(false, Fancy);
+			PrintHeader();
+			continue;
+		}
+		if (parts[0] == "fancy") {
+			Fancy = true;
+			continue;
+		}
+		if (parts[0] == "plain") {
+			Fancy = false;
 			continue;
 		}
 
@@ -257,47 +270,134 @@ void Engine::Start() {
 	cout << "Stopping engine." << endl;
 }
 
+const void Engine::DrawBoard(Board b, uint64_t customBits) {
+
+	const std::string side = b.Turn ? "white" : "black";
+	cout << "    Move: " << b.FullmoveClock << " - " << side << " to play" << endl;;
+
+	const std::string WhiteOnLightSquare = "\033[31;47m";
+	const std::string WhiteOnDarkSquare = "\033[31;43m";
+	const std::string BlackOnLightSquare = "\033[30;47m";
+	const std::string BlackOnDarkSquare = "\033[30;43m";
+	const std::string Default = "\033[0m";
+	const std::string WhiteOnTarget = "\033[31;45m";
+	const std::string BlackOnTarget = "\033[30;45m";
+
+	cout << "    ------------------------ " << endl;
+	// https://stackoverflow.com/questions/2616906/how-do-i-output-coloured-text-to-a-linux-terminal
+	for (int i = 7; i >= 0; i--) {
+		cout << " " << i + 1 << " |";
+		for (int j = 0; j <= 7; j++) {
+			const int pieceId = b.GetPieceAt(i * 8 + j);
+			const int pieceColor = ColorOfPiece(pieceId);
+			char piece = PieceChars[pieceId];
+
+			std::string CellStyle;
+
+			if ((i + j) % 2 == 1) {
+				if (pieceColor == PieceColor::Black) CellStyle = BlackOnLightSquare;
+				else CellStyle = WhiteOnLightSquare;
+			}
+			else {
+				if (pieceColor == PieceColor::Black) CellStyle = BlackOnDarkSquare;
+				else CellStyle = WhiteOnDarkSquare;
+			}
+
+			if (CheckBit(customBits, static_cast<uint64_t>(i) * 8 + static_cast<uint64_t>(j))) {
+				if (pieceColor == PieceColor::Black) CellStyle = BlackOnTarget;
+				else  CellStyle = WhiteOnTarget;
+			}
+
+			if (Fancy) cout << CellStyle << ' ' << piece << ' ' << Default;
+			else cout << ' ' << piece << ' ';
+
+		}
+		cout << "|" << '\n';
+	}
+	cout << "    ------------------------ " << '\n';
+	cout << "     a  b  c  d  e  f  g  h" << endl;
+
+}
+
 void Engine::Play() {
 	Board board = Board(FEN::StartPos);
 
 	cout << "c - Computer, h - Human" << endl;
 	cout << "White player? ";
 	char white;
+	int whiteMovetime = 200;
 	cin >> white;
+	if ((white != 'c') && (white != 'h')) {
+		cout << "Invalid player." << endl;
+		return;
+	}
+	if (white == 'c') {
+		cout << "How long should the computer think in milliseconds? ";
+		cin >> whiteMovetime;
+	}
+
 	cout << "Black player? ";
 	char black;
 	cin >> black;
+	int blackMovetime = 200;
+	if ((black != 'c') && (black != 'h')) {
+		cout << "Invalid player." << endl;
+		return;
+	}
+	if (black == 'c') {
+		cout << "How long should the computer think in milliseconds? ";
+		cin >> blackMovetime;
+	}
 
-	if ((white != 'c') && (white != 'h')) return;
-	if ((black != 'c') && (black != 'h')) return;
-
-	while (board.GetGameState() == GameState::Playing) {
-		ClearScreen();
-		board.Draw(0);
+	bool quitting = false;
+	while ((board.GetGameState() == GameState::Playing) && !quitting) {
+		ClearScreen(false, Fancy);
+		PrintHeader();
+		cout << "Playing a game through console: \n" << endl;
+		DrawBoard(board);
 
 		char player = board.Turn ? white : black;
 
 		if (player == 'h') {
-			// Player
+			// Human
 			std::string str;
 			bool success = false;
+			cout << "\n";
+			if (board.FullmoveClock == 1) {
+				cout << "Type input in UCI notation (e.g. e2e4, e1g1, f7f8q)\n";
+				cout << "If you want to return to the main interface, write 'quit'\n";
+			}
 			while (!success) {
-				cout << "Move to play? ";
+				cout << "Move to play ? ";
 				cin >> str;
 				success = board.PushUci(str);
+				if (str == "fancy") Fancy = true;
+				if (str == "plain") Fancy = false;
+				if (str == "quit") {
+					quitting = true;
+					success = true;
+				}
 			}
 		} else {
+			// Computer
 			SearchParams p;
-			p.depth = 5;
 			EngineSettings s;
-			s.Hash = 2;
+			p.movetime = board.Turn ? whiteMovetime : blackMovetime;
+			s.Hash = 8;
 			s.UseBook = false;
+			s.ExtendedOutput = false;
+			cout << '\n';
 			Results e = Search.SearchMoves(board, p, s);
 			board.Push(e.BestMove());
-			cout << "Renegade plays " << e.BestMove().ToString() << endl;
+			cout << "\nEngine plays " << e.BestMove().ToString() << endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 		}
 
 	}
+
+	if (!quitting) cout << "Game over: " << StateString(board.GetGameState()) << '\n' << endl;
+	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	ClearScreen(false, Fancy);
+	PrintHeader();
 
 }

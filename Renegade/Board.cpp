@@ -121,55 +121,6 @@ Board Board::Copy() {
 	return Board(*this);
 }
 
-
-const void Board::Draw(const uint64_t customBits = 0) {
-
-	const std::string side = Turn ? "white" : "black";
-	cout << "    Move: " << FullmoveClock << " - " << side << " to play" << endl;;
-	
-	const std::string WhiteOnLightSquare = "\033[31;47m";
-	const std::string WhiteOnDarkSquare = "\033[31;43m";
-	const std::string BlackOnLightSquare = "\033[30;47m";
-	const std::string BlackOnDarkSquare = "\033[30;43m";
-	const std::string Default = "\033[0m";
-	const std::string WhiteOnTarget = "\033[31;45m";
-	const std::string BlackOnTarget = "\033[30;45m";
-
-	cout << "    ------------------------ " << endl;
-	// https://stackoverflow.com/questions/2616906/how-do-i-output-coloured-text-to-a-linux-terminal
-	for (int i = 7; i >= 0; i--) {
-		cout << " " << i+1 << " |";
-		for (int j = 0; j <= 7; j++) {
-			const int pieceId = GetPieceAt(i * 8 + j);
-			const int pieceColor = ColorOfPiece(pieceId);
-			char piece = PieceChars[pieceId];
-
-			std::string CellStyle;
-
-			if ((i + j) % 2 == 1) {
-				if (pieceColor == PieceColor::Black) CellStyle = BlackOnLightSquare;
-				else CellStyle = WhiteOnLightSquare;
-			}
-			else {
-				if (pieceColor == PieceColor::Black) CellStyle = BlackOnDarkSquare;
-				else CellStyle = WhiteOnDarkSquare;
-			}
-
-			if (CheckBit(customBits, static_cast<uint64_t>(i) * 8 + static_cast<uint64_t>(j) )) {
-				if (pieceColor == PieceColor::Black) CellStyle = BlackOnTarget;
-				else  CellStyle = WhiteOnTarget;
-			}
-
-			cout << CellStyle << ' ' << piece << ' ' << Default;
-
-		}
-		cout << "|" << endl;
-	}
-	cout << "    ------------------------ " << endl;
-	cout << "     a  b  c  d  e  f  g  h" << endl;
-
-}
-
 const std::string Board::GetFEN() {
 	std::string result;
 	for (int r = 7; r >= 0; r--) {

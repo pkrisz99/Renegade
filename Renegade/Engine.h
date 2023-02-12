@@ -18,7 +18,11 @@ public:
 	Engine();
 	void Start();
 	void Play();
+	const void DrawBoard(Board b, uint64_t customBits = 0);
+	const void PrintHeader();
+
 	Search Search;
 	EngineSettings Settings;
+	bool Fancy = true;
 };
 
