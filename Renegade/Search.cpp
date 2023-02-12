@@ -487,12 +487,9 @@ const std::string Search::GetBookMove(const uint64_t hash) {
 		totalWeights += w;
 	}
 
-	//cout << matches.size() << endl;
 	if (matches.size() == 0) return "";
 
-	std::srand(static_cast<unsigned int>(std::time(0)));
 	int randomInt = std::rand() % totalWeights + 1;
-
 	int sum = 0;
 	for (int i = 0; i < matches.size(); i++) {
 		sum += weights[i];

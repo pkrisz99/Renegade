@@ -5,6 +5,7 @@ Engine::Engine() {
 	Settings.Hash = 64;
 	Settings.UseBook = false;
 	Settings.ExtendedOutput = false;
+	std::srand(static_cast<unsigned int>(std::time(0)));
 }
 
 const void Engine::PrintHeader() {
