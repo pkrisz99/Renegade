@@ -92,7 +92,7 @@ void Heuristics::ResetHashStructure() {
 }
 
 void Heuristics::UpdatePvTable(const Move move, const int level, const bool leaf) {
-	PvTable[level][level] = move;
+	if (level < PvSize) PvTable[level][level] = move;
 	for (int i = level + 1; i < PvSize; i++) {
 		Move lowerMove = PvTable[level + 1][i];
 		if (lowerMove.IsEmpty()) break;

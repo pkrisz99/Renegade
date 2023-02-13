@@ -44,7 +44,7 @@ public:
 	std::vector<std::array<Move, 2>> KillerMoves;
 	std::vector<Move> PvMoves;
 	int64_t MaximumHashMemory;
-	Move PvTable[PvSize][PvSize];
+	Move PvTable[PvSize + 1][PvSize + 1];
 
 	const HashEntry NoEntry = { -1, ScoreType::Exact};
 
