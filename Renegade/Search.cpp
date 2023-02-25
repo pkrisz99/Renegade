@@ -221,6 +221,14 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		return e;
 	}
 
+	// Check for draws
+	if (board.IsDraw()) {
+		int score = 0;
+		if (score >= beta) return beta;
+		if (score < alpha) return alpha;
+		return score;
+	}
+
 	// Calculate and check hash
 	uint64_t hash = board.Hash(true);
 	std::tuple<bool, HashEntry> retrieved = Heuristics.RetrieveEntry(hash);
@@ -233,11 +241,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		else if ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta)) score = beta;
 		else usable = false;
 		if (usable) return score;
-	}
-
-	// Check for draws
-	if (board.IsDraw()) {
-		return 0;
 	}
 
 	// Null-move pruning
@@ -273,7 +276,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		}
 	}
 
-	// Initalize variables, and generate moves - if there are no legal moves, we'll return alpha
+	// Initalize variables and generate moves
 	MoveList.clear();
 	board.GeneratePseudoLegalMoves(MoveList, board.Turn, false);
 
@@ -328,7 +331,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			}
 			else {
 				score = -SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
-				if ((alpha < score) && (score < beta)) {
+				if (alpha < score) {
 					score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
 				}
 			}
@@ -337,9 +340,8 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		// Checking alpha-beta bounds
 		if (score >= beta) {
 			if (isQuiet) Heuristics.AddKillerMove(m, level);
-			int e = beta;
-			Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
-			return e;
+			Heuristics.AddEntry(hash, beta, ScoreType::LowerBound);
+			return beta;
 		}
 		if (score > alpha) {
 			scoreType = ScoreType::Exact;
@@ -351,21 +353,22 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	}
 
-	// Case when there was no legal move 
+	// There was no legal move --> game over 
 	if (legalMoveCount == 0) {
 		int e;
 		if (!inCheck) e = 0;
 		else e = -MateEval + (level + 1) / 2;
 
 		if (e >= beta) {
-			e = beta;
-			Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
-			return e;
+			Heuristics.AddEntry(hash, beta, ScoreType::LowerBound);
+			return beta;
 		}
-		if (e > alpha) {
-			Heuristics.AddEntry(hash, e, ScoreType::Exact);
-			return e;
+		if (e < alpha) {
+			Heuristics.AddEntry(hash, alpha, ScoreType::UpperBound);
+			return alpha;
 		}
+		Heuristics.AddEntry(hash, e, ScoreType::Exact);
+		return e;
 	}
 
 	int e = alpha;
