@@ -274,7 +274,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	// Initalize variables, and generate moves - if there are no legal moves, we'll return alpha
-	int bestScore = NoEval;
 	MoveList.clear();
 	board.GeneratePseudoLegalMoves(MoveList, board.Turn, false);
 
@@ -290,7 +289,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	});
 
 	// Iterate through legal moves
-	bool pvSearch = false;
+	bool zeroWindow = false;
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
 	bool doLateMoveReductions = true;
@@ -306,8 +305,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta)) continue;
 
 		b.Push(m);
-
-		int childEval;
+		int score = NoEval;
 		bool doPvSearch = true;
 
 		// Late move reductions
@@ -323,38 +321,32 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			}
 		}*/
 
-		// Principal variation search - questionable gains
+		// Principal variation search
 		if (doPvSearch) {
-			if (!pvSearch) {
-				childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
+			if (!zeroWindow) {
+				score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
 			}
 			else {
-				childEval = SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
-				if ((alpha < -childEval) && (-childEval < beta)) {
-					childEval = SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
+				score = -SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
+				if ((alpha < score) && (score < beta)) {
+					score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
 				}
 			}
 		}
 
-		int childScore = -childEval;
-
-		if (childScore > bestScore) {
-			bestScore = childScore;
-
-			if (bestScore >= beta) {
-				if (isQuiet) Heuristics.AddKillerMove(m, level);
-				int e = beta;
-				Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
-				return e;
-			}
-
-			if (bestScore > alpha) {
-				scoreType = ScoreType::Exact;
-				alpha = bestScore;
-				pvSearch = true;
-				Heuristics.UpdatePvTable(m, level, depth == 1);
-				doLateMoveReductions = false;
-			}
+		// Checking alpha-beta bounds
+		if (score >= beta) {
+			if (isQuiet) Heuristics.AddKillerMove(m, level);
+			int e = beta;
+			Heuristics.AddEntry(hash, e, ScoreType::LowerBound);
+			return e;
+		}
+		if (score > alpha) {
+			scoreType = ScoreType::Exact;
+			alpha = score;
+			zeroWindow = true;
+			Heuristics.UpdatePvTable(m, level, depth == 1);
+			doLateMoveReductions = false;
 		}
 
 	}
