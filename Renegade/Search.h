@@ -18,6 +18,7 @@ class Search
 public:
 	Search();
 	void Reset();
+	void ResetStatistics();
 
 	// Perft methods
 	const void Perft(Board b, const int depth, const PerftType type);
@@ -41,10 +42,8 @@ public:
 	const void PrintInfo(const Results e, const EngineSettings settings);
 	const void PrintBestmove(Move move);
 
-	int EvaluatedNodes;
-	int EvaluatedQuiescenceNodes;
-	int SelDepth;
 	int Depth;
+	SearchStatistics Statistics;
 
 	std::vector<BookEntry> BookEntries;
 	Heuristics Heuristics;

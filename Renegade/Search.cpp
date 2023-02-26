@@ -5,11 +5,21 @@ Search::Search() {
 }
 
 void Search::Reset() {
-	EvaluatedNodes = 0;
-	EvaluatedQuiescenceNodes = 0;
-	SelDepth = 0;
 	Depth = 0;
+	ResetStatistics();
 	InitOpeningBook();
+}
+
+void Search::ResetStatistics() {
+	Depth = 0;
+	Statistics.SelDepth = 0;
+	Statistics.Nodes = 0;
+	Statistics.QuiescenceNodes = 0;
+	Statistics.Evaluations = 0;
+	Statistics.BetaCutoffs = 0;
+	Statistics.FirstMoveBetaCutoffs = 0;
+	Statistics.TranspositionQueries = 0;
+	Statistics.TranspositionHits = 0;
 }
 
 // Perft methods ----------------------------------------------------------------------------------
@@ -104,8 +114,8 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 
 	StartSearchTime = Clock::now();
 	int elapsedMs = 0;
-	EvaluatedNodes = 0;
-	EvaluatedQuiescenceNodes = 0;
+	Depth = 0;
+	ResetStatistics();
 	Aborting = false;
 	Depth = 0;
 	bool finished = false;
@@ -133,7 +143,7 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 		Heuristics.ClearEntries();
 		if (Heuristics.GetHashfull() > 500) Heuristics.ResetHashStructure(); // Just in case if we overallocate
 		Depth += 1;
-		SelDepth = 0;
+		Statistics.SelDepth = 0;
 		int result = SearchRecursive(board, Depth, 0, NegativeInfinity, PositiveInfinity, true);
 		Heuristics.SetHashSize(settings.Hash);
 
@@ -144,10 +154,9 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
 		if ((Depth >= 32)) finished = true;
 		if (Aborting) {
-			e.nodes = EvaluatedNodes;
-			e.qnodes = EvaluatedQuiescenceNodes;
+			e.stats = Statistics;
 			e.time = elapsedMs;
-			e.nps = static_cast<int>(EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count());
+			e.nps = static_cast<int>(Statistics.Nodes * 1e9 / (currentTime - StartSearchTime).count());
 			e.hashfull = Heuristics.GetHashfull();
 			PrintInfo(e, settings);
 			break;
@@ -156,11 +165,9 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 		// Send info
 		e.score = result;
 		e.depth = Depth;
-		e.seldepth = SelDepth;
-		e.nodes = EvaluatedNodes;
-		e.qnodes = EvaluatedQuiescenceNodes;
+		e.stats = Statistics;
 		e.time = elapsedMs;
-		e.nps = static_cast<int>(EvaluatedNodes * 1e9 / (currentTime - StartSearchTime).count());
+		e.nps = static_cast<int>(Statistics.Nodes * 1e9 / (currentTime - StartSearchTime).count());
 		e.hashfull = Heuristics.GetHashfull();
 
 		// Check PV validity (note & todo: may not be correct)
@@ -194,11 +201,11 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Check limits
 	if (Aborting) return NoEval;
-	if ((Constraints.MaxNodes != -1) && (EvaluatedNodes >= Constraints.MaxNodes) && (Depth > 1)) {
+	if ((Constraints.MaxNodes != -1) && (Statistics.Nodes >= Constraints.MaxNodes) && (Depth > 1)) {
 		Aborting = true;
 		return NoEval;
 	}
-	if ((EvaluatedNodes % 1000 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
+	if ((Statistics.Nodes % 1024 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
 		auto now = Clock::now();
 		int elapsedMs = (int)((now - StartSearchTime).count() / 1e6);
 		if (elapsedMs >= Constraints.SearchTimeMax) {
@@ -206,6 +213,8 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			return NoEval;
 		}
 	}
+
+	Statistics.Nodes += 1;
 
 	// Check extensions
 	uint64_t kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
@@ -232,6 +241,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	// Calculate and check hash
 	uint64_t hash = board.Hash(true);
 	std::tuple<bool, HashEntry> retrieved = Heuristics.RetrieveEntry(hash);
+	Statistics.TranspositionQueries += 1;
 	if (get<0>(retrieved)) {
 		HashEntry entry = get<1>(retrieved);
 		int score = NoEval;
@@ -240,7 +250,10 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		else if ((entry.scoreType == ScoreType::UpperBound) && (entry.score <= alpha)) score = alpha;
 		else if ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta)) score = beta;
 		else usable = false;
-		if (usable) return score;
+		if (usable) {
+			Statistics.TranspositionHits += 1;
+			return score;
+		}
 	}
 
 	// Null-move pruning
@@ -310,16 +323,25 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		b.Push(m);
 		int score = NoEval;
 		bool doPvSearch = true;
+		bool givingCheck = b.Turn == Turn::White ? Popcount(b.AttackedSquares & b.WhitePawnBits) != 0 : Popcount(b.AttackedSquares & b.BlackPawnBits) != 0;
 
 		// Late move reductions
 		/*
 		if (doLateMoveReductions) {
-			if ((legalMoveCount > 4) && !pvNode && !inCheck && isQuiet && (depth >= 3) && canNullMove) {
-				int reduction = 1;
-				int reducedScore = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha - 1, -alpha, true);
-				if (reducedScore <= alpha) {
-					childEval = -reducedScore;
-					// pvSearch = true;
+			bool interestingPawnMove = (TypeOfPiece(board.GetPieceAt(m.from)) == PieceType::Pawn);
+			int lmrDepth = 3;
+			if ((legalMoveCount > 4) && !pvNode && !inCheck && !givingCheck && isQuiet && (depth > lmrDepth) && !interestingPawnMove && !Heuristics.IsKillerMove(m, level)) {
+				int reduction = legalMoveCount <= 10 ? 1 : 2;
+				if (!zeroWindow) {
+					score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -beta, -alpha, true);
+				}
+				else {
+					score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha - 1, -alpha, true);
+					if (alpha < score) score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -beta, -alpha, true);
+				}
+				if (score <= alpha) doPvSearch = false;
+				else {
+					//doLateMoveReductions = true;
 				}
 			}
 		}*/
@@ -331,9 +353,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			}
 			else {
 				score = -SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
-				if (alpha < score) {
-					score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
-				}
+				if (alpha < score) score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
 			}
 		}
 
@@ -341,6 +361,8 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		if (score >= beta) {
 			if (isQuiet) Heuristics.AddKillerMove(m, level);
 			Heuristics.AddEntry(hash, beta, ScoreType::LowerBound);
+			Statistics.BetaCutoffs += 1;
+			if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
 			return beta;
 		}
 		if (score > alpha) {
@@ -355,10 +377,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// There was no legal move --> game over 
 	if (legalMoveCount == 0) {
-		int e;
-		if (!inCheck) e = 0;
-		else e = -MateEval + (level + 1) / 2;
-
+		int e = inCheck ? LosingMateScore(level) : 0;
 		if (e >= beta) {
 			Heuristics.AddEntry(hash, beta, ScoreType::LowerBound);
 			return beta;
@@ -380,7 +399,10 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool rootNode) {
 	MoveList.clear();
 	board.GeneratePseudoLegalMoves(MoveList, board.Turn, true);
-	if (!rootNode) EvaluatedQuiescenceNodes += 1;
+	if (!rootNode) {
+		Statistics.Nodes += 1;
+		Statistics.QuiescenceNodes += 1;
+	}
 
 	// Calculate delta pruning margin (~11% node reduction @ depth=8)
 	int delta = CalculateDeltaMargin(board);
@@ -421,8 +443,8 @@ int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool 
 }
 
 int Search::StaticEvaluation(Board &board, int level, bool checkDraws) {
-	EvaluatedNodes += 1;
-	if (level > SelDepth) SelDepth = level;
+	Statistics.Evaluations += 1;
+	if (level > Statistics.SelDepth) Statistics.SelDepth = level;
 	if (checkDraws) {
 		if (board.IsDraw()) return 0;
 	}
@@ -506,7 +528,7 @@ const int Search::GetBookSize() {
 
 const void Search::PrintInfo(const Results e, const EngineSettings settings) {
 	std::string score;
-	if ((abs(e.score) > MateEval - 1000) && (abs(e.score) <= MateEval)) {
+	if (IsMateScore(e.score)) {
 		int movesToMate = MateEval - abs(e.score);
 		if (e.score > 0) score = "mate " + std::to_string(movesToMate);
 		else score = "mate -" + std::to_string(movesToMate);
@@ -517,10 +539,16 @@ const void Search::PrintInfo(const Results e, const EngineSettings settings) {
 
 	std::string extended;
 	if (settings.ExtendedOutput) {
-		extended = " qnodes " + std::to_string(e.qnodes);
+		extended += " evals " + std::to_string(e.stats.Evaluations);
+		extended += " qnodes " + std::to_string(e.stats.QuiescenceNodes);
+		// extended += " betacutoffs " + std::to_string(e.stats.BetaCutoffs)
+		// extended += " fmbc " + std::to_string(e.stats.FirstMoveBetaCutoffs);
+		if (e.stats.BetaCutoffs != 0) extended += " fmbcrate " + std::to_string(static_cast<int>(e.stats.FirstMoveBetaCutoffs * 1000 / e.stats.BetaCutoffs));
+		extended += " tthits " + std::to_string(e.stats.TranspositionHits);
+		if (e.stats.TranspositionQueries != 0) extended += " ttrate " + std::to_string(static_cast<int>(e.stats.TranspositionHits * 1000 / e.stats.TranspositionQueries));
 	}
 
-	cout << "info depth " << e.depth << " seldepth " << e.seldepth << " score " << score << " nodes " << e.nodes << " nps " << e.nps
+	cout << "info depth " << e.depth << " seldepth " << e.stats.SelDepth << " score " << score << " nodes " << e.stats.Nodes << " nps " << e.nps
 		<< " time " << e.time << " hashfull " << e.hashfull << extended << " pv";
 
 	for (Move move : e.pv)

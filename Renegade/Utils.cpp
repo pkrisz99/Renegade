@@ -173,6 +173,19 @@ struct EngineSettings {
 	bool ExtendedOutput;
 };
 
+struct SearchStatistics {
+	int SelDepth;
+	int Nodes;
+	int QuiescenceNodes;
+	int Evaluations;
+	int BetaCutoffs;
+	int FirstMoveBetaCutoffs;
+	//int FutilityPruned;
+	//int RazoringPruned;
+	int TranspositionQueries;
+	int TranspositionHits;
+};
+
 // Bitwise operations  ----------------------------------------------------------------------------
 
 static inline void SetBitTrue(uint64_t& number, const uint64_t place) {
@@ -269,6 +282,10 @@ constexpr static int SquareToNum(const std::string sq) {
 	int file = sq[0] - 'a';
 	int rank = sq[1] - '1';
 	return Square(rank, file);
+}
+
+static int LosingMateScore(int level) {
+	return -MateEval + (level + 1) / 2;
 }
 
 
