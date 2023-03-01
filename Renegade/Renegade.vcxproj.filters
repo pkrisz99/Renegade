@@ -45,6 +45,9 @@
     <ClCompile Include="Results.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Magics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Move.h">
@@ -66,6 +69,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Results.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Magics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

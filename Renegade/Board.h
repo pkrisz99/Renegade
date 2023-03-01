@@ -1,12 +1,17 @@
 #pragma once
 #include "Move.h"
+#include "Magics.h"
 #include "Utils.cpp"
 
 /*
 * This is the board representation of Renegade.
-* It also includes logic for move generation and handles game state as well.
+* It also includes logic for move generation and handles repetition checks as well.
 * A generic bitboard approach is used, pseudolegal moves are filtered via attack map generation.
 */
+
+// Magic lookup tables
+extern uint64_t GetBishopAttacks(const int square, const uint64_t occupancy);
+extern uint64_t GetRookAttacks(const int square, const uint64_t occupancy);
 
 class Board
 {
@@ -38,10 +43,11 @@ public:
 	const bool IsDraw();
 	const GameState GetGameState();
 
+	/*
 	const uint64_t GenerateSlidingAttacksShiftUp(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
 		const uint64_t friendlyPieces, const uint64_t opponentPieces);
 	const uint64_t GenerateSlidingAttacksShiftDown(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
-		const uint64_t friendlyPieces, const uint64_t opponentPieces);
+		const uint64_t friendlyPieces, const uint64_t opponentPieces);*/
 
 	// Board variables:
 	uint64_t WhitePawnBits;
@@ -79,7 +85,7 @@ private:
 	void GenerateKingMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
 	void GeneratePawnMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
 	void GenerateCastlingMoves(std::vector<Move>& moves);
-	void GenerateSlidingMoves(std::vector<Move>& moves, const int piece, const int home, const bool quiescenceOnly);
+	void GenerateSlidingMoves(std::vector<Move>& moves, const int piece, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy, const bool quiescenceOnly);
 
 	const uint64_t GenerateKnightAttacks(const int from);
 	const uint64_t GenerateKingAttacks(const int from);

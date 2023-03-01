@@ -531,21 +531,44 @@ void Board::Push(const Move move) {
 
 
 void Board::GenerateKnightMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
-	const auto lookup = KnightMoves[home];
-	for (const int l : lookup) {
+	for (const int &l : KnightMoves[home]) {
 		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
 		if (!quiescenceOnly || (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(!Turn))) moves.push_back(Move(home, l));
 	}
 }
 
-void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece, const int home, const bool quiescenceOnly) {
+void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy, const bool quiescenceOnly) {
 
-	const int myColor = ColorOfPiece(piece);
-	const int opponentColor = (myColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
-	const uint64_t friendlyOccupance = GetOccupancy(myColor);
-	const uint64_t opponentOccupance = GetOccupancy(opponentColor);
+	const int pieceColor = ColorOfPiece(piece);
+	const int pieceType = TypeOfPiece(piece);
+	const int opponentColor = (pieceColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
+	const uint64_t friendlyOccupance = pieceColor == PieceColor::White ? whiteOccupancy : blackOccupancy;
+	const uint64_t opponentOccupance = pieceColor == PieceColor::White ? blackOccupancy : whiteOccupancy;
+	const uint64_t occupancy = whiteOccupancy | blackOccupancy;
+	uint64_t map = 0;
 
-	int rankDirection;
+	switch (pieceType) {
+	case PieceType::Rook:
+		map = GetRookAttacks(home, occupancy) & ~friendlyOccupance;
+		break;
+	case PieceType::Bishop:
+		map = GetBishopAttacks(home, occupancy) & ~friendlyOccupance;
+		break;
+	case PieceType::Queen:
+		map = (GetRookAttacks(home, occupancy) | GetBishopAttacks(home, occupancy)) & ~friendlyOccupance;
+		break;
+	}
+
+	if (quiescenceOnly) map &= opponentOccupance;
+	if (map == 0) return;
+
+	while (Popcount(map) != 0) {
+		uint64_t sq = 63ULL - Lzcount(map);
+		moves.push_back(Move(home, sq));
+		SetBitFalse(map, sq);
+	}
+
+	/*int rankDirection;
 	int fileDirection;
 
 	const int pieceType = TypeOfPiece(piece);
@@ -579,10 +602,11 @@ void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece, cons
 			}
 			if (!quiescenceOnly) moves.push_back(Move(home, thatSquare));
 		}
-	}
+	}*/
 
 }
 
+/*
 // Sliding attack generation, the idea being that this function does multiple pieces at once.
 // Also who doesn't like this level of bit fiddling?
 const uint64_t Board::GenerateSlidingAttacksShiftDown(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces, const uint64_t friendlyPieces, const uint64_t opponentPieces) {
@@ -613,7 +637,7 @@ const uint64_t Board::GenerateSlidingAttacksShiftUp(const int direction, const u
 	}
 	fill |= ((propagatingPieces & boundMask) << direction) & ~blockingFriends;
 	return fill;
-}
+}*/
 
 const uint64_t Board::GenerateKnightAttacks(const int from) {
 	return KnightMoveBits[from];
@@ -624,8 +648,7 @@ const uint64_t Board::GenerateKingAttacks(const int from) {
 }
 
 void Board::GenerateKingMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
-	const auto lookup = KingMoves[home];
-	for (const int l : lookup) {
+	for (const int &l : KingMoves[home]) {
 		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
 		if (!quiescenceOnly || (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(!Turn))) moves.push_back(Move(home, l));
 	}
@@ -821,14 +844,31 @@ const uint64_t Board::CalculateAttackedSquares(const int colorOfPieces) {
 	}
 
 	// Sliding piece attack generation
-	squares |= GenerateSlidingAttacksShiftDown(1, ~Bitboards::FileA, parallelSliders, friendlyPieces, opponentPieces); // Left
+	
+	/*squares |= GenerateSlidingAttacksShiftDown(1, ~Bitboards::FileA, parallelSliders, friendlyPieces, opponentPieces); // Left
 	squares |= GenerateSlidingAttacksShiftDown(8, ~Bitboards::Rank1, parallelSliders, friendlyPieces, opponentPieces); // Down
 	squares |= GenerateSlidingAttacksShiftUp(1, ~Bitboards::FileH, parallelSliders, friendlyPieces, opponentPieces); // Right
 	squares |= GenerateSlidingAttacksShiftUp(8, ~Bitboards::Rank8, parallelSliders, friendlyPieces, opponentPieces); // Up
 	squares |= GenerateSlidingAttacksShiftDown(7, ~Bitboards::FileH & ~Bitboards::Rank1, diagonalSliders, friendlyPieces, opponentPieces); // Right-down
 	squares |= GenerateSlidingAttacksShiftDown(9, ~Bitboards::FileA & ~Bitboards::Rank1, diagonalSliders, friendlyPieces, opponentPieces); // Left-down
 	squares |= GenerateSlidingAttacksShiftUp(9, ~Bitboards::FileH & ~Bitboards::Rank8, diagonalSliders, friendlyPieces, opponentPieces); // Right-up
-	squares |= GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, diagonalSliders, friendlyPieces, opponentPieces); // Left-up
+	squares |= GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, diagonalSliders, friendlyPieces, opponentPieces); // Left-up*/
+
+	uint64_t occ = GetOccupancy();
+	uint64_t parallelBits = colorOfPieces == PieceColor::White ? WhiteRookBits | WhiteQueenBits : BlackRookBits | BlackQueenBits;
+	while (Popcount(parallelBits) != 0) {
+		uint64_t sq = 63ULL - Lzcount(parallelBits);
+		squares |= GetRookAttacks(static_cast<int>(sq), occ);
+		SetBitFalse(parallelBits, sq);
+	}
+	uint64_t diagonalBits = colorOfPieces == PieceColor::White ? WhiteBishopBits | WhiteQueenBits : BlackBishopBits | BlackQueenBits;
+	while (Popcount(diagonalBits) != 0) {
+		uint64_t sq = 63ULL - Lzcount(diagonalBits);
+		squares |= GetBishopAttacks(static_cast<int>(sq), occ);
+		SetBitFalse(diagonalBits, sq);
+	}
+	squares &= ~friendlyPieces;
+
 
 	// King attack gen
 	uint64_t kingSquare = 63ULL - Lzcount(colorOfPieces == PieceColor::White ? WhiteKingBits : BlackKingBits);
@@ -892,10 +932,12 @@ void Board::GenerateNonQuietMoves(std::vector<Move>& moves, const int turn) {
 
 void Board::GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, const bool quiescenceOnly) {
 	const int myColor = TurnToPieceColor(turn);
-	uint64_t occupancy = GetOccupancy(TurnToPieceColor(turn));
-	while (occupancy != 0) {
-		int i = 63 - Lzcount(occupancy);
-		SetBitFalse(occupancy, i);
+	uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
+	uint64_t blackOccupancy = GetOccupancy(PieceColor::Black);
+	uint64_t friendlyOccupancy = GetOccupancy(TurnToPieceColor(turn));
+	while (friendlyOccupancy != 0) {
+		int i = 63 - Lzcount(friendlyOccupancy);
+		SetBitFalse(friendlyOccupancy, i);
 
 		int piece = GetPieceAt(i);
 		int color = ColorOfPiece(piece);
@@ -904,9 +946,9 @@ void Board::GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, c
 
 		if (type == PieceType::Pawn) GeneratePawnMoves(moves, i, quiescenceOnly);
 		else if (type == PieceType::Knight) GenerateKnightMoves(moves, i, quiescenceOnly);
-		else if (type == PieceType::Bishop) GenerateSlidingMoves(moves, piece, i, quiescenceOnly);
-		else if (type == PieceType::Rook) GenerateSlidingMoves(moves, piece, i, quiescenceOnly);
-		else if (type == PieceType::Queen) GenerateSlidingMoves(moves, piece, i, quiescenceOnly);
+		else if (type == PieceType::Bishop) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, quiescenceOnly);
+		else if (type == PieceType::Rook) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, quiescenceOnly);
+		else if (type == PieceType::Queen) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, quiescenceOnly);
 		else if (type == PieceType::King) {
 			GenerateKingMoves(moves, i, quiescenceOnly);
 			if (!quiescenceOnly) GenerateCastlingMoves(moves);
@@ -917,6 +959,8 @@ void Board::GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, c
 bool Board::AreThereLegalMoves(const bool turn) {
 	bool hasMoves = false;
 	const int myColor = TurnToPieceColor(turn);
+	uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
+	uint64_t blackOccupancy = GetOccupancy(PieceColor::Black);
 
 	/*
 	// Quick king test - if the king can move to a free square without being attacked, then we have a legal move
@@ -938,9 +982,9 @@ bool Board::AreThereLegalMoves(const bool turn) {
 
 		if (type == PieceType::Pawn) GeneratePawnMoves(moves, i, false);
 		else if (type == PieceType::Knight) GenerateKnightMoves(moves, i, false);
-		else if (type == PieceType::Bishop) GenerateSlidingMoves(moves, piece, i, false);
-		else if (type == PieceType::Rook) GenerateSlidingMoves(moves, piece, i, false);
-		else if (type == PieceType::Queen) GenerateSlidingMoves(moves, piece, i, false);
+		else if (type == PieceType::Bishop) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, false);
+		else if (type == PieceType::Rook) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, false);
+		else if (type == PieceType::Queen) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, false);
 		else if (type == PieceType::King) {
 			GenerateKingMoves(moves, i, false);
 			GenerateCastlingMoves(moves);

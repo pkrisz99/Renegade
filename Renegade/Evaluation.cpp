@@ -4,6 +4,9 @@
 
 const static int WeightsSize = 925;
 
+extern uint64_t GetBishopAttacks(const int square, const uint64_t occupancy);
+extern uint64_t GetRookAttacks(const int square, const uint64_t occupancy);
+
 // Source of values:
 // https://www.chessprogramming.org/Simplified_Evaluation_Function
 
@@ -308,37 +311,19 @@ static const std::tuple<int, uint64_t> KnightMobility(int square, uint64_t frien
 }
 
 static const std::tuple<int, uint64_t> RookMobility(Board& board, int square, uint64_t friendlyPieces, uint64_t opponentPieces, const int weights[WeightsSize]) {
-	uint64_t verticalMobility = (board.GenerateSlidingAttacksShiftDown(8, ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(8, ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces))
-		& ~SquareBits[square];
-	uint64_t horizontalMobility = (board.GenerateSlidingAttacksShiftDown(1, ~Bitboards::FileA, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(1, ~Bitboards::FileH, SquareBits[square], friendlyPieces, opponentPieces))
-		& ~SquareBits[square];
-	int horizontalMobilityCount = Popcount(horizontalMobility);
-	int verticalMobilityCount = Popcount(verticalMobility);
-	return  { weights[IndexRookVerticalMobility(verticalMobilityCount)] + weights[IndexRookHorizontalMobility(horizontalMobilityCount)], verticalMobility + horizontalMobility };
+	uint64_t mobility = GetRookAttacks(square, friendlyPieces | opponentPieces);
+	int mobilityCount = Popcount(mobility) / 2;
+	return  { weights[IndexRookVerticalMobility(mobilityCount)], mobilityCount };
 }
 
 static const std::tuple<int, uint64_t> BishopMobility(Board& board, int square, uint64_t friendlyPieces, uint64_t opponentPieces, const int weights[WeightsSize]) {
-	uint64_t mobility = (board.GenerateSlidingAttacksShiftDown(7, ~Bitboards::FileH & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftDown(9, ~Bitboards::FileA & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(9, ~Bitboards::FileH & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces))
-		& ~SquareBits[square];
+	uint64_t mobility = GetBishopAttacks(square, friendlyPieces | opponentPieces) & ~friendlyPieces;
 	int mobilityCount = Popcount(mobility);
 	return { weights[IndexBishopMobility(mobilityCount)], mobility };
 }
 
 static const std::tuple<int, uint64_t> QueenMobility(Board& board, int square, uint64_t friendlyPieces, uint64_t opponentPieces, float phase, const int weights[WeightsSize]) {
-	uint64_t mobility = (board.GenerateSlidingAttacksShiftDown(8, ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(8, ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftDown(1, ~Bitboards::FileA, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(1, ~Bitboards::FileH, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftDown(7, ~Bitboards::FileH & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftDown(9, ~Bitboards::FileA & ~Bitboards::Rank1, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(9, ~Bitboards::FileH & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces)
-		| board.GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, SquareBits[square], friendlyPieces, opponentPieces))
-		& ~SquareBits[square];
+	uint64_t mobility = (GetBishopAttacks(square, friendlyPieces | opponentPieces) | GetRookAttacks(square, friendlyPieces | opponentPieces)) & ~friendlyPieces;
 	int mobilityCount = Popcount(mobility);
 	int earlyScore = weights[IndexQueenEarlyMobility(mobilityCount)];
 	int lateScore = weights[IndexQueenLateMobility(mobilityCount)];

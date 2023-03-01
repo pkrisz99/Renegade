@@ -274,7 +274,7 @@ constexpr static int TurnToPieceColor(const bool turn) {
 	return PieceColor::Black;
 }
 
-constexpr static int Square(const int rank, int file) {
+constexpr static int Square(const int rank, const int file) {
 	return rank * 8 + file;
 }
 

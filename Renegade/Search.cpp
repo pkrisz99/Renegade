@@ -281,7 +281,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Razoring (?)
 	const int razoringMargin = 400;
-	if ((depth < 2) && (level > 2) && !inCheck && !pvNode) {
+	if ((depth < 2) && !inCheck && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
 		if (staticEval + razoringMargin < alpha) {
 			int e = SearchQuiescence(board, level, alpha, beta, true);
