@@ -39,6 +39,11 @@ void Heuristics::ClearEntries() {
 	for (int i = 0; i < PvSize; i++) {
 		for (int j = 0; j < PvSize; j++) PvTable[i][j] = Move();
 	}
+
+	for (int i = 0; i < HistoryTables[0].size(); i++) {
+		std::fill(std::begin(HistoryTables[0][i]), std::end(HistoryTables[0][i]), 0);
+		std::fill(std::begin(HistoryTables[1][i]), std::end(HistoryTables[1][i]), 0);
+	}
 }
 
 const int64_t Heuristics::EstimateAllocatedMemory() {
@@ -124,6 +129,10 @@ const std::vector<Move> Heuristics::GetPvLine() {
 	return list;
 }
 
+void Heuristics::AddCutoffHistory(const bool side, const int from, const int to, const int depth) {
+	HistoryTables[side][from][to] += depth * depth;
+}
+
 // Move ordering scoring function
 const int Heuristics::CalculateOrderScore(Board board, const Move m, const int level, const float phase, const bool onPv) {
 	int orderScore = 0;
@@ -131,14 +140,14 @@ const int Heuristics::CalculateOrderScore(Board board, const Move m, const int l
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
 	if (attackedPiece != PieceType::None) {
-		orderScore = values[attackedPiece] - values[attackingPiece] + 10000;
+		orderScore = values[attackedPiece] * 16 - values[attackingPiece] + 100000;
 	}
 
-	if (m.flag == MoveFlag::PromotionToQueen) orderScore += 950 + 20000;
-	else if (m.flag == MoveFlag::PromotionToRook) orderScore += 500 + 20000;
-	else if (m.flag == MoveFlag::PromotionToBishop) orderScore += 290 + 1000;
-	else if (m.flag == MoveFlag::PromotionToKnight) orderScore += 310 + 1000;
-	else if (m.flag == MoveFlag::EnPassantPerformed) orderScore += 100 + 10000;
+	if (m.flag == MoveFlag::PromotionToQueen) orderScore += 950 + 200000;
+	else if (m.flag == MoveFlag::PromotionToRook) orderScore += 500 + 200000;
+	else if (m.flag == MoveFlag::PromotionToBishop) orderScore += 290 + 10000;
+	else if (m.flag == MoveFlag::PromotionToKnight) orderScore += 310 + 10000;
+	else if (m.flag == MoveFlag::EnPassantPerformed) orderScore += 100 + 100000;
 
 	bool turn = board.Turn;
 	if (turn == Turn::White) {
@@ -150,7 +159,9 @@ const int Heuristics::CalculateOrderScore(Board board, const Move m, const int l
 		orderScore += LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.to])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.to])], phase);
 	}
 
-	if (IsKillerMove(m, level)) orderScore += 1000;
-	if (IsPvMove(m, level) && onPv) orderScore += 1000000;
+	if (IsKillerMove(m, level)) orderScore += 10000;
+	if (IsPvMove(m, level) && onPv) orderScore += 10000000;
+	int historyScore = HistoryTables[turn][m.from][m.to];
+	//orderScore += historyScore / 128;
 	return orderScore;
 }

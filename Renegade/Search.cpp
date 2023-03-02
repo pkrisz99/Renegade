@@ -323,15 +323,15 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		b.Push(m);
 		int score = NoEval;
 		bool doPvSearch = true;
-		bool givingCheck = b.Turn == Turn::White ? Popcount(b.AttackedSquares & b.WhitePawnBits) != 0 : Popcount(b.AttackedSquares & b.BlackPawnBits) != 0;
+		bool givingCheck = b.Turn == Turn::White ? Popcount(b.AttackedSquares & b.WhiteKingBits) != 0 : Popcount(b.AttackedSquares & b.BlackKingBits) != 0;
 
 		// Late move reductions
 		/*
 		if (doLateMoveReductions) {
-			bool interestingPawnMove = (TypeOfPiece(board.GetPieceAt(m.from)) == PieceType::Pawn);
+			bool interestingPawnMove = (TypeOfPiece(board.GetPieceAt(m.from)) == PieceType::Pawn) && (phase > 0.4f);
 			int lmrDepth = 3;
 			if ((legalMoveCount > 4) && !pvNode && !inCheck && !givingCheck && isQuiet && (depth > lmrDepth) && !interestingPawnMove && !Heuristics.IsKillerMove(m, level)) {
-				int reduction = legalMoveCount <= 10 ? 1 : 2;
+				int reduction = legalMoveCount <= 13 ? 1 : 2;
 				if (!zeroWindow) {
 					score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -beta, -alpha, true);
 				}
@@ -361,6 +361,8 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		if (score >= beta) {
 			if (isQuiet) Heuristics.AddKillerMove(m, level);
 			Heuristics.AddEntry(hash, beta, ScoreType::LowerBound);
+			int piece = board.GetPieceAt(m.from);
+			if (isQuiet) Heuristics.AddCutoffHistory(board.Turn, m.from, m.to, depth);
 			Statistics.BetaCutoffs += 1;
 			if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
 			return beta;

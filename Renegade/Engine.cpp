@@ -6,6 +6,7 @@ Engine::Engine() {
 	Settings.UseBook = false;
 	Settings.ExtendedOutput = false;
 	std::srand(static_cast<unsigned int>(std::time(0)));
+	GenerateMagicTables();
 }
 
 const void Engine::PrintHeader() {

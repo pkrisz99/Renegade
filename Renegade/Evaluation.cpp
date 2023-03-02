@@ -547,7 +547,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	// This list is not complete, and probably should be expanded even more (e.g. by including pawns)
 	bool potentiallyDrawish = false;
 	if ((whitePieces <= 3) && (blackPieces <= 3)) {
-		if (Popcount(board.WhiteRookBits | board.BlackRookBits | board.WhiteQueenBits | board.BlackQueenBits | board.WhitePawnBits | board.BlackPawnBits) == 0) potentiallyDrawish = true;
+		if (Popcount(board.WhiteQueenBits | board.BlackQueenBits | board.WhitePawnBits | board.BlackPawnBits) == 0) potentiallyDrawish = true;
 	}
 	if (potentiallyDrawish) {
 		uint64_t whiteExtras = whitePieces - 1;

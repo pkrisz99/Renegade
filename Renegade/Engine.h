@@ -1,5 +1,6 @@
 #pragma once
 #include "Board.h"
+#include "Magics.h"
 #include "Heuristics.h"
 #include "Results.h"
 #include "Search.h"
@@ -11,6 +12,7 @@
 #include <thread>
 #include <tuple>
 
+extern void GenerateMagicTables();
 
 class Engine
 {

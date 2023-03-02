@@ -25,7 +25,7 @@ static const int NoEval = -666666666;
 static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
 static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
-static bool IsMateScore(const int score) {
+static inline bool IsMateScore(const int score) {
 	if (score > MateEval - 10000) return true;
 	if (score < -MateEval + 10000) return true;
 	return false;
@@ -261,30 +261,30 @@ const static int PieceColorArray[] = {
 };
 
 // 0: None, 1: White, 2: Black
-constexpr static int ColorOfPiece(const int piece) {
+static inline int ColorOfPiece(const int piece) {
 	return PieceColorArray[piece];
 }
 
-constexpr static int TypeOfPiece(const int piece) {
+static inline int TypeOfPiece(const int piece) {
 	return PieceTypeArray[piece];
 }
 
-constexpr static int TurnToPieceColor(const bool turn) {
+static inline int TurnToPieceColor(const bool turn) {
 	if (turn == Turn::White) return PieceColor::White;
 	return PieceColor::Black;
 }
 
-constexpr static int Square(const int rank, const int file) {
+static inline int Square(const int rank, const int file) {
 	return rank * 8 + file;
 }
 
-constexpr static int SquareToNum(const std::string sq) {
+static inline int SquareToNum(const std::string sq) {
 	int file = sq[0] - 'a';
 	int rank = sq[1] - '1';
 	return Square(rank, file);
 }
 
-static int LosingMateScore(int level) {
+static inline int LosingMateScore(int level) {
 	return -MateEval + (level + 1) / 2;
 }
 

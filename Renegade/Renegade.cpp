@@ -20,12 +20,8 @@
 // be terribly difficult.
 
 #include "Engine.h"
-#include "Magics.h"
-
-extern void GenerateMagics();
 
 int main() {
-    GenerateMagics();
     Engine engine = Engine();
     engine.Start();
     return 0;

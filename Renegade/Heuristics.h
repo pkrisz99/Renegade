@@ -3,6 +3,7 @@
 #include "Board.h"
 #include "Evaluation.cpp"
 #include "Utils.cpp"
+#include <algorithm>
 #include <array>
 #include <unordered_map>
 
@@ -38,6 +39,7 @@ public:
 	const int CalculateOrderScore(Board board, const Move m, const int level, const float phase, const bool onPv);
 	const int64_t EstimateAllocatedMemory();
 	void ResetHashStructure();
+	void AddCutoffHistory(const bool side, const int from, const int to, const int depth);
 
 	std::unordered_map<uint64_t, HashEntry> Hashes;
 	int HashedEntryCount;
@@ -45,6 +47,7 @@ public:
 	std::vector<Move> PvMoves;
 	int64_t MaximumHashMemory;
 	Move PvTable[PvSize + 1][PvSize + 1];
+	std::array < std::array<std::array<int, 64>, 64>, 2> HistoryTables;
 
 	const HashEntry NoEntry = { -1, ScoreType::Exact};
 
