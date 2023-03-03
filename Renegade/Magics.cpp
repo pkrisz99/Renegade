@@ -15,6 +15,12 @@ uint64_t GetBishopAttacks(const int square, const uint64_t occupancy) {
 	return BishopAttacks[square][index];
 }
 
+uint64_t GetQueenAttacks(const int square, const uint64_t occupancy) {
+	int rookIndex = static_cast<int>(((occupancy & RookMasks[square]) * RookMagicNumbers[square]) >> (64 - RookRelevantBits[square]));
+	int bishopIndex = static_cast<int>(((occupancy & BishopMasks[square]) * BishopMagicNumbers[square]) >> (64 - BishopRelevantBits[square]));
+	return BishopAttacks[square][bishopIndex] | RookAttacks[square][rookIndex];
+}
+
 // Things for lookup table population -------------------------------------------------------------
 
 // Generate an occupancy bitboard where the encoded bits represent occupied bits in the mask

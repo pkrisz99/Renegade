@@ -555,7 +555,7 @@ void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece, cons
 		map = GetBishopAttacks(home, occupancy) & ~friendlyOccupance;
 		break;
 	case PieceType::Queen:
-		map = (GetRookAttacks(home, occupancy) | GetBishopAttacks(home, occupancy)) & ~friendlyOccupance;
+		map = (GetQueenAttacks(home, occupancy)) & ~friendlyOccupance;
 		break;
 	}
 

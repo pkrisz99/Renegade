@@ -12,6 +12,7 @@
 // Magic lookup tables
 extern uint64_t GetBishopAttacks(const int square, const uint64_t occupancy);
 extern uint64_t GetRookAttacks(const int square, const uint64_t occupancy);
+extern uint64_t GetQueenAttacks(const int square, const uint64_t occupancy);
 
 class Board
 {

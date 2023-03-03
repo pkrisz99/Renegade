@@ -7,6 +7,7 @@
 void GenerateMagicTables();
 uint64_t GetRookAttacks(const int square, const uint64_t occupancy);
 uint64_t GetBishopAttacks(const int square, const uint64_t occupancy);
+uint64_t GetQueenAttacks(const int square, const uint64_t occupancy);
 
 // Attack lookup tables (generated at runtime)
 static std::array<std::array<uint64_t, 4096>, 64> RookAttacks;
