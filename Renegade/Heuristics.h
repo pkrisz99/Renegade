@@ -25,18 +25,18 @@ public:
 
 	Heuristics();
 	void AddEntry(const uint64_t hash, const int score, const int scoreType);
-	void AddKillerMove(const Move m, const int level);
-	const bool IsKillerMove(const Move move, const int level);
-	const bool IsPvMove(const Move move, const int level);
+	void AddKillerMove(const Move &m, const int level);
+	const bool IsKillerMove(const Move &move, const int level);
+	const bool IsPvMove(const Move &move, const int level);
 	void SetPv(const std::vector<Move> pv);
 	void ClearEntries();
 	void ClearPv();
 	const std::tuple<bool, HashEntry> RetrieveEntry(const uint64_t &hash);
 	void SetHashSize(const int megabytes);
 	const int GetHashfull();
-	void UpdatePvTable(const Move move, const int level, const bool leaf);
+	void UpdatePvTable(const Move &move, const int level, const bool leaf);
 	const std::vector<Move> GetPvLine();
-	const int CalculateOrderScore(Board &board, const Move m, const int level, const float phase, const bool onPv);
+	const int CalculateOrderScore(Board &board, const Move &m, const int level, const float phase, const bool onPv);
 	const int64_t EstimateAllocatedMemory();
 	void ResetHashStructure();
 	void AddCutoffHistory(const bool side, const int from, const int to, const int depth);

@@ -24,7 +24,7 @@ void Search::ResetStatistics() {
 
 // Perft methods ----------------------------------------------------------------------------------
 
-const void Search::Perft(Board board, const int depth, const PerftType type) {
+const void Search::Perft(Board &board, const int depth, const PerftType type) {
 	Board b = board.Copy();
 	bool startingPosition = b.Hash(false) == 0x463b96181691fc9c;
 	const uint64_t startingPerfts[] = { 1, 20, 400, 8902, 197281, 4865609, 119060324 };
@@ -42,7 +42,7 @@ const void Search::Perft(Board board, const int depth, const PerftType type) {
 	else cout << r << endl;
 }
 
-const int Search::PerftRecursive(Board board, const int depth, const int originalDepth, const PerftType type) {
+const int Search::PerftRecursive(Board &board, const int depth, const int originalDepth, const PerftType type) {
 	std::vector<Move> moves;
 	board.GenerateLegalMoves(moves, board.Turn);
 	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << moves.size() << "): " << endl;
@@ -263,14 +263,14 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	// Null-move pruning
 	int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
 	int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
-	int reduction = 2;
+	int reduction = depth < 6 ? 2 : 3;
 	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1) && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
 		Move m = Move();
 		m.SetFlag(MoveFlag::NullMove);
 		Boards[level] = board;
 		Boards[level].Push(m);
-		int nullMoveEval = SearchRecursive(Boards[level], depth - 1 - reduction, level + 1, -beta, -beta + 1, false);
-		if ((-nullMoveEval >= beta) && !IsMateScore(nullMoveEval)) return beta;
+		int nullMoveEval = -SearchRecursive(Boards[level], depth - 1 - reduction, level + 1, -beta, -beta + 1, false);
+		if ((nullMoveEval >= beta) && !IsMateScore(nullMoveEval)) return beta;
 	}
 
 	// Futility pruning

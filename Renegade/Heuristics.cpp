@@ -62,19 +62,19 @@ void Heuristics::SetPv(const std::vector<Move> pv) {
 	PvMoves = pv;
 }
 
-void Heuristics::AddKillerMove(const Move move, const int level) {
+void Heuristics::AddKillerMove(const Move &move, const int level) {
 	if (IsKillerMove(move, level)) return;
 	KillerMoves[level][1] = KillerMoves[level][0];
 	KillerMoves[level][0] = move;
 }
 
-const bool Heuristics::IsKillerMove(const Move move, const int level) {
+const bool Heuristics::IsKillerMove(const Move &move, const int level) {
 	if (KillerMoves[level][0] == move) return true;
 	if (KillerMoves[level][1] == move) return true;
 	return false;
 }
 
-const bool Heuristics::IsPvMove(const Move move, const int level) {
+const bool Heuristics::IsPvMove(const Move &move, const int level) {
 	if (level >= PvMoves.size()) return false;
 	if (move == PvMoves[level]) return true;
 	return false;
@@ -96,7 +96,7 @@ void Heuristics::ResetHashStructure() {
 	std::swap(Hashes, empty);
 }
 
-void Heuristics::UpdatePvTable(const Move move, const int level, const bool leaf) {
+void Heuristics::UpdatePvTable(const Move &move, const int level, const bool leaf) {
 	if (level < PvSize) PvTable[level][level] = move;
 	for (int i = level + 1; i < PvSize; i++) {
 		Move lowerMove = PvTable[level + 1][i];
@@ -134,7 +134,7 @@ void Heuristics::AddCutoffHistory(const bool side, const int from, const int to,
 }
 
 // Move ordering scoring function
-const int Heuristics::CalculateOrderScore(Board &board, const Move m, const int level, const float phase, const bool onPv) {
+const int Heuristics::CalculateOrderScore(Board &board, const Move &m, const int level, const float phase, const bool onPv) {
 	int orderScore = 0;
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));

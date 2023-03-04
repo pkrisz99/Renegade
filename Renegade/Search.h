@@ -21,8 +21,8 @@ public:
 	void ResetStatistics();
 
 	// Perft methods
-	const void Perft(Board b, const int depth, const PerftType type);
-	const int PerftRecursive(Board b, const int depth, const int originalDepth, const PerftType type);
+	const void Perft(Board &b, const int depth, const PerftType type);
+	const int PerftRecursive(Board &b, const int depth, const int originalDepth, const PerftType type);
 
 	// Move search
 	Results SearchMoves(Board &board, const SearchParams params, const EngineSettings settings);
