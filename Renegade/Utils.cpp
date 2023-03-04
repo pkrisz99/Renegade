@@ -288,6 +288,17 @@ static inline int LosingMateScore(int level) {
 	return -MateEval + (level + 1) / 2;
 }
 
+static void DebugBitboard(const uint64_t bits) {
+	cout << "\n" << bits << '\n';
+	for (int r = 7; r >= 0; r--) {
+		for (int f = 0; f < 8; f++) {
+			if (CheckBit(bits, Square(r, f))) cout << " X ";
+			else cout << " . ";
+		}
+		cout << "\n";
+	}
+	cout << "\n" << endl;
+}
 
 // String handling --------------------------------------------------------------------------------
 
@@ -501,6 +512,17 @@ const uint64_t Files[] = {
 	0b0010000000100000001000000010000000100000001000000010000000100000,
 	0b0100000001000000010000000100000001000000010000000100000001000000,
 	0b1000000010000000100000001000000010000000100000001000000010000000
+};
+
+const bool OutpostFilter[] = {
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false,  true,  true,  true,  true, false, false,
+	false, false,  true,  true,  true,  true, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false
 };
 
 // Polyglot hashing numbers, taken from python-chess

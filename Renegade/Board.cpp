@@ -563,7 +563,7 @@ void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece, cons
 	if (map == 0) return;
 
 	while (Popcount(map) != 0) {
-		uint64_t sq = 63ULL - Lzcount(map);
+		int sq = 63 - Lzcount(map);
 		moves.push_back(Move(home, sq));
 		SetBitFalse(map, sq);
 	}

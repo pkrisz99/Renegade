@@ -26,6 +26,8 @@ void Search::ResetStatistics() {
 
 const void Search::Perft(Board board, const int depth, const PerftType type) {
 	Board b = board.Copy();
+	bool startingPosition = b.Hash(false) == 0x463b96181691fc9c;
+	const uint64_t startingPerfts[] = { 1, 20, 400, 8902, 197281, 4865609, 119060324 };
 
 	auto t0 = Clock::now();
 	const int r = PerftRecursive(b, depth, depth, type);
@@ -35,6 +37,7 @@ const void Search::Perft(Board board, const int depth, const PerftType type) {
 	const float speed = r / seconds / 1000000;
 	if ((type == PerftType::Normal) || (type == PerftType::PerftDiv)) {
 		cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps | No bulk counting" << endl;
+		if (startingPosition && (depth <= 6) && (startingPerfts[depth] != r)) cout << "Uh-oh. (expected: " << startingPerfts[depth] << ")" << endl;
 	}
 	else cout << r << endl;
 }
@@ -61,7 +64,8 @@ const int Search::PerftRecursive(Board board, const int depth, const int origina
 	return count;
 }
 
-// Time management
+// Time management --------------------------------------------------------------------------------
+
 const SearchConstraints Search::CalculateConstraints(const SearchParams params, const bool turn) {
 	SearchConstraints constraints = SearchConstraints();
 	constraints.MaxNodes = -1;

@@ -107,7 +107,7 @@ void GenerateMagicTables() {
 	for (int sq = 0; sq < 64; sq++) {
 		for (int i = 0; i < 4096; i++) {
 			uint64_t occ = GenerateMagicOccupancy(i, RookMasks[sq]);
-			int index = (occ * RookMagicNumbers[sq]) >> (64 - RookRelevantBits[sq]);
+			int index = static_cast<int>((occ * RookMagicNumbers[sq]) >> (64 - RookRelevantBits[sq]));
 			RookAttacks[sq][index] = DynamicRookAttacks(sq, occ);
 		}
 	}
@@ -116,7 +116,7 @@ void GenerateMagicTables() {
 	for (int sq = 0; sq < 64; sq++) {
 		for (int i = 0; i < 512; i++) {
 			uint64_t occ = GenerateMagicOccupancy(i, BishopMasks[sq]);
-			int index = (occ * BishopMagicNumbers[sq]) >> (64 - BishopRelevantBits[sq]);
+			int index = static_cast<int>((occ * BishopMagicNumbers[sq]) >> (64 - BishopRelevantBits[sq]));
 			BishopAttacks[sq][index] = DynamicBishopAttacks(sq, occ);
 		}
 	}
@@ -125,21 +125,6 @@ void GenerateMagicTables() {
 // Magic number generation (not actively needed) --------------------------------------------------
 
 /*
-
-void DebugBitboard(const uint64_t bits) {
-	cout << "\n" << bits << '\n';
-
-	for (int r = 7; r >= 0; r--) {
-		for (int f = 0; f < 8; f++) {
-			if (CheckBit(bits, Square(r, f))) cout << " X ";
-			else cout << " . ";
-		}
-		cout << "\n";
-	}
-
-	cout << "\n" << endl;
-}
-
 void GenerateMagicNumbers() {
 	cout << "Generating magic numbers..." << endl;
 

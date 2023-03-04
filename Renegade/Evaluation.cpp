@@ -2,7 +2,7 @@
 #include "Board.h"
 #include "Move.h"
 
-const static int WeightsSize = 925;
+const static int WeightsSize = 931;
 
 extern uint64_t GetBishopAttacks(const int square, const uint64_t occupancy);
 extern uint64_t GetRookAttacks(const int square, const uint64_t occupancy);
@@ -202,7 +202,15 @@ static const int Weights[WeightsSize] = {
 	// 28. King safety multipliers (/100)
 	  50, 70, 80, 90, 95, 98, 100,
 
-	// +: outposts, pawn mobility, isolated pawns, open files...
+	// 29. Rook on open and semi open files (early, late)
+	  20, 10,
+	  10, 5,
+
+	// 30. Knight outposts (early, late)
+	  15, 7,
+	  
+
+	// +: pawn mobility, isolated pawns, doubled rooks...
 };
 
 // Weight indices ---------------------------------------------------------------------------------
@@ -224,7 +232,12 @@ const int IndexKnightDanger = 914;
 const int IndexBishopDanger = 915;
 const int IndexRookDanger = 916;
 const int IndexQueenDanger = 917;
-
+const int IndexRookOpenFileEarly = 925;
+const int IndexRookSemiOpenFileEarly = 926;
+const int IndexRookOpenFileLate = 927;
+const int IndexRookSemiOpenFileLate = 928;
+const int IndexKnightOutpostEarly = 929;
+const int IndexKnightOutpostLate = 930;
 
 inline static constexpr int IndexEarlyPSQT(const int pieceType, const int location) {
 	return (pieceType - 1) * 64 + location;
@@ -347,9 +360,37 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 			if (((BlackPassedPawnMask[i] & board.WhitePawnBits) == 0) && ((BlackPassedPawnFilter[i] & board.BlackPawnBits) == 0))
 				score -= LinearTaper(weights[IndexPassedPawnEarly], weights[IndexPassedPawnLate], phase);
 		}
+		// Knight outposts (be careful with OutpostFilter, the following lines assume edges aren't outposts)
+		else if ((piece == Piece::WhiteKnight) && OutpostFilter[i]) {
+			if ((board.GetPieceAt(i - 7) == Piece::WhitePawn) || (board.GetPieceAt(i - 9) == Piece::WhitePawn)) {
+				score += LinearTaper(weights[IndexKnightOutpostEarly], weights[IndexKnightOutpostLate], phase);
+			}
+		} else if ((piece == Piece::BlackKnight) && OutpostFilter[i]) {
+			if ((board.GetPieceAt(i + 7) == Piece::BlackPawn) || (board.GetPieceAt(i + 9) == Piece::BlackPawn)) {
+				score -= LinearTaper(weights[IndexKnightOutpostEarly], weights[IndexKnightOutpostLate], phase);
+			}
+		}
+		// Rooks on (semi) open files
+		else if (piece == Piece::WhiteRook) {
+			int file = GetSquareFile(i);
+			if ((board.WhitePawnBits & Files[file]) == 0) {
+				score += ((board.BlackPawnBits & Files[file]) == 0) ? 
+					LinearTaper(weights[IndexRookOpenFileEarly], weights[IndexRookOpenFileLate], phase) : // Open file
+					LinearTaper(weights[IndexRookSemiOpenFileEarly], weights[IndexRookSemiOpenFileLate], phase); // Semi-open file
+			}
+		}
+		else if (piece == Piece::BlackRook) {
+			int file = GetSquareFile(i);
+			if ((board.BlackPawnBits & Files[file]) == 0) {
+				score -= ((board.WhitePawnBits & Files[file]) == 0) ?
+					LinearTaper(weights[IndexRookOpenFileEarly], weights[IndexRookOpenFileLate], phase) : // Open file
+					LinearTaper(weights[IndexRookSemiOpenFileEarly], weights[IndexRookSemiOpenFileLate], phase); // Semi-open file
+			}
+		}
 
 		// Mobility - todo: make this prettier
-		uint64_t mobility = 0, attacks = 0, earlyScore = 0, lateScore = 0;
+		uint64_t mobility = 0, attacks = 0;
+		int earlyScore = 0, lateScore = 0;
 		switch (piece) {
 		case Piece::WhitePawn:
 			attacks = WhitePawnAttacks[i] & ~whitePieces;
