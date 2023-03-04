@@ -36,7 +36,7 @@ public:
 	const int GetHashfull();
 	void UpdatePvTable(const Move move, const int level, const bool leaf);
 	const std::vector<Move> GetPvLine();
-	const int CalculateOrderScore(Board board, const Move m, const int level, const float phase, const bool onPv);
+	const int CalculateOrderScore(Board &board, const Move m, const int level, const float phase, const bool onPv);
 	const int64_t EstimateAllocatedMemory();
 	void ResetHashStructure();
 	void AddCutoffHistory(const bool side, const int from, const int to, const int depth);

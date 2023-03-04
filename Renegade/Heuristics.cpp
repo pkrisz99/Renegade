@@ -134,7 +134,7 @@ void Heuristics::AddCutoffHistory(const bool side, const int from, const int to,
 }
 
 // Move ordering scoring function
-const int Heuristics::CalculateOrderScore(Board board, const Move m, const int level, const float phase, const bool onPv) {
+const int Heuristics::CalculateOrderScore(Board &board, const Move m, const int level, const float phase, const bool onPv) {
 	int orderScore = 0;
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
