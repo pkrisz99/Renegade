@@ -141,7 +141,7 @@ void Engine::Start() {
 				cout << "ExtendedOutput: " << Settings.ExtendedOutput << endl;
 			}
 			if (parts[1] == "sizeof") {
-				cout << "sizeof HashEntry:         " << sizeof(HashEntry) << endl;
+				cout << "sizeof HashEntry:         " << sizeof(TranspositionEntry) << endl;
 				cout << "sizeof HashMap:           " << sizeof(Search.Heuristics.Hashes) << endl;
 				cout << "sizeof Move:              " << sizeof(Move) << endl;
 				cout << "sizeof std::vector<Move>: " << sizeof(std::vector<Move>) << endl;

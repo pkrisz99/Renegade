@@ -326,7 +326,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	int blackDangerScore = 0;
 	int whiteDangerPieces = 0;
 	int blackDangerPieces = 0;
-	const int dangerWeights[] = { 0, weights[IndexPawnDanger], weights[IndexKnightDanger], weights[IndexBishopDanger], weights[IndexRookDanger], weights[IndexQueenDanger], 0 };
+	const int dangerWeights[] = { 0, weights[IndexPawnDanger], weights[IndexKnightDanger], weights[IndexBishopDanger], weights[IndexRookDanger], weights[IndexQueenDanger], 4 };
 
 	int whiteKingSquare = 63 - Lzcount(board.WhiteKingBits);
 	uint64_t whiteKingZone = SquareBits[whiteKingSquare] | KingMoveBits[whiteKingSquare];
