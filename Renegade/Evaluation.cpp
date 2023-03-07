@@ -329,9 +329,9 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	const int dangerWeights[] = { 0, weights[IndexPawnDanger], weights[IndexKnightDanger], weights[IndexBishopDanger], weights[IndexRookDanger], weights[IndexQueenDanger], 4 };
 
 	int whiteKingSquare = 63 - Lzcount(board.WhiteKingBits);
-	uint64_t whiteKingZone = SquareBits[whiteKingSquare] | KingMoveBits[whiteKingSquare];
+	uint64_t whiteKingZone = KingArea[whiteKingSquare];
 	int blackKingSquare = 63 - Lzcount(board.BlackKingBits);
-	uint64_t blackKingZone = SquareBits[blackKingSquare] | KingMoveBits[blackKingSquare];
+	uint64_t blackKingZone = KingArea[blackKingSquare];
 
 	while (piecesOnBoard != 0) {
 		int i = 63 - Lzcount(piecesOnBoard);
