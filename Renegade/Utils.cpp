@@ -26,8 +26,7 @@ static const int NegativeInfinity = -333333333; // Inventing a new kind of math 
 static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
 static inline bool IsMateScore(const int score) {
-	if (score > MateEval - 10000) return true;
-	if (score < -MateEval + 10000) return true;
+	if ((std::abs(score) > MateEval - 10000) && (std::abs(score) <= MateEval)) return true;
 	return false;
 }
 
@@ -210,6 +209,10 @@ static inline int Popcount(const uint64_t number) {
 
 static inline int Lzcount(const uint64_t number) {
 	return static_cast<int>(__lzcnt64(number));
+}
+
+static inline bool Overlapping(const uint64_t& a, const uint64_t& b) {
+	return (a & b) != 0;
 }
 
 // Board helper functions -------------------------------------------------------------------------

@@ -13,6 +13,9 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
+
+	if (IsPvMove(m, level) && onPv) return 10000000; // ????
+
 	if (attackedPiece != PieceType::None) {
 		orderScore = values[attackedPiece] * 16 - values[attackingPiece] + 100000;
 	}
@@ -34,7 +37,6 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 	}
 
 	if (IsKillerMove(m, level)) orderScore += 10000;
-	if (IsPvMove(m, level) && onPv) orderScore += 10000000;
 	int historyScore = HistoryTables[turn][m.from][m.to];
 	if ((board.GetPieceAt(m.to) == PieceType::None) && (m.flag == 0)) {
 		//orderScore += std::min(200, historyScore / 128);

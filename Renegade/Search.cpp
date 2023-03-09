@@ -144,6 +144,7 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 	// Iterative deepening
 	Results e = Results();
 	while (!finished) {
+		FollowingPV = true;
 		Heuristics.ClearEntries();
 		if (Heuristics.GetHashfull() > 500) Heuristics.ResetTranspositionAllocations(); // Just in case if we overallocate
 		Depth += 1;
@@ -300,10 +301,13 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	// Move ordering
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
+	bool foundPvMove = false;
 	for (const Move& m : MoveList) {
-		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, pvNode);
+		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, FollowingPV);
+		if (FollowingPV && Heuristics.IsPvMove(m, level)) foundPvMove = true;
 		MoveOrder[level].push_back({ m, orderScore });
 	}
+	FollowingPV = foundPvMove;
 	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
 		return get<1>(t1) > get<1>(t2);
 	});
@@ -361,6 +365,8 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			}
 		}
 
+		zeroWindow = true; // depth > 2 might be better 
+
 		// Checking alpha-beta bounds
 		if (score >= beta) {
 			if (isQuiet) Heuristics.AddKillerMove(m, level);
@@ -374,9 +380,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		if (score > alpha) {
 			scoreType = ScoreType::Exact;
 			alpha = score;
-			zeroWindow = true;
 			Heuristics.UpdatePvTable(m, level, depth == 1);
-			//doLateMoveReductions = false;
 		}
 
 	}
