@@ -147,12 +147,19 @@ void Heuristics::ClearHistoryTable() {
 
 // Transposition table ----------------------------------------------------------------------------
 
-void Heuristics::AddTranspositionEntry(const uint64_t hash, const int score, const int scoreType) {
+void Heuristics::AddTranspositionEntry(const uint64_t hash, const int depth, const int score, const int scoreType) {
 	if (EstimateTranspositionAllocations() >= MaximumHashMemory) return;
-	HashedEntryCount += 1;
+	if (Hashes.find(hash) != Hashes.end()) {
+		TranspositionEntry found = Hashes[hash];
+		if (found.depth > depth) return;
+	}
+	else {
+		HashedEntryCount += 1;
+	}
 	TranspositionEntry entry;
 	entry.score = score;
 	entry.scoreType = scoreType;
+	entry.depth = depth;
 	Hashes[hash] = entry;
 }
 

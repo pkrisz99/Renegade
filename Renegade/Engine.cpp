@@ -103,6 +103,7 @@ void Engine::Start() {
 			if (parts[1] == "enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
 			if (parts[1] == "halfmovecounter") cout << "Half move counter: " << board.HalfmoveClock << endl;
 			if (parts[1] == "fullmovecounter") cout << "Full move counter: " << board.FullmoveClock << endl;
+			if (parts[1] == "plys") cout << "Game plys: " << board.GetPlys() << endl;
 			if (parts[1] == "pseudolegal") {
 				std::vector<Move> v;
 				board.GeneratePseudoLegalMoves(v, board.Turn, false);
@@ -110,8 +111,7 @@ void Engine::Start() {
 				cout << endl;
 			}
 			if (parts[1] == "hash") {
-				cout << "Hash (polyglot): " << std::hex << board.Hash(false) << endl;
-				cout << "Hash (custom):   " << board.Hash(true) << std::dec << endl;
+				cout << "Hash (polyglot): " << std::hex << board.Hash() << endl;
 			}
 			if (parts[1] == "book") {
 				if (parts[2] == "count") {
@@ -129,7 +129,7 @@ void Engine::Start() {
 					}
 				}
 				else {
-					std::string s = Search.GetBookMove(board.Hash(false));
+					std::string s = Search.GetBookMove(board.Hash());
 					if (s != "") cout << "Book move: " << s << endl;
 					else cout << "No book move found" << endl;
 				}

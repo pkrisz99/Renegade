@@ -169,6 +169,10 @@ const std::string Board::GetFEN() {
 	return result;
 }
 
+const int Board::GetPlys() {
+	return (FullmoveClock - 1) * 2 + (Turn == Turn::White ? 0 : 1);
+}
+
 const uint64_t Board::HashInternal() {
 	uint64_t hash = 0;
 
@@ -218,8 +222,7 @@ const uint64_t Board::HashInternal() {
 	return hash;
 }
 
-const uint64_t Board::Hash(const bool hashPlys) {
-	if (hashPlys) return HashValue ^ (FullmoveClock * 0xE0C754AULL);
+const uint64_t Board::Hash() {
 	return HashValue;
 }
 

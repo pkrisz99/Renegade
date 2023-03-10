@@ -31,7 +31,7 @@ public:
 	const int GetPieceAt(const int place);
 	const uint64_t GetOccupancy();
 	const uint64_t GetOccupancy(const int pieceColor);
-	const uint64_t Hash(const bool hashPlys);
+	const uint64_t Hash();
 	const uint64_t HashInternal();
 
 	bool AreThereLegalMoves(const bool turn);
@@ -43,6 +43,7 @@ public:
 	const bool IsMoveQuiet(const Move& move);
 	const bool IsDraw();
 	const GameState GetGameState();
+	const int GetPlys();
 
 	/*
 	const uint64_t GenerateSlidingAttacksShiftUp(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,

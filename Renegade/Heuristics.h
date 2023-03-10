@@ -16,6 +16,7 @@ namespace ScoreType {
 
 struct TranspositionEntry {
 	int score;
+	uint8_t depth;
 	uint8_t scoreType;
 };
 
@@ -46,7 +47,7 @@ public:
 	void ClearHistoryTable();
 
 	// Transposition table
-	void AddTranspositionEntry(const uint64_t hash, const int score, const int scoreType);
+	void AddTranspositionEntry(const uint64_t hash, const int depth, const int score, const int scoreType);
 	const bool RetrieveTranspositionEntry(const uint64_t& hash, TranspositionEntry& entry);
 	const int64_t EstimateTranspositionAllocations();
 	void SetHashSize(const int megabytes);

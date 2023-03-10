@@ -26,7 +26,7 @@ void Search::ResetStatistics() {
 
 const void Search::Perft(Board &board, const int depth, const PerftType type) {
 	Board b = board.Copy();
-	bool startingPosition = b.Hash(false) == 0x463b96181691fc9c;
+	bool startingPosition = b.Hash() == 0x463b96181691fc9c;
 	const uint64_t startingPerfts[] = { 1, 20, 400, 8902, 197281, 4865609, 119060324 };
 
 	auto t0 = Clock::now();
@@ -133,7 +133,7 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 
 	// Check for book moves
 	if (settings.UseBook) {
-		std::string bookMove = GetBookMove(board.Hash(false));
+		std::string bookMove = GetBookMove(board.Hash());
 		if (bookMove != "") {
 			Results e;
 			cout << "bestmove " << bookMove << endl;
@@ -244,11 +244,11 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	// Calculate hash and probe transposition table
-	uint64_t hash = board.Hash(true);
+	uint64_t hash = board.Hash();
 	TranspositionEntry entry;
 	bool found = Heuristics.RetrieveTranspositionEntry(hash, entry);
 	Statistics.TranspositionQueries += 1;
-	if (found) {
+	if (found && (entry.depth >= depth)) {
 		int score = NoEval;
 		bool usable = true;
 		if (entry.scoreType == ScoreType::Exact) score = entry.score;
@@ -370,7 +370,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		// Checking alpha-beta bounds
 		if (score >= beta) {
 			if (isQuiet) Heuristics.AddKillerMove(m, level);
-			Heuristics.AddTranspositionEntry(hash, beta, ScoreType::LowerBound);
+			Heuristics.AddTranspositionEntry(hash, depth, beta, ScoreType::LowerBound);
 			int piece = board.GetPieceAt(m.from);
 			if (isQuiet) Heuristics.AddCutoffHistory(board.Turn, m.from, m.to, depth);
 			Statistics.BetaCutoffs += 1;
@@ -389,19 +389,19 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	if (legalMoveCount == 0) {
 		int e = inCheck ? LosingMateScore(level) : 0;
 		if (e >= beta) {
-			Heuristics.AddTranspositionEntry(hash, beta, ScoreType::LowerBound);
+			Heuristics.AddTranspositionEntry(hash, depth, beta, ScoreType::LowerBound);
 			return beta;
 		}
 		if (e < alpha) {
-			Heuristics.AddTranspositionEntry(hash, alpha, ScoreType::UpperBound);
+			Heuristics.AddTranspositionEntry(hash, depth, alpha, ScoreType::UpperBound);
 			return alpha;
 		}
-		Heuristics.AddTranspositionEntry(hash, e, ScoreType::Exact);
+		Heuristics.AddTranspositionEntry(hash, depth, e, ScoreType::Exact);
 		return e;
 	}
 
 	int e = alpha;
-	Heuristics.AddTranspositionEntry(hash, e, scoreType);
+	Heuristics.AddTranspositionEntry(hash, depth, e, scoreType);
 	return e;
 }
 
