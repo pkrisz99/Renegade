@@ -15,9 +15,11 @@ namespace ScoreType {
 };
 
 struct TranspositionEntry {
-	int score;
+	int32_t score;
 	uint8_t depth;
 	uint8_t scoreType;
+	uint64_t hash;
+	uint8_t moveFrom, moveTo, moveFlag;
 };
 
 class Heuristics
@@ -27,7 +29,7 @@ public:
 
 	Heuristics();
 	void ClearEntries();
-	const int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv);
+	const int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& trMove);
 	
 	// PV table
 	void UpdatePvTable(const Move& move, const int level, const bool leaf);
@@ -47,20 +49,23 @@ public:
 	void ClearHistoryTable();
 
 	// Transposition table
-	void AddTranspositionEntry(const uint64_t hash, const int depth, const int score, const int scoreType);
-	const bool RetrieveTranspositionEntry(const uint64_t& hash, TranspositionEntry& entry);
-	const int64_t EstimateTranspositionAllocations();
+	void AddTranspositionEntry(const uint64_t hash, const int depth, const int score, const int scoreType, const Move bestMove);
+	const bool RetrieveTranspositionEntry(const uint64_t& hash, const int depth, TranspositionEntry& entry);
 	void SetHashSize(const int megabytes);
 	const int GetHashfull();
+	const void GetTranspositionInfo(uint64_t& trTheoretical, uint64_t& trUsable, uint64_t& trBits, uint64_t& trUsed);
 	void ClearTranspositionTable();
-	void ResetTranspositionAllocations();
 
-	// Variables
-	std::unordered_map<uint64_t, TranspositionEntry> Hashes;
-	int HashedEntryCount;
+
+private:
+	std::vector<TranspositionEntry> TranspositionTable;
+	uint64_t HashFilter;
+	int HashBits;
+	int TranspositionEntryCount;
+	int TheoreticalTranspositionEntires;
+
 	std::vector<std::array<Move, 2>> KillerMoves;
 	std::vector<Move> PvMoves;
-	int64_t MaximumHashMemory;
 	Move PvTable[PvSize + 1][PvSize + 1];
 	std::array<std::array<std::array<int, 64>, 64>, 2> HistoryTables;
 

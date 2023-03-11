@@ -146,11 +146,9 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 	while (!finished) {
 		FollowingPV = true;
 		Heuristics.ClearEntries();
-		if (Heuristics.GetHashfull() > 500) Heuristics.ResetTranspositionAllocations(); // Just in case if we overallocate
 		Depth += 1;
 		Statistics.SelDepth = 0;
 		int result = SearchRecursive(board, Depth, 0, NegativeInfinity, PositiveInfinity, true);
-		Heuristics.SetHashSize(settings.Hash);
 
 		// Check limits
 		auto currentTime = Clock::now();
@@ -195,7 +193,6 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 	PrintBestmove(e.BestMove());
 
 	Heuristics.ClearEntries();
-	if (Heuristics.GetHashfull() > 500) Heuristics.ResetTranspositionAllocations();
 	Heuristics.ClearPvLine();
 	Aborting = true;
 	return e;
@@ -246,20 +243,32 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	// Calculate hash and probe transposition table
 	uint64_t hash = board.Hash();
 	TranspositionEntry entry;
-	bool found = Heuristics.RetrieveTranspositionEntry(hash, entry);
+	bool found = Heuristics.RetrieveTranspositionEntry(hash, depth, entry);
+	Move transpositionMove;
 	Statistics.TranspositionQueries += 1;
-	if (found && (entry.depth >= depth)) {
-		int score = NoEval;
-		bool usable = true;
-		if (entry.scoreType == ScoreType::Exact) score = entry.score;
-		else if ((entry.scoreType == ScoreType::UpperBound) && (entry.score <= alpha) && !pvNode) score = alpha;
-		else if ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta) && !pvNode) score = beta;
-		else usable = false;
-		if (usable) {
-			Statistics.TranspositionHits += 1;
-			return score;
+	if (found) {
+		if (entry.depth >= depth) {
+			// The branch was already analysed to the same or greater depth, so we can return the result
+			int score = NoEval;
+			bool usable = true;
+			if (entry.scoreType == ScoreType::Exact) score = entry.score;
+			else if ((entry.scoreType == ScoreType::UpperBound) && (entry.score <= alpha) && !pvNode) score = alpha;
+			else if ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta) && !pvNode) score = beta;
+			else usable = false;
+			if (usable) {
+				if ((score > alpha) && (score < beta)) {
+					Heuristics.UpdatePvTable(Move(entry.moveFrom, entry.moveTo, entry.moveFlag), level, depth == 1);
+				}
+				Statistics.TranspositionHits += 1;
+				return score;
+			}
+		}
+		else {
+			// The branch was not analysed sufficiently, but we can use it for move ordering purposes
+			transpositionMove = Move(entry.moveFrom, entry.moveTo, entry.moveFlag);
 		}
 	}
+
 
 	// Null-move pruning
 	int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
@@ -303,7 +312,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	MoveOrder[level].clear();
 	bool foundPvMove = false;
 	for (const Move& m : MoveList) {
-		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, FollowingPV);
+		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, FollowingPV, transpositionMove);
 		if (FollowingPV && Heuristics.IsPvMove(m, level)) foundPvMove = true;
 		MoveOrder[level].push_back({ m, orderScore });
 	}
@@ -317,6 +326,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
 	bool doLateMoveReductions = true;
+	Move bestMove;
 	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
 		Move m = get<0>(o);
 		if (!board.IsLegalMove(m, board.Turn)) continue;
@@ -370,7 +380,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		// Checking alpha-beta bounds
 		if (score >= beta) {
 			if (isQuiet) Heuristics.AddKillerMove(m, level);
-			Heuristics.AddTranspositionEntry(hash, depth, beta, ScoreType::LowerBound);
+			Heuristics.AddTranspositionEntry(hash, depth, beta, ScoreType::LowerBound, m);
 			int piece = board.GetPieceAt(m.from);
 			if (isQuiet) Heuristics.AddCutoffHistory(board.Turn, m.from, m.to, depth);
 			Statistics.BetaCutoffs += 1;
@@ -379,6 +389,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		}
 		if (score > alpha) {
 			scoreType = ScoreType::Exact;
+			bestMove = m;
 			alpha = score;
 			Heuristics.UpdatePvTable(m, level, depth == 1);
 		}
@@ -389,19 +400,19 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	if (legalMoveCount == 0) {
 		int e = inCheck ? LosingMateScore(level) : 0;
 		if (e >= beta) {
-			Heuristics.AddTranspositionEntry(hash, depth, beta, ScoreType::LowerBound);
+			Heuristics.AddTranspositionEntry(hash, depth, beta, ScoreType::LowerBound, Move());
 			return beta;
 		}
 		if (e < alpha) {
-			Heuristics.AddTranspositionEntry(hash, depth, alpha, ScoreType::UpperBound);
+			Heuristics.AddTranspositionEntry(hash, depth, alpha, ScoreType::UpperBound, Move());
 			return alpha;
 		}
-		Heuristics.AddTranspositionEntry(hash, depth, e, ScoreType::Exact);
+		Heuristics.AddTranspositionEntry(hash, depth, e, ScoreType::Exact, Move());
 		return e;
 	}
 
 	int e = alpha;
-	Heuristics.AddTranspositionEntry(hash, depth, e, scoreType);
+	Heuristics.AddTranspositionEntry(hash, depth, e, scoreType, bestMove);
 	return e;
 }
 
@@ -427,7 +438,7 @@ int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool 
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
-		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false);
+		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false, Move());
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {

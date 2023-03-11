@@ -7,6 +7,8 @@ Engine::Engine() {
 	Settings.ExtendedOutput = false;
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
+	Search.Heuristics.SetHashSize(Settings.Hash);
+	Search.Heuristics.ClearTranspositionTable();
 }
 
 const void Engine::PrintHeader() {
@@ -29,6 +31,7 @@ void Engine::Start() {
 		if (cmd == "uci") {
 			cout << "id name Renegade " << Version << endl;
 			cout << "id author Krisztian Peocz" << endl;
+			cout << "option name Clear Hash type button" << endl;
 			cout << "option name Hash type spin default 64 min 0 max 256" << endl;
 			cout << "option name OwnBook type check default false" << endl;
 			cout << "option name ExtendedOutput type check default false" << endl;
@@ -42,6 +45,7 @@ void Engine::Start() {
 		}
 
 		if (cmd == "ucinewgame") {
+			Search.Heuristics.ClearTranspositionTable();
 			continue;
 		}
 
@@ -64,25 +68,36 @@ void Engine::Start() {
 		if (parts[0] == "setoption") {
 
 			ConvertToLowercase(parts[2]);
+			bool valid = false;
 
 			if (parts[2] == "ownbook") {
 				ConvertToLowercase(parts[4]);
 				if (parts[4] == "true") Settings.UseBook = true;
 				else if (parts[4] == "false") Settings.UseBook = false;
 				else cout << "Unknown value: '" << parts[4] << "'" << endl;
+				valid = true;
 			}
 			else if (parts[2] == "extendedoutput") {
 				ConvertToLowercase(parts[4]);
 				if (parts[4] == "true") Settings.ExtendedOutput = true;
 				else if (parts[4] == "false") Settings.ExtendedOutput = false;
 				else cout << "Unknown value: '" << parts[4] << "'" << endl;
+				valid = true;
 			}
 			else if (parts[2] == "hash") {
 				Settings.Hash = stoi(parts[4]);
+				Search.Heuristics.SetHashSize(Settings.Hash);
+				valid = true;
 			}
-			else {
-				cout << "Invalid option: '" << parts[2] << "'" << endl;
+			else if (parts[2] == "clear") {
+				if (parts[3] == "hash") {
+					Search.Heuristics.ClearTranspositionTable();
+					valid = true;
+				}
 			}
+			
+			if (!valid) cout << "Invalid option: '" << parts[2] << "'" << endl;
+			
 			continue;
 
 		}
@@ -141,11 +156,9 @@ void Engine::Start() {
 				cout << "ExtendedOutput: " << Settings.ExtendedOutput << endl;
 			}
 			if (parts[1] == "sizeof") {
-				cout << "sizeof HashEntry:         " << sizeof(TranspositionEntry) << endl;
-				cout << "sizeof HashMap:           " << sizeof(Search.Heuristics.Hashes) << endl;
-				cout << "sizeof Move:              " << sizeof(Move) << endl;
-				cout << "sizeof std::vector<Move>: " << sizeof(std::vector<Move>) << endl;
-				cout << "sizeof int:               " << sizeof(int) << endl;
+				cout << "sizeof TranspositionEntry: " << sizeof(TranspositionEntry) << endl;
+				cout << "sizeof Move:               " << sizeof(Move) << endl;
+				cout << "sizeof int:                " << sizeof(int) << endl;
 			}
 			if (parts[1] == "pasthashes") {
 				cout << "Past hashes size: " << board.PastHashes.size() << endl;
@@ -159,6 +172,16 @@ void Engine::Start() {
 			if (parts[1] == "weight") {
 				const int id = stoi(parts[2]);
 				cout << "Weight: " << id << "/" << WeightsSize << ": " << Weights[id] << endl;
+			}
+			if (parts[1] == "hashalloc") {
+				uint64_t trTheoretical, trUsable, trBits, trUsed;
+				Search.Heuristics.GetTranspositionInfo(trTheoretical, trUsable, trBits, trUsed);
+				cout << "Theoretical transposition size: " << trTheoretical << endl;
+				cout << "Usable transposition size:      " << trUsable << endl;
+				cout << "Usable bits:                    " << trBits << endl;
+				cout << "Used transposition entry count: " << trUsed << endl;
+				cout << "Bytes per entry:                " << sizeof(TranspositionEntry) << endl;
+
 			}
 			continue;
 		}

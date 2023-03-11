@@ -1,20 +1,22 @@
 #include "Heuristics.h"
 
 Heuristics::Heuristics() {
-	HashedEntryCount = 0;
+	TranspositionEntryCount = 0;
 	KillerMoves.reserve(100);
 	PvMoves = std::vector<Move>();
+	SetHashSize(0);
 }
 
 // Move ordering & clearing -----------------------------------------------------------------------
 
-const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv) {
+const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& trMove) {
 	int orderScore = 0;
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
 
 	if (IsPvMove(m, level) && onPv) return 10000000; // ????
+	if ((m.from == trMove.from) && (m.to == trMove.to) && (m.flag == trMove.flag)) return 9000000;
 
 	if (attackedPiece != PieceType::None) {
 		orderScore = values[attackedPiece] * 16 - values[attackingPiece] + 100000;
@@ -45,7 +47,6 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 }
 
 void Heuristics::ClearEntries() {
-	ClearTranspositionTable(); // Clear transposition table
 	ClearKillerMoves(); // Reset killer moves
 	ResetPvTable(); // Reset PV table
 	ClearHistoryTable(); // Clear history heuristic data
@@ -147,56 +148,64 @@ void Heuristics::ClearHistoryTable() {
 
 // Transposition table ----------------------------------------------------------------------------
 
-void Heuristics::AddTranspositionEntry(const uint64_t hash, const int depth, const int score, const int scoreType) {
-	if (EstimateTranspositionAllocations() >= MaximumHashMemory) return;
-	if (Hashes.find(hash) != Hashes.end()) {
-		TranspositionEntry found = Hashes[hash];
-		if (found.depth > depth) return;
+void Heuristics::AddTranspositionEntry(const uint64_t hash, const int depth, const int score, const int scoreType, const Move bestMove) {
+	if (HashBits == 0) return;
+	uint64_t key = hash & HashFilter;
+	if ((TranspositionTable[key].hash != hash) || (TranspositionTable[key].depth <= depth)) {
+		if (TranspositionTable[key].hash == 0) TranspositionEntryCount += 1;
+		TranspositionTable[key].hash = hash;
+		TranspositionTable[key].depth = depth;
+		TranspositionTable[key].score = score;
+		TranspositionTable[key].scoreType = scoreType;
+		TranspositionTable[key].moveFrom = bestMove.from;
+		TranspositionTable[key].moveTo = bestMove.to;
+		TranspositionTable[key].moveFlag = bestMove.flag;
 	}
-	else {
-		HashedEntryCount += 1;
-	}
-	TranspositionEntry entry;
-	entry.score = score;
-	entry.scoreType = scoreType;
-	entry.depth = depth;
-	Hashes[hash] = entry;
 }
 
-const bool Heuristics::RetrieveTranspositionEntry(const uint64_t &hash, TranspositionEntry&entry) {
-	if (Hashes.find(hash) != Hashes.end()) {
-		TranspositionEntry found = Hashes[hash];
-		entry = found;
+const bool Heuristics::RetrieveTranspositionEntry(const uint64_t& hash, const int depth, TranspositionEntry& entry) {
+	if (HashBits == 0) return false;
+	uint64_t key = hash & HashFilter;
+	if ((TranspositionTable[key].hash == hash)) {
+		entry = TranspositionTable[key];
 		return true;
 	}
 	return false;
 }
 
-const int64_t Heuristics::EstimateTranspositionAllocations() {
-	// https://stackoverflow.com/questions/25375202/how-to-measure-the-memory-usage-of-stdunordered-map
-	// (data list + bucket index) * 1.5
-	const size_t dataListSize = Hashes.size() * (sizeof(TranspositionEntry) + sizeof(void*));
-	const size_t bucketIndexSize = Hashes.bucket_count() * (sizeof(void*) + sizeof(size_t));
-	return static_cast<int>((dataListSize + bucketIndexSize) * 1.5);
-}
-
 void Heuristics::SetHashSize(const int megabytes) {
-	MaximumHashMemory = megabytes * 1024ULL * 1024ULL;
+	if (megabytes == 0) {
+		HashBits = 0;
+		HashFilter = 0;
+		TheoreticalTranspositionEntires = 0;
+		ClearTranspositionTable();
+		return;
+	}
+
+	TheoreticalTranspositionEntires = megabytes * 1024ULL * 1024ULL / sizeof(TranspositionEntry);
+	int bits = 0;
+	while ((1ULL << bits) <= TheoreticalTranspositionEntires) bits += 1;
+	bits -= 1;
+	HashFilter = (1ULL << bits) - 1;
+	HashBits = bits;
+	ClearTranspositionTable();
 }
 
 const int Heuristics::GetHashfull() {
-	if (MaximumHashMemory <= 0) return -1;
-	int64_t hashfull = EstimateTranspositionAllocations() * 1000LL / MaximumHashMemory;
-	return static_cast<int>(std::min(hashfull, 1000LL));
+	return TranspositionEntryCount * 1000LL / (HashFilter + 1LL);
 }
 
 void Heuristics::ClearTranspositionTable() {
-	Hashes.clear();
-	HashedEntryCount = 0;
+	TranspositionTable.clear();
+	TranspositionTable.reserve(HashFilter + 1);
+	for (int i = 0; i < HashFilter; i++) TranspositionTable.push_back(TranspositionEntry());
+	TranspositionTable.shrink_to_fit();
+	TranspositionEntryCount = 0;
 }
 
-void Heuristics::ResetTranspositionAllocations() {
-	// Swap trick
-	std::unordered_map<uint64_t, TranspositionEntry> empty;
-	std::swap(Hashes, empty);
+const void Heuristics::GetTranspositionInfo(uint64_t& trTheoretical, uint64_t& trUsable, uint64_t& trBits, uint64_t& trUsed) {
+	trTheoretical = TheoreticalTranspositionEntires;
+	trUsable = HashFilter + 1;
+	trBits = HashBits;
+	trUsed = TranspositionEntryCount;
 }
