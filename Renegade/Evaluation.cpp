@@ -531,36 +531,80 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	// Drawish endgame detection
 	// To avoid simplifying down to a non-winning endgame with a nominal material advantage
 	// This list is not complete, and probably should be expanded even more (e.g. by including pawns)
-	bool potentiallyDrawish = false;
-	if ((whitePieces <= 3) && (blackPieces <= 3)) {
-		if (Popcount(board.WhiteQueenBits | board.BlackQueenBits | board.WhitePawnBits | board.BlackPawnBits) == 0) potentiallyDrawish = true;
+	// Source: Chess Programming Wiki + https://www.madchess.net/2021/04/08/madchess-3-0-beta-4d22dec-endgame-eval-scaling/
+	bool endgame = (Popcount(whitePieces) <= 3) && (Popcount(blackPieces) <= 3);
+	if (endgame) {
+		// Variables for easy access
+		bool pawnless = (board.WhitePawnBits | board.BlackPawnBits) == 0ULL;
+		bool queenless = (board.WhiteQueenBits | board.BlackQueenBits) == 0ULL;
+		bool queenful = (Popcount(board.WhiteQueenBits | board.BlackQueenBits) > 0)
+			&& (Popcount(board.WhiteQueenBits) <= 1) && (Popcount(board.BlackQueenBits) <= 1);
+		bool potentiallyDrawishQueenless = queenless && pawnless && endgame;
+		bool potentiallyDrawishQueenful = queenful && pawnless && endgame;
+		int whiteExtras = Popcount(whitePieces) - 1;
+		int blackExtras = Popcount(blackPieces) - 1;
+		int whiteMinors = Popcount(board.WhiteKnightBits | board.WhiteBishopBits);
+		int blackMinors = Popcount(board.BlackKnightBits | board.BlackBishopBits);
+		int whiteKnights = Popcount(board.WhiteKnightBits);
+		int blackKnights = Popcount(board.BlackKnightBits);
+		int whiteBishops = Popcount(board.WhiteBishopBits);
+		int blackBishops = Popcount(board.BlackBishopBits);
+		int whiteRooks = Popcount(board.WhiteRookBits);
+		int blackRooks = Popcount(board.BlackRookBits);
+
+		// Endgames with no queens
+		if (potentiallyDrawishQueenless) {
+			bool drawish =
+				// 2 minor pieces (no bishop pair) vs 1 minor piece
+				((whiteExtras == 2) && (blackExtras == 1) && (whiteMinors == 2) && (whiteBishops != 2) && (blackMinors == 1)) ||
+				((whiteExtras == 1) && (blackExtras == 2) && (blackMinors == 2) && (whiteMinors == 1) && (blackBishops != 2)) ||
+				// 2 knights vs king
+				((whiteExtras == 0) && (blackExtras == 2) && (blackKnights == 2)) ||
+				((whiteExtras == 2) && (blackExtras == 0) && (whiteKnights == 2)) ||
+				// minor piece vs minor piece
+				((whiteExtras == 1) && (blackExtras == 1) && (whiteMinors == 1) && (blackMinors == 1)) ||
+				// minor piece vs 2 knights
+				((whiteExtras == 1) && (blackExtras == 2) && (whiteMinors == 1) && (blackKnights == 2)) ||
+				((whiteExtras == 2) && (blackExtras == 1) && (whiteKnights == 2) && (blackMinors == 1)) ||
+				// 2 bishop vs 1 bishop
+				((whiteExtras == 2) && (blackExtras == 1) && (whiteBishops == 2) && (blackBishops == 1)) ||
+				((whiteExtras == 1) && (blackExtras == 2) && (whiteBishops == 1) && (blackBishops == 2)) ||
+				// rook vs rook
+				((whiteExtras == 1) && (blackExtras == 1) && (whiteRooks == 1) && (blackRooks == 1)) ||
+				// 2 rooks vs 2 rooks
+				((whiteExtras == 1) && (blackExtras == 1) && (whiteRooks == 2) && (blackRooks == 2)) ||
+				// rook vs rook + minor piece
+				((whiteExtras == 2) && (blackExtras == 1) && (whiteRooks == 1) && (blackRooks == 1) && (whiteMinors == 1)) ||
+				((whiteExtras == 1) && (blackExtras == 2) && (whiteRooks == 1) && (blackRooks == 1) && (blackMinors == 1)) ||
+				// 2 rooks vs rook + minor
+				((whiteExtras == 2) && (blackExtras == 2) && (whiteRooks == 2) && (blackRooks == 1) && (blackMinors == 1)) ||
+				((whiteExtras == 2) && (blackExtras == 2) && (whiteRooks == 1) && (blackRooks == 2) && (whiteMinors == 1));
+			if (drawish) score = score / 8;
+		}
+		
+		if (potentiallyDrawishQueenful) {
+			int whiteQueens = Popcount(board.WhiteQueenBits);
+			int blackQueens = Popcount(board.BlackQueenBits);
+			bool drawish = 
+				// queen vs queen
+				((whiteExtras == 1) && (blackExtras == 1) && (whiteQueens == 1) && (blackQueens == 1)) ||
+				// queen vs 2 bishops
+				((whiteExtras == 1) && (blackExtras == 2) && (whiteQueens == 1) && (blackBishops == 2)) ||
+				((whiteExtras == 2) && (blackExtras == 1) && (blackQueens == 1) && (whiteBishops == 2)) ||
+				// queen vs 2 knights
+				((whiteExtras == 1) && (blackExtras == 2) && (whiteQueens == 1) && (blackKnights == 2)) ||
+				((whiteExtras == 2) && (blackExtras == 1) && (blackQueens == 1) && (whiteKnights == 2)) ||
+				// queen vs 2 rooks
+				((whiteExtras == 1) && (blackExtras == 2) && (whiteQueens == 1) && (blackRooks == 2)) ||
+				((whiteExtras == 2) && (blackExtras == 1) && (blackQueens == 1) && (whiteRooks == 2)) ||
+				// queen vs rook + minor
+				((whiteExtras == 1) && (blackExtras == 2) && (whiteQueens == 1) && (blackRooks == 1) && (blackMinors == 1)) ||
+				((whiteExtras == 2) && (blackExtras == 1) && (blackQueens == 1) && (whiteRooks == 1) && (whiteMinors == 1));
+			if (drawish) score = score / 8;
+		}
 	}
-	if (potentiallyDrawish) {
-		uint64_t whiteExtras = whitePieces - 1;
-		uint64_t blackExtras = blackPieces - 1;
-		uint64_t whiteMinors = Popcount(board.WhiteKnightBits | board.WhiteBishopBits);
-		uint64_t blackMinors = Popcount(board.BlackKnightBits | board.BlackBishopBits);
-		uint64_t whiteKnights = Popcount(board.WhiteKnightBits);
-		uint64_t blackKnights = Popcount(board.BlackKnightBits);
-		uint64_t whiteBishops = Popcount(board.WhiteBishopBits);
-		uint64_t blackBishops = Popcount(board.BlackBishopBits);
-		bool drawish =
-			// 2 minor pieces (no bishop pair) vs 1 minor piece
-			((whiteExtras == 2) && (whiteMinors == 2) && (whiteBishops != 2) && (blackExtras == 1) && (blackMinors == 1)) ||
-			((blackExtras == 2) && (blackMinors == 2) && (blackBishops != 2) && (whiteExtras == 1) && (whiteMinors == 1)) ||
-			// 2 knights vs king
-			((whiteExtras == 0) && (blackExtras == 2) && (blackKnights == 2)) ||
-			((blackExtras == 0) && (whiteExtras == 2) && (whiteKnights == 2)) ||
-			// minor piece vs minor piece
-			((whiteExtras == 1) && (whiteMinors == 1) && (blackExtras == 1) && (blackMinors == 1)) ||
-			// minor piece vs 2 knights
-			((whiteExtras == 1) && (whiteMinors == 1) && (blackExtras == 2) && (blackKnights == 2)) ||
-			((blackExtras == 1) && (blackMinors == 1) && (whiteExtras == 2) && (whiteKnights == 2)) ||
-			// 2 bishop vs 1 bishop
-			((whiteExtras == 2) && (whiteBishops == 2) && (blackExtras == 1) && (blackBishops == 1)) ||
-			((blackExtras == 2) && (blackBishops == 2) && (whiteExtras == 1) && (whiteBishops == 1));
-		if (drawish) score = score / 16;
-	}
+
+	// idea: taper eval close to 0 if the fifty-move counter is high
 
 	return score;
 }
