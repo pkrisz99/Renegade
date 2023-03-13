@@ -269,7 +269,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		}
 	}
 
-
 	// Null-move pruning
 	int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
 	int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
@@ -285,19 +284,18 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Futility pruning
 	int staticEval = NoEval;
-	const int futilityMargins[] = { 100, 200 };
+	const int futilityMargins[] = { 0, 100, 200, 300 };
 	bool futilityPrunable = false;
-	if ((depth <= 2) && !inCheck && !pvNode) {
+	if ((depth <= 3) && !inCheck && !pvNode) {
 		staticEval = EvaluateBoard(board, level);
-		if ((depth == 1) && (staticEval + futilityMargins[0] < alpha)) futilityPrunable = true;
-		else if ((depth == 2) && (staticEval + futilityMargins[1] < alpha)) futilityPrunable = true;
+		if ((staticEval + futilityMargins[depth] < alpha)) futilityPrunable = true;
 	}
 
 	// Razoring (?)
-	const int razoringMargin = 400;
+	const int razoringMargin[] = { 0, 300, 750 };
 	if ((depth < 2) && !inCheck && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
-		if (staticEval + razoringMargin < alpha) {
+		if (staticEval + razoringMargin[depth] < alpha) {
 			int e = SearchQuiescence(board, level, alpha, beta, true);
 			if (e < alpha) return alpha;
 		}
