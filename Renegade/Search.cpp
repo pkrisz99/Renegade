@@ -247,13 +247,13 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	Move transpositionMove;
 	Statistics.TranspositionQueries += 1;
 	if (found) {
-		if (entry.depth >= depth) {
+		if ((entry.depth >= depth) && !pvNode) {
 			// The branch was already analysed to the same or greater depth, so we can return the result
 			int score = NoEval;
 			bool usable = true;
-			if (entry.scoreType == ScoreType::Exact && !pvNode) score = entry.score;
-			else if ((entry.scoreType == ScoreType::UpperBound) && (entry.score <= alpha) && !pvNode) score = alpha;
-			else if ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta) && !pvNode) score = beta;
+			if (entry.scoreType == ScoreType::Exact) score = entry.score;
+			else if ((entry.scoreType == ScoreType::UpperBound) && (entry.score <= alpha)) score = alpha;
+			else if ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta)) score = beta;
 			else usable = false;
 			if (usable) {
 				if ((score > alpha) && (score < beta)) {
