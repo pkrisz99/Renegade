@@ -224,20 +224,20 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	if (inCheck && (depth == 0) && (level < Depth + 10)) depth = 1;
 	bool pvNode = beta - alpha > 1;
 
-	// Return result for terminal nodes
-	if (depth <= 0) {
-		if (depth < 0) cout << "Check depth: " << depth << endl;
-		int e = SearchQuiescence(board, level, alpha, beta, true);
-		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
-		return e;
-	}
-
 	// Check for draws
 	if (board.IsDraw()) {
 		int score = 0;
 		if (score >= beta) return beta;
 		if (score < alpha) return alpha;
 		return score;
+	}
+
+	// Return result for terminal nodes
+	if (depth <= 0) {
+		if (depth < 0) cout << "Check depth: " << depth << endl;
+		int e = SearchQuiescence(board, level, alpha, beta, true);
+		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
+		return e;
 	}
 
 	// Calculate hash and probe transposition table

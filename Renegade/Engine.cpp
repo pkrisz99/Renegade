@@ -183,6 +183,9 @@ void Engine::Start() {
 				cout << "Bytes per entry:                " << sizeof(TranspositionEntry) << endl;
 
 			}
+			if (parts[1] == "isdraw") {
+				cout << "Is draw? " << board.IsDraw() << endl;
+			}
 			continue;
 		}
 

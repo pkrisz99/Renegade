@@ -1084,10 +1084,8 @@ const bool Board::IsMoveQuiet(const Move& move) {
 const bool Board::IsDraw() {
 
 	// Threefold repetitions
-	const int64_t stateCount = std::count(PastHashes.end() - HalfmoveClock, PastHashes.end(), HashValue);
-	if (stateCount >= 3) {
-		return true;
-	}
+	const int64_t stateCount = std::count(PastHashes.begin(), PastHashes.end(), HashValue);
+	if (stateCount >= 3) return true;
 
 	// Insufficient material check
 	// I think this neglects some cases when pawns can't move
