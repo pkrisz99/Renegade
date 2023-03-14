@@ -246,7 +246,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	bool found = Heuristics.RetrieveTranspositionEntry(hash, depth, entry);
 	Move transpositionMove;
 	Statistics.TranspositionQueries += 1;
-	if (found) {
+	if (found && (level > 0)) {
 		if (entry.depth >= depth) {
 			// The branch was already analysed to the same or greater depth, so we can return the result
 			int score = NoEval;
