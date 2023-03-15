@@ -49,8 +49,8 @@ public:
 	void ClearHistoryTable();
 
 	// Transposition table
-	void AddTranspositionEntry(const uint64_t hash, const int depth, const int score, const int scoreType, const Move bestMove);
-	const bool RetrieveTranspositionEntry(const uint64_t& hash, const int depth, TranspositionEntry& entry);
+	void AddTranspositionEntry(const uint64_t hash, const int depth, int score, const int scoreType, const Move bestMove, const int level);
+	const bool RetrieveTranspositionEntry(const uint64_t& hash, const int depth, TranspositionEntry& entry, const int level);
 	void SetHashSize(const int megabytes);
 	const int GetHashfull();
 	const void GetTranspositionInfo(uint64_t& trTheoretical, uint64_t& trUsable, uint64_t& trBits, uint64_t& trUsed);

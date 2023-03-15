@@ -225,17 +225,12 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	bool pvNode = beta - alpha > 1;
 
 	// Check for draws
-	if (board.IsDraw()) {
-		int score = 0;
-		if (score >= beta) return beta;
-		if (score < alpha) return alpha;
-		return score;
-	}
+	if (board.IsDraw()) return 0;
 
 	// Return result for terminal nodes
 	if (depth <= 0) {
-		if (depth < 0) cout << "Check depth: " << depth << endl;
 		int e = SearchQuiescence(board, level, alpha, beta, true);
+		//if (depth < 0) cout << "Check depth: " << depth << endl;
 		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return e;
 	}
@@ -243,7 +238,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	// Calculate hash and probe transposition table
 	uint64_t hash = board.Hash();
 	TranspositionEntry entry;
-	bool found = Heuristics.RetrieveTranspositionEntry(hash, depth, entry);
+	bool found = Heuristics.RetrieveTranspositionEntry(hash, depth, entry, level);
 	Move transpositionMove;
 	Statistics.TranspositionQueries += 1;
 	if (found) {
@@ -356,9 +351,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 					if (alpha < score) score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -beta, -alpha, true);
 				}
 				if (score <= alpha) doPvSearch = false;
-				else {
-					//doLateMoveReductions = true;
-				}
 			}
 		}*/
 
@@ -378,7 +370,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		// Checking alpha-beta bounds
 		if (score >= beta) {
 			if (isQuiet) Heuristics.AddKillerMove(m, level);
-			Heuristics.AddTranspositionEntry(hash, depth, beta, ScoreType::LowerBound, m);
+			Heuristics.AddTranspositionEntry(hash, depth, beta, ScoreType::LowerBound, m, level);
 			int piece = board.GetPieceAt(m.from);
 			if (isQuiet) Heuristics.AddCutoffHistory(board.Turn, m.from, m.to, depth);
 			Statistics.BetaCutoffs += 1;
@@ -397,20 +389,13 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	// There was no legal move --> game over 
 	if (legalMoveCount == 0) {
 		int e = inCheck ? LosingMateScore(level) : 0;
-		if (e >= beta) {
-			Heuristics.AddTranspositionEntry(hash, depth, beta, ScoreType::LowerBound, Move());
-			return beta;
-		}
-		if (e < alpha) {
-			Heuristics.AddTranspositionEntry(hash, depth, alpha, ScoreType::UpperBound, Move());
-			return alpha;
-		}
-		Heuristics.AddTranspositionEntry(hash, depth, e, ScoreType::Exact, Move());
+		Heuristics.AddTranspositionEntry(hash, depth, e, ScoreType::Exact, Move(), level);
 		return e;
 	}
 
+	// Return alpha otherwise
 	int e = alpha;
-	Heuristics.AddTranspositionEntry(hash, depth, e, scoreType, bestMove);
+	Heuristics.AddTranspositionEntry(hash, depth, e, scoreType, bestMove, level);
 	return e;
 }
 
@@ -548,7 +533,7 @@ const int Search::GetBookSize() {
 const void Search::PrintInfo(const Results e, const EngineSettings settings) {
 	std::string score;
 	if (IsMateScore(e.score)) {
-		int movesToMate = MateEval - abs(e.score);
+		int movesToMate = (MateEval - abs(e.score) + 1) / 2;
 		if (e.score > 0) score = "mate " + std::to_string(movesToMate);
 		else score = "mate -" + std::to_string(movesToMate);
 	}

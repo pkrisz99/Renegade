@@ -90,6 +90,7 @@ void Engine::Start() {
 				valid = true;
 			}
 			else if (parts[2] == "clear") {
+				ConvertToLowercase(parts[3]);
 				if (parts[3] == "hash") {
 					Search.Heuristics.ClearTranspositionTable();
 					valid = true;
@@ -225,6 +226,11 @@ void Engine::Start() {
 		}
 		if (parts[0] == "plain") {
 			Fancy = false;
+			continue;
+		}
+		if (parts[0] == "ch") {
+			Search.Heuristics.ClearTranspositionTable();
+			cout << "Transposition table cleared." << endl;
 			continue;
 		}
 

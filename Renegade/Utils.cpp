@@ -27,8 +27,15 @@ static const int NegativeInfinity = -333333333; // Inventing a new kind of math 
 static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
 static inline bool IsMateScore(const int score) {
-	if ((std::abs(score) > MateEval - 10000) && (std::abs(score) <= MateEval)) return true;
-	return false;
+	return (std::abs(score) > MateEval - 10000) && (std::abs(score) <= MateEval);
+}
+
+static inline bool IsWinningMateScore(const int score) {
+	return (score > MateEval - 10000) && (score <= MateEval);
+}
+
+static inline bool IsLosingMateScore(const int score) {
+	return (score < -MateEval + 10000) && (score >= -MateEval);
 }
 
 // Board constants  -------------------------------------------------------------------------------
@@ -289,7 +296,7 @@ static inline int SquareToNum(const std::string sq) {
 }
 
 static inline int LosingMateScore(int level) {
-	return -MateEval + (level + 1) / 2;
+	return -MateEval + level;
 }
 
 static void DebugBitboard(const uint64_t bits) {
