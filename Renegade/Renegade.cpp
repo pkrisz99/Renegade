@@ -9,15 +9,9 @@
 // - Move.cpp       : move representation
 // - Evaluation.cpp : static board evaluation
 // - Tuner.cpp      : engine parameter tuner
+// - Results.cpp    : output structure used by search
+// - Magics.cpp     : magic bitboard stuff for sliding pieces
 // - Utils.cpp      : other misc functions, lookup tables and shared variables
-
-// Requirements:
-// Processors released after 2013:
-// - Intel Haswell (Core 4th gen)
-// - AMD Piledriver
-// The code currently uses bit manipulation instructions, thus requiring a recentish CPU.
-// It is only at a few places, so substituting them for a more compatible method shouldn't
-// be terribly difficult.
 
 #include "Engine.h"
 
