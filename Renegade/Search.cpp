@@ -254,7 +254,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 				if ((score > alpha) && (score < beta)) {
 					Heuristics.UpdatePvTable(Move(entry.moveFrom, entry.moveTo, entry.moveFlag), level, depth == 1);
 				}
-				Statistics.TranspositionHits += 1;
 				return score;
 			}
 		}
@@ -262,6 +261,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			// The branch was not analysed sufficiently, but we can use it for move ordering purposes
 			transpositionMove = Move(entry.moveFrom, entry.moveTo, entry.moveFlag);
 		}
+		Statistics.TranspositionHits += 1;
 	}
 
 	// Null-move pruning

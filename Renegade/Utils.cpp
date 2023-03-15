@@ -5,11 +5,12 @@
 #include <string>
 #include <vector>
 
-#ifdef _MSC_VER
-	#include <intrin.h>
-#else
-	#include <stdio.h>
-#endif
+#include <intrin.h> // If using MSVC (#ifdef _MSC_VER)
+// #include <stdio.h> // If using GCC (?)
+
+// Uncomment for a compilation that is slightly slower, but supports older CPUs
+// If your CPU is newer than about 2013 (Core 4th gen), you should leave it commented out for about 10% more nps
+// #define LEGACY_CPU
 
 using std::cout;
 using std::cin;
@@ -19,7 +20,7 @@ typedef std::chrono::high_resolution_clock Clock;
 
 const std::string Version = "0.8.1+";
 
-// Evaluation helpers
+// Evaluation helpers -----------------------------------------------------------------------------
 
 static const int MateEval = 1000000;
 static const int NoEval = -666666666;
@@ -38,7 +39,11 @@ static inline bool IsLosingMateScore(const int score) {
 	return (score < -MateEval + 10000) && (score >= -MateEval);
 }
 
-// Board constants  -------------------------------------------------------------------------------
+static inline int LosingMateScore(int level) {
+	return -MateEval + level;
+}
+
+// Board constants --------------------------------------------------------------------------------
 
 namespace MoveFlag {
 	static const uint8_t ShortCastle = 1;
@@ -208,15 +213,20 @@ static inline bool CheckBit(const uint64_t& number, const uint64_t place) {
 }
 
 static inline int Popcount(const uint64_t number) {
-#ifdef _MSC_VER
-	return static_cast<int>(__popcnt64(number));
+#ifdef LEGACY_CPU
+	return std::popcount(number);
 #else
-	return static_cast<int>(__builtin_popcount(number)); // likely wrong
+	return static_cast<int>(__popcnt64(number));
+	// return static_cast<int>(__builtin_popcount(number)); // for GCC (?)
 #endif
 }
 
 static inline int Lzcount(const uint64_t number) {
+#ifdef LEGACY_CPU
+	return std::countl_zero(number);
+#else
 	return static_cast<int>(__lzcnt64(number));
+#endif
 }
 
 static inline bool Overlapping(const uint64_t& a, const uint64_t& b) {
@@ -293,10 +303,6 @@ static inline uint8_t SquareToNum(const std::string sq) {
 	int file = sq[0] - 'a';
 	int rank = sq[1] - '1';
 	return Square(rank, file);
-}
-
-static inline int LosingMateScore(int level) {
-	return -MateEval + level;
 }
 
 static void DebugBitboard(const uint64_t bits) {
