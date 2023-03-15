@@ -409,7 +409,7 @@ int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool 
 	}
 
 	// Calculate delta pruning margin (~11% node reduction @ depth=8)
-	int delta = CalculateDeltaMargin(board);
+	// int delta = CalculateDeltaMargin(board);
 
 	// Update alpha-beta bounds, return alpha if no captures left
 	int staticEval = StaticEvaluation(board, level, true);

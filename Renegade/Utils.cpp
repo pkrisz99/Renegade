@@ -41,15 +41,15 @@ static inline bool IsLosingMateScore(const int score) {
 // Board constants  -------------------------------------------------------------------------------
 
 namespace MoveFlag {
-	static const int ShortCastle = 1;
-	static const int LongCastle = 2;
-	static const int PromotionToKnight = 3;
-	static const int PromotionToBishop = 4;
-	static const int PromotionToRook = 5;
-	static const int PromotionToQueen = 6;
-	static const int EnPassantPossible = 7;
-	static const int NullMove = 8;
-	static const int EnPassantPerformed = 9;
+	static const uint8_t ShortCastle = 1;
+	static const uint8_t LongCastle = 2;
+	static const uint8_t PromotionToKnight = 3;
+	static const uint8_t PromotionToBishop = 4;
+	static const uint8_t PromotionToRook = 5;
+	static const uint8_t PromotionToQueen = 6;
+	static const uint8_t EnPassantPossible = 7;
+	static const uint8_t NullMove = 8;
+	static const uint8_t EnPassantPerformed = 9;
 }
 
 namespace Turn {
@@ -58,37 +58,37 @@ namespace Turn {
 }
 
 namespace PieceColor {
-	static const int None = 0;
-	static const int White = 1;
-	static const int Black = 2;
+	static const uint8_t None = 0;
+	static const uint8_t White = 1;
+	static const uint8_t Black = 2;
 }
 
 namespace PieceType {
-	static const int None = 0;
-	static const int Pawn = 1;
-	static const int Knight = 2;
-	static const int Bishop = 3;
-	static const int Rook = 4;
-	static const int Queen = 5;
-	static const int King = 6;
+	static const uint8_t None = 0;
+	static const uint8_t Pawn = 1;
+	static const uint8_t Knight = 2;
+	static const uint8_t Bishop = 3;
+	static const uint8_t Rook = 4;
+	static const uint8_t Queen = 5;
+	static const uint8_t King = 6;
 }
 
 namespace Piece {
-	static const int WhitePieceOffset = 0;
-	static const int BlackPieceOffset = 7;
-	static const int None = 0;
-	static const int WhitePawn = WhitePieceOffset + PieceType::Pawn;
-	static const int WhiteKnight = WhitePieceOffset + PieceType::Knight;
-	static const int WhiteBishop = WhitePieceOffset + PieceType::Bishop;
-	static const int WhiteRook = WhitePieceOffset + PieceType::Rook;
-	static const int WhiteQueen = WhitePieceOffset + PieceType::Queen;
-	static const int WhiteKing = WhitePieceOffset + PieceType::King;
-	static const int BlackPawn = BlackPieceOffset + PieceType::Pawn;
-	static const int BlackKnight = BlackPieceOffset + PieceType::Knight;
-	static const int BlackBishop = BlackPieceOffset + PieceType::Bishop;
-	static const int BlackRook = BlackPieceOffset + PieceType::Rook;
-	static const int BlackQueen = BlackPieceOffset + PieceType::Queen;
-	static const int BlackKing = BlackPieceOffset + PieceType::King;
+	static const uint8_t WhitePieceOffset = 0;
+	static const uint8_t BlackPieceOffset = 7;
+	static const uint8_t None = 0;
+	static const uint8_t WhitePawn = WhitePieceOffset + PieceType::Pawn;
+	static const uint8_t WhiteKnight = WhitePieceOffset + PieceType::Knight;
+	static const uint8_t WhiteBishop = WhitePieceOffset + PieceType::Bishop;
+	static const uint8_t WhiteRook = WhitePieceOffset + PieceType::Rook;
+	static const uint8_t WhiteQueen = WhitePieceOffset + PieceType::Queen;
+	static const uint8_t WhiteKing = WhitePieceOffset + PieceType::King;
+	static const uint8_t BlackPawn = BlackPieceOffset + PieceType::Pawn;
+	static const uint8_t BlackKnight = BlackPieceOffset + PieceType::Knight;
+	static const uint8_t BlackBishop = BlackPieceOffset + PieceType::Bishop;
+	static const uint8_t BlackRook = BlackPieceOffset + PieceType::Rook;
+	static const uint8_t BlackQueen = BlackPieceOffset + PieceType::Queen;
+	static const uint8_t BlackKing = BlackPieceOffset + PieceType::King;
 }
 
 namespace Bitboards {
@@ -101,22 +101,22 @@ namespace Bitboards {
 }
 
 namespace Squares {
-	static const int A1 = 0;
-	static const int B1 = 1;
-	static const int C1 = 2;
-	static const int D1 = 3;
-	static const int E1 = 4;
-	static const int F1 = 5;
-	static const int G1 = 6;
-	static const int H1 = 7;
-	static const int A8 = 56;
-	static const int B8 = 57;
-	static const int C8 = 58;
-	static const int D8 = 59;
-	static const int E8 = 60;
-	static const int F8 = 61;
-	static const int G8 = 62;
-	static const int H8 = 63;
+	static const uint8_t A1 = 0;
+	static const uint8_t B1 = 1;
+	static const uint8_t C1 = 2;
+	static const uint8_t D1 = 3;
+	static const uint8_t E1 = 4;
+	static const uint8_t F1 = 5;
+	static const uint8_t G1 = 6;
+	static const uint8_t H1 = 7;
+	static const uint8_t A8 = 56;
+	static const uint8_t B8 = 57;
+	static const uint8_t C8 = 58;
+	static const uint8_t D8 = 59;
+	static const uint8_t E8 = 60;
+	static const uint8_t F8 = 61;
+	static const uint8_t G8 = 62;
+	static const uint8_t H8 = 63;
 }
 
 namespace FEN {
@@ -166,9 +166,9 @@ struct SearchConstraints {
 };
 
 struct BookEntry {
-	int from;
-	int to;
-	int promotion;
+	uint8_t from;
+	uint8_t to;
+	uint8_t promotion;
 	uint64_t hash;
 	int weight;
 	int learn;
@@ -227,7 +227,7 @@ static inline bool Overlapping(const uint64_t& a, const uint64_t& b) {
 
 // 1st rank -> 0 ... 8th rank -> 7 
 
-const static int SquareRankArray[] = {
+const static uint8_t SquareRankArray[] = {
 	0, 0, 0, 0, 0, 0, 0, 0,
 	1, 1, 1, 1, 1, 1, 1, 1,
 	2, 2, 2, 2, 2, 2, 2, 2,
@@ -238,7 +238,7 @@ const static int SquareRankArray[] = {
 	7, 7, 7, 7, 7, 7, 7, 7
 };
 
-const static int SquareFileArray[] = {
+const static uint8_t SquareFileArray[] = {
 	0, 1, 2, 3, 4, 5, 6, 7,
 	0, 1, 2, 3, 4, 5, 6, 7,
 	0, 1, 2, 3, 4, 5, 6, 7,
@@ -249,22 +249,22 @@ const static int SquareFileArray[] = {
 	0, 1, 2, 3, 4, 5, 6, 7
 };
 
-constexpr static int GetSquareRank(const int square) {
+constexpr static uint8_t GetSquareRank(const int square) {
 	return SquareRankArray[square];
 }
 
-constexpr static int GetSquareFile(const int square) {
+constexpr static uint8_t GetSquareFile(const int square) {
 	return SquareFileArray[square];
 }
 
-const static int PieceTypeArray[] = {
+const static uint8_t PieceTypeArray[] = {
 	PieceType::None,
 	PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen, PieceType::King,
 	PieceType::None,
 	PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen, PieceType::King,
 };
 
-const static int PieceColorArray[] = {
+const static uint8_t PieceColorArray[] = {
 	PieceColor::None,
 	PieceColor::White, PieceColor::White, PieceColor::White, PieceColor::White, PieceColor::White, PieceColor::White,
 	PieceColor::None,
@@ -272,24 +272,24 @@ const static int PieceColorArray[] = {
 };
 
 // 0: None, 1: White, 2: Black
-static inline int ColorOfPiece(const int piece) {
+static inline uint8_t ColorOfPiece(const uint8_t piece) {
 	return PieceColorArray[piece];
 }
 
-static inline int TypeOfPiece(const int piece) {
+static inline uint8_t TypeOfPiece(const uint8_t piece) {
 	return PieceTypeArray[piece];
 }
 
-static inline int TurnToPieceColor(const bool turn) {
+static inline uint8_t TurnToPieceColor(const bool turn) {
 	if (turn == Turn::White) return PieceColor::White;
 	return PieceColor::Black;
 }
 
-static inline int Square(const int rank, const int file) {
+static inline uint8_t Square(const uint8_t rank, const uint8_t file) {
 	return rank * 8 + file;
 }
 
-static inline int SquareToNum(const std::string sq) {
+static inline uint8_t SquareToNum(const std::string sq) {
 	int file = sq[0] - 'a';
 	int rank = sq[1] - '1';
 	return Square(rank, file);
@@ -313,7 +313,7 @@ static void DebugBitboard(const uint64_t bits) {
 
 // String handling --------------------------------------------------------------------------------
 
-static std::string PolyglotMoveToString(const int from, const int to, const int promotion) {
+static std::string PolyglotMoveToString(const uint8_t from, const uint8_t to, const uint8_t promotion) {
 	int file1 = from % 8;
 	int rank1 = from / 8;
 	int file2 = to % 8;
@@ -342,12 +342,12 @@ static std::string StateString(GameState s) {
 	return "Unknown";
 }
 
-static void ConvertToLowercase(std::string &str) {
+static void ConvertToLowercase(std::string& str) {
 	for (int x = 0; x < str.length(); x++) str[x] = tolower(str[x]);
 }
 
 // https://stackoverflow.com/questions/25829143/trim-whitespace-from-a-string
-static std::string Trim(const std::string &str) {
+static std::string Trim(const std::string& str) {
 	size_t first = str.find_first_not_of(' ');
 	if (first == std::string::npos) return "";
 	if (std::string::npos == first) return str;
@@ -380,7 +380,7 @@ static void ClearScreen(bool endline, bool fancy) {
 
 // Precomputed arrays -----------------------------------------------------------------------------
 
-const static int Mirror[] = {
+const static uint8_t Mirror[] = {
 	56, 57, 58, 59, 60, 61, 62, 63,
 	48, 49, 50, 51, 52, 53, 54, 55,
 	40, 41, 42, 43, 44, 45, 46, 47,
@@ -391,7 +391,7 @@ const static int Mirror[] = {
 	 0,  1,  2,  3,  4,  5,  6,  7
 };
 
-const std::vector<std::vector<int>> KnightMoves = { 
+const std::vector<std::vector<uint8_t>> KnightMoves = {
 	{10,17}, {11,16,18}, {8,12,17,19}, {9,13,18,20}, {10,14,19,21}, {11,15,20,22}, {12,21,23}, {13,22},
 	{2,18,25}, {3,19,24,26}, {0,4,16,20,25,27}, {1,5,17,21,26,28}, {2,6,18,22,27,29}, {3,7,19,23,28,30}, {4,20,29,31}, {5,21,30},
 	{1,10,26,33}, {0,2,11,27,32,34}, {1,3,8,12,24,28,33,35}, {2,4,9,13,25,29,34,36}, {3,5,10,14,26,30,35,37}, {4,6,11,15,27,31,36,38}, {5,7,12,28,37,39}, {6,13,29,38},
@@ -402,7 +402,7 @@ const std::vector<std::vector<int>> KnightMoves = {
 	{41,50}, {40,42,51}, {41,43,48,52}, {42,44,49,53}, {43,45,50,54}, {44,46,51,55}, {45,47,52}, {46,53}
 };
 
-const std::vector<std::vector<int>> KingMoves = {
+const std::vector<std::vector<uint8_t>> KingMoves = {
 	{1,8,9}, {0,2,8,9,10}, {1,3,9,10,11}, {2,4,10,11,12}, {3,5,11,12,13}, {4,6,12,13,14}, {5,7,13,14,15}, {6,14,15},
 	{0,1,9,16,17}, {0,1,2,8,10,16,17,18}, {1,2,3,9,11,17,18,19}, {2,3,4,10,12,18,19,20}, {3,4,5,11,13,19,20,21}, {4,5,6,12,14,20,21,22}, {5,6,7,13,15,21,22,23}, {6,7,14,22,23},
 	{8,9,17,24,25}, {8,9,10,16,18,24,25,26}, {9,10,11,17,19,25,26,27}, {10,11,12,18,20,26,27,28}, {11,12,13,19,21,27,28,29}, {12,13,14,20,22,28,29,30}, {13,14,15,21,23,29,30,31}, {14,15,22,30,31},

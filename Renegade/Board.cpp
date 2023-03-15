@@ -226,7 +226,7 @@ const uint64_t Board::Hash() {
 	return HashValue;
 }
 
-const int Board::GetPieceAt(const int place) {
+const uint8_t Board::GetPieceAt(const uint8_t place) {
 	return OccupancyInts[place];
 }
 
@@ -323,7 +323,7 @@ const uint64_t Board::GetOccupancy() {
 		| BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 }
 
-const uint64_t Board::GetOccupancy(const int pieceColor) {
+const uint64_t Board::GetOccupancy(const uint8_t pieceColor) {
 	if (pieceColor == PieceColor::White) return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
 	return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 }
@@ -826,7 +826,7 @@ void Board::GenerateCastlingMoves(std::vector<Move>& moves) {
 }
 
 // Attack maps are an integral part of this engine, they are used to check the legality of pseudolegal moves
-const uint64_t Board::CalculateAttackedSquares(const int colorOfPieces) {
+const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
 	uint64_t squares = 0ULL;
 	uint64_t parallelSliders = 0;
 	uint64_t diagonalSliders = 0;
@@ -920,7 +920,7 @@ const uint64_t Board::CalculateAttackedSquares(const int colorOfPieces) {
 
 }
 
-void Board::GenerateLegalMoves(std::vector<Move>& moves, const int turn) {
+void Board::GenerateLegalMoves(std::vector<Move>& moves, const bool turn) {
 	std::vector<Move> legalMoves;
 
 	GeneratePseudoLegalMoves(legalMoves, turn, false);
@@ -929,11 +929,11 @@ void Board::GenerateLegalMoves(std::vector<Move>& moves, const int turn) {
 	}
 }
 
-void Board::GenerateNonQuietMoves(std::vector<Move>& moves, const int turn) {
+void Board::GenerateNonQuietMoves(std::vector<Move>& moves, const bool turn) {
 	GeneratePseudoLegalMoves(moves, turn, true);
 }
 
-void Board::GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, const bool quiescenceOnly) {
+void Board::GeneratePseudoLegalMoves(std::vector<Move>& moves, const bool turn, const bool quiescenceOnly) {
 	const int myColor = TurnToPieceColor(turn);
 	uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
 	uint64_t blackOccupancy = GetOccupancy(PieceColor::Black);
@@ -1012,7 +1012,7 @@ bool Board::AreThereLegalMoves(const bool turn) {
 // We try to call this function as little as possible
 // Pretends to make a move, check its legality and then revert the variables
 // It only cares about whether the king will be in check, completely invalid moves won't be noticed
-bool Board::IsLegalMove(const Move m, const int turn) {
+bool Board::IsLegalMove(const Move m, const bool turn) {
 	const uint64_t whitePawnBits = WhitePawnBits;
 	const uint64_t whiteKnightBits = WhiteKnightBits;
 	const uint64_t whiteBishopBits = WhiteBishopBits;

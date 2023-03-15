@@ -6,18 +6,18 @@ Move::Move() {
 	flag = 0;
 }
 
-Move::Move(int from, int to) {
+Move::Move(uint8_t from, uint8_t to) {
 	this->from = from;
 	this->to = to;
 	flag = 0;
 }
 
-Move::Move(int from, int to, int flag) {
+Move::Move(uint8_t from, uint8_t to, uint8_t flag) {
 	this->from = from;
 	this->to = to;
 	this->flag = flag;
 }
-void Move::SetFlag(int flag) {
+void Move::SetFlag(uint8_t flag) {
 	this->flag = flag;
 }
 

@@ -28,18 +28,18 @@ public:
 	bool PushUci(const std::string ucistr);
 	const std::string GetFEN();
 
-	const int GetPieceAt(const int place);
+	const uint8_t GetPieceAt(const uint8_t place);
 	const uint64_t GetOccupancy();
-	const uint64_t GetOccupancy(const int pieceColor);
+	const uint64_t GetOccupancy(const uint8_t pieceColor);
 	const uint64_t Hash();
 	const uint64_t HashInternal();
 
 	bool AreThereLegalMoves(const bool turn);
-	bool IsLegalMove(const Move m, const int turn);
-	void GeneratePseudoLegalMoves(std::vector<Move>& moves, const int turn, const bool quiescenceOnly);
-	void GenerateLegalMoves(std::vector<Move>& moves, const int turn);
-	void GenerateNonQuietMoves(std::vector<Move>& moves, const int turn);
-	const uint64_t CalculateAttackedSquares(const int colorOfPieces);
+	bool IsLegalMove(const Move m, const bool turn);
+	void GeneratePseudoLegalMoves(std::vector<Move>& moves, const bool turn, const bool quiescenceOnly);
+	void GenerateLegalMoves(std::vector<Move>& moves, const bool turn);
+	void GenerateNonQuietMoves(std::vector<Move>& moves, const bool turn);
+	const uint64_t CalculateAttackedSquares(const uint8_t colorOfPieces);
 	const bool IsMoveQuiet(const Move& move);
 	const bool IsDraw();
 	const GameState GetGameState();
@@ -75,7 +75,7 @@ public:
 	int FullmoveClock;
 	std::vector<uint64_t> PastHashes;
 	uint64_t HashValue;
-	int OccupancyInts[64];
+	uint8_t OccupancyInts[64];
 
 
 private:

@@ -203,7 +203,7 @@ void Heuristics::SetHashSize(const int megabytes) {
 }
 
 const int Heuristics::GetHashfull() {
-	return TranspositionEntryCount * 1000LL / (HashFilter + 1LL);
+	return static_cast<int>(TranspositionEntryCount * 1000LL / (HashFilter + 1LL));
 }
 
 void Heuristics::ClearTranspositionTable() {

@@ -7,17 +7,17 @@ class Move
 {
 public:
 	Move();
-	Move(int from, int to);
-	Move(int from, int to, int flag);
-	void SetFlag(int flag);
+	Move(uint8_t from, uint8_t to);
+	Move(uint8_t from, uint8_t to, uint8_t flag);
+	void SetFlag(uint8_t flag);
 	const std::string ToString();
 	const bool IsNotNull();
 	const bool IsEmpty();
 	const bool IsUnderpromotion();
 
-	int from;
-	int to;
-	int flag;
+	uint8_t from;
+	uint8_t to;
+	uint8_t flag;
 };
 
 static bool operator == (const Move &m1, const Move &m2) {
