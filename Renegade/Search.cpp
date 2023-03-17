@@ -316,10 +316,9 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	});
 
 	// Iterate through legal moves
-	bool zeroWindow = false;
+	//bool zeroWindow = false;
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
-	bool doLateMoveReductions = true;
 	Move bestMove;
 	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
 		Move m = get<0>(o);
@@ -334,39 +333,26 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 		b.Push(m);
 		int score = NoEval;
-		bool doPvSearch = true;
 		bool givingCheck = b.Turn == Turn::White ? Popcount(b.AttackedSquares & b.WhiteKingBits) != 0 : Popcount(b.AttackedSquares & b.BlackKingBits) != 0;
 
-		// Late move reductions
-		/*
-		if (doLateMoveReductions) {
-			bool interestingPawnMove = (TypeOfPiece(board.GetPieceAt(m.from)) == PieceType::Pawn) && (phase > 0.4f);
-			int lmrDepth = 3;
-			if ((legalMoveCount > 4) && !pvNode && !inCheck && !givingCheck && isQuiet && (depth > lmrDepth) && !interestingPawnMove && !Heuristics.IsKillerMove(m, level)) {
-				int reduction = 1;
-				if (!zeroWindow) {
-					score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -beta, -alpha, true);
-				}
-				else {
-					score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha - 1, -alpha, true);
-					if (alpha < score) score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -beta, -alpha, true);
-				}
-				if (score <= alpha) doPvSearch = false;
-			}
-		}*/
-
-		// Principal variation search
-		if (doPvSearch) {
-			if (!zeroWindow) {
-				score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
-			}
-			else {
-				score = -SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
-				if (alpha < score) score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
-			}
+		//bool interestingPawnMove = (TypeOfPiece(board.GetPieceAt(m.from)) == PieceType::Pawn)
+		//	&& ((phase > 0.8f) || ((board.Turn == Turn::White) && (GetSquareRank(m.to) >= 4)) || ((board.Turn == Turn::Black) && (GetSquareRank(m.to) <= 3)));
+		
+		if (legalMoveCount == 1) {
+			score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
 		}
+		else {
+			int reduction = 0;
 
-		zeroWindow = true; // depth > 2 might be better 
+			// Late-move reductions
+			if ((legalMoveCount > 4) && !pvNode && !inCheck && !givingCheck && isQuiet && (depth > 3)) {
+				//reduction = 1;
+			}
+
+			// Principal variation search
+			score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha - 1, -alpha, true);
+			if ((score > alpha) && (score < beta)) score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
+		}
 
 		// Checking alpha-beta bounds
 		if (score >= beta) {
