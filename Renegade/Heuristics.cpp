@@ -5,6 +5,7 @@ Heuristics::Heuristics() {
 	KillerMoves.reserve(100);
 	PvMoves = std::vector<Move>();
 	SetHashSize(0);
+	ClearHistoryTable();
 }
 
 // Move ordering & clearing -----------------------------------------------------------------------
@@ -28,28 +29,35 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 	else if (m.flag == MoveFlag::PromotionToKnight) orderScore += 310 + 10000;
 	else if (m.flag == MoveFlag::EnPassantPerformed) orderScore += 100 + 100000;
 
-	bool turn = board.Turn;
-	if (turn == Turn::White) {
-		orderScore -= LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, m.from)], Weights[IndexLatePSQT(attackingPiece, m.from)], phase);
-		orderScore += LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, m.to)], Weights[IndexLatePSQT(attackingPiece, m.to)], phase);
-	}
-	else {
-		orderScore -= LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.from])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.from])], phase);
-		orderScore += LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.to])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.to])], phase);
-	}
-
 	if (IsKillerMove(m, level)) orderScore += 10000;
-	int historyScore = HistoryTables[turn][m.from][m.to];
+	bool turn = board.Turn;
+	int historyScore = HistoryTables[turn][m.from][m.to]; // max 1024*1024
+	orderScore += 100 + static_cast<int>(sqrt(historyScore * 4));
+
+	/*
 	if ((board.GetPieceAt(m.to) == PieceType::None) && (m.flag == 0)) {
-		//orderScore += std::min(200, historyScore / 128);
-	}
+		if (historyScore == 0) {
+			if (turn == Turn::White) {
+				orderScore -= LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, m.from)], Weights[IndexLatePSQT(attackingPiece, m.from)], phase);
+				orderScore += LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, m.to)], Weights[IndexLatePSQT(attackingPiece, m.to)], phase);
+			}
+			else {
+				orderScore -= LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.from])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.from])], phase);
+				orderScore += LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.to])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.to])], phase);
+			}
+		}
+		else {
+			orderScore += 100 + static_cast<int>(sqrt(historyScore * 4));
+		}
+	}*/
+
 	return orderScore;
 }
 
 void Heuristics::ClearEntries() {
 	ClearKillerMoves(); // Reset killer moves
 	ResetPvTable(); // Reset PV table
-	ClearHistoryTable(); // Clear history heuristic data
+	//ClearHistoryTable(); // Clear history heuristic data
 }
 
 // PV table ---------------------------------------------------------------------------------------
@@ -137,6 +145,15 @@ void Heuristics::ClearKillerMoves() {
 
 void Heuristics::AddCutoffHistory(const bool side, const int from, const int to, const int depth) {
 	HistoryTables[side][from][to] += depth * depth;
+
+	// If values become too large, shrink values
+	if (HistoryTables[side][from][to] > 1024 * 1024) {
+		for (int i = 0; i < 64; i++) {
+			for (int j = 0; j < 64; j++) {
+				HistoryTables[side][i][j] = HistoryTables[side][i][j] / 2;
+			}
+		}
+	}
 }
 
 void Heuristics::ClearHistoryTable() {

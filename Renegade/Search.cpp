@@ -194,6 +194,7 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 
 	Heuristics.ClearEntries();
 	Heuristics.ClearPvLine();
+	Heuristics.ClearHistoryTable();
 	Aborting = true;
 	return e;
 }
