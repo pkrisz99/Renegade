@@ -270,14 +270,18 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	// Null-move pruning
 	int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
 	int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
-	int nmpReduction = depth < 6 ? 2 : 3;
-	if (!inCheck && (depth >= nmpReduction + 1) && canNullMove && (level > 1) && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
-		Move m = Move();
-		m.SetFlag(MoveFlag::NullMove);
-		Boards[level] = board;
-		Boards[level].Push(m);
-		int nullMoveEval = -SearchRecursive(Boards[level], depth - 1 - nmpReduction, level + 1, -beta, -beta + 1, false);
-		if ((nullMoveEval >= beta) && !IsMateScore(nullMoveEval)) return beta;
+	if ((depth >= 3) && !inCheck && canNullMove && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
+		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
+		int nmpReduction = 3 + depth / 3 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
+		if (nmpReduction > 0) {
+			nmpReduction = std::min(nmpReduction, depth - 1);
+			Move m = Move();
+			m.SetFlag(MoveFlag::NullMove);
+			Boards[level] = board;
+			Boards[level].Push(m);
+			int nullMoveEval = -SearchRecursive(Boards[level], depth - 1 - nmpReduction, level + 1, -beta, -beta + 1, false);
+			if ((nullMoveEval >= beta) && !IsMateScore(nullMoveEval)) return beta;
+		}
 	}
 
 	// Futility pruning
