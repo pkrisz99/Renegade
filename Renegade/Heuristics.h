@@ -46,6 +46,7 @@ public:
 
 	// History heuristic
 	void AddCutoffHistory(const bool side, const int from, const int to, const int depth);
+	void DecrementHistory(const bool side, const int from, const int to);
 	void ClearHistoryTable();
 
 	// Transposition table

@@ -268,13 +268,13 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	// Null-move pruning
 	int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
 	int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
-	int reduction = depth < 6 ? 2 : 3;
-	if (!inCheck && (depth >= reduction + 1) && canNullMove && (level > 1) && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
+	int nmpReduction = depth < 6 ? 2 : 3;
+	if (!inCheck && (depth >= nmpReduction + 1) && canNullMove && (level > 1) && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
 		Move m = Move();
 		m.SetFlag(MoveFlag::NullMove);
 		Boards[level] = board;
 		Boards[level].Push(m);
-		int nullMoveEval = -SearchRecursive(Boards[level], depth - 1 - reduction, level + 1, -beta, -beta + 1, false);
+		int nullMoveEval = -SearchRecursive(Boards[level], depth - 1 - nmpReduction, level + 1, -beta, -beta + 1, false);
 		if ((nullMoveEval >= beta) && !IsMateScore(nullMoveEval)) return beta;
 	}
 
@@ -334,7 +334,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		b.Push(m);
 		int score = NoEval;
 		bool givingCheck = b.Turn == Turn::White ? Popcount(b.AttackedSquares & b.WhiteKingBits) != 0 : Popcount(b.AttackedSquares & b.BlackKingBits) != 0;
-
 		//bool interestingPawnMove = (TypeOfPiece(board.GetPieceAt(m.from)) == PieceType::Pawn)
 		//	&& ((phase > 0.8f) || ((board.Turn == Turn::White) && (GetSquareRank(m.to) >= 4)) || ((board.Turn == Turn::Black) && (GetSquareRank(m.to) <= 3)));
 		
@@ -345,8 +344,9 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			int reduction = 0;
 
 			// Late-move reductions
-			if ((legalMoveCount > 4) && !pvNode && !inCheck && !givingCheck && isQuiet && (depth > 3)) {
-				//reduction = 1;
+			if ((legalMoveCount >= 5) && !pvNode && !inCheck && !givingCheck && isQuiet && (depth > 3)) {
+				//reduction = log(depth) * log(legalMoveCount) / 4 + 1; // +30 , moves >= 5, depth >= 3
+				//reduction = log(depth) * log(legalMoveCount) / 4.0 + 0.75; 
 			}
 
 			// Principal variation search
@@ -370,6 +370,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			alpha = score;
 			Heuristics.UpdatePvTable(m, level, depth == 1);
 		}
+		Heuristics.DecrementHistory(board.Turn, m.from, m.to);
 
 	}
 
