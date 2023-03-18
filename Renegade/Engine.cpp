@@ -162,9 +162,9 @@ void Engine::Start() {
 				cout << "sizeof int:                " << sizeof(int) << endl;
 			}
 			if (parts[1] == "pasthashes") {
-				cout << "Past hashes size: " << board.PastHashes.size() << endl;
-				for (int i = 0; i < board.PastHashes.size(); i++) {
-					cout << "- entry " << i << ": " << std::hex << board.PastHashes[i] << std::dec << endl;
+				cout << "Past hashes size: " << board.PreviousHashes.size() << endl;
+				for (int i = 0; i < board.PreviousHashes.size(); i++) {
+					cout << "- entry " << i << ": " << std::hex << board.PreviousHashes[i] << std::dec << endl;
 				}
 			}
 			if (parts[1] == "phase") {

@@ -3,6 +3,12 @@
 #include <string>
 #include "Utils.cpp"
 
+/*
+* Move representation.
+* 'from' and 'to' fields in the square on the board (0-63).
+* 'flag' is for additional information, such as for promotions.
+*/
+
 class Move
 {
 public:

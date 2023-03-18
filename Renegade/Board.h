@@ -52,6 +52,8 @@ public:
 		const uint64_t friendlyPieces, const uint64_t opponentPieces);*/
 
 	// Board variables:
+	std::vector<uint64_t> PreviousHashes;
+	uint8_t OccupancyInts[64];
 	uint64_t WhitePawnBits;
 	uint64_t WhiteKnightBits;
 	uint64_t WhiteBishopBits;
@@ -65,18 +67,15 @@ public:
 	uint64_t BlackQueenBits;
 	uint64_t BlackKingBits;
 	uint64_t AttackedSquares;
-	int EnPassantSquare;
+	uint64_t HashValue;
+	uint16_t FullmoveClock;
+	uint8_t EnPassantSquare;
+	uint8_t HalfmoveClock;
 	bool WhiteRightToShortCastle;
 	bool WhiteRightToLongCastle;
 	bool BlackRightToShortCastle;
 	bool BlackRightToLongCastle;
 	bool Turn;
-	int HalfmoveClock;
-	int FullmoveClock;
-	std::vector<uint64_t> PastHashes;
-	uint64_t HashValue;
-	uint8_t OccupancyInts[64];
-
 
 private:
 	const int GetPieceAtFromBitboards(const int place);

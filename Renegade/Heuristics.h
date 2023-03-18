@@ -6,7 +6,11 @@
 #include <algorithm>
 #include <array>
 #include <memory>
-#include <unordered_map>
+
+/*
+* Collection of functions to make search more efficient.
+* Handles the transposition table, history heuristic, killer moves, and the PV table.
+*/
 
 namespace ScoreType {
 	static const int Exact = 0;
@@ -15,10 +19,10 @@ namespace ScoreType {
 };
 
 struct TranspositionEntry {
+	uint64_t hash;
 	int32_t score;
 	uint8_t depth;
 	uint8_t scoreType;
-	uint64_t hash;
 	uint8_t moveFrom, moveTo, moveFlag;
 };
 

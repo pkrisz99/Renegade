@@ -8,10 +8,15 @@
 #include <tuple>
 #include <iomanip>
 #include <algorithm>
-#include <unordered_map>
 #include <fstream>
 #include <random>
 #include <filesystem>
+
+/*
+* This is the code responsible for performing move selection.
+* SearchRecursive() is the main alpha-beta search, and SearchQuiescence() is called in leaf nodes.
+* It also handles opening books and communicating the interim search results.
+*/
 
 class Search
 {

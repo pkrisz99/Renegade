@@ -23,7 +23,7 @@ void Board::Setup(const std::string fen) {
 	HalfmoveClock = 0;
 	FullmoveClock = 0;
 	Turn = Turn::White;
-	PastHashes = std::vector<uint64_t>();
+	PreviousHashes = std::vector<uint64_t>();
 
 	std::vector<std::string> parts = Split(fen);
 	int place = 56;
@@ -74,7 +74,7 @@ void Board::Setup(const std::string fen) {
 	HalfmoveClock = stoi(parts[4]);
 	FullmoveClock = stoi(parts[5]);
 	HashValue = HashInternal();
-	PastHashes.push_back(HashValue);
+	PreviousHashes.push_back(HashValue);
 	GenerateOccupancy();
 }
 
@@ -113,8 +113,8 @@ Board::Board(const Board& b) {
 	std::copy(std::begin(b.OccupancyInts), std::end(b.OccupancyInts), std::begin(OccupancyInts));
 
 	HashValue = b.HashValue;
-	PastHashes.reserve(b.PastHashes.size() + 1);
-	PastHashes = b.PastHashes;
+	PreviousHashes.reserve(b.PreviousHashes.size() + 1);
+	PreviousHashes = b.PreviousHashes;
 }
 
 Board Board::Copy() {
@@ -526,9 +526,9 @@ void Board::Push(const Move move) {
 	else inCheck = (AttackedSquares & BlackKingBits) != 0;
 
 	// Update threefold repetition list
-	if (HalfmoveClock == 0) PastHashes.clear();
+	if (HalfmoveClock == 0) PreviousHashes.clear();
 	HashValue = HashInternal();
-	PastHashes.push_back(HashValue);
+	PreviousHashes.push_back(HashValue);
 
 }
 
@@ -1084,7 +1084,7 @@ const bool Board::IsMoveQuiet(const Move& move) {
 const bool Board::IsDraw() {
 
 	// Threefold repetitions
-	const int64_t stateCount = std::count(PastHashes.begin(), PastHashes.end(), HashValue);
+	const int64_t stateCount = std::count(PreviousHashes.begin(), PreviousHashes.end(), HashValue);
 	if (stateCount >= 3) return true;
 
 	// Insufficient material check
