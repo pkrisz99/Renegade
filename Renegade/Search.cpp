@@ -218,12 +218,13 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	Statistics.Nodes += 1;
+	int staticEval = NoEval;
+	bool pvNode = beta - alpha > 1;
 
 	// Check extensions
 	uint64_t kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
 	bool inCheck = (board.AttackedSquares & kingBits) != 0;
 	if (inCheck && (depth == 0) && (level < Depth + 10)) depth = 1;
-	bool pvNode = beta - alpha > 1;
 
 	// Check for draws
 	if (board.IsDraw()) return 0;
@@ -261,6 +262,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		else {
 			// The branch was not analysed sufficiently, but we can use it for move ordering purposes
 			transpositionMove = Move(entry.moveFrom, entry.moveTo, entry.moveFlag);
+			//if (entry.scoreType == ScoreType::Exact) staticEval = entry.score;
 		}
 		Statistics.TranspositionHits += 1;
 	}
@@ -279,12 +281,18 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	// Futility pruning
-	int staticEval = NoEval;
-	const int futilityMargins[] = { 0, 100, 200, 300 };
+	const int futilityMargins[] = { 0, 100, 200, 300, 400, 500 };
 	bool futilityPrunable = false;
-	if ((depth <= 3) && !inCheck && !pvNode) {
-		staticEval = EvaluateBoard(board, level);
+	if ((depth <= 5) && !inCheck && !pvNode) {
+		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
 		if ((staticEval + futilityMargins[depth] < alpha)) futilityPrunable = true;
+	}
+
+	// Reverse futility pruning
+	const int rfpMargin[] = { 0, 100, 200, 300, 400, 500 };
+	if ((depth <= 5) && !inCheck && !pvNode) {
+		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
+		if (staticEval - rfpMargin[depth] > beta) return staticEval;
 	}
 
 	// Razoring (?)
