@@ -356,9 +356,9 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			int reduction = 0;
 
 			// Late-move reductions
-			if ((legalMoveCount >= 5) && !pvNode && !inCheck && !givingCheck && isQuiet && (depth > 3)) {
+			if ((legalMoveCount >= 4) && !pvNode && !inCheck && !givingCheck && isQuiet && (depth >= 3)) {
 				//reduction = log(depth) * log(legalMoveCount) / 4 + 1; // +30 , moves >= 5, depth >= 3
-				//reduction = log(depth) * log(legalMoveCount) / 4.0 + 0.75; 
+				reduction = 0.25 * log(depth) * log(legalMoveCount) + 0.7; 
 			}
 
 			// Principal variation search
