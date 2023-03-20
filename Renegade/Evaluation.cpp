@@ -320,7 +320,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	int mobilityScore = 0;
 	uint64_t allOccupancy = occupancy;
 	std::tuple<int, uint64_t> mob;
-
+	uint64_t whiteAttacks = 0, blackAttacks = 0;
 
 	int whiteDangerScore = 0;
 	int blackDangerScore = 0;
@@ -333,12 +333,15 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	int blackKingSquare = 63 - Lzcount(board.BlackKingBits);
 	uint64_t blackKingZone = KingArea[blackKingSquare];
 
+	const int isolatedPawnPenalties[] = { -4, -9, -14, -18, -18, -14, -9, -4 };
+
 	while (piecesOnBoard != 0) {
 		int i = 63 - Lzcount(piecesOnBoard);
 		SetBitFalse(piecesOnBoard, i);
 		int piece = board.GetPieceAt(i);
 		int pieceType = TypeOfPiece(piece);
 		int pieceColor = ColorOfPiece(piece);
+		int file = GetSquareFile(i);
 
 		if (pieceColor == PieceColor::White) {
 			int psqt = LinearTaper(weights[IndexEarlyPSQT(pieceType, i)], weights[IndexLatePSQT(pieceType, i)], phase);
@@ -394,21 +397,26 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 		switch (piece) {
 		case Piece::WhitePawn:
 			attacks = WhitePawnAttacks[i] & ~whitePieces;
+			whiteAttacks |= attacks;
 			if ((blackKingZone & attacks) != 0) {
 				blackDangerScore += dangerWeights[PieceType::Pawn];
 				blackDangerPieces += 1;
 			}
+			if ((board.WhitePawnBits & IsolatedPawnMask[file]) == 0) score += isolatedPawnPenalties[file];
 			break;
 		case Piece::BlackPawn:
 			attacks = BlackPawnAttacks[i] & ~blackPieces;
+			blackAttacks |= attacks;
 			if ((whiteKingZone & attacks) != 0) {
 				whiteDangerScore += dangerWeights[PieceType::Pawn];
 				whiteDangerPieces += 1;
 			}
+			if ((board.BlackPawnBits & IsolatedPawnMask[file]) == 0) score -= isolatedPawnPenalties[file];
 			break;
 
 		case Piece::WhiteKnight:
 			mobility = KnightMoveBits[i] & ~whitePieces;
+			whiteAttacks |= mobility;
 			mobilityScore += weights[IndexKnightMobility(Popcount(mobility))];
 			if ((blackKingZone & mobility) != 0) {
 				blackDangerScore += dangerWeights[PieceType::Knight];
@@ -417,6 +425,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 			break;
 		case Piece::BlackKnight:
 			mobility = KnightMoveBits[i] & ~blackPieces;
+			blackAttacks |= mobility;
 			mobilityScore -= weights[IndexKnightMobility(Popcount(mobility))];
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += dangerWeights[PieceType::Knight];
@@ -426,6 +435,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 
 		case Piece::WhiteBishop:
 			mobility = GetBishopAttacks(i, occupancy) & ~whitePieces;
+			whiteAttacks |= mobility;
 			mobilityScore += weights[IndexBishopMobility(Popcount(mobility))];
 			if ((blackKingZone & mobility) != 0) {
 				blackDangerScore += dangerWeights[PieceType::Bishop];
@@ -434,6 +444,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 			break;
 		case Piece::BlackBishop:
 			mobility = GetBishopAttacks(i, occupancy) & ~blackPieces;
+			blackAttacks |= mobility;
 			mobilityScore -= weights[IndexBishopMobility(Popcount(mobility))];
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += dangerWeights[PieceType::Bishop];
@@ -443,6 +454,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 
 		case Piece::WhiteRook:
 			mobility = GetRookAttacks(i, occupancy) & ~whitePieces;
+			whiteAttacks |= mobility;
 			mobilityScore += weights[IndexRookMobility(Popcount(mobility))];
 			if ((blackKingZone & mobility) != 0) {
 				blackDangerScore += dangerWeights[PieceType::Rook];
@@ -451,6 +463,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 			break;
 		case Piece::BlackRook:
 			mobility = GetRookAttacks(i, occupancy) & ~blackPieces;
+			blackAttacks |= mobility;
 			mobilityScore -= weights[IndexRookMobility(Popcount(mobility))];
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += dangerWeights[PieceType::Rook];
@@ -460,6 +473,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 
 		case Piece::WhiteQueen:
 			mobility = GetQueenAttacks(i, occupancy) & ~whitePieces;
+			whiteAttacks |= mobility;
 			earlyScore = weights[IndexQueenEarlyMobility(Popcount(mobility))];
 			lateScore = weights[IndexQueenLateMobility(Popcount(mobility))];
 			mobilityScore += LinearTaper(earlyScore, lateScore, phase);
@@ -470,6 +484,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 			break;
 		case Piece::BlackQueen:
 			mobility = GetQueenAttacks(i, occupancy) & ~blackPieces;
+			blackAttacks |= mobility;
 			earlyScore = weights[IndexQueenEarlyMobility(Popcount(mobility))];
 			lateScore = weights[IndexQueenLateMobility(Popcount(mobility))];
 			mobilityScore -= LinearTaper(earlyScore, lateScore, phase);

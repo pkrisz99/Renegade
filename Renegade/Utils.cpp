@@ -542,6 +542,10 @@ const uint64_t Files[] = {
 	0b1000000010000000100000001000000010000000100000001000000010000000
 };
 
+const uint64_t IsolatedPawnMask[] = {
+	0x0202020202020202, 0x0505050505050505, 0x0a0a0a0a0a0a0a0a, 0x1414141414141414, 0x2828282828282828, 0x5050505050505050, 0xa0a0a0a0a0a0a0a0, 0x4040404040404040,
+};
+
 const bool OutpostFilter[] = {
 	false, false, false, false, false, false, false, false,
 	false, false, false, false, false, false, false, false,
