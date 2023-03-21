@@ -22,7 +22,7 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 
 	bool turn = board.Turn;
 	int historyScore = HistoryTables[turn][m.from][m.to]; // max 1024*1024
-	int scaledHistory = static_cast<int>(sqrt(historyScore * 4)); // max 2048
+	int scaledHistory = (historyScore > 0) ? static_cast<int>(sqrt(historyScore * 4)) : historyScore; // max 2048
 
 	// Captures
 	if ((attackedPiece != PieceType::None) || (m.flag == MoveFlag::EnPassantPerformed)) {
@@ -41,15 +41,13 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 	if (promoting) return orderScore;
 	
 	// Quiet killer moves
-	if (IsKillerMove(m, level)) {
-		orderScore = 10000 + scaledHistory;
-		return orderScore;
-	}
+	if (IsFirstKillerMove(m, level)) return 10100;
+	if (IsSecondKillerMove(m, level)) return 10000;
 
 	// Quiet moves
 	if (historyScore != 0) {
 		// When at least we have some history scores
-		orderScore = 100 + scaledHistory;
+		orderScore = ((scaledHistory > 0) ? 100 + scaledHistory : -100 + scaledHistory);
 	}
 	else {
 		// Use PSQT change if not
@@ -141,6 +139,16 @@ const bool Heuristics::IsKillerMove(const Move& move, const int level) {
 	return false;
 }
 
+const bool Heuristics::IsFirstKillerMove(const Move& move, const int level) {
+	if (KillerMoves[level][0] == move) return true;
+	return false;
+}
+
+const bool Heuristics::IsSecondKillerMove(const Move& move, const int level) {
+	if (KillerMoves[level][1] == move) return true;
+	return false;
+}
+
 void Heuristics::ClearKillerMoves() {
 	KillerMoves.clear();
 	KillerMoves.reserve(32);
@@ -168,7 +176,14 @@ void Heuristics::AddCutoffHistory(const bool side, const int from, const int to,
 }
 
 void Heuristics::DecrementHistory(const bool side, const int from, const int to) {
-	if (HistoryTables[side][from][to] > 0) HistoryTables[side][from][to] -= 1;
+	HistoryTables[side][from][to] -= 1;
+	if (HistoryTables[side][from][to] < -1024 * 1024) {
+		for (int i = 0; i < 64; i++) {
+			for (int j = 0; j < 64; j++) {
+				HistoryTables[side][i][j] /= 2;
+			}
+		}
+	}
 }
 
 void Heuristics::ClearHistoryTable() {

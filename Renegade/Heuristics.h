@@ -46,6 +46,8 @@ public:
 	// Killer moves
 	void AddKillerMove(const Move& m, const int level);
 	const bool IsKillerMove(const Move& move, const int level);
+	const bool IsFirstKillerMove(const Move& move, const int level);
+	const bool IsSecondKillerMove(const Move& move, const int level);
 	void ClearKillerMoves();
 
 	// History heuristic
@@ -61,6 +63,8 @@ public:
 	const void GetTranspositionInfo(uint64_t& trTheoretical, uint64_t& trUsable, uint64_t& trBits, uint64_t& trUsed);
 	void ClearTranspositionTable();
 
+	Move PvTable[PvSize + 1][PvSize + 1];
+
 
 private:
 	std::vector<TranspositionEntry> TranspositionTable;
@@ -71,7 +75,6 @@ private:
 
 	std::vector<std::array<Move, 2>> KillerMoves;
 	std::vector<Move> PvMoves;
-	Move PvTable[PvSize + 1][PvSize + 1];
 	std::array<std::array<std::array<int, 64>, 64>, 2> HistoryTables;
 
 };

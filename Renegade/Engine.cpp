@@ -233,6 +233,9 @@ void Engine::Start() {
 			cout << "Transposition table cleared." << endl;
 			continue;
 		}
+		if (parts[0] == "test") {
+			cout << "Test trigger point" << endl;
+		}
 
 		// Position command
 		if (parts[0] == "position") {
