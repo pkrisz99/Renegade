@@ -59,7 +59,7 @@ public:
 
 	// Reused variables
 	std::vector<Move> MoveList;
-	std::vector<std::tuple<Move, int>> MoveOrder[100];
+	std::array<std::vector<std::tuple<Move, int>>, 100> MoveOrder;
 	std::array<Board, 100> Boards;
 
 };

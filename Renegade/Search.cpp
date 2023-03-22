@@ -194,7 +194,7 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 
 	Heuristics.ClearEntries();
 	Heuristics.ClearPvLine();
-	Heuristics.ClearHistoryTable();
+	Heuristics.AgeHistory();
 	Aborting = true;
 	return e;
 }
@@ -378,10 +378,16 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		if (score >= beta) {
 			if (isQuiet) Heuristics.AddKillerMove(m, level);
 			Heuristics.AddTranspositionEntry(hash, depth, beta, ScoreType::LowerBound, m, level);
-			int piece = board.GetPieceAt(m.from);
-			if (isQuiet) Heuristics.AddCutoffHistory(board.Turn, m.from, m.to, depth);
+			//int piece = board.GetPieceAt(m.from);
 			Statistics.BetaCutoffs += 1;
 			if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
+
+			if (isQuiet) Heuristics.IncrementHistory(board.Turn, m.from, m.to, depth);
+			/*
+			for (int i = 1; i < pseudoLegalCount; i++) {
+				if (LegalAndQuiet[i]) Heuristics.DecrementHistory(board.Turn, m.from, m.to, depth);
+			}*/
+
 			return beta;
 		}
 		if (score > alpha) {
@@ -390,7 +396,9 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			alpha = score;
 			Heuristics.UpdatePvTable(m, level, depth == 1);
 		}
-		if (isQuiet) Heuristics.DecrementHistory(board.Turn, m.from, m.to);
+
+		// Should only be reduced if there's a beta-cutoff, but that loses strength...
+		if (isQuiet) Heuristics.DecrementHistory(board.Turn, m.from, m.to, depth);
 
 	}
 

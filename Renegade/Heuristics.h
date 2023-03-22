@@ -51,8 +51,9 @@ public:
 	void ClearKillerMoves();
 
 	// History heuristic
-	void AddCutoffHistory(const bool side, const int from, const int to, const int depth);
-	void DecrementHistory(const bool side, const int from, const int to);
+	void IncrementHistory(const bool side, const int from, const int to, const int depth);
+	void DecrementHistory(const bool side, const int from, const int to, const int depth);
+	void AgeHistory();
 	void ClearHistoryTable();
 
 	// Transposition table

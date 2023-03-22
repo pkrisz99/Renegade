@@ -17,37 +17,36 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
 	
 	// PV and transposition moves
-	if (IsPvMove(m, level) && onPv) return 10000000; // ????
-	if ((m.from == trMove.from) && (m.to == trMove.to) && (m.flag == trMove.flag)) return 9000000;
-
-	bool turn = board.Turn;
-	int historyScore = HistoryTables[turn][m.from][m.to]; // max 1024*1024
-	int scaledHistory = (historyScore > 0) ? static_cast<int>(sqrt(historyScore * 4)) : historyScore; // max 2048
+	if (IsPvMove(m, level) && onPv) return 900000; // ????
+	if ((m.from == trMove.from) && (m.to == trMove.to) && (m.flag == trMove.flag)) return 800000;
 
 	// Captures
 	if ((attackedPiece != PieceType::None) || (m.flag == MoveFlag::EnPassantPerformed)) {
-		orderScore = values[attackedPiece] * 16 - values[attackingPiece] + 100000;
-		if (m.flag == MoveFlag::EnPassantPerformed) orderScore = values[PieceType::Pawn] * 16 - values[PieceType::Pawn] + 100000;
+		orderScore = values[attackedPiece] * 16 - values[attackingPiece] + 600000;
+		if (m.flag == MoveFlag::EnPassantPerformed) orderScore = values[PieceType::Pawn] * 16 - values[PieceType::Pawn] + 600000;
 		return orderScore;
 	}
 
 	// Promotions
 	bool promoting = true;
-	if (m.flag == MoveFlag::PromotionToQueen) orderScore = 950 + 200000;
-	else if (m.flag == MoveFlag::PromotionToRook) orderScore = 500 + 200000;
-	else if (m.flag == MoveFlag::PromotionToBishop) orderScore = 290 * 16 + 100000;
-	else if (m.flag == MoveFlag::PromotionToKnight) orderScore = 310 * 16 + 100000;
+	if (m.flag == MoveFlag::PromotionToQueen) orderScore = 950 * 16 + 700000;
+	else if (m.flag == MoveFlag::PromotionToRook) orderScore = 500 * 16 + 500000;
+	else if (m.flag == MoveFlag::PromotionToBishop) orderScore = 290 * 16 + 500000;
+	else if (m.flag == MoveFlag::PromotionToKnight) orderScore = 310 * 16 + 500000;
 	else promoting = false;
 	if (promoting) return orderScore;
 	
 	// Quiet killer moves
-	if (IsFirstKillerMove(m, level)) return 10100;
-	if (IsSecondKillerMove(m, level)) return 10000;
+	if (IsFirstKillerMove(m, level)) return 100100;
+	if (IsSecondKillerMove(m, level)) return 100000;
+
+	bool turn = board.Turn;
+	int historyScore = HistoryTables[turn][m.from][m.to];
 
 	// Quiet moves
 	if (historyScore != 0) {
 		// When at least we have some history scores
-		orderScore = ((scaledHistory > 0) ? 100 + scaledHistory : -100 + scaledHistory);
+		return historyScore;
 	}
 	else {
 		// Use PSQT change if not
@@ -59,8 +58,8 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 			orderScore -= LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.from])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.from])], phase);
 			orderScore += LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.to])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.to])], phase);
 		}
+		return orderScore;
 	}
-	return orderScore;
 }
 
 void Heuristics::ClearEntries() {
@@ -162,11 +161,11 @@ void Heuristics::ClearKillerMoves() {
 
 // History heuristic ------------------------------------------------------------------------------
 
-void Heuristics::AddCutoffHistory(const bool side, const int from, const int to, const int depth) {
-	HistoryTables[side][from][to] += depth * depth;
+void Heuristics::IncrementHistory(const bool side, const int from, const int to, const int depth) {
+	HistoryTables[side][from][to] += std::min(depth * depth / 2, 50);
 
 	// If values become too large, shrink values
-	if (HistoryTables[side][from][to] > 1024 * 1024) {
+	if (HistoryTables[side][from][to] >= 256 * 128) {
 		for (int i = 0; i < 64; i++) {
 			for (int j = 0; j < 64; j++) {
 				HistoryTables[side][i][j] /= 2;
@@ -175,13 +174,22 @@ void Heuristics::AddCutoffHistory(const bool side, const int from, const int to,
 	}
 }
 
-void Heuristics::DecrementHistory(const bool side, const int from, const int to) {
+void Heuristics::DecrementHistory(const bool side, const int from, const int to, const int depth) {
 	HistoryTables[side][from][to] -= 1;
-	if (HistoryTables[side][from][to] < -1024 * 1024) {
+	if (HistoryTables[side][from][to] <= -256 * 128) {
 		for (int i = 0; i < 64; i++) {
 			for (int j = 0; j < 64; j++) {
 				HistoryTables[side][i][j] /= 2;
 			}
+		}
+	}
+}
+
+void Heuristics::AgeHistory() {
+	for (int i = 0; i < 64; i++) {
+		for (int j = 0; j < 64; j++) {
+			HistoryTables[0][i][j] = 0; // /= 2;
+			HistoryTables[1][i][j] = 0; // /= 2;
 		}
 	}
 }

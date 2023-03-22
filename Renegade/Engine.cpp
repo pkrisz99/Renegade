@@ -46,6 +46,7 @@ void Engine::Start() {
 
 		if (cmd == "ucinewgame") {
 			Search.Heuristics.ClearTranspositionTable();
+			Search.Heuristics.ClearHistoryTable();
 			continue;
 		}
 
@@ -158,6 +159,7 @@ void Engine::Start() {
 			}
 			if (parts[1] == "sizeof") {
 				cout << "sizeof TranspositionEntry: " << sizeof(TranspositionEntry) << endl;
+				cout << "sizeof Board:              " << sizeof(Board) << endl;
 				cout << "sizeof Move:               " << sizeof(Move) << endl;
 				cout << "sizeof int:                " << sizeof(int) << endl;
 			}
