@@ -145,7 +145,7 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 	Results e = Results();
 	while (!finished) {
 		FollowingPV = true;
-		Heuristics.ClearEntries();
+		Heuristics.ResetPvTable();
 		Depth += 1;
 		Statistics.SelDepth = 0;
 		int result = SearchRecursive(board, Depth, 0, NegativeInfinity, PositiveInfinity, true);
@@ -192,7 +192,8 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 	}
 	PrintBestmove(e.BestMove());
 
-	Heuristics.ClearEntries();
+	Heuristics.ClearKillerMoves();
+	Heuristics.ResetPvTable();
 	Heuristics.ClearPvLine();
 	Heuristics.AgeHistory();
 	Aborting = true;
@@ -262,10 +263,18 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		else {
 			// The branch was not analysed sufficiently, but we can use it for move ordering purposes
 			transpositionMove = Move(entry.moveFrom, entry.moveTo, entry.moveFlag);
+			staticEval = entry.score;
 			//if (entry.scoreType == ScoreType::Exact) staticEval = entry.score;
 		}
 		Statistics.TranspositionHits += 1;
 	}
+
+	/*
+	Scores[level] = NoEval;
+	if (depth <= 5) {
+		staticEval = EvaluateBoard(board, level);
+		Scores[level] = staticEval;
+	}*/
 
 	// Internal iterative deepening
 	/*if (pvNode && (depth > 3) && transpositionMove.IsEmpty()) {
@@ -363,10 +372,19 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		else {
 			int reduction = 0;
 
+			// Late-move pruning
+			/*
+			const int lmpCount[] = { 0, 10, 14, 18, 22 };
+			if ((depth < 5) && !pvNode && !inCheck && isQuiet) {
+				if (legalMoveCount > lmpCount[depth]) continue;
+			}*/
+
 			// Late-move reductions
-			if ((legalMoveCount >= 4) && !pvNode && !inCheck && !givingCheck && isQuiet && (depth >= 3)) {
-				//reduction = log(depth) * log(legalMoveCount) / 4 + 1; // +30 , moves >= 5, depth >= 3
-				reduction = 0.25 * log(depth) * log(legalMoveCount) + 0.7; 
+			if ((legalMoveCount >= 4) && !inCheck && !givingCheck && isQuiet && (depth >= 3)) {
+
+				if (!pvNode || (depth > 5)) reduction = 0.25 * log(depth) * log(legalMoveCount) + 0.7;
+				if (pvNode) reduction /= 3;
+
 			}
 
 			// Principal variation search

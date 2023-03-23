@@ -2,7 +2,6 @@
 
 Heuristics::Heuristics() {
 	TranspositionEntryCount = 0;
-	KillerMoves.reserve(100);
 	PvMoves = std::vector<Move>();
 	SetHashSize(0);
 	ClearHistoryTable();
@@ -60,12 +59,6 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 		}
 		return orderScore;
 	}
-}
-
-void Heuristics::ClearEntries() {
-	ClearKillerMoves(); // Reset killer moves
-	ResetPvTable(); // Reset PV table
-	//ClearHistoryTable(); // Clear history heuristic data
 }
 
 // PV table ---------------------------------------------------------------------------------------
@@ -149,13 +142,10 @@ const bool Heuristics::IsSecondKillerMove(const Move& move, const int level) {
 }
 
 void Heuristics::ClearKillerMoves() {
-	KillerMoves.clear();
-	KillerMoves.reserve(32);
-	for (int i = 0; i < 100; i++) {
+	for (int i = 0; i < KillerMoves.size(); i++) {
 		std::array<Move, 2> a = std::array<Move, 2>();
-		a[0] = Move(0, 0);
-		a[1] = Move(0, 0);
-		KillerMoves.push_back(a);
+		a[0] = Move();
+		a[1] = Move();
 	}
 }
 

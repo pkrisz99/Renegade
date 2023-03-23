@@ -47,6 +47,9 @@ void Engine::Start() {
 		if (cmd == "ucinewgame") {
 			Search.Heuristics.ClearTranspositionTable();
 			Search.Heuristics.ClearHistoryTable();
+			Search.Heuristics.ClearKillerMoves();
+			Search.Heuristics.ResetPvTable();
+			Search.Heuristics.ClearPvLine();
 			continue;
 		}
 
@@ -94,6 +97,10 @@ void Engine::Start() {
 				ConvertToLowercase(parts[3]);
 				if (parts[3] == "hash") {
 					Search.Heuristics.ClearTranspositionTable();
+					Search.Heuristics.ClearKillerMoves();
+					Search.Heuristics.ResetPvTable();
+					Search.Heuristics.ClearPvLine();
+					Search.Heuristics.ClearHistoryTable();
 					valid = true;
 				}
 			}
@@ -232,6 +239,10 @@ void Engine::Start() {
 		}
 		if (parts[0] == "ch") {
 			Search.Heuristics.ClearTranspositionTable();
+			Search.Heuristics.ClearKillerMoves();
+			Search.Heuristics.ResetPvTable();
+			Search.Heuristics.ClearPvLine();
+			Search.Heuristics.ClearHistoryTable();
 			cout << "Transposition table cleared." << endl;
 			continue;
 		}

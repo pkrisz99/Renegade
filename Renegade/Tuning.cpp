@@ -20,9 +20,11 @@ Tuning::Tuning() {
 	std::vector<float> loadedResults;
 	while (std::getline(ifs, line) && ((lines < positionsToLoad) || (positionsToLoad == -1))) {
 		lines += 1;
-		std::string fen = line.substr(0, line.size() - 6);
-		std::string result = line.substr(line.size() - 5);
-		loadedResults.push_back(ConvertResult(result));
+		std::vector<std::string> parts = Split(line);
+		std::string fen = parts[0] + " " + parts[1] + " " + parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5].substr(0, parts[5].size()-1);
+		size_t resultpos = line.find("pgn=");
+		std::string resultstr = line.substr(resultpos + 4, 3);
+		loadedResults.push_back(ConvertResult(resultstr));
 		loadedBoards.push_back(Board(fen));
 	}
 	cout << "Number of positions loaded: " << loadedBoards.size() << endl;
@@ -33,7 +35,7 @@ Tuning::Tuning() {
 	cout << "Best K found: K=" << K << endl;
 
 	// Splitting into train and test datasets
-	const double trainRatio = 0.85;
+	const double trainRatio = 0.8;
 	for (int i = 0; i < trainRatio * lines; i++) {
 		TrainBoards.push_back(loadedBoards[i]);
 		TrainResults.push_back(loadedResults[i]);
@@ -51,9 +53,9 @@ Tuning::Tuning() {
 }
 
 const float Tuning::ConvertResult(const std::string str) {
-	if (str == "[1.0]") return 1; // White win
-	if (str == "[0.5]") return 0.5; // Draw
-	if (str == "[0.0]") return 0; // Black win
+	if (str == "1.0") return 1; // White win
+	if (str == "0.5") return 0.5; // Draw
+	if (str == "0.0") return 0; // Black win
 	cout << "!!! Invalid result: '" << str << "' !!!" << endl;
 	return 0.5;
 }
@@ -66,17 +68,17 @@ const double Tuning::Sigmoid(const int score, const double K) {
 const double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) {
 	double totalError = 0;
 	for (int i = 0; i < boards.size(); i++) {
-		const int sign = boards[i].Turn == Turn::White ? 1 : -1; // Whoops, this is *kinda* needed
+		const int sign = 1;
 		totalError += pow((results[i] - Sigmoid(sign * EvaluateBoard(boards[i], 0, TempWeights), K)), 2);
 	}
 	return totalError / boards.size();
 }
 
 const double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results) {
-	return 0.7;
-	double K = 0.50;
-	const double maxK = 0.71;
-	const double step = 0.01;
+	return 0.595;
+	double K = 0.58;
+	const double maxK = 0.62;
+	const double step = 0.005;
 
 	double bestK = 0;
 	double bestError = 1;
@@ -101,10 +103,13 @@ const void Tuning::Tune(const double K) {
 	std::cout << std::setprecision(6);
 
 	// Change these to tune a specific weight
-	int step = 2;
+	const int defaultStep = 2;
 	std::vector<int> weightsForTuning;
-	//for (int i = 0; i < WeightsSize; i++) weightsForTuning.push_back(i);
-	weightsForTuning.push_back(IndexKingSafety(10));
+	for (int i = 0; i < WeightsSize; i++) weightsForTuning.push_back(i);
+
+	// Set up steps
+	std::vector<int> stepsForTuning;
+	for (int i = 0; i < WeightsSize; i++) stepsForTuning.push_back(defaultStep);
 
 	// Main optimizer loop
 	// To do: use an efficient (e.g. adam) optimizer
@@ -116,8 +121,8 @@ const void Tuning::Tune(const double K) {
 		for (const int i: weightsForTuning) {
 			cout << "Iteration " << iterations << ", tuning parameter " << i + 1 << " of " << WeightsSize << "...      " << '\r' << std::flush;
 			int weightCurrent = GetWeightById(i);
-			int weightPlus = weightCurrent + step;
-			int weightMinus = weightCurrent - step;
+			int weightPlus = weightCurrent + stepsForTuning[i];
+			int weightMinus = weightCurrent - stepsForTuning[i];
 
 
 			double weightCurrentMSE = CalculateMSE(K, TrainBoards, TrainResults);
@@ -141,6 +146,7 @@ const void Tuning::Tune(const double K) {
 			else {
 				newWeight = weightCurrent;
 				newMSE = weightCurrentMSE;
+				if (stepsForTuning[i] > 1) stepsForTuning[i] = 1;
 			}
 
 			//cout << "Iteration " << iterations << " param " << i << ": " << weightCurrent << " -> " << newWeight << " (" << weightCurrentMSE << " -> " << newMSE << ")" << endl;
@@ -167,13 +173,9 @@ const void Tuning::Tune(const double K) {
 		}
 		else {
 			cout << "Worsened test MSE: " << testMSE << " -> " << newTestMSE << '\n' << endl;
-			if (step > 1) step /= 2;
-			//else break;
+			break;
 		}
-		
 
-		step -= 1;
-		if (step == 0) step = 1;
 		iterations += 1;
 	}
 	cout << "Stopping." << endl;

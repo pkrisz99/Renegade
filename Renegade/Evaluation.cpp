@@ -2,7 +2,7 @@
 #include "Board.h"
 #include "Move.h"
 
-const static int WeightsSize = 931;
+const static int WeightsSize = 939;
 
 extern uint64_t GetBishopAttacks(const int square, const uint64_t occupancy);
 extern uint64_t GetRookAttacks(const int square, const uint64_t occupancy);
@@ -209,7 +209,8 @@ static const int Weights[WeightsSize] = {
 	// 30. Knight outposts (early, late)
 	  15, 7,
 	  
-
+	// 31. Isolated pawn penalties by file
+	  -4, -9, -14, -18, -18, -14, -9, -4
 	// +: pawn mobility, isolated pawns, doubled rooks...
 };
 
@@ -283,6 +284,10 @@ inline static constexpr int IndexDangerPieces(const int danger) {
 	return 917 + danger;
 }
 
+inline static constexpr int IndexIsolatedPawnPenalty(const int file) {
+	return 931 + file;
+}
+
 // Interpolation functions ------------------------------------------------------------------------
 
 static inline int LinearTaper(const int earlyValue, const int lateValue, const float phase) {
@@ -311,6 +316,7 @@ static const float CalculateGamePhase(Board& board) {
 inline static const int EvaluateBoard(Board& board, const int level, const int weights[WeightsSize]) {
 
 	int score = 0;
+
 	const uint64_t occupancy = board.GetOccupancy();
 	uint64_t piecesOnBoard = occupancy;
 	uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
@@ -329,11 +335,13 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	const int dangerWeights[] = { 0, weights[IndexPawnDanger], weights[IndexKnightDanger], weights[IndexBishopDanger], weights[IndexRookDanger], weights[IndexQueenDanger], 4 };
 
 	int whiteKingSquare = 63 - Lzcount(board.WhiteKingBits);
+	int whiteKingFile = GetSquareFile(whiteKingSquare);
+	int whiteKingRank = GetSquareRank(whiteKingSquare);
 	uint64_t whiteKingZone = KingArea[whiteKingSquare];
 	int blackKingSquare = 63 - Lzcount(board.BlackKingBits);
+	int blackKingFile = GetSquareFile(blackKingSquare);
+	int blackKingRank = GetSquareRank(blackKingSquare);
 	uint64_t blackKingZone = KingArea[blackKingSquare];
-
-	const int isolatedPawnPenalties[] = { -4, -9, -14, -18, -18, -14, -9, -4 };
 
 	while (piecesOnBoard != 0) {
 		int i = 63 - Lzcount(piecesOnBoard);
@@ -402,7 +410,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				blackDangerScore += dangerWeights[PieceType::Pawn];
 				blackDangerPieces += 1;
 			}
-			if ((board.WhitePawnBits & IsolatedPawnMask[file]) == 0) score += isolatedPawnPenalties[file];
+			if ((board.WhitePawnBits & IsolatedPawnMask[file]) == 0) score += weights[IndexIsolatedPawnPenalty(file)];
 			break;
 		case Piece::BlackPawn:
 			attacks = BlackPawnAttacks[i] & ~blackPieces;
@@ -411,7 +419,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				whiteDangerScore += dangerWeights[PieceType::Pawn];
 				whiteDangerPieces += 1;
 			}
-			if ((board.BlackPawnBits & IsolatedPawnMask[file]) == 0) score -= isolatedPawnPenalties[file];
+			if ((board.BlackPawnBits & IsolatedPawnMask[file]) == 0) score -= weights[IndexIsolatedPawnPenalty(7-file)];
 			break;
 
 		case Piece::WhiteKnight:

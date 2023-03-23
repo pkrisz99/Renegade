@@ -29,10 +29,9 @@ struct TranspositionEntry {
 class Heuristics
 {
 public:
-	static const int PvSize = 20;
+	static const int PvSize = 32;
 
 	Heuristics();
-	void ClearEntries();
 	const int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& trMove);
 	
 	// PV table
@@ -74,7 +73,7 @@ private:
 	int TranspositionEntryCount;
 	int TheoreticalTranspositionEntires;
 
-	std::vector<std::array<Move, 2>> KillerMoves;
+	std::array<std::array<Move, 2>, 32> KillerMoves;
 	std::vector<Move> PvMoves;
 	std::array<std::array<std::array<int, 64>, 64>, 2> HistoryTables;
 
