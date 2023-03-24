@@ -2,7 +2,7 @@
 #include "Board.h"
 #include "Move.h"
 
-const static int WeightsSize = 939;
+const static int WeightsSize = 953;
 
 extern uint64_t GetBishopAttacks(const int square, const uint64_t occupancy);
 extern uint64_t GetRookAttacks(const int square, const uint64_t occupancy);
@@ -209,8 +209,17 @@ static const int Weights[WeightsSize] = {
 	// 30. Knight outposts (early, late)
 	  15, 7,
 	  
-	// 31. Isolated pawn penalties by file
-	  -4, -9, -14, -18, -18, -14, -9, -4
+	// 31. Isolated pawn penalties by file (early, late)
+	 -4, -9, -14, -18, -18, -14, -9, -4,
+	 -4, -9, -14, -18, -18, -14, -9, -4,
+
+	// 32. Pawn attacking minors (early, late) and majors (early, late)
+	 5, 6,
+	 10, 12,
+
+	// 33. Minor pieces attacking majors (early, late)
+	 8, 10,
+
 	// +: pawn mobility, isolated pawns, doubled rooks...
 };
 
@@ -239,6 +248,12 @@ const int IndexRookOpenFileLate = 927;
 const int IndexRookSemiOpenFileLate = 928;
 const int IndexKnightOutpostEarly = 929;
 const int IndexKnightOutpostLate = 930;
+const int IndexPawnAttackingMinorEarly = 947;
+const int IndexPawnAttackingMinorLate = 948;
+const int IndexPawnAttackingMajorEarly = 949;
+const int IndexPawnAttackingMajorLate = 950;
+const int IndexMinorAttackingMajorEarly = 951;
+const int IndexMinorAttackingMajorLate = 952;
 
 inline static constexpr int IndexEarlyPSQT(const int pieceType, const int location) {
 	return (pieceType - 1) * 64 + location;
@@ -284,8 +299,12 @@ inline static constexpr int IndexDangerPieces(const int danger) {
 	return 917 + danger;
 }
 
-inline static constexpr int IndexIsolatedPawnPenalty(const int file) {
+inline static constexpr int IndexIsolatedPawnPenaltyEarly(const int file) {
 	return 931 + file;
+}
+
+inline static constexpr int IndexIsolatedPawnPenaltyLate(const int file) {
+	return 939 + file;
 }
 
 // Interpolation functions ------------------------------------------------------------------------
@@ -343,6 +362,11 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	int blackKingRank = GetSquareRank(blackKingSquare);
 	uint64_t blackKingZone = KingArea[blackKingSquare];
 
+	uint64_t whiteMajorBits = board.WhiteRookBits | board.WhiteQueenBits;
+	uint64_t whiteMinorBits = board.WhiteKnightBits | board.WhiteBishopBits;
+	uint64_t blackMajorBits = board.BlackRookBits | board.BlackQueenBits;
+	uint64_t blackMinorBits = board.BlackKnightBits | board.BlackBishopBits;
+
 	while (piecesOnBoard != 0) {
 		int i = 63 - Lzcount(piecesOnBoard);
 		SetBitFalse(piecesOnBoard, i);
@@ -376,7 +400,8 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 			if ((board.GetPieceAt(i - 7) == Piece::WhitePawn) || (board.GetPieceAt(i - 9) == Piece::WhitePawn)) {
 				score += LinearTaper(weights[IndexKnightOutpostEarly], weights[IndexKnightOutpostLate], phase);
 			}
-		} else if ((piece == Piece::BlackKnight) && OutpostFilter[i]) {
+		}
+		else if ((piece == Piece::BlackKnight) && OutpostFilter[i]) {
 			if ((board.GetPieceAt(i + 7) == Piece::BlackPawn) || (board.GetPieceAt(i + 9) == Piece::BlackPawn)) {
 				score -= LinearTaper(weights[IndexKnightOutpostEarly], weights[IndexKnightOutpostLate], phase);
 			}
@@ -385,7 +410,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 		else if (piece == Piece::WhiteRook) {
 			int file = GetSquareFile(i);
 			if ((board.WhitePawnBits & Files[file]) == 0) {
-				score += ((board.BlackPawnBits & Files[file]) == 0) ? 
+				score += ((board.BlackPawnBits & Files[file]) == 0) ?
 					LinearTaper(weights[IndexRookOpenFileEarly], weights[IndexRookOpenFileLate], phase) : // Open file
 					LinearTaper(weights[IndexRookSemiOpenFileEarly], weights[IndexRookSemiOpenFileLate], phase); // Semi-open file
 			}
@@ -410,7 +435,25 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				blackDangerScore += dangerWeights[PieceType::Pawn];
 				blackDangerPieces += 1;
 			}
-			if ((board.WhitePawnBits & IsolatedPawnMask[file]) == 0) score += weights[IndexIsolatedPawnPenalty(file)];
+			if ((board.WhitePawnBits & IsolatedPawnMask[file]) == 0) {
+				earlyScore = weights[IndexIsolatedPawnPenaltyEarly(file)];
+				lateScore = weights[IndexIsolatedPawnPenaltyLate(file)];
+				score += LinearTaper(earlyScore, lateScore, phase);
+			}
+			/*
+			if (((GetSquareFile(i) != 0) && CheckBit(blackMajorBits, i + 7ULL))
+				|| ((GetSquareFile(i) != 7) && CheckBit(blackMajorBits, i + 9ULL))) {
+				earlyScore = weights[IndexPawnAttackingMajorEarly];
+				lateScore = weights[IndexPawnAttackingMajorLate];
+				score += LinearTaper(earlyScore, lateScore, phase);
+			}
+			else if (((GetSquareFile(i) != 0) && CheckBit(blackMinorBits, i + 7ULL)) ||
+				((GetSquareFile(i) != 7) && CheckBit(blackMinorBits, i + 9ULL))) {
+				earlyScore = weights[IndexPawnAttackingMinorEarly];
+				lateScore = weights[IndexPawnAttackingMinorLate];
+				score += LinearTaper(earlyScore, lateScore, phase);
+			}*/
+
 			break;
 		case Piece::BlackPawn:
 			attacks = BlackPawnAttacks[i] & ~blackPieces;
@@ -419,7 +462,24 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				whiteDangerScore += dangerWeights[PieceType::Pawn];
 				whiteDangerPieces += 1;
 			}
-			if ((board.BlackPawnBits & IsolatedPawnMask[file]) == 0) score -= weights[IndexIsolatedPawnPenalty(7-file)];
+			if ((board.BlackPawnBits & IsolatedPawnMask[file]) == 0) {
+				earlyScore = weights[IndexIsolatedPawnPenaltyEarly(7 - file)];
+				lateScore = weights[IndexIsolatedPawnPenaltyLate(7 - file)];
+				score -= LinearTaper(earlyScore, lateScore, phase);
+			}
+
+			/*if (((GetSquareFile(i) != 0) && CheckBit(whiteMajorBits, i - 9ULL))
+				|| ((GetSquareFile(i) != 7) && CheckBit(whiteMajorBits, i - 7ULL))) {
+				earlyScore = weights[IndexPawnAttackingMajorEarly];
+				lateScore = weights[IndexPawnAttackingMajorLate];
+				score -= LinearTaper(earlyScore, lateScore, phase);
+			}
+			else if (((GetSquareFile(i) != 0) && CheckBit(whiteMinorBits, i - 9ULL)) ||
+				((GetSquareFile(i) != 7) && CheckBit(whiteMinorBits, i - 7ULL))) {
+				earlyScore = weights[IndexPawnAttackingMinorEarly];
+				lateScore = weights[IndexPawnAttackingMinorLate];
+				score -= LinearTaper(earlyScore, lateScore, phase);
+			}*/
 			break;
 
 		case Piece::WhiteKnight:

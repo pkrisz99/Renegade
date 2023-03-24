@@ -75,7 +75,7 @@ const double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, st
 }
 
 const double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results) {
-	return 0.595;
+	//return 0.595;
 	double K = 0.58;
 	const double maxK = 0.62;
 	const double step = 0.005;
@@ -91,6 +91,7 @@ const double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& r
 		}
 		K += step;
 	}
+	cout << bestError << endl;
 	return bestK;
 }
 
@@ -103,7 +104,7 @@ const void Tuning::Tune(const double K) {
 	std::cout << std::setprecision(6);
 
 	// Change these to tune a specific weight
-	const int defaultStep = 2;
+	const int defaultStep = 1;
 	std::vector<int> weightsForTuning;
 	for (int i = 0; i < WeightsSize; i++) weightsForTuning.push_back(i);
 
