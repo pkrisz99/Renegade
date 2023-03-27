@@ -30,7 +30,7 @@ public:
 	const int PerftRecursive(Board &b, const int depth, const int originalDepth, const PerftType type);
 
 	// Move search
-	Results SearchMoves(Board &board, const SearchParams params, const EngineSettings settings);
+	Results SearchMoves(Board &board, const SearchParams params, const EngineSettings settings, const bool display);
 	int SearchRecursive(Board &board, int depth, int level, int alpha, int beta, bool canNullMove);
 	int StaticEvaluation(Board &board, const int level, bool checkDraws);
 	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn);

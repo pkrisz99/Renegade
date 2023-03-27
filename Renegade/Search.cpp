@@ -119,7 +119,7 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 
 // Negamax search routine and handling ------------------------------------------------------------
 
-Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings settings) {
+Results Search::SearchMoves(Board &board, const SearchParams params, const EngineSettings settings, const bool display) {
 
 	StartSearchTime = Clock::now();
 	int elapsedMs = 0;
@@ -141,7 +141,7 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 		std::string bookMove = GetBookMove(board.Hash());
 		if (bookMove != "") {
 			Results e;
-			cout << "bestmove " << bookMove << endl;
+			if (display) cout << "bestmove " << bookMove << endl;
 			return e;
 		}
 	}
@@ -166,7 +166,7 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 			e.time = elapsedMs;
 			e.nps = static_cast<int>(Statistics.Nodes * 1e9 / (currentTime - StartSearchTime).count());
 			e.hashfull = Heuristics.GetHashfull();
-			PrintInfo(e, settings);
+			if (display) PrintInfo(e, settings);
 			break;
 		}
 
@@ -193,9 +193,9 @@ Results Search::SearchMoves(Board &board, SearchParams params, EngineSettings se
 		}
 
 		Heuristics.SetPvLine(e.pv);
-		PrintInfo(e, settings);
+		if (display) PrintInfo(e, settings);
 	}
-	PrintBestmove(e.BestMove());
+	if (display) PrintBestmove(e.BestMove());
 
 	Heuristics.ClearKillerMoves();
 	Heuristics.ResetPvTable();

@@ -311,7 +311,33 @@ void Engine::Start() {
 				if (parts[i] == "searchmoves") { cout << "info string Searchmoves parameter is not yet implemented!" << endl; }
 			}
 
-			Search.SearchMoves(board, params, Settings);
+			Search.SearchMoves(board, params, Settings, true);
+			continue;
+		}
+
+		if (parts[0] == "bench") {
+			int nodes = 0;
+			SearchParams params;
+			params.depth = 11;
+			EngineSettings settings;
+			settings.Hash = 16;
+			settings.ExtendedOutput = false;
+			settings.UseBook = false;
+			Search.Heuristics.ClearTranspositionTable();
+			auto startTime = Clock::now();
+
+			for (const std::string& fen : BenchmarkFENs) {
+				Search.Heuristics.ClearKillerMoves();
+				Search.Heuristics.ClearHistoryTable();
+				Search.Heuristics.ClearPvLine();
+				Search.Heuristics.ResetPvTable();
+				Board b = Board(fen);
+				Results r = Search.SearchMoves(b, params, settings, false);
+				nodes += r.stats.Nodes;
+			}
+			auto endTime = Clock::now();
+			int nps = nodes / ((endTime - startTime).count() / 1e9);
+			cout << "nodes " << nodes << " nps " << nps << endl;
 			continue;
 		}
 
@@ -438,7 +464,7 @@ void Engine::Play() {
 			s.UseBook = false;
 			s.ExtendedOutput = false;
 			cout << '\n';
-			Results e = Search.SearchMoves(board, p, s);
+			Results e = Search.SearchMoves(board, p, s, true);
 			board.Push(e.BestMove());
 			cout << "\nEngine plays " << e.BestMove().ToString() << endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(3000));
