@@ -341,6 +341,45 @@ void Engine::Start() {
 			continue;
 		}
 
+		if (parts[0] == "goall") {
+			std::vector<Move> moves;
+			board.GenerateLegalMoves(moves, board.Turn);
+			cout << moves.size() << " legal moves";
+			int time = 1000;
+			if (parts.size() > 1) {
+				time = stoi(parts[1]);
+			}
+			SearchParams params;
+			params.movetime = time;
+			EngineSettings settings;
+			settings.Hash = 16;
+			settings.ExtendedOutput = false;
+			settings.UseBook = false;
+			Search.Heuristics.ClearTranspositionTable();
+			auto startTime = Clock::now();
+			std::vector<std::tuple<Move, int>> scores;
+			for (Move& m : moves) {
+				Board b = Board(board);
+				Search.Heuristics.ClearKillerMoves();
+				Search.Heuristics.ClearHistoryTable();
+				Search.Heuristics.ClearPvLine();
+				Search.Heuristics.ResetPvTable();
+				b.Push(m);
+				Results r = Search.SearchMoves(b, params, settings, false);
+				scores.push_back(std::tuple<Move, int>(m, r.score));
+				cout << ".";
+			}
+			cout << endl;
+			std::sort(scores.begin(), scores.end(), [](auto const& t1, auto const& t2) {
+				return get<1>(t1) < get<1>(t2);
+				});
+			for (std::tuple<Move, int>& s: scores) {
+				cout << " - " << get<0>(s).ToString() << " : " << -get<1>(s) << endl;
+			}
+			cout << "Complete." << endl;
+			continue;
+		}
+
 		cout << "Unknown command: '" << parts[0] << "'" << endl;
 
 	}
