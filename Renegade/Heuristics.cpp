@@ -143,9 +143,8 @@ const bool Heuristics::IsSecondKillerMove(const Move& move, const int level) {
 
 void Heuristics::ClearKillerMoves() {
 	for (int i = 0; i < KillerMoves.size(); i++) {
-		std::array<Move, 2> a = std::array<Move, 2>();
-		a[0] = Move();
-		a[1] = Move();
+		KillerMoves[i][0] = Move();
+		KillerMoves[i][1] = Move();
 	}
 }
 

@@ -1,6 +1,11 @@
 #include "Search.h"
 
 Search::Search() {
+	for (int i = 0; i < 32; i++) {
+		for (int j = 0; j < 32; j++) {
+			LMRTable[i][j] = 0.25 * log(i) * log(j) + 0.7;
+		}
+	}
 	Reset();
 }
 
@@ -380,9 +385,9 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			}*/
 
 			// Late-move reductions
-			if ((legalMoveCount >= 4) && !inCheck && !givingCheck && isQuiet && (depth >= 3)) {
+			if ((legalMoveCount >= 4) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
 
-				if (!pvNode) reduction = 0.25 * log(depth) * log(legalMoveCount) + 0.7;
+				if (!pvNode) reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 				//if (pvNode) reduction /= 3;
 
 			}
