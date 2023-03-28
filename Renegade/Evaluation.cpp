@@ -322,11 +322,9 @@ static const float CalculateGamePhase(Board& board) {
 	int remainingRooks = Popcount(board.WhiteRookBits | board.BlackRookBits);
 	int remainingQueens = Popcount(board.WhiteQueenBits | board.BlackQueenBits);
 
-	// starting: 16 + 12 + 12 + 24 + 24 = 88
-	// 88 -> 0, 10 -> 1
-	int remainingScore = remainingPawns * 1 + remainingKnights * 3 + remainingBishops * 3 + remainingRooks * 6 + remainingQueens * 12;
+	int remainingScore = remainingPawns + remainingKnights * 10 + remainingBishops * 10 + remainingRooks * 20 + remainingQueens * 40;
 
-	float phase = (88 - remainingScore) / (88.f - 10.f);
+	float phase = (256 - remainingScore) / (256.f);
 	return std::clamp(phase, 0.f, 1.f);
 }
 
@@ -334,7 +332,7 @@ static const float CalculateGamePhase(Board& board) {
 
 inline static const int EvaluateBoard(Board& board, const int level, const int weights[WeightsSize]) {
 
-	int score = 0;
+	int score = 0, earlyScore = 0, lateScore = 0;
 
 	const uint64_t occupancy = board.GetOccupancy();
 	uint64_t piecesOnBoard = occupancy;
@@ -375,58 +373,23 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 		int pieceColor = ColorOfPiece(piece);
 		int file = GetSquareFile(i);
 
+		// Material and piece-square tables
 		if (pieceColor == PieceColor::White) {
-			int psqt = LinearTaper(weights[IndexEarlyPSQT(pieceType, i)], weights[IndexLatePSQT(pieceType, i)], phase);
-			score += LinearTaper(weights[IndexPieceValueEarly(pieceType)], weights[IndexPieceValueLate(pieceType)], phase);
-			score += psqt;
+			earlyScore += weights[IndexEarlyPSQT(pieceType, i)];
+			lateScore += weights[IndexLatePSQT(pieceType, i)];
+			earlyScore += weights[IndexPieceValueEarly(pieceType)];
+			lateScore += weights[IndexPieceValueLate(pieceType)];
 		}
 		else if (pieceColor == PieceColor::Black) {
-			int psqt = LinearTaper(weights[IndexEarlyPSQT(pieceType, Mirror[i])], weights[IndexLatePSQT(pieceType, Mirror[i])], phase);
-			score -= LinearTaper(weights[IndexPieceValueEarly(pieceType)], weights[IndexPieceValueLate(pieceType)], phase);
-			score -= psqt;
+			earlyScore -= weights[IndexEarlyPSQT(pieceType, Mirror[i])];
+			lateScore -= weights[IndexLatePSQT(pieceType, Mirror[i])];
+			earlyScore -= weights[IndexPieceValueEarly(pieceType)];
+			lateScore -= weights[IndexPieceValueLate(pieceType)];
 		}
 
-		// Passed pawn bonus
-		if (piece == Piece::WhitePawn) {
-			if (((WhitePassedPawnMask[i] & board.BlackPawnBits) == 0) && ((WhitePassedPawnFilter[i] & board.WhitePawnBits) == 0))
-				score += LinearTaper(weights[IndexPassedPawnEarly], weights[IndexPassedPawnLate], phase);
-		}
-		else if (piece == Piece::BlackPawn) {
-			if (((BlackPassedPawnMask[i] & board.WhitePawnBits) == 0) && ((BlackPassedPawnFilter[i] & board.BlackPawnBits) == 0))
-				score -= LinearTaper(weights[IndexPassedPawnEarly], weights[IndexPassedPawnLate], phase);
-		}
-		// Knight outposts (be careful with OutpostFilter, the following lines assume edges aren't outposts)
-		else if ((piece == Piece::WhiteKnight) && OutpostFilter[i]) {
-			if ((board.GetPieceAt(i - 7) == Piece::WhitePawn) || (board.GetPieceAt(i - 9) == Piece::WhitePawn)) {
-				score += LinearTaper(weights[IndexKnightOutpostEarly], weights[IndexKnightOutpostLate], phase);
-			}
-		}
-		else if ((piece == Piece::BlackKnight) && OutpostFilter[i]) {
-			if ((board.GetPieceAt(i + 7) == Piece::BlackPawn) || (board.GetPieceAt(i + 9) == Piece::BlackPawn)) {
-				score -= LinearTaper(weights[IndexKnightOutpostEarly], weights[IndexKnightOutpostLate], phase);
-			}
-		}
-		// Rooks on (semi) open files
-		else if (piece == Piece::WhiteRook) {
-			int file = GetSquareFile(i);
-			if ((board.WhitePawnBits & Files[file]) == 0) {
-				score += ((board.BlackPawnBits & Files[file]) == 0) ?
-					LinearTaper(weights[IndexRookOpenFileEarly], weights[IndexRookOpenFileLate], phase) : // Open file
-					LinearTaper(weights[IndexRookSemiOpenFileEarly], weights[IndexRookSemiOpenFileLate], phase); // Semi-open file
-			}
-		}
-		else if (piece == Piece::BlackRook) {
-			int file = GetSquareFile(i);
-			if ((board.BlackPawnBits & Files[file]) == 0) {
-				score -= ((board.WhitePawnBits & Files[file]) == 0) ?
-					LinearTaper(weights[IndexRookOpenFileEarly], weights[IndexRookOpenFileLate], phase) : // Open file
-					LinearTaper(weights[IndexRookSemiOpenFileEarly], weights[IndexRookSemiOpenFileLate], phase); // Semi-open file
-			}
-		}
-
-		// Mobility - todo: make this prettier
+		// Piece-specific evaluation
 		uint64_t mobility = 0, attacks = 0;
-		int earlyScore = 0, lateScore = 0;
+		int early = 0, late = 0;
 		switch (piece) {
 		case Piece::WhitePawn:
 			attacks = WhitePawnAttacks[i] & ~whitePieces;
@@ -436,9 +399,13 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				blackDangerPieces += 1;
 			}
 			if ((board.WhitePawnBits & IsolatedPawnMask[file]) == 0) {
-				earlyScore = weights[IndexIsolatedPawnPenaltyEarly(file)];
-				lateScore = weights[IndexIsolatedPawnPenaltyLate(file)];
-				score += LinearTaper(earlyScore, lateScore, phase);
+				earlyScore += weights[IndexIsolatedPawnPenaltyEarly(file)];
+				lateScore += weights[IndexIsolatedPawnPenaltyLate(file)];
+			}
+
+			if (((WhitePassedPawnMask[i] & board.BlackPawnBits) == 0) && ((WhitePassedPawnFilter[i] & board.WhitePawnBits) == 0)) {
+				earlyScore += weights[IndexPassedPawnEarly];
+				lateScore += weights[IndexPassedPawnLate];
 			}
 			/*
 			if (((GetSquareFile(i) != 0) && CheckBit(blackMajorBits, i + 7ULL))
@@ -463,9 +430,13 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				whiteDangerPieces += 1;
 			}
 			if ((board.BlackPawnBits & IsolatedPawnMask[file]) == 0) {
-				earlyScore = weights[IndexIsolatedPawnPenaltyEarly(7 - file)];
-				lateScore = weights[IndexIsolatedPawnPenaltyLate(7 - file)];
-				score -= LinearTaper(earlyScore, lateScore, phase);
+				earlyScore -= weights[IndexIsolatedPawnPenaltyEarly(7 - file)];
+				lateScore -= weights[IndexIsolatedPawnPenaltyLate(7 - file)];
+			}
+
+			if (((BlackPassedPawnMask[i] & board.WhitePawnBits) == 0) && ((BlackPassedPawnFilter[i] & board.BlackPawnBits) == 0)) {
+				earlyScore -= weights[IndexPassedPawnEarly];
+				lateScore -= weights[IndexPassedPawnLate];
 			}
 
 			/*if (((GetSquareFile(i) != 0) && CheckBit(whiteMajorBits, i - 9ULL))
@@ -490,6 +461,13 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				blackDangerScore += dangerWeights[PieceType::Knight];
 				blackDangerPieces += 1;
 			}
+			if (OutpostFilter[i]) {
+				if ((board.GetPieceAt(i - 7) == Piece::WhitePawn) || (board.GetPieceAt(i - 9) == Piece::WhitePawn)) {
+					earlyScore += weights[IndexKnightOutpostEarly];
+					lateScore += weights[IndexKnightOutpostLate];
+				}
+			}
+
 			break;
 		case Piece::BlackKnight:
 			mobility = KnightMoveBits[i] & ~blackPieces;
@@ -498,6 +476,12 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += dangerWeights[PieceType::Knight];
 				whiteDangerPieces += 1;
+			}
+			if (OutpostFilter[i]) {
+				if ((board.GetPieceAt(i + 7) == Piece::BlackPawn) || (board.GetPieceAt(i + 9) == Piece::BlackPawn)) {
+					earlyScore -= weights[IndexKnightOutpostEarly];
+					lateScore -= weights[IndexKnightOutpostLate];
+				}
 			}
 			break;
 
@@ -528,6 +512,11 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				blackDangerScore += dangerWeights[PieceType::Rook];
 				blackDangerPieces += 1;
 			}
+			if ((board.WhitePawnBits & Files[file]) == 0) {
+				score += ((board.BlackPawnBits & Files[file]) == 0) ?
+					LinearTaper(weights[IndexRookOpenFileEarly], weights[IndexRookOpenFileLate], phase) : // Open file
+					LinearTaper(weights[IndexRookSemiOpenFileEarly], weights[IndexRookSemiOpenFileLate], phase); // Semi-open file
+			}
 			break;
 		case Piece::BlackRook:
 			mobility = GetRookAttacks(i, occupancy) & ~blackPieces;
@@ -537,14 +526,19 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				whiteDangerScore += dangerWeights[PieceType::Rook];
 				whiteDangerPieces += 1;
 			}
+			if ((board.BlackPawnBits & Files[file]) == 0) {
+				score -= ((board.WhitePawnBits & Files[file]) == 0) ?
+					LinearTaper(weights[IndexRookOpenFileEarly], weights[IndexRookOpenFileLate], phase) : // Open file
+					LinearTaper(weights[IndexRookSemiOpenFileEarly], weights[IndexRookSemiOpenFileLate], phase); // Semi-open file
+			}
 			break;
 
 		case Piece::WhiteQueen:
 			mobility = GetQueenAttacks(i, occupancy) & ~whitePieces;
 			whiteAttacks |= mobility;
-			earlyScore = weights[IndexQueenEarlyMobility(Popcount(mobility))];
-			lateScore = weights[IndexQueenLateMobility(Popcount(mobility))];
-			mobilityScore += LinearTaper(earlyScore, lateScore, phase);
+			early = weights[IndexQueenEarlyMobility(Popcount(mobility))];
+			late = weights[IndexQueenLateMobility(Popcount(mobility))];
+			mobilityScore += LinearTaper(early, late, phase);
 			if ((blackKingZone & mobility) != 0) {
 				blackDangerScore += dangerWeights[PieceType::Queen];
 				blackDangerPieces += 1;
@@ -553,9 +547,9 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 		case Piece::BlackQueen:
 			mobility = GetQueenAttacks(i, occupancy) & ~blackPieces;
 			blackAttacks |= mobility;
-			earlyScore = weights[IndexQueenEarlyMobility(Popcount(mobility))];
-			lateScore = weights[IndexQueenLateMobility(Popcount(mobility))];
-			mobilityScore -= LinearTaper(earlyScore, lateScore, phase);
+			early = weights[IndexQueenEarlyMobility(Popcount(mobility))];
+			late = weights[IndexQueenLateMobility(Popcount(mobility))];
+			mobilityScore -= LinearTaper(early, late, phase);
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += dangerWeights[PieceType::Queen];
 				whiteDangerPieces += 1;
@@ -568,6 +562,8 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 			break;
 		}
 	}
+
+	score += LinearTaper(earlyScore, lateScore, phase);
 
 	// Taper mobility contribution to eval score
 	// To avoid putting the queen out too early

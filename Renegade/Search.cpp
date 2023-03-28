@@ -1,8 +1,8 @@
 #include "Search.h"
 
 Search::Search() {
-	for (int i = 0; i < 32; i++) {
-		for (int j = 0; j < 32; j++) {
+	for (int i = 1; i < 32; i++) {
+		for (int j = 1; j < 32; j++) {
 			LMRTable[i][j] = 0.25 * log(i) * log(j) + 0.7;
 		}
 	}
