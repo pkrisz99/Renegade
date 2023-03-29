@@ -567,7 +567,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 
 	// Taper mobility contribution to eval score
 	// To avoid putting the queen out too early
-	score += LinearTaper(0, mobilityScore, std::min(phase * 7.f, 1.f));
+	score += LinearTaper(mobilityScore / 3, mobilityScore, std::min(phase * 5.f, 1.f));
 
 	// King safety
 	// Todo idea: more severe penalty if king is in the corner
