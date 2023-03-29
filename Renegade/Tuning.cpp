@@ -21,11 +21,14 @@ Tuning::Tuning() {
 	while (std::getline(ifs, line) && ((lines < positionsToLoad) || (positionsToLoad == -1))) {
 		lines += 1;
 		std::vector<std::string> parts = Split(line);
-		std::string fen = parts[0] + " " + parts[1] + " " + parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5].substr(0, parts[5].size()-1);
-		size_t resultpos = line.find("pgn=");
+		//std::string fen = parts[0] + " " + parts[1] + " " + parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5].substr(0, parts[5].size()-1);
+		std::string fen = parts[0] + " " + parts[1] + " " + parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5];
+		/*size_t resultpos = line.find("pgn=");
 		std::string resultstr = line.substr(resultpos + 4, 3);
-		loadedResults.push_back(ConvertResult(resultstr));
+		loadedResults.push_back(ConvertResult(resultstr));*/
 		loadedBoards.push_back(Board(fen));
+		loadedResults.push_back(ConvertResult(parts[6]));
+		//cout << fen << " / " << loadedResults.back() << endl;
 	}
 	cout << "Number of positions loaded: " << loadedBoards.size() << endl;
 
@@ -53,9 +56,9 @@ Tuning::Tuning() {
 }
 
 const float Tuning::ConvertResult(const std::string str) {
-	if (str == "1.0") return 1; // White win
-	if (str == "0.5") return 0.5; // Draw
-	if (str == "0.0") return 0; // Black win
+	if (str == "[1.0]") return 1; // White win
+	if (str == "[0.5]") return 0.5; // Draw
+	if (str == "[0.0]") return 0; // Black win
 	cout << "!!! Invalid result: '" << str << "' !!!" << endl;
 	return 0.5;
 }
@@ -68,17 +71,17 @@ const double Tuning::Sigmoid(const int score, const double K) {
 const double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) {
 	double totalError = 0;
 	for (int i = 0; i < boards.size(); i++) {
-		const int sign = 1;
+		const int sign = boards[i].Turn == Turn::White ? 1 : -1; // 1
 		totalError += pow((results[i] - Sigmoid(sign * EvaluateBoard(boards[i], 0, TempWeights), K)), 2);
 	}
 	return totalError / boards.size();
 }
 
 const double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results) {
-	//return 0.595;
-	double K = 0.58;
-	const double maxK = 0.62;
-	const double step = 0.005;
+	return 1.29;
+	double K = 1.2;
+	const double maxK = 1.45;
+	const double step = 0.01;
 
 	double bestK = 0;
 	double bestError = 1;
@@ -104,9 +107,21 @@ const void Tuning::Tune(const double K) {
 	std::cout << std::setprecision(6);
 
 	// Change these to tune a specific weight
-	const int defaultStep = 1;
+	const int defaultStep = 5;
 	std::vector<int> weightsForTuning;
-	for (int i = 0; i < WeightsSize; i++) weightsForTuning.push_back(i);
+	//for (int i = 0; i < WeightsSize; i++) weightsForTuning.push_back(i);
+	for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexEarlyPSQT(PieceType::Pawn, i));
+	for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexLatePSQT(PieceType::Pawn, i));
+	weightsForTuning.push_back(IndexPassedPawnEarly);
+	weightsForTuning.push_back(IndexPassedPawnLate);
+	weightsForTuning.push_back(IndexDoubledPawnEarly);
+	weightsForTuning.push_back(IndexDoubledPawnLate);
+	weightsForTuning.push_back(IndexTripledPawnEarly);
+	weightsForTuning.push_back(IndexTripledPawnLate);
+	for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexIsolatedPawnPenaltyEarly(i));
+	for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexIsolatedPawnPenaltyLate(i));
+	weightsForTuning.push_back(IndexPieceValueEarly(PieceType::Pawn));
+	weightsForTuning.push_back(IndexPieceValueLate(PieceType::Pawn));
 
 	// Set up steps
 	std::vector<int> stepsForTuning;
