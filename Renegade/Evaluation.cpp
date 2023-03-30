@@ -157,7 +157,7 @@ static const int Weights[WeightsSize] = {
 	  34, 55,
 
 	// 16. Tempo bonus (early & late game)
-	  18, 0,
+	  18, 0, // 24, 16,
 
 	// 17. Doubled and tripled pawn penalty (early doubled, late doubled, early tripled, late tripled)
 	 -7, -20,
@@ -187,10 +187,11 @@ static const int Weights[WeightsSize] = {
 	 -55, -80, -39, -37, -44, -33, -14, -29, -13, -17, 2, -4, 2, 15, 20, 27, 22, 42, 47, 48, 51, 51, 54, 47, 50, 56, 46, 75,
 
 	// 26. King safety score
-	 -4, -8, -13, -18, -30, -44, -60, -80, -105, -130, -160, -190, -220, -240, -260, -280, -300, -320, -340, -360, -380, -400, -420, -440, -460,
+	// -4, -8, -13, -18, -30, -44, -60, -80, -105, -130, -160, -190, -220, -240, -260, -280, -300, -320, -340, -360, -380, -400, -420, -440, -460,
+	  -5, -5, -20, -25, -36, -56, -72, -90, -133, -190, -222, -252, -255, -178, -322, -332, -350, -370, -400, -422, -425, -430, -435, -440, -445,
 
 	// 27. King safety dangers
-	  1, 3, 2, 4, 6,
+	  1, 2, 2, 3, 5,
 
 	// 28. King safety multipliers (/100)
 	  50, 70, 80, 90, 95, 98, 100,
@@ -207,8 +208,8 @@ static const int Weights[WeightsSize] = {
 		 1, -9, -14, -20, -18, -8, -16, -3,
 
 	// 32. Pawn attacking minors (early, late) and majors (early, late)
-	 5, 6,
-	 10, 12,
+	 51, 28,
+	 56, 32,
 
 	// 33. Minor pieces attacking majors (early, late)
 	 8, 10,
@@ -400,19 +401,17 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				earlyScore += weights[IndexPassedPawnEarly];
 				lateScore += weights[IndexPassedPawnLate];
 			}
-			/*
+			
 			if (((GetSquareFile(i) != 0) && CheckBit(blackMajorBits, i + 7ULL))
 				|| ((GetSquareFile(i) != 7) && CheckBit(blackMajorBits, i + 9ULL))) {
-				earlyScore = weights[IndexPawnAttackingMajorEarly];
-				lateScore = weights[IndexPawnAttackingMajorLate];
-				score += LinearTaper(earlyScore, lateScore, phase);
+				earlyScore += weights[IndexPawnAttackingMajorEarly];
+				lateScore += weights[IndexPawnAttackingMajorLate];
 			}
 			else if (((GetSquareFile(i) != 0) && CheckBit(blackMinorBits, i + 7ULL)) ||
 				((GetSquareFile(i) != 7) && CheckBit(blackMinorBits, i + 9ULL))) {
-				earlyScore = weights[IndexPawnAttackingMinorEarly];
-				lateScore = weights[IndexPawnAttackingMinorLate];
-				score += LinearTaper(earlyScore, lateScore, phase);
-			}*/
+				earlyScore += weights[IndexPawnAttackingMinorEarly];
+				lateScore += weights[IndexPawnAttackingMinorLate];
+			}
 
 			break;
 		case Piece::BlackPawn:
@@ -432,18 +431,16 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				lateScore -= weights[IndexPassedPawnLate];
 			}
 
-			/*if (((GetSquareFile(i) != 0) && CheckBit(whiteMajorBits, i - 9ULL))
+			if (((GetSquareFile(i) != 0) && CheckBit(whiteMajorBits, i - 9ULL))
 				|| ((GetSquareFile(i) != 7) && CheckBit(whiteMajorBits, i - 7ULL))) {
-				earlyScore = weights[IndexPawnAttackingMajorEarly];
-				lateScore = weights[IndexPawnAttackingMajorLate];
-				score -= LinearTaper(earlyScore, lateScore, phase);
+				earlyScore -= weights[IndexPawnAttackingMajorEarly];
+				lateScore -= weights[IndexPawnAttackingMajorLate];
 			}
 			else if (((GetSquareFile(i) != 0) && CheckBit(whiteMinorBits, i - 9ULL)) ||
 				((GetSquareFile(i) != 7) && CheckBit(whiteMinorBits, i - 7ULL))) {
-				earlyScore = weights[IndexPawnAttackingMinorEarly];
-				lateScore = weights[IndexPawnAttackingMinorLate];
-				score -= LinearTaper(earlyScore, lateScore, phase);
-			}*/
+				earlyScore -= weights[IndexPawnAttackingMinorEarly];
+				lateScore -= weights[IndexPawnAttackingMinorLate];
+			}
 			break;
 
 		case Piece::WhiteKnight:

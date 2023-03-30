@@ -107,25 +107,14 @@ const void Tuning::Tune(const double K) {
 	std::cout << std::setprecision(6);
 
 	// Change these to tune a specific weight
-	const int defaultStep = 5;
+	const int defaultStep = 2;
 	std::vector<int> weightsForTuning;
 	//for (int i = 0; i < WeightsSize; i++) weightsForTuning.push_back(i);
-	for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexEarlyPSQT(PieceType::Rook, i));
-	for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexLatePSQT(PieceType::Rook, i));
-	for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexEarlyPSQT(PieceType::Queen, i));
-	for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexLatePSQT(PieceType::Queen, i));
-	weightsForTuning.push_back(IndexPieceValueEarly(PieceType::Rook));
-	weightsForTuning.push_back(IndexPieceValueLate(PieceType::Rook));
-	weightsForTuning.push_back(IndexPieceValueEarly(PieceType::Queen));
-	weightsForTuning.push_back(IndexPieceValueLate(PieceType::Queen));
-	weightsForTuning.push_back(IndexRookOpenFileEarly);
-	weightsForTuning.push_back(IndexRookOpenFileLate);
-	weightsForTuning.push_back(IndexRookSemiOpenFileEarly);
-	weightsForTuning.push_back(IndexRookSemiOpenFileLate);
-	for (int i = 0; i <= 14; i++) weightsForTuning.push_back(IndexRookMobility(i));
-	for (int i = 0; i <= 27; i++) weightsForTuning.push_back(IndexQueenEarlyMobility(i));
-	for (int i = 0; i <= 27; i++) weightsForTuning.push_back(IndexQueenLateMobility(i));
-
+	//for (int i = 1; i <= 25; i++) weightsForTuning.push_back(IndexKingSafety(i));
+	weightsForTuning.push_back(IndexPawnAttackingMajorEarly);
+	weightsForTuning.push_back(IndexPawnAttackingMajorLate);
+	weightsForTuning.push_back(IndexPawnAttackingMinorEarly);
+	weightsForTuning.push_back(IndexPawnAttackingMinorLate);
 
 
 	// Set up steps
