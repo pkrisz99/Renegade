@@ -109,12 +109,8 @@ const void Tuning::Tune(const double K) {
 	// Change these to tune a specific weight
 	const int defaultStep = 2;
 	std::vector<int> weightsForTuning;
-	//for (int i = 0; i < WeightsSize; i++) weightsForTuning.push_back(i);
-	//for (int i = 1; i <= 25; i++) weightsForTuning.push_back(IndexKingSafety(i));
-	weightsForTuning.push_back(IndexPawnAttackingMajorEarly);
-	weightsForTuning.push_back(IndexPawnAttackingMajorLate);
-	weightsForTuning.push_back(IndexPawnAttackingMinorEarly);
-	weightsForTuning.push_back(IndexPawnAttackingMinorLate);
+	for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexEarlyPSQT(PieceType::King, i));
+	for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexLatePSQT(PieceType::King, i));
 
 
 	// Set up steps

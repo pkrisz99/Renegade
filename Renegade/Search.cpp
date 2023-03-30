@@ -305,7 +305,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	// Futility pruning
-	//const int futilityMargins[] = { 0, 100, 220, 340, 460, 580 }; // seems to be better, yet to sprt it
 	const int futilityMargins[] = { 0, 100, 200, 300, 400, 500 };
 	bool futilityPrunable = false;
 	if ((depth <= 5) && !inCheck && !pvNode) {
