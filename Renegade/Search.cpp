@@ -286,10 +286,10 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}*/
 
 	// Internal iterative deepening
-	/*if (pvNode && (depth > 3) && transpositionMove.IsEmpty()) {
+	if (pvNode && (depth > 3) && transpositionMove.IsEmpty()) {
 		SearchRecursive(board, depth - 2, level + 1, -beta, -alpha, true);
 		transpositionMove = Heuristics.PvTable[level+1][level + 1];
-	}*/
+	}
 
 	// Null-move pruning
 	int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
