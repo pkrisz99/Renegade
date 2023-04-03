@@ -154,13 +154,17 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 		Depth += 1;
 		Statistics.SelDepth = 0;
 		int result = SearchRecursive(board, Depth, 0, NegativeInfinity, PositiveInfinity, true);
+		if (IsMateScore(result)) {  // Impatience in action
+			Constraints.SearchTimeMin *= 0.8;
+			Constraints.SearchTimeMax *= 0.8;
+		}
 
 		// Check limits
 		auto currentTime = Clock::now();
 		elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
 		if ((elapsedMs >= Constraints.SearchTimeMin) && (Constraints.SearchTimeMin != -1)) finished = true;
 		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
-		if ((Depth >= 32)) finished = true;
+		if ((Depth >= 31)) finished = true;
 		if (Aborting) {
 			e.stats = Statistics;
 			e.time = elapsedMs;
@@ -313,7 +317,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	// Reverse futility pruning
-	//const int rfpMargin[] = { 0, 100, 220, 340, 460, 580 };
+	//const int rfpMargin[] = { 0, 70, 150, 240, 340, 450, 570, 700 };  // Elo difference: 9.1 +/- 9.8 - got bored
 	const int rfpMargin[] = { 0, 100, 220, 340, 460, 580 };
 	if ((depth <= 5) && !inCheck && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);

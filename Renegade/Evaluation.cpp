@@ -2,14 +2,14 @@
 #include "Board.h"
 #include "Move.h"
 
+// Yes, I know, it looks terrible
+
 const static int WeightsSize = 953;
 
 extern uint64_t GetBishopAttacks(const int square, const uint64_t occupancy);
 extern uint64_t GetRookAttacks(const int square, const uint64_t occupancy);
 extern uint64_t GetQueenAttacks(const int square, const uint64_t occupancy);
 
-// Source of values:
-// https://www.chessprogramming.org/Simplified_Evaluation_Function
 
 // Weight indices:
 

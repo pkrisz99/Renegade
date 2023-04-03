@@ -228,6 +228,12 @@ const bool Heuristics::RetrieveTranspositionEntry(const uint64_t& hash, const in
 	return false;
 }
 
+/*
+const void Heuristics::PrefetchTranspositionEntry(const uint64_t& hash) {
+	if (HashBits != 0) _mm_prefetch((const char*) &(TranspositionTable[hash & HashFilter]), _MM_HINT_NTA);
+}
+*/
+
 void Heuristics::SetHashSize(const int megabytes) {
 	if (megabytes == 0) {
 		HashBits = 0;
