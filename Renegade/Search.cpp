@@ -317,9 +317,9 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	// Reverse futility pruning
-	//const int rfpMargin[] = { 0, 70, 150, 240, 340, 450, 570, 700 };  // Elo difference: 9.1 +/- 9.8 - got bored
-	const int rfpMargin[] = { 0, 100, 220, 340, 460, 580 };
-	if ((depth <= 5) && !inCheck && !pvNode) {
+	const int rfpMargin[] = { 0, 70, 150, 240, 340, 450, 580, 720 };  // Elo difference: 9.1 +/- 9.8 - got bored
+	//const int rfpMargin[] = { 0, 100, 220, 340, 460, 580 };
+	if ((depth <= 7) && !inCheck && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
 		if (staticEval - rfpMargin[depth] > beta) return staticEval;
 	}
