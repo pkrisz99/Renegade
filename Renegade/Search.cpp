@@ -104,7 +104,7 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 		else {
 			// Sudden death 
 			maxTime = static_cast<int>(myTime * 0.333);
-			minTime = static_cast<int>((myTime + myInc * 10.0) * 0.015);
+			minTime = static_cast<int>((myTime + myInc * 10.0) * 0.0175);
 		}
 
 		constraints.SearchTimeMax = maxTime;
@@ -317,8 +317,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	// Reverse futility pruning
-	const int rfpMargin[] = { 0, 70, 150, 240, 340, 450, 580, 720 };  // Elo difference: 9.1 +/- 9.8 - got bored
-	//const int rfpMargin[] = { 0, 100, 220, 340, 460, 580 };
+	const int rfpMargin[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
 	if ((depth <= 7) && !inCheck && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
 		if (staticEval - rfpMargin[depth] > beta) return staticEval;
