@@ -18,7 +18,11 @@ using std::endl;
 using std::get;
 typedef std::chrono::high_resolution_clock Clock;
 
-const std::string Version = "0.10.0 dev";
+#ifndef LEGACY_CPU
+const std::string Version = "0.10.0";
+#else
+const std::string Version = "0.10.0 (oldcpu)";
+#endif
 
 // Evaluation helpers -----------------------------------------------------------------------------
 

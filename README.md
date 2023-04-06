@@ -39,13 +39,13 @@ If you are familiar with the protocol, you can also try running it by itself.
 
 Example output:
 ```
-Renegade chess engine 0.9.0 [Mar 15 2023 20:24:03]
+Renegade chess engine 0.10.0 [Apr  7 2023 00:17:56]
 go depth 5
-info depth 1 seldepth 1 score cp 32 nodes 21 nps 405405 time 0 hashfull 0 pv g1f3
-info depth 2 seldepth 2 score cp 18 nodes 81 nps 60187 time 1 hashfull 0 pv g1f3 g8f6
-info depth 3 seldepth 3 score cp 32 nodes 605 nps 207284 time 2 hashfull 0 pv g1f3 g8f6 b1c3
-info depth 4 seldepth 6 score cp 18 nodes 1920 nps 382371 time 5 hashfull 0 pv g1f3 g8f6 b1c3 b8c6
-info depth 5 seldepth 9 score cp 22 nodes 6880 nps 759666 time 9 hashfull 0 pv g1f3 g8f6 b1c3 b8c6 e2e4
+info depth 1 seldepth 1 score cp 34 nodes 21 nps 353535 time 0 hashfull 0 pv g1f3
+info depth 2 seldepth 2 score cp 18 nodes 81 nps 46293 time 1 hashfull 0 pv g1f3 g8f6
+info depth 3 seldepth 4 score cp 29 nodes 645 nps 214928 time 3 hashfull 0 pv g1f3 g8f6 b1c3
+info depth 4 seldepth 6 score cp 18 nodes 1756 nps 352094 time 4 hashfull 0 pv g1f3 g8f6 b1c3 b8c6
+info depth 5 seldepth 9 score cp 27 nodes 4247 nps 488093 time 8 hashfull 0 pv g1f3 g8f6 d2d4 b8c6 d4d5
 bestmove g1f3
 ```
 
