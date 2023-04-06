@@ -4,8 +4,6 @@
 
 // Yes, I know, it looks terrible
 
-const static int WeightsSize = 953;
-
 extern uint64_t GetBishopAttacks(const int square, const uint64_t occupancy);
 extern uint64_t GetRookAttacks(const int square, const uint64_t occupancy);
 extern uint64_t GetQueenAttacks(const int square, const uint64_t occupancy);
@@ -30,6 +28,8 @@ extern uint64_t GetQueenAttacks(const int square, const uint64_t occupancy);
 // 768-773: Material value early (includes king as well)
 // 774-779: Material value early (includes king as well)
 // 780+: Other
+
+const static int WeightsSize = 985;
 
 static const int Weights[WeightsSize] = {
 
@@ -138,6 +138,14 @@ static const int Weights[WeightsSize] = {
 	// 33. Minor pieces attacking majors (early, late)
 	 8, 10,
 
+	// 34. Passed pawn bonus by file (early, late)
+	0, -5, -7, 4, 26, 24, 35, 0,
+	0, 13, 18, 41, 54, 58, 54, 0,
+
+	// 35. Blocked passer penalty by file (early, late)
+	0, -28, -21, -21, -12, -31, -40, 0,
+	0, -2, -6, -25, -46, -56, -76, 0,
+
 	// +: pawn mobility, isolated pawns, doubled rooks...
 };
 
@@ -151,8 +159,8 @@ const int IndexDoubledPawnEarly = 784;
 const int IndexDoubledPawnLate = 785;
 const int IndexTripledPawnEarly = 786;
 const int IndexTripledPawnLate = 787;
-const int IndexPassedPawnEarly = 788;
-const int IndexPassedPawnLate = 789;
+//const int IndexPassedPawnEarly = 788;
+//const int IndexPassedPawnLate = 789;
 const int IndexDefendedPawnEarly = 790;
 const int IndexDefendedPawnLate = 791;
 const int IndexPawnDanger = 913;
@@ -172,6 +180,8 @@ const int IndexPawnAttackingMajorEarly = 949;
 const int IndexPawnAttackingMajorLate = 950;
 const int IndexMinorAttackingMajorEarly = 951;
 const int IndexMinorAttackingMajorLate = 952;
+//const int IndexBlockedPasserEarly = 953;
+//const int IndexBlockedPasserLate = 954;
 
 inline static constexpr int IndexEarlyPSQT(const int pieceType, const int location) {
 	return (pieceType - 1) * 64 + location;
@@ -223,6 +233,22 @@ inline static constexpr int IndexIsolatedPawnPenaltyEarly(const int file) {
 
 inline static constexpr int IndexIsolatedPawnPenaltyLate(const int file) {
 	return 939 + file;
+}
+
+inline static constexpr int IndexPassedPawnBonusEarly(const int rank) {
+	return 953 + rank;
+}
+
+inline static constexpr int IndexPassedPawnBonusLate(const int rank) {
+	return 961 + rank;
+}
+
+inline static constexpr int IndexBlockedPasserEarly(const int rank) {
+	return 969 + rank;
+}
+
+inline static constexpr int IndexBlockedPasserLate(const int rank) {
+	return 977 + rank;
 }
 
 // Interpolation functions ------------------------------------------------------------------------
@@ -290,6 +316,7 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 		int pieceType = TypeOfPiece(piece);
 		int pieceColor = ColorOfPiece(piece);
 		int file = GetSquareFile(i);
+		int rank = GetSquareRank(i);
 
 		// Material and piece-square tables
 		if (pieceColor == PieceColor::White) {
@@ -322,8 +349,12 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 			}
 
 			if (((WhitePassedPawnMask[i] & board.BlackPawnBits) == 0) && ((WhitePassedPawnFilter[i] & board.WhitePawnBits) == 0)) {
-				earlyScore += weights[IndexPassedPawnEarly];
-				lateScore += weights[IndexPassedPawnLate];
+				earlyScore += weights[IndexPassedPawnBonusEarly(rank)];
+				lateScore += weights[IndexPassedPawnBonusLate(rank)];
+				if (SquareBits[i + 8] & blackPieces) {
+					earlyScore += weights[IndexBlockedPasserEarly(rank)];
+					lateScore += weights[IndexBlockedPasserLate(rank)];
+				}
 			}
 			
 			if (((GetSquareFile(i) != 0) && CheckBit(blackMajorBits, i + 7ULL))
@@ -351,8 +382,12 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 			}
 
 			if (((BlackPassedPawnMask[i] & board.WhitePawnBits) == 0) && ((BlackPassedPawnFilter[i] & board.BlackPawnBits) == 0)) {
-				earlyScore -= weights[IndexPassedPawnEarly];
-				lateScore -= weights[IndexPassedPawnLate];
+				earlyScore -= weights[IndexPassedPawnBonusEarly(7-rank)];
+				lateScore -= weights[IndexPassedPawnBonusLate(7-rank)];
+				if (SquareBits[i - 8] & whitePieces) {
+					earlyScore -= weights[IndexBlockedPasserEarly(7-rank)];
+					lateScore -= weights[IndexBlockedPasserLate(7-rank)];
+				}
 			}
 
 			if (((GetSquareFile(i) != 0) && CheckBit(whiteMajorBits, i - 9ULL))

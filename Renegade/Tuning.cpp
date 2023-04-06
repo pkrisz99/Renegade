@@ -107,10 +107,29 @@ const void Tuning::Tune(const double K) {
 	std::cout << std::setprecision(6);
 
 	// Change these to tune a specific weight
-	const int defaultStep = 2;
+	const int defaultStep = 1;
 	std::vector<int> weightsForTuning;
-	for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexEarlyPSQT(PieceType::King, i));
-	for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexLatePSQT(PieceType::King, i));
+
+
+	/*for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexEarlyPSQT(PieceType::Pawn, i));
+	for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexLatePSQT(PieceType::Pawn, i));
+
+	weightsForTuning.push_back(IndexDoubledPawnEarly);
+	weightsForTuning.push_back(IndexDoubledPawnLate);
+	weightsForTuning.push_back(IndexTripledPawnEarly);
+	weightsForTuning.push_back(IndexTripledPawnLate);*/
+
+	for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexPassedPawnBonusEarly(i));
+	for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexPassedPawnBonusLate(i));
+
+	//for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexIsolatedPawnPenaltyEarly(i));
+	//for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexIsolatedPawnPenaltyLate(i));
+
+	//weightsForTuning.push_back(IndexPieceValueEarly(PieceType::Pawn));
+	//weightsForTuning.push_back(IndexPieceValueLate(PieceType::Pawn));
+
+	for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexBlockedPasserEarly(i));
+	for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexBlockedPasserLate(i));
 
 
 	// Set up steps
