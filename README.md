@@ -1,4 +1,8 @@
-# Renegade chess engine ♞
+<div align = "center">
+<p><h1>Renegade<br>
+<i><h6><sup>Lighthearted attempt at creating a chess engine. ♞</sup></h6></i>
+</h1>
+</div>
 
 Renegade is a chess engine written in C++ using Visual Studio 2019. It values readability and simplicity, and uses the UCI protocol to communicate, making it easy to connect it to chess frontends. Under construction since October 7, 2022 and released publicly on January 15, 2023.  
 
@@ -10,9 +14,9 @@ The engine is moderately strong, and regularly competes on Lichess over at https
 
 **Move generation >** Pseudolegal, magic bitboards, insufficient material, checkmate and stalemate recognition, attack map generation for legality checking, lookup tables, parallel bitwise sliding attack generation  
 
-**Search >** Alpha-beta pruning, iterative deepening, move ordering, principal variation search, quiescence search, transposition table, killer move heuristic, null move pruning, delta pruning, check extensions, futility pruning, razoring, drawish endgame recognition  
+**Search >** Alpha-beta pruning, iterative deepening, move ordering, principal variation search, quiescence search, transposition table, history heuristic, killer move heuristic, late-move reductions, null move pruning, delta pruning, check extensions, futility & reverse futility pruning, razoring, internal iterative deepening, drawish endgame recognition  
 
-**Evaluation >** Material, piece-square tables, tapered evaluation, piece mobility, tempo bonus, doubled & tripled pawn penalty, passed pawn bonus, king safety, outposts, open files
+**Evaluation >** Material, piece-square tables, tapered evaluation, piece mobility, tempo bonus, doubled & tripled pawn penalty, threats, passed pawn bonus, king safety, outposts, open files
 
 **Misc >** Communication with UCI protocol, Texel's tuning method, time management, perft, opening book support, debug commands
 
