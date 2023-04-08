@@ -571,76 +571,7 @@ void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece, cons
 		SetBitFalse(map, sq);
 	}
 
-	/*int rankDirection;
-	int fileDirection;
-
-	const int pieceType = TypeOfPiece(piece);
-	const int minDir = ((pieceType == PieceType::Rook) || (pieceType == PieceType::Queen)) ? 1 : 5;
-	const int maxDir = ((pieceType == PieceType::Bishop) || (pieceType == PieceType::Queen)) ? 8 : 4;
-
-	for (int direction = minDir; direction <= maxDir; direction++) {
-		switch (direction) {
-		case 1: { rankDirection = +1; fileDirection = 0; break; }
-		case 2: { rankDirection = -1; fileDirection = 0; break; }
-		case 3: { rankDirection = 0; fileDirection = +1; break; }
-		case 4: { rankDirection = 0; fileDirection = -1; break; }
-		case 5: { rankDirection = +1; fileDirection = +1; break; }
-		case 6: { rankDirection = +1; fileDirection = -1; break; }
-		case 7: { rankDirection = -1; fileDirection = +1; break; }
-		case 8: { rankDirection = -1; fileDirection = -1; break; }
-		}
-
-		int file = GetSquareFile(home);
-		int rank = GetSquareRank(home);
-
-		for (int i = 1; i < 8; i++) {
-			file += fileDirection;
-			rank += rankDirection;
-			if ((file > 7) || (file < 0) || (rank > 7) || (rank < 0)) break;
-			int thatSquare = Square(rank, file);
-			if (CheckBit(friendlyOccupance, thatSquare)) break;
-			if (CheckBit(opponentOccupance, thatSquare)) {
-				moves.push_back(Move(home, thatSquare));
-				break;
-			}
-			if (!quiescenceOnly) moves.push_back(Move(home, thatSquare));
-		}
-	}*/
-
 }
-
-/*
-// Sliding attack generation, the idea being that this function does multiple pieces at once.
-// Also who doesn't like this level of bit fiddling?
-const uint64_t Board::GenerateSlidingAttacksShiftDown(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces, const uint64_t friendlyPieces, const uint64_t opponentPieces) {
-	const uint64_t blockingFriends = friendlyPieces & ~propagatingPieces;
-	uint64_t fill = ((propagatingPieces & boundMask) >> direction) & ~blockingFriends;
-	uint64_t lastFill = fill;
-	for (int i = 0; i < 7; i++) {
-		fill = fill & boundMask;
-		fill |= fill >> direction;
-		fill = fill & ~blockingFriends & ~(opponentPieces >> direction);
-		if (fill == lastFill) return fill | (((propagatingPieces & boundMask) >> direction) & ~blockingFriends);
-		lastFill = fill;
-	}
-	fill |= ((propagatingPieces & boundMask) >> direction) & ~blockingFriends;
-	return fill;
-}
-
-const uint64_t Board::GenerateSlidingAttacksShiftUp(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces, const uint64_t friendlyPieces, const uint64_t opponentPieces) {
-	const uint64_t blockingFriends = friendlyPieces & ~propagatingPieces;
-	uint64_t fill = ((propagatingPieces & boundMask) << direction) & ~blockingFriends;
-	uint64_t lastFill = fill;
-	for (int i = 0; i < 7; i++) {
-		fill = fill & boundMask;
-		fill |= fill << direction;
-		fill = fill & ~blockingFriends & ~(opponentPieces << direction);
-		if (fill == lastFill) return fill | (((propagatingPieces & boundMask) << direction) & ~blockingFriends);
-		lastFill = fill;
-	}
-	fill |= ((propagatingPieces & boundMask) << direction) & ~blockingFriends;
-	return fill;
-}*/
 
 const uint64_t Board::GenerateKnightAttacks(const int from) {
 	return KnightMoveBits[from];
@@ -655,7 +586,6 @@ void Board::GenerateKingMoves(std::vector<Move>& moves, const int home, const bo
 		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
 		if (!quiescenceOnly || (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(!Turn))) moves.push_back(Move(home, l));
 	}
-
 }
 
 void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {

@@ -50,6 +50,7 @@ static inline int LosingMateScore(int level) {
 // Board constants --------------------------------------------------------------------------------
 
 namespace MoveFlag {
+	static const uint8_t None = 0;
 	static const uint8_t ShortCastle = 1;
 	static const uint8_t LongCastle = 2;
 	static const uint8_t PromotionToKnight = 3;

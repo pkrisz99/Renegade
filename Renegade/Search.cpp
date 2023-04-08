@@ -291,7 +291,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		transpositionMove = Heuristics.PvTable[level+1][level + 1];
 	}
 
-	// Null-move pruning
+	// Null-move pruning (+44 elo)
 	int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
 	int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
 	if ((depth >= 3) && !inCheck && canNullMove && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
@@ -308,7 +308,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		}
 	}
 
-	// Futility pruning
+	// Futility pruning (+41 elo)
 	const int futilityMargins[] = { 0, 100, 200, 300, 400, 500 };
 	bool futilityPrunable = false;
 	if ((depth <= 5) && !inCheck && !pvNode) {
@@ -316,14 +316,14 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		if ((staticEval + futilityMargins[depth] < alpha)) futilityPrunable = true;
 	}
 
-	// Reverse futility pruning
+	// Reverse futility pruning (+87 elo)
 	const int rfpMargin[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
 	if ((depth <= 7) && !inCheck && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
 		if (staticEval - rfpMargin[depth] > beta) return staticEval;
 	}
 
-	// Razoring (?)
+	// Razoring (?) - seems to be losing strength
 	const int razoringMargin[] = { 0, 300, 750 };
 	if ((depth < 2) && !inCheck && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
@@ -364,7 +364,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		Board& b = Boards[level];
 		bool isQuiet = b.IsMoveQuiet(m);
 
-		// Futility pruning
+		// Performing futility pruning
 		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta)) continue;
 
 		b.Push(m);
@@ -388,10 +388,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 			// Late-move reductions
 			if ((legalMoveCount >= 4) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
-
 				if (!pvNode) reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
-				//if (pvNode) reduction /= 3;
-
 			}
 
 			// Principal variation search
@@ -449,13 +446,10 @@ int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool 
 		Statistics.QuiescenceNodes += 1;
 	}
 
-	// Calculate delta pruning margin (~11% node reduction @ depth=8)
-	// int delta = CalculateDeltaMargin(board);
-
 	// Update alpha-beta bounds, return alpha if no captures left
 	int staticEval = StaticEvaluation(board, level, true);
 	if (staticEval >= beta) return beta;
-	if (staticEval < alpha - 1000) return alpha; // Delta pruning
+	if (staticEval < alpha - 1000) return alpha; // Delta pruning (-9 elo, should be removed)
 	if (staticEval > alpha) alpha = staticEval;
 
 	// Order capture moves
@@ -495,13 +489,6 @@ int Search::StaticEvaluation(Board &board, int level, bool checkDraws) {
 	}
 	return EvaluateBoard(board, level);
 }
-
-const int Search::CalculateDeltaMargin(Board &board) {
-	if ((board.WhiteQueenBits | board.BlackQueenBits) > 0) return 1000;
-	if ((board.WhiteRookBits | board.BlackRookBits) > 0) return 600;
-	return 400;
-}
-
 
 // Opening book -----------------------------------------------------------------------------------
 

@@ -276,6 +276,10 @@ static const float CalculateGamePhase(Board& board) {
 
 inline static const int EvaluateBoard(Board& board, const int level, const int weights[WeightsSize]) {
 
+	// Renegade's definitions in evaluation:
+	// - attacks: squares that a piece can perform a capture on (neglecting checks and friendly pieces)
+	// - mobility: sqaures that a piece can move to (legal only) - at least that's what I want
+
 	int score = 0, earlyScore = 0, lateScore = 0;
 
 	const uint64_t occupancy = board.GetOccupancy();
@@ -286,7 +290,6 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 
 	int mobilityScore = 0;
 	uint64_t allOccupancy = occupancy;
-	std::tuple<int, uint64_t> mob;
 	uint64_t whiteAttacks = 0, blackAttacks = 0;
 
 	int whiteDangerScore = 0;
