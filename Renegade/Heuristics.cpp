@@ -39,8 +39,8 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 	if (IsFirstKillerMove(m, level)) return 100100;
 	if (IsSecondKillerMove(m, level)) return 100000;
 
-	bool turn = board.Turn;
-	int historyScore = HistoryTables[turn][m.from][m.to];
+	const bool turn = board.Turn;
+	const int historyScore = HistoryTables[turn][m.from][m.to];
 
 	// Quiet moves
 	if (historyScore != 0) {
@@ -175,12 +175,15 @@ void Heuristics::DecrementHistory(const bool side, const int from, const int to,
 }
 
 void Heuristics::AgeHistory() {
+	// Aging didn't gain, but will be tried again later
+	ClearHistoryTable();
+	/*
 	for (int i = 0; i < 64; i++) {
 		for (int j = 0; j < 64; j++) {
-			HistoryTables[0][i][j] = 0; // /= 2;
-			HistoryTables[1][i][j] = 0; // /= 2;
+			HistoryTables[0][i][j] /= 2;
+			HistoryTables[1][i][j] /= 2;
 		}
-	}
+	}*/
 }
 
 void Heuristics::ClearHistoryTable() {

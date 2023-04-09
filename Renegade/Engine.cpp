@@ -298,16 +298,16 @@ void Engine::Start() {
 			}
 
 			SearchParams params;
-			for (uint64_t i = 1; i < parts.size(); i++) {
-				if (parts[i] == "wtime") { params.wtime = stoi(parts[i + 1ull]); i++; }
-				if (parts[i] == "btime") { params.btime = stoi(parts[i + 1ull]); i++; }
-				if (parts[i] == "movestogo") { params.movestogo = stoi(parts[i + 1ull]); i++; }
-				if (parts[i] == "winc") { params.winc = stoi(parts[i + 1ull]); i++; }
-				if (parts[i] == "binc") { params.binc = stoi(parts[i + 1ull]); i++; }
-				if (parts[i] == "nodes") { params.nodes = stoi(parts[i + 1ull]); i++; }
-				if (parts[i] == "depth") { params.depth = stoi(parts[i + 1ull]); i++; }
-				if (parts[i] == "mate") { params.depth = stoi(parts[i + 1ull]); i++; } // To do: search for mates only
-				if (parts[i] == "movetime") { params.movetime = stoi(parts[i + 1ull]); i++; }
+			for (int i = 1; i < parts.size(); i++) {
+				if (parts[i] == "wtime") { params.wtime = stoi(parts[i + 1LL]); i++; }
+				if (parts[i] == "btime") { params.btime = stoi(parts[i + 1LL]); i++; }
+				if (parts[i] == "movestogo") { params.movestogo = stoi(parts[i + 1Ll]); i++; }
+				if (parts[i] == "winc") { params.winc = stoi(parts[i + 1LL]); i++; }
+				if (parts[i] == "binc") { params.binc = stoi(parts[i + 1LL]); i++; }
+				if (parts[i] == "nodes") { params.nodes = stoi(parts[i + 1LL]); i++; }
+				if (parts[i] == "depth") { params.depth = stoi(parts[i + 1LL]); i++; }
+				if (parts[i] == "mate") { params.depth = stoi(parts[i + 1LL]); i++; } // To do: search for mates only
+				if (parts[i] == "movetime") { params.movetime = stoi(parts[i + 1LL]); i++; }
 				if (parts[i] == "searchmoves") { cout << "info string Searchmoves parameter is not yet implemented!" << endl; }
 			}
 
@@ -336,7 +336,7 @@ void Engine::Start() {
 				nodes += r.stats.Nodes;
 			}
 			auto endTime = Clock::now();
-			int nps = nodes / ((endTime - startTime).count() / 1e9);
+			int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
 			cout << "nodes " << nodes << " nps " << nps << endl;
 			continue;
 		}
@@ -419,7 +419,7 @@ const void Engine::DrawBoard(Board b, uint64_t customBits) {
 				else CellStyle = WhiteOnDarkSquare;
 			}
 
-			if (CheckBit(customBits, static_cast<uint64_t>(i) * 8 + static_cast<uint64_t>(j))) {
+			if (CheckBit(customBits, i * 8 + j)) {
 				if (pieceColor == PieceColor::Black) CellStyle = BlackOnTarget;
 				else  CellStyle = WhiteOnTarget;
 			}

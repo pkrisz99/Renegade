@@ -29,7 +29,7 @@ uint64_t GenerateMagicOccupancy(const int encoded, uint64_t mask) {
 	int popcount = Popcount(mask);
 	int i = popcount - 1;
 	while (Popcount(mask) != 0) {
-		uint64_t sq = 63ULL - Lzcount(mask);
+		uint8_t sq = 63 - Lzcount(mask);
 		if (CheckBit(static_cast<uint64_t>(encoded), i)) SetBitTrue(map, sq);
 		SetBitFalse(mask, sq);
 		i -= 1;

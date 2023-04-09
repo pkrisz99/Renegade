@@ -3,7 +3,7 @@
 Search::Search() {
 	for (int i = 1; i < 32; i++) {
 		for (int j = 1; j < 32; j++) {
-			LMRTable[i][j] = 0.25 * log(i) * log(j) + 0.7;
+			LMRTable[i][j] = static_cast<int>(0.25 * log(i) * log(j) + 0.7);
 		}
 	}
 	Reset();
@@ -155,8 +155,8 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 		Statistics.SelDepth = 0;
 		int result = SearchRecursive(board, Depth, 0, NegativeInfinity, PositiveInfinity, true);
 		if (IsMateScore(result)) {  // Impatience in action
-			Constraints.SearchTimeMin *= 0.8;
-			Constraints.SearchTimeMax *= 0.8;
+			Constraints.SearchTimeMin = static_cast<int>(Constraints.SearchTimeMin * 0.8);
+			Constraints.SearchTimeMax = static_cast<int>(Constraints.SearchTimeMax * 0.8);
 		}
 
 		// Check limits

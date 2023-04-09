@@ -360,13 +360,13 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				}
 			}
 			
-			if (((GetSquareFile(i) != 0) && CheckBit(blackMajorBits, i + 7ULL))
-				|| ((GetSquareFile(i) != 7) && CheckBit(blackMajorBits, i + 9ULL))) {
+			if (((GetSquareFile(i) != 0) && CheckBit(blackMajorBits, i + 7))
+				|| ((GetSquareFile(i) != 7) && CheckBit(blackMajorBits, i + 9))) {
 				earlyScore += weights[IndexPawnAttackingMajorEarly];
 				lateScore += weights[IndexPawnAttackingMajorLate];
 			}
-			else if (((GetSquareFile(i) != 0) && CheckBit(blackMinorBits, i + 7ULL)) ||
-				((GetSquareFile(i) != 7) && CheckBit(blackMinorBits, i + 9ULL))) {
+			else if (((GetSquareFile(i) != 0) && CheckBit(blackMinorBits, i + 7)) ||
+				((GetSquareFile(i) != 7) && CheckBit(blackMinorBits, i + 9))) {
 				earlyScore += weights[IndexPawnAttackingMinorEarly];
 				lateScore += weights[IndexPawnAttackingMinorLate];
 			}
@@ -393,13 +393,13 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 				}
 			}
 
-			if (((GetSquareFile(i) != 0) && CheckBit(whiteMajorBits, i - 9ULL))
-				|| ((GetSquareFile(i) != 7) && CheckBit(whiteMajorBits, i - 7ULL))) {
+			if (((GetSquareFile(i) != 0) && CheckBit(whiteMajorBits, i - 9))
+				|| ((GetSquareFile(i) != 7) && CheckBit(whiteMajorBits, i - 7))) {
 				earlyScore -= weights[IndexPawnAttackingMajorEarly];
 				lateScore -= weights[IndexPawnAttackingMajorLate];
 			}
-			else if (((GetSquareFile(i) != 0) && CheckBit(whiteMinorBits, i - 9ULL)) ||
-				((GetSquareFile(i) != 7) && CheckBit(whiteMinorBits, i - 7ULL))) {
+			else if (((GetSquareFile(i) != 0) && CheckBit(whiteMinorBits, i - 9)) ||
+				((GetSquareFile(i) != 7) && CheckBit(whiteMinorBits, i - 7))) {
 				earlyScore -= weights[IndexPawnAttackingMinorEarly];
 				lateScore -= weights[IndexPawnAttackingMinorLate];
 			}

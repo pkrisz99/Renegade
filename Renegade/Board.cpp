@@ -187,10 +187,10 @@ const uint64_t Board::HashInternal() {
 		SetBitFalse(bits, sq);
 	}
 
-	uint64_t sq = 63ULL - Lzcount(WhiteKingBits);
-	hash ^= Zobrist[64 * 10 + sq];
+	int sq = 63 - Lzcount(WhiteKingBits);
+	hash ^= Zobrist[64 * 11 + sq];
 
-	sq = 63ULL - Lzcount(BlackKingBits);
+	sq = 63 - Lzcount(BlackKingBits);
 	hash ^= Zobrist[64 * 10 + sq];
 	
 	// Castling
@@ -203,12 +203,12 @@ const uint64_t Board::HashInternal() {
 	if (EnPassantSquare != -1) {
 		bool hasPawn = false;
 		if (GetSquareFile(EnPassantSquare) != 0) {
-			if (Turn == Turn::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 7ULL);
-			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 9ULL);
+			if (Turn == Turn::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 7);
+			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 9);
 		}
 		if ((GetSquareFile(EnPassantSquare) != 7) && !hasPawn) {
-			if (Turn == Turn::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 9ULL);
-			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 7ULL);
+			if (Turn == Turn::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 9);
+			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 7);
 		}
 		if (hasPawn) hash ^= Zobrist[772 + GetSquareFile(EnPassantSquare)];
 	}
@@ -226,72 +226,73 @@ const uint64_t Board::Hash() {
 // Board occupancy --------------------------------------------------------------------------------
 
 void Board::GenerateOccupancy() {
-	for (int i = 0; i < 64; i++) OccupancyInts[i] = 0;
+	std::fill(std::begin(OccupancyInts), std::end(OccupancyInts), 0);
+
 	uint64_t bits = WhitePawnBits;
 	while (Popcount(bits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(bits);
+		const int sq = 63 - Lzcount(bits);
 		OccupancyInts[sq] = Piece::WhitePawn;
 		SetBitFalse(bits, sq);
 	}
 	bits = BlackPawnBits;
 	while (Popcount(bits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(bits);
+		const int sq = 63 - Lzcount(bits);
 		OccupancyInts[sq] = Piece::BlackPawn;
 		SetBitFalse(bits, sq);
 	}
 	bits = WhiteKnightBits;
 	while (Popcount(bits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(bits);
+		const int sq = 63 - Lzcount(bits);
 		OccupancyInts[sq] = Piece::WhiteKnight;
 		SetBitFalse(bits, sq);
 	}
 	bits = BlackKnightBits;
 	while (Popcount(bits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(bits);
+		const int sq = 63 - Lzcount(bits);
 		OccupancyInts[sq] = Piece::BlackKnight;
 		SetBitFalse(bits, sq);
 	}
 	bits = WhiteBishopBits;
 	while (Popcount(bits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(bits);
+		const int sq = 63 - Lzcount(bits);
 		OccupancyInts[sq] = Piece::WhiteBishop;
 		SetBitFalse(bits, sq);
 	}
 	bits = BlackBishopBits;
 	while (Popcount(bits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(bits);
+		const int sq = 63 - Lzcount(bits);
 		OccupancyInts[sq] = Piece::BlackBishop;
 		SetBitFalse(bits, sq);
 	}
 	bits = WhiteRookBits;
 	while (Popcount(bits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(bits);
+		const int sq = 63 - Lzcount(bits);
 		OccupancyInts[sq] = Piece::WhiteRook;
 		SetBitFalse(bits, sq);
 	}
 	bits = BlackRookBits;
 	while (Popcount(bits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(bits);
+		const int sq = 63 - Lzcount(bits);
 		OccupancyInts[sq] = Piece::BlackRook;
 		SetBitFalse(bits, sq);
 	}
 	bits = WhiteQueenBits;
 	while (Popcount(bits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(bits);
+		const int sq = 63 - Lzcount(bits);
 		OccupancyInts[sq] = Piece::WhiteQueen;
 		SetBitFalse(bits, sq);
 	}
 	bits = BlackQueenBits;
 	while (Popcount(bits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(bits);
+		const int sq = 63 - Lzcount(bits);
 		OccupancyInts[sq] = Piece::BlackQueen;
 		SetBitFalse(bits, sq);
 	}
 
-	uint64_t sq = 63ULL - Lzcount(WhiteKingBits);
+	int sq = 63 - Lzcount(WhiteKingBits);
 	OccupancyInts[sq] = Piece::WhiteKing;
 
-	sq = 63ULL - Lzcount(BlackKingBits);
+	sq = 63 - Lzcount(BlackKingBits);
 	OccupancyInts[sq] = Piece::BlackKing;
 }
 
@@ -377,36 +378,36 @@ void Board::TryMove(const Move move) {
 	const int targetPieceType = TypeOfPiece(targetPiece);
 
 	if (piece == Piece::WhitePawn) { SetBitFalse(WhitePawnBits, move.from); SetBitTrue(WhitePawnBits, move.to); }
+	else if (piece == Piece::BlackPawn) { SetBitFalse(BlackPawnBits, move.from); SetBitTrue(BlackPawnBits, move.to); }
 	else if (piece == Piece::WhiteKnight) { SetBitFalse(WhiteKnightBits, move.from); SetBitTrue(WhiteKnightBits, move.to); }
 	else if (piece == Piece::WhiteBishop) { SetBitFalse(WhiteBishopBits, move.from); SetBitTrue(WhiteBishopBits, move.to); }
 	else if (piece == Piece::WhiteRook) { SetBitFalse(WhiteRookBits, move.from); SetBitTrue(WhiteRookBits, move.to); }
-	else if (piece == Piece::WhiteQueen) { SetBitFalse(WhiteQueenBits, move.from); SetBitTrue(WhiteQueenBits, move.to); }
-	else if (piece == Piece::WhiteKing) { SetBitFalse(WhiteKingBits, move.from); SetBitTrue(WhiteKingBits, move.to); }
-	else if (piece == Piece::BlackPawn) { SetBitFalse(BlackPawnBits, move.from); SetBitTrue(BlackPawnBits, move.to); }
 	else if (piece == Piece::BlackKnight) { SetBitFalse(BlackKnightBits, move.from); SetBitTrue(BlackKnightBits, move.to); }
 	else if (piece == Piece::BlackBishop) { SetBitFalse(BlackBishopBits, move.from); SetBitTrue(BlackBishopBits, move.to); }
 	else if (piece == Piece::BlackRook) { SetBitFalse(BlackRookBits, move.from); SetBitTrue(BlackRookBits, move.to); }
 	else if (piece == Piece::BlackQueen) { SetBitFalse(BlackQueenBits, move.from); SetBitTrue(BlackQueenBits, move.to); }
 	else if (piece == Piece::BlackKing) { SetBitFalse(BlackKingBits, move.from); SetBitTrue(BlackKingBits, move.to); }
+	else if (piece == Piece::WhiteQueen) { SetBitFalse(WhiteQueenBits, move.from); SetBitTrue(WhiteQueenBits, move.to); }
+	else if (piece == Piece::WhiteKing) { SetBitFalse(WhiteKingBits, move.from); SetBitTrue(WhiteKingBits, move.to); }
 
 	if (targetPiece == Piece::WhitePawn) SetBitFalse(WhitePawnBits, move.to);
+	else if (targetPiece == Piece::BlackPawn) SetBitFalse(BlackPawnBits, move.to);
 	else if (targetPiece == Piece::WhiteKnight) SetBitFalse(WhiteKnightBits, move.to);
 	else if (targetPiece == Piece::WhiteBishop) SetBitFalse(WhiteBishopBits, move.to);
 	else if (targetPiece == Piece::WhiteRook) SetBitFalse(WhiteRookBits, move.to);
-	else if (targetPiece == Piece::WhiteQueen) SetBitFalse(WhiteQueenBits, move.to);
-	else if (targetPiece == Piece::WhiteKing) SetBitFalse(WhiteKingBits, move.to); // ????
-	else if (targetPiece == Piece::BlackPawn) SetBitFalse(BlackPawnBits, move.to);
 	else if (targetPiece == Piece::BlackKnight) SetBitFalse(BlackKnightBits, move.to);
 	else if (targetPiece == Piece::BlackBishop) SetBitFalse(BlackBishopBits, move.to);
 	else if (targetPiece == Piece::BlackRook) SetBitFalse(BlackRookBits, move.to);
+	else if (targetPiece == Piece::WhiteQueen) SetBitFalse(WhiteQueenBits, move.to);
 	else if (targetPiece == Piece::BlackQueen) SetBitFalse(BlackQueenBits, move.to);
-	else if (targetPiece == Piece::BlackKing) SetBitFalse(BlackKingBits, move.to); // ????
+	//else if (targetPiece == Piece::WhiteKing) SetBitFalse(WhiteKingBits, move.to); // ????
+	//else if (targetPiece == Piece::BlackKing) SetBitFalse(BlackKingBits, move.to); // ????
 
 	if ((piece == Piece::WhitePawn) && (move.to == EnPassantSquare) ) {
-		SetBitFalse(BlackPawnBits, static_cast<uint64_t>((EnPassantSquare)-8ULL));
+		SetBitFalse(BlackPawnBits, EnPassantSquare-8);
 	}
 	if ((piece == Piece::BlackPawn) && (move.to == EnPassantSquare)) {
-		SetBitFalse(WhitePawnBits, static_cast<uint64_t>((EnPassantSquare)+8ULL));
+		SetBitFalse(WhitePawnBits, EnPassantSquare+8);
 	}
 
 	if (piece == Piece::WhitePawn) {
@@ -850,19 +851,19 @@ const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
 	uint64_t occ = GetOccupancy();
 	uint64_t parallelBits = colorOfPieces == PieceColor::White ? WhiteRookBits | WhiteQueenBits : BlackRookBits | BlackQueenBits;
 	while (Popcount(parallelBits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(parallelBits);
-		squares |= GetRookAttacks(static_cast<int>(sq), occ);
+		uint8_t sq = 63 - Lzcount(parallelBits);
+		squares |= GetRookAttacks(sq, occ);
 		SetBitFalse(parallelBits, sq);
 	}
 	uint64_t diagonalBits = colorOfPieces == PieceColor::White ? WhiteBishopBits | WhiteQueenBits : BlackBishopBits | BlackQueenBits;
 	while (Popcount(diagonalBits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(diagonalBits);
-		squares |= GetBishopAttacks(static_cast<int>(sq), occ);
+		uint8_t sq = 63 - Lzcount(diagonalBits);
+		squares |= GetBishopAttacks(sq, occ);
 		SetBitFalse(diagonalBits, sq);
 	}
 
 	// King attack gen
-	uint64_t kingSquare = 63ULL - Lzcount(colorOfPieces == PieceColor::White ? WhiteKingBits : BlackKingBits);
+	uint8_t kingSquare = 63 - Lzcount(colorOfPieces == PieceColor::White ? WhiteKingBits : BlackKingBits);
 	uint64_t fill = KingMoveBits[kingSquare];
 	squares |= fill;
 
@@ -870,8 +871,8 @@ const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
 	uint64_t knightBits = colorOfPieces == PieceColor::White ? WhiteKnightBits : BlackKnightBits;
 	fill = 0;
 	while (Popcount(knightBits) != 0) {
-		uint64_t sq = 63ULL - Lzcount(knightBits);
-		fill |= GenerateKnightAttacks(static_cast<int>(sq));
+		uint8_t sq = 63 - Lzcount(knightBits);
+		fill |= GenerateKnightAttacks(sq);
 		SetBitFalse(knightBits, sq);
 	}
 	squares |= fill;
@@ -1088,13 +1089,13 @@ const std::string Board::GetFEN() {
 
 	bool enPassantPossible = false;
 	if ((EnPassantSquare != -1) && (Turn == Turn::White)) {
-		bool fromRight = (((WhitePawnBits & ~Bitboards::FileA) << 7) & SquareBits[EnPassantSquare]) != 0ULL;
-		bool fromLeft = (((WhitePawnBits & ~Bitboards::FileH) << 9) & SquareBits[EnPassantSquare]) != 0ULL;
+		const bool fromRight = (((WhitePawnBits & ~Bitboards::FileA) << 7) & SquareBits[EnPassantSquare]);
+		const bool fromLeft = (((WhitePawnBits & ~Bitboards::FileH) << 9) & SquareBits[EnPassantSquare]);
 		if (fromLeft || fromRight) enPassantPossible = true;
 	}
 	if ((EnPassantSquare != -1) && (Turn == Turn::Black)) {
-		bool fromRight = (((BlackPawnBits & ~Bitboards::FileA) >> 9) & SquareBits[EnPassantSquare]) != 0ULL;
-		bool fromLeft = (((BlackPawnBits & ~Bitboards::FileH) >> 7) & SquareBits[EnPassantSquare]) != 0ULL;
+		const bool fromRight = (((BlackPawnBits & ~Bitboards::FileA) >> 9) & SquareBits[EnPassantSquare]);
+		const bool fromLeft = (((BlackPawnBits & ~Bitboards::FileH) >> 7) & SquareBits[EnPassantSquare]);
 		if (fromLeft || fromRight) enPassantPossible = true;
 	}
 	if (enPassantPossible) result += SquareStrings[EnPassantSquare];

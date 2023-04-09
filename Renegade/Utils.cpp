@@ -205,19 +205,19 @@ struct SearchStatistics {
 
 // Bitwise operations  ----------------------------------------------------------------------------
 
-static inline void SetBitTrue(uint64_t& number, const uint64_t place) {
+static inline void SetBitTrue(uint64_t& number, const uint8_t place) {
 	number |= 1ULL << place;
 }
 
-static inline void SetBitFalse(uint64_t& number, const uint64_t place) {
+static inline void SetBitFalse(uint64_t& number, const uint8_t place) {
 	number &= ~(1ULL << place);
 }
 
-static inline bool CheckBit(const uint64_t& number, const uint64_t place) {
+static inline bool CheckBit(const uint64_t& number, const uint8_t place) {
 	return (number >> place) & 1ULL;
 }
 
-static inline int Popcount(const uint64_t number) {
+static inline int Popcount(const uint64_t& number) {
 #ifdef LEGACY_CPU
 	return std::popcount(number);
 #else
@@ -226,7 +226,7 @@ static inline int Popcount(const uint64_t number) {
 #endif
 }
 
-static inline int Lzcount(const uint64_t number) {
+static inline int Lzcount(const uint64_t& number) {
 #ifdef LEGACY_CPU
 	return std::countl_zero(number);
 #else
