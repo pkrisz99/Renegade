@@ -429,26 +429,26 @@ void Board::TryMove(const Move move) {
 
 	// 2. Handle castling
 	if ((Turn == Turn::White) && (move.flag == MoveFlag::ShortCastle)) {
-		SetBitFalse(WhiteRookBits, 7);
-		SetBitTrue(WhiteRookBits, 5);
+		SetBitFalse(WhiteRookBits, Squares::H1);
+		SetBitTrue(WhiteRookBits, Squares::F1);
 		WhiteRightToShortCastle = false;
 		WhiteRightToLongCastle = false;
 	}
 	if ((Turn == Turn::White) && (move.flag == MoveFlag::LongCastle)) {
-		SetBitFalse(WhiteRookBits, 0);
-		SetBitTrue(WhiteRookBits, 3);
+		SetBitFalse(WhiteRookBits, Squares::A1);
+		SetBitTrue(WhiteRookBits, Squares::D1);
 		WhiteRightToShortCastle = false;
 		WhiteRightToLongCastle = false;
 	}
 	if ((Turn == Turn::Black) && (move.flag == MoveFlag::ShortCastle)) {
-		SetBitFalse(BlackRookBits, 63);
-		SetBitTrue(BlackRookBits, 61);
+		SetBitFalse(BlackRookBits, Squares::H8);
+		SetBitTrue(BlackRookBits, Squares::F8);
 		BlackRightToShortCastle = false;
 		BlackRightToLongCastle = false;
 	}
 	if ((Turn == Turn::Black) && (move.flag == MoveFlag::LongCastle)) {
-		SetBitFalse(BlackRookBits, 56);
-		SetBitTrue(BlackRookBits, 59);
+		SetBitFalse(BlackRookBits, Squares::A8);
+		SetBitTrue(BlackRookBits, Squares::D8);
 		BlackRightToShortCastle = false;
 		BlackRightToLongCastle = false;
 	}
@@ -462,10 +462,10 @@ void Board::TryMove(const Move move) {
 		BlackRightToShortCastle = false;
 		BlackRightToLongCastle = false;
 	}
-	if ((move.to == 7) || (move.from == 7)) WhiteRightToShortCastle = false;
-	if ((move.to == 0) || (move.from == 0)) WhiteRightToLongCastle = false;
-	if ((move.to == 63) || (move.from == 63)) BlackRightToShortCastle = false;
-	if ((move.to == 56) || (move.from == 56)) BlackRightToLongCastle = false;
+	if ((move.to == Squares::H1) || (move.from == Squares::H1)) WhiteRightToShortCastle = false;
+	if ((move.to == Squares::A1) || (move.from == Squares::A1)) WhiteRightToLongCastle = false;
+	if ((move.to == Squares::H8) || (move.from == Squares::H8)) BlackRightToShortCastle = false;
+	if ((move.to == Squares::A8) || (move.from == Squares::A8)) BlackRightToLongCastle = false;
 
 	// 4. Update en passant
 	if (move.flag == MoveFlag::EnPassantPossible) {
@@ -1115,7 +1115,7 @@ const uint8_t Board::GetKingSquare() {
 	else return 63 - Lzcount(BlackKingBits);
 }
 
-const uint8_t Board::IsInCheck() {
+const bool Board::IsInCheck() {
 	if (Turn == Turn::White) return IsSquareAttacked<Turn::Black>(63 - Lzcount(WhiteKingBits));
 	else return IsSquareAttacked<Turn::White>(63 - Lzcount(BlackKingBits));
 }

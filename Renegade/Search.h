@@ -26,14 +26,14 @@ public:
 	void ResetStatistics();
 
 	// Perft methods
-	const void Perft(Board &b, const int depth, const PerftType type);
-	const int PerftRecursive(Board &b, const int depth, const int originalDepth, const PerftType type);
+	const void Perft(Board& board, const int depth, const PerftType type);
+	const uint64_t PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type);
 
 	// Move search
 	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn);
-	Results SearchMoves(Board &board, const SearchParams params, const EngineSettings settings, const bool display);
-	int SearchRecursive(Board &board, int depth, int level, int alpha, int beta, bool canNullMove);
-	int SearchQuiescence(Board &board, int level, int alpha, int beta, bool rootNode);
+	Results SearchMoves(Board& board, const SearchParams params, const EngineSettings settings, const bool display);
+	int SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove);
+	int SearchQuiescence(Board& board, const int level, int alpha, int beta, const bool rootNode);
 	int StaticEvaluation(Board& board, const int level, bool checkDraws);
 
 	// Opening book
@@ -58,8 +58,8 @@ public:
 
 	// Reused variables
 	std::vector<Move> MoveList;
-	std::array<std::vector<std::tuple<Move, int>>, 100> MoveOrder;
-	std::array<Board, 100> Boards;
+	std::array<std::vector<std::tuple<Move, int>>, 32> MoveOrder;
+	std::array<Board, 32> Boards;
 
 	std::array<std::array<int, 32>, 32> LMRTable;
 

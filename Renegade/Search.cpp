@@ -29,16 +29,16 @@ void Search::ResetStatistics() {
 
 // Perft methods ----------------------------------------------------------------------------------
 
-const void Search::Perft(Board &board, const int depth, const PerftType type) {
+const void Search::Perft(Board& board, const int depth, const PerftType type) {
 	Board b = board.Copy();
-	bool startingPosition = b.Hash() == 0x463b96181691fc9c;
-	const uint64_t startingPerfts[] = { 1, 20, 400, 8902, 197281, 4865609, 119060324 };
+	const bool startingPosition = b.Hash() == 0x463b96181691fc9c;
+	const uint64_t startingPerfts[] = { 1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860 };
 
 	auto t0 = Clock::now();
-	const int r = PerftRecursive(b, depth, depth, type);
+	const uint64_t r = PerftRecursive(b, depth, depth, type);
 	auto t1 = Clock::now();
 
-	const float seconds = (float)((t1 - t0).count() / 1e9);
+	const float seconds = static_cast<float>((t1 - t0).count() / 1e9);
 	const float speed = r / seconds / 1000000;
 	if ((type == PerftType::Normal) || (type == PerftType::PerftDiv)) {
 		cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps | No bulk counting" << endl;
@@ -47,13 +47,13 @@ const void Search::Perft(Board &board, const int depth, const PerftType type) {
 	else cout << r << endl;
 }
 
-const int Search::PerftRecursive(Board &board, const int depth, const int originalDepth, const PerftType type) {
+const uint64_t Search::PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) {
 	std::vector<Move> moves;
 	board.GenerateLegalMoves(moves, board.Turn);
 	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << moves.size() << "): " << endl;
-	int count = 0;
+	uint64_t count = 0;
 	for (Move m : moves) {
-		int r;
+		uint64_t r;
 		if (depth == 1) {
 			r = 1;
 			count += r;
@@ -89,8 +89,8 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 	if ((constraints.SearchTimeMin != -1) || (constraints.SearchTimeMax != -1)) return constraints;
 
 	// Handle wtime, btime, winc, binc
-	int myTime = turn ? params.wtime : params.btime;
-	int myInc = turn ? params.winc : params.binc;
+	const int myTime = turn ? params.wtime : params.btime;
+	const int myInc = turn ? params.winc : params.binc;
 	if (myTime != 0) {
 
 		int maxTime;
@@ -210,7 +210,7 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 }
 
 // Recursively called during the negamax search
-int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int beta, bool canNullMove) {
+int Search::SearchRecursive(Board &board, int depth, const int level, int alpha, int beta, const bool canNullMove) {
 
 	// Check limits
 	if (Aborting) return NoEval;
@@ -220,7 +220,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 	if ((Statistics.Nodes % 1024 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
 		auto now = Clock::now();
-		int elapsedMs = (int)((now - StartSearchTime).count() / 1e6);
+		const int elapsedMs = (int)((now - StartSearchTime).count() / 1e6);
 		if (elapsedMs >= Constraints.SearchTimeMax) {
 			Aborting = true;
 			return NoEval;
@@ -229,11 +229,10 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	Statistics.Nodes += 1;
 	int staticEval = NoEval;
-	bool pvNode = beta - alpha > 1;
+	const bool pvNode = beta - alpha > 1;
 
 	// Check extensions
-	uint64_t kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
-	bool inCheck = board.IsInCheck();
+	const bool inCheck = board.IsInCheck();
 	if (inCheck && (depth == 0) && (level < Depth + 10)) depth = 1;
 
 	// Check for draws
@@ -241,16 +240,16 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Return result for terminal nodes
 	if (depth <= 0) {
-		int e = SearchQuiescence(board, level, alpha, beta, true);
+		//const int e = SearchQuiescence(board, level, alpha, beta, true);
 		//if (depth < 0) cout << "Check depth: " << depth << endl;
 		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
-		return e;
+		return SearchQuiescence(board, level, alpha, beta, true);
 	}
 
 	// Calculate hash and probe transposition table
 	const uint64_t hash = board.Hash();
 	TranspositionEntry entry;
-	bool found = Heuristics.RetrieveTranspositionEntry(hash, depth, entry, level);
+	const bool found = Heuristics.RetrieveTranspositionEntry(hash, depth, entry, level);
 	Move transpositionMove;
 	Statistics.TranspositionQueries += 1;
 	if (found) {
@@ -292,8 +291,8 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	// Null-move pruning (+44 elo)
-	int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
-	int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
+	const int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
+	const int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
 	if ((depth >= 3) && !inCheck && canNullMove && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
 		int nmpReduction = 3 + depth / 3 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
@@ -303,7 +302,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 			m.SetFlag(MoveFlag::NullMove);
 			Boards[level] = board;
 			Boards[level].Push(m);
-			int nullMoveEval = -SearchRecursive(Boards[level], depth - 1 - nmpReduction, level + 1, -beta, -beta + 1, false);
+			const int nullMoveEval = -SearchRecursive(Boards[level], depth - 1 - nmpReduction, level + 1, -beta, -beta + 1, false);
 			if ((nullMoveEval >= beta) && !IsMateScore(nullMoveEval)) return beta;
 		}
 	}
@@ -352,7 +351,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	});
 
 	// Iterate through legal moves
-	//bool zeroWindow = false;
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
 	Move bestMove;
@@ -362,14 +360,14 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		legalMoveCount += 1;
 		Boards[level] = board;
 		Board& b = Boards[level];
-		bool isQuiet = b.IsMoveQuiet(m);
+		const bool isQuiet = b.IsMoveQuiet(m);
 
 		// Performing futility pruning
 		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta)) continue;
 
 		b.Push(m);
 		int score = NoEval;
-		bool givingCheck = b.IsInCheck();
+		const bool givingCheck = b.IsInCheck();
 		//bool interestingPawnMove = (TypeOfPiece(board.GetPieceAt(m.from)) == PieceType::Pawn)
 		//	&& ((phase > 0.8f) || ((board.Turn == Turn::White) && (GetSquareRank(m.to) >= 4)) || ((board.Turn == Turn::Black) && (GetSquareRank(m.to) <= 3)));
 		
@@ -400,7 +398,6 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 		if (score >= beta) {
 			if (isQuiet) Heuristics.AddKillerMove(m, level);
 			Heuristics.AddTranspositionEntry(hash, depth, beta, ScoreType::LowerBound, m, level);
-			//int piece = board.GetPieceAt(m.from);
 			Statistics.BetaCutoffs += 1;
 			if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
 
@@ -426,19 +423,19 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// There was no legal move --> game over 
 	if (legalMoveCount == 0) {
-		int e = inCheck ? LosingMateScore(level) : 0;
+		const int e = inCheck ? LosingMateScore(level) : 0;
 		Heuristics.AddTranspositionEntry(hash, depth, e, ScoreType::Exact, Move(), level);
 		return e;
 	}
 
 	// Return alpha otherwise
-	int e = alpha;
+	const int e = alpha;
 	Heuristics.AddTranspositionEntry(hash, depth, e, scoreType, bestMove, level);
 	return e;
 }
 
 // Quiescence search: for captures (incl. en passant) and promotions only
-int Search::SearchQuiescence(Board &board, int level, int alpha, int beta, bool rootNode) {
+int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta, const bool rootNode) {
 	MoveList.clear();
 	board.GeneratePseudoLegalMoves(MoveList, board.Turn, true);
 	if (!rootNode) {

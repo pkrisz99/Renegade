@@ -48,7 +48,7 @@ public:
 	const GameState GetGameState();
 	const int GetPlys();
 	const std::string GetFEN();
-	const uint8_t IsInCheck();
+	const bool IsInCheck();
 
 	template <bool side>
 	const uint8_t GetKingSquare();
