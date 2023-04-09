@@ -40,6 +40,9 @@ public:
 	bool IsLegalMove(const Move m, const bool turn);
 	const bool IsMoveQuiet(const Move& move);
 
+	template <bool attackingSide>
+	bool IsSquareAttacked(const uint8_t square);
+
 	const bool AreThereLegalMoves(const bool turn);
 	const bool IsDraw();
 	const GameState GetGameState();

@@ -585,7 +585,10 @@ const void Search::PrintInfo(const Results e, const EngineSettings settings) {
 
 	for (Move move : e.pv)
 		cout << " " << move.ToString();
+
 	cout << endl;
+	//if (e.time < 50) cout << '\n';
+	//else cout << endl;
 }
 
 const void Search::PrintBestmove(Move move) {

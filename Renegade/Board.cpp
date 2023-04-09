@@ -710,47 +710,51 @@ const void Board::GenerateCastlingMoves(std::vector<Move>& moves) {
 	if ((Turn == Turn::White) && (WhiteRightToShortCastle)) {
 		const bool empty_f1 = GetPieceAt(Squares::F1) == 0;
 		const bool empty_g1 = GetPieceAt(Squares::G1) == 0;
-		const bool safe_e1 = CheckBit(AttackedSquares, Squares::E1) == 0;
-		const bool safe_f1 = CheckBit(AttackedSquares, Squares::F1) == 0;
-		const bool safe_g1 = CheckBit(AttackedSquares, Squares::G1) == 0;
-		if (empty_f1 && empty_g1 && safe_e1 && safe_f1 && safe_g1) {
-			Move m = Move(Squares::E1, Squares::G1, MoveFlag::ShortCastle);
-			moves.push_back(m);
+		if (empty_f1 && empty_g1) {
+			const bool safe_e1 = !IsSquareAttacked<Turn::Black>(Squares::E1);
+			const bool safe_f1 = !IsSquareAttacked<Turn::Black>(Squares::F1);
+			const bool safe_g1 = !IsSquareAttacked<Turn::Black>(Squares::G1);
+			if (safe_e1 && safe_f1 && safe_g1) {
+				moves.push_back(Move(Squares::E1, Squares::G1, MoveFlag::ShortCastle));
+			}
 		}
 	}
 	if ((Turn == Turn::White) && (WhiteRightToLongCastle)) {
 		const bool empty_b1 = GetPieceAt(Squares::B1) == 0;
 		const bool empty_c1 = GetPieceAt(Squares::C1) == 0;
 		const bool empty_d1 = GetPieceAt(Squares::D1) == 0;
-		const bool safe_c1 = CheckBit(AttackedSquares, Squares::C1) == 0;
-		const bool safe_d1 = CheckBit(AttackedSquares, Squares::D1) == 0;
-		const bool safe_e1 = CheckBit(AttackedSquares, Squares::E1) == 0;
-		if (empty_b1 && empty_c1 && empty_d1 && safe_c1 && safe_d1 && safe_e1) {
-			Move m = Move(Squares::E1, Squares::C1, MoveFlag::LongCastle);
-			moves.push_back(m);
+		if (empty_b1 && empty_c1 && empty_d1) {
+			const bool safe_c1 = !IsSquareAttacked<Turn::Black>(Squares::C1);
+			const bool safe_d1 = !IsSquareAttacked<Turn::Black>(Squares::D1);
+			const bool safe_e1 = !IsSquareAttacked<Turn::Black>(Squares::E1);
+			if (safe_c1 && safe_d1 && safe_e1) {
+				moves.push_back(Move(Squares::E1, Squares::C1, MoveFlag::LongCastle));
+			}
 		}
 	}
 	if ((Turn == Turn::Black) && (BlackRightToShortCastle)) {
 		const bool empty_f8 = GetPieceAt(Squares::F8) == 0;
 		const bool empty_g8 = GetPieceAt(Squares::G8) == 0;
-		const bool safe_e8 = CheckBit(AttackedSquares, Squares::E8) == 0;
-		const bool safe_f8 = CheckBit(AttackedSquares, Squares::F8) == 0;
-		const bool safe_g8 = CheckBit(AttackedSquares, Squares::G8) == 0;
-		if (empty_f8 && empty_g8 && safe_e8 && safe_f8 && safe_g8) {
-			Move m = Move(60, 62, MoveFlag::ShortCastle);
-			moves.push_back(m);
+		if (empty_f8 && empty_g8) {
+			const bool safe_e8 = !IsSquareAttacked<Turn::White>(Squares::E8);
+			const bool safe_f8 = !IsSquareAttacked<Turn::White>(Squares::F8);
+			const bool safe_g8 = !IsSquareAttacked<Turn::White>(Squares::G8);
+			if (safe_e8 && safe_f8 && safe_g8) {
+				moves.push_back(Move(Squares::E8, Squares::G8, MoveFlag::ShortCastle));
+			}
 		}
 	}
 	if ((Turn == Turn::Black) && (BlackRightToLongCastle)) {
 		const bool empty_b8 = GetPieceAt(Squares::B8) == 0;
 		const bool empty_c8 = GetPieceAt(Squares::C8) == 0;
 		const bool empty_d8 = GetPieceAt(Squares::D8) == 0;
-		const bool safe_c8 = CheckBit(AttackedSquares, Squares::C8) == 0;
-		const bool safe_d8 = CheckBit(AttackedSquares, Squares::D8) == 0;
-		const bool safe_e8 = CheckBit(AttackedSquares, Squares::E8) == 0;
-		if (empty_b8 && empty_c8 && empty_d8 && safe_c8 && safe_d8 && safe_e8) {
-			Move m = Move(Squares::E8, Squares::C8, MoveFlag::LongCastle);
-			moves.push_back(m);
+		if (empty_b8 & empty_c8 & empty_d8) {
+			const bool safe_c8 = !IsSquareAttacked<Turn::White>(Squares::C8);
+			const bool safe_d8 = !IsSquareAttacked<Turn::White>(Squares::D8);
+			const bool safe_e8 = !IsSquareAttacked<Turn::White>(Squares::E8);
+			if (safe_c8 && safe_d8 && safe_e8) {
+				moves.push_back(Move(Squares::E8, Squares::C8, MoveFlag::LongCastle));
+			}
 		}
 	}
 }
@@ -831,13 +835,10 @@ const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
 		squares |= GetBishopAttacks(static_cast<int>(sq), occ);
 		SetBitFalse(diagonalBits, sq);
 	}
-	squares &= ~friendlyPieces;
-
 
 	// King attack gen
 	uint64_t kingSquare = 63ULL - Lzcount(colorOfPieces == PieceColor::White ? WhiteKingBits : BlackKingBits);
 	uint64_t fill = KingMoveBits[kingSquare];
-	fill = fill & ~friendlyPieces;
 	squares |= fill;
 
 	// Knight attack gen: +6, +10, +15, +17
@@ -848,11 +849,7 @@ const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
 		fill |= GenerateKnightAttacks(static_cast<int>(sq));
 		SetBitFalse(knightBits, sq);
 	}
-	fill = fill & ~friendlyPieces;
 	squares |= fill;
-
-	// Attack maps (by my own definition) doesn't cover friendly pieces
-	squares = squares & ~friendlyPieces;
 
 	// Pawn attack map generation
 	if (colorOfPieces == PieceColor::White) {
@@ -877,7 +874,7 @@ const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
 		}
 	}
 
-	return squares;
+	return squares & ~friendlyPieces; // the second part shouldn't be necessary 
 }
 
 const uint64_t Board::GenerateKnightAttacks(const int from) {
@@ -886,6 +883,40 @@ const uint64_t Board::GenerateKnightAttacks(const int from) {
 
 const uint64_t Board::GenerateKingAttacks(const int from) {
 	return KingMoveBits[from];
+}
+
+template <bool attackingSide>
+bool Board::IsSquareAttacked(const uint8_t square) {
+	uint64_t occupancy = GetOccupancy();
+
+	if (attackingSide == Turn::White) {
+		// Attacked by a knight?
+		if (KnightMoveBits[square] & WhiteKnightBits) return true;
+		// Attacked by a king?
+		if (KingMoveBits[square] & WhiteKingBits) return true;
+		// Attacked by a pawn?
+		if (SquareBits[square] & ((WhitePawnBits & ~Bitboards::FileA) << 7)) return true;
+		if (SquareBits[square] & ((WhitePawnBits & ~Bitboards::FileH) << 9)) return true;
+		// Attacked by a sliding piece?
+		if (GetRookAttacks(square, occupancy) & (WhiteRookBits | WhiteQueenBits)) return true;
+		if (GetBishopAttacks(square, occupancy) & (WhiteBishopBits | WhiteQueenBits)) return true;
+		// Okay
+		return false;
+	}
+	else {
+		// Attacked by a knight?
+		if (KnightMoveBits[square] & BlackKnightBits) return true;
+		// Attacked by a king?
+		if (KingMoveBits[square] & BlackKingBits) return true;
+		// Attacked by a pawn?
+		if (SquareBits[square] & ((BlackPawnBits & ~Bitboards::FileA) >> 9)) return true;
+		if (SquareBits[square] & ((BlackPawnBits & ~Bitboards::FileH) >> 7)) return true;
+		// Attacked by a sliding piece?
+		if (GetRookAttacks(square, occupancy) & (BlackRookBits | BlackQueenBits)) return true;
+		if (GetBishopAttacks(square, occupancy) & (BlackBishopBits | BlackQueenBits)) return true;
+		// Okay
+		return false;
+	}
 }
 
 // Other ------------------------------------------------------------------------------------------
