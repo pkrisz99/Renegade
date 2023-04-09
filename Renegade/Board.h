@@ -48,6 +48,10 @@ public:
 	const GameState GetGameState();
 	const int GetPlys();
 	const std::string GetFEN();
+	const uint8_t IsInCheck();
+
+	template <bool side>
+	const uint8_t GetKingSquare();
 
 
 	// Board variables:
@@ -65,7 +69,7 @@ public:
 	uint64_t BlackRookBits;
 	uint64_t BlackQueenBits;
 	uint64_t BlackKingBits;
-	uint64_t AttackedSquares;
+	//uint64_t AttackedSquares;
 	uint64_t HashValue;
 	uint16_t FullmoveClock;
 	uint8_t EnPassantSquare;

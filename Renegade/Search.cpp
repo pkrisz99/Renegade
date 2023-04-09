@@ -233,7 +233,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 	// Check extensions
 	uint64_t kingBits = board.Turn == Turn::White ? board.WhiteKingBits : board.BlackKingBits;
-	bool inCheck = (board.AttackedSquares & kingBits) != 0;
+	bool inCheck = board.IsInCheck();
 	if (inCheck && (depth == 0) && (level < Depth + 10)) depth = 1;
 
 	// Check for draws
@@ -248,7 +248,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 	}
 
 	// Calculate hash and probe transposition table
-	uint64_t hash = board.Hash();
+	const uint64_t hash = board.Hash();
 	TranspositionEntry entry;
 	bool found = Heuristics.RetrieveTranspositionEntry(hash, depth, entry, level);
 	Move transpositionMove;
@@ -369,7 +369,7 @@ int Search::SearchRecursive(Board &board, int depth, int level, int alpha, int b
 
 		b.Push(m);
 		int score = NoEval;
-		bool givingCheck = b.Turn == Turn::White ? Popcount(b.AttackedSquares & b.WhiteKingBits) != 0 : Popcount(b.AttackedSquares & b.BlackKingBits) != 0;
+		bool givingCheck = b.IsInCheck();
 		//bool interestingPawnMove = (TypeOfPiece(board.GetPieceAt(m.from)) == PieceType::Pawn)
 		//	&& ((phase > 0.8f) || ((board.Turn == Turn::White) && (GetSquareRank(m.to) >= 4)) || ((board.Turn == Turn::Black) && (GetSquareRank(m.to) <= 3)));
 		

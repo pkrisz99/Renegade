@@ -113,7 +113,7 @@ void Engine::Start() {
 
 		// Debug commands
 		if (parts[0] == "debug") {
-			if (parts[1] == "attackmap") DrawBoard(board, board.AttackedSquares);
+			if (parts[1] == "attackmap") DrawBoard(board, board.CalculateAttackedSquares(TurnToPieceColor(board.Turn)));
 			if (parts[1] == "whitepassedpawn") {
 				int sq = stoi(parts[2]);
 				DrawBoard(board, WhitePassedPawnMask[sq]);

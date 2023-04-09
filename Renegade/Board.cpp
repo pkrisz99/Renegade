@@ -58,7 +58,6 @@ void Board::Setup(const std::string fen) {
 
 	if (parts[1] == "w") Turn = Turn::White;
 	else Turn = Turn::Black;
-	AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
 
 	for (char f : parts[2]) {
 		switch (f) {
@@ -103,7 +102,6 @@ Board::Board(const Board& b) {
 	BlackQueenBits = b.BlackQueenBits;
 	BlackKingBits = b.BlackKingBits;
 
-	AttackedSquares = b.AttackedSquares;
 	EnPassantSquare = b.EnPassantSquare;
 	WhiteRightToShortCastle = b.WhiteRightToShortCastle;
 	WhiteRightToLongCastle = b.WhiteRightToLongCastle;
@@ -128,26 +126,73 @@ Board Board::Copy() {
 const uint64_t Board::HashInternal() {
 	uint64_t hash = 0;
 
-	// Pieces
-	uint64_t occupancy = GetOccupancy();
-	while (Popcount(occupancy) != 0) {
-		uint64_t sq = 63ULL - Lzcount(occupancy);
-		SetBitFalse(occupancy, sq);
-
-		if (CheckBit(BlackPawnBits, sq)) hash ^= Zobrist[64 * 0 + sq];
-		else if (CheckBit(WhitePawnBits, sq)) hash ^= Zobrist[64 * 1 + sq];
-		else if (CheckBit(BlackKnightBits, sq)) hash ^= Zobrist[64 * 2 + sq];
-		else if (CheckBit(WhiteKnightBits, sq)) hash ^= Zobrist[64 * 3 + sq];
-		else if (CheckBit(BlackBishopBits, sq)) hash ^= Zobrist[64 * 4 + sq];
-		else if (CheckBit(WhiteBishopBits, sq)) hash ^= Zobrist[64 * 5 + sq];
-		else if (CheckBit(BlackRookBits, sq)) hash ^= Zobrist[64 * 6 + sq];
-		else if (CheckBit(WhiteRookBits, sq)) hash ^= Zobrist[64 * 7 + sq];
-		else if (CheckBit(BlackQueenBits, sq)) hash ^= Zobrist[64 * 8 + sq];
-		else if (CheckBit(WhiteQueenBits, sq)) hash ^= Zobrist[64 * 9 + sq];
-		else if (CheckBit(BlackKingBits, sq)) hash ^= Zobrist[64 * 10 + sq];
-		else if (CheckBit(WhiteKingBits, sq)) hash ^= Zobrist[64 * 11 + sq];
+	uint64_t bits = WhitePawnBits;
+	while (Popcount(bits) != 0) {
+		const int sq = 63 - Lzcount(bits);
+		hash ^= Zobrist[64 * 1 + sq];
+		SetBitFalse(bits, sq);
+	}
+	bits = BlackPawnBits;
+	while (Popcount(bits) != 0) {
+		const int sq = 63 - Lzcount(bits);
+		hash ^= Zobrist[64 * 0 + sq];
+		SetBitFalse(bits, sq);
+	}
+	bits = WhiteKnightBits;
+	while (Popcount(bits) != 0) {
+		const int sq = 63 - Lzcount(bits);
+		hash ^= Zobrist[64 * 3 + sq];
+		SetBitFalse(bits, sq);
+	}
+	bits = BlackKnightBits;
+	while (Popcount(bits) != 0) {
+		const int sq = 63 - Lzcount(bits);
+		hash ^= Zobrist[64 * 2 + sq];
+		SetBitFalse(bits, sq);
+	}
+	bits = WhiteBishopBits;
+	while (Popcount(bits) != 0) {
+		const int sq = 63 - Lzcount(bits);
+		hash ^= Zobrist[64 * 5 + sq];
+		SetBitFalse(bits, sq);
+	}
+	bits = BlackBishopBits;
+	while (Popcount(bits) != 0) {
+		const int sq = 63 - Lzcount(bits);
+		hash ^= Zobrist[64 * 4 + sq];
+		SetBitFalse(bits, sq);
+	}
+	bits = WhiteRookBits;
+	while (Popcount(bits) != 0) {
+		const int sq = 63 - Lzcount(bits);
+		hash ^= Zobrist[64 * 7 + sq];
+		SetBitFalse(bits, sq);
+	}
+	bits = BlackRookBits;
+	while (Popcount(bits) != 0) {
+		const int sq = 63 - Lzcount(bits);
+		hash ^= Zobrist[64 * 6 + sq];
+		SetBitFalse(bits, sq);
+	}
+	bits = WhiteQueenBits;
+	while (Popcount(bits) != 0) {
+		const int sq = 63 - Lzcount(bits);
+		hash ^= Zobrist[64 * 9 + sq];
+		SetBitFalse(bits, sq);
+	}
+	bits = BlackQueenBits;
+	while (Popcount(bits) != 0) {
+		const int sq = 63 - Lzcount(bits);
+		hash ^= Zobrist[64 * 8 + sq];
+		SetBitFalse(bits, sq);
 	}
 
+	uint64_t sq = 63ULL - Lzcount(WhiteKingBits);
+	hash ^= Zobrist[64 * 10 + sq];
+
+	sq = 63ULL - Lzcount(BlackKingBits);
+	hash ^= Zobrist[64 * 10 + sq];
+	
 	// Castling
 	if (WhiteRightToShortCastle) hash ^= Zobrist[768];
 	if (WhiteRightToLongCastle) hash ^= Zobrist[769];
@@ -181,8 +226,6 @@ const uint64_t Board::Hash() {
 // Board occupancy --------------------------------------------------------------------------------
 
 void Board::GenerateOccupancy() {
-	//for (int i = 0; i < 64; i++) OccupancyInts[i] = GetPieceAtFromBitboards(i);
-	
 	for (int i = 0; i < 64; i++) OccupancyInts[i] = 0;
 	uint64_t bits = WhitePawnBits;
 	while (Popcount(bits) != 0) {
@@ -443,8 +486,6 @@ void Board::Push(const Move move) {
 	else {
 		// Handle null moves efficiently
 		Turn = !Turn;
-		const uint64_t previousAttackMap = AttackedSquares;
-		AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
 		HashValue =	HashInternal();
 		return;
 	}
@@ -453,12 +494,6 @@ void Board::Push(const Move move) {
 	// Increment timers
 	Turn = !Turn;
 	if (Turn == Turn::White) FullmoveClock += 1;
-
-	// Get state after
-	bool inCheck = false;
-	AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
-	if (Turn == Turn::White) inCheck = (AttackedSquares & WhiteKingBits) != 0;
-	else inCheck = (AttackedSquares & BlackKingBits) != 0;
 
 	// Update threefold repetition list
 	if (HalfmoveClock == 0) PreviousHashes.clear();
@@ -490,21 +525,12 @@ bool Board::IsLegalMove(const Move m, const bool turn) {
 	const bool blackLongCastle = BlackRightToLongCastle;
 	const int fullmoveClock = FullmoveClock;
 	const int halfmoveClock = HalfmoveClock;
-	const uint64_t attackedSquares = AttackedSquares;
 
 	// Push move
 	TryMove(m);
 
 	// Check
-	bool inCheck = false;
-	if (Turn == Turn::White) {
-		AttackedSquares = CalculateAttackedSquares(PieceColor::Black);
-		inCheck = (AttackedSquares & WhiteKingBits) != 0;
-	}
-	else {
-		AttackedSquares = CalculateAttackedSquares(PieceColor::White);
-		inCheck = (AttackedSquares & BlackKingBits) != 0;
-	}
+	bool inCheck = IsInCheck();
 
 	// Revert
 	WhitePawnBits = whitePawnBits;
@@ -526,7 +552,6 @@ bool Board::IsLegalMove(const Move m, const bool turn) {
 	BlackRightToLongCastle = blackLongCastle;
 	FullmoveClock = fullmoveClock;
 	HalfmoveClock = halfmoveClock;
-	AttackedSquares = attackedSquares;
 
 	return !inCheck;
 }
@@ -1017,12 +1042,7 @@ const GameState Board::GetGameState() {
 
 	// Check checkmates & stalemates
 	if (!AreThereLegalMoves(Turn)) {
-		bool inCheck = false;
-		AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
-		if (Turn == Turn::White) inCheck = (AttackedSquares & WhiteKingBits) != 0;
-		else inCheck = (AttackedSquares & BlackKingBits) != 0;
-
-		if (inCheck) {
+		if (IsInCheck()) {
 			if (Turn == Turn::Black) return GameState::WhiteVictory;
 			else return GameState::BlackVictory;
 		}
@@ -1086,4 +1106,15 @@ const std::string Board::GetFEN() {
 
 const int Board::GetPlys() {
 	return (FullmoveClock - 1) * 2 + (Turn == Turn::White ? 0 : 1);
+}
+
+template <bool side>
+const uint8_t Board::GetKingSquare() {
+	if (side == Turn::White) return 63 - Lzcount(WhiteKingBits);	
+	else return 63 - Lzcount(BlackKingBits);
+}
+
+const uint8_t Board::IsInCheck() {
+	if (Turn == Turn::White) return IsSquareAttacked<Turn::Black>(63 - Lzcount(WhiteKingBits));
+	else return IsSquareAttacked<Turn::White>(63 - Lzcount(BlackKingBits));
 }
