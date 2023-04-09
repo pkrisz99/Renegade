@@ -26,30 +26,26 @@ public:
 
 	void Push(const Move move);
 	bool PushUci(const std::string ucistr);
-	const std::string GetFEN();
 
-	const uint8_t GetPieceAt(const uint8_t place);
 	const uint64_t GetOccupancy();
 	const uint64_t GetOccupancy(const uint8_t pieceColor);
+	const uint8_t GetPieceAt(const uint8_t place);
 	const uint64_t Hash();
 	const uint64_t HashInternal();
 
-	bool AreThereLegalMoves(const bool turn);
-	bool IsLegalMove(const Move m, const bool turn);
-	void GeneratePseudoLegalMoves(std::vector<Move>& moves, const bool turn, const bool quiescenceOnly);
-	void GenerateLegalMoves(std::vector<Move>& moves, const bool turn);
-	void GenerateNonQuietMoves(std::vector<Move>& moves, const bool turn);
+	const void GeneratePseudoLegalMoves(std::vector<Move>& moves, const bool turn, const bool quiescenceOnly);
+	const void GenerateLegalMoves(std::vector<Move>& moves, const bool turn);
+	const void GenerateNonQuietMoves(std::vector<Move>& moves, const bool turn);
 	const uint64_t CalculateAttackedSquares(const uint8_t colorOfPieces);
+	bool IsLegalMove(const Move m, const bool turn);
 	const bool IsMoveQuiet(const Move& move);
+
+	const bool AreThereLegalMoves(const bool turn);
 	const bool IsDraw();
 	const GameState GetGameState();
 	const int GetPlys();
+	const std::string GetFEN();
 
-	/*
-	const uint64_t GenerateSlidingAttacksShiftUp(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
-		const uint64_t friendlyPieces, const uint64_t opponentPieces);
-	const uint64_t GenerateSlidingAttacksShiftDown(const int direction, const uint64_t boundMask, const uint64_t propagatingPieces,
-		const uint64_t friendlyPieces, const uint64_t opponentPieces);*/
 
 	// Board variables:
 	std::vector<uint64_t> PreviousHashes;
@@ -78,15 +74,14 @@ public:
 	bool Turn;
 
 private:
-	const int GetPieceAtFromBitboards(const int place);
 	void GenerateOccupancy();
 	void TryMove(const Move move);
 
-	void GenerateKnightMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
-	void GenerateKingMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
-	void GeneratePawnMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
-	void GenerateCastlingMoves(std::vector<Move>& moves);
-	void GenerateSlidingMoves(std::vector<Move>& moves, const int piece, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy, const bool quiescenceOnly);
+	const void GenerateKnightMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
+	const void GenerateKingMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
+	const void GeneratePawnMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly);
+	const void GenerateCastlingMoves(std::vector<Move>& moves);
+	const void GenerateSlidingMoves(std::vector<Move>& moves, const int piece, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy, const bool quiescenceOnly);
 
 	const uint64_t GenerateKnightAttacks(const int from);
 	const uint64_t GenerateKingAttacks(const int from);

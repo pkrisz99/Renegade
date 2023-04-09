@@ -2,6 +2,8 @@
 
 #pragma once
 
+// Constructors and related -----------------------------------------------------------------------
+
 void Board::Setup(const std::string fen) {
 	WhitePawnBits = 0L;
 	WhiteKnightBits = 0L;
@@ -121,57 +123,7 @@ Board Board::Copy() {
 	return Board(*this);
 }
 
-const std::string Board::GetFEN() {
-	std::string result;
-	for (int r = 7; r >= 0; r--) {
-		int spaces = 0;
-		for (int f = 0; f < 8; f++) {
-			int piece = GetPieceAt(Square(r, f));
-			if (piece == 0) {
-				spaces += 1;
-			}
-			else {
-				if (spaces != 0) result += std::to_string(spaces);
-				result += PieceChars[piece];
-				spaces = 0;
-			}
-		}
-		if (spaces != 0) result += std::to_string(spaces);
-		if (r != 0) result += '/';
-	}
-
-	if (Turn == Turn::White) result += " w ";
-	else if (Turn == Turn::Black) result += " b ";
-	
-	bool castlingPossible = false;
-	if (WhiteRightToShortCastle) { result += 'K'; castlingPossible = true; }
-	if (WhiteRightToLongCastle) { result += 'Q'; castlingPossible = true; }
-	if (BlackRightToShortCastle) { result += 'k'; castlingPossible = true; }
-	if (BlackRightToLongCastle) { result += 'q'; castlingPossible = true; }
-	if (!castlingPossible) result += '-';
-	result += ' ';
-
-	bool enPassantPossible = false;
-	if ((EnPassantSquare != -1) && (Turn == Turn::White)) {
-		bool fromRight = (((WhitePawnBits & ~Bitboards::FileA) << 7) & SquareBits[EnPassantSquare]) != 0ULL;
-		bool fromLeft = (((WhitePawnBits & ~Bitboards::FileH) << 9) & SquareBits[EnPassantSquare]) != 0ULL;
-		if (fromLeft || fromRight) enPassantPossible = true;
-	}
-	if ((EnPassantSquare != -1) && (Turn == Turn::Black)) {
-		bool fromRight = (((BlackPawnBits & ~Bitboards::FileA) >> 9) & SquareBits[EnPassantSquare]) != 0ULL;
-		bool fromLeft = (((BlackPawnBits & ~Bitboards::FileH) >> 7) & SquareBits[EnPassantSquare]) != 0ULL;
-		if (fromLeft || fromRight) enPassantPossible = true;
-	}
-	if (enPassantPossible) result += SquareStrings[EnPassantSquare];
-	else result += '-';
-
-	result += ' ' + std::to_string(HalfmoveClock) + ' ' + std::to_string(FullmoveClock);
-	return result;
-}
-
-const int Board::GetPlys() {
-	return (FullmoveClock - 1) * 2 + (Turn == Turn::White ? 0 : 1);
-}
+// Generating board hash --------------------------------------------------------------------------
 
 const uint64_t Board::HashInternal() {
 	uint64_t hash = 0;
@@ -226,25 +178,7 @@ const uint64_t Board::Hash() {
 	return HashValue;
 }
 
-const uint8_t Board::GetPieceAt(const uint8_t place) {
-	return OccupancyInts[place];
-}
-
-const int Board::GetPieceAtFromBitboards(const int place) {
-	if (CheckBit(WhitePawnBits, place)) return Piece::WhitePawn;
-	if (CheckBit(BlackPawnBits, place)) return Piece::BlackPawn;
-	if (CheckBit(WhiteKnightBits, place)) return Piece::WhiteKnight;
-	if (CheckBit(WhiteBishopBits, place)) return Piece::WhiteBishop;
-	if (CheckBit(WhiteRookBits, place)) return Piece::WhiteRook;
-	if (CheckBit(BlackKnightBits, place)) return Piece::BlackKnight;
-	if (CheckBit(BlackBishopBits, place)) return Piece::BlackBishop;
-	if (CheckBit(BlackRookBits, place)) return Piece::BlackRook;
-	if (CheckBit(WhiteQueenBits, place)) return Piece::WhiteQueen;
-	if (CheckBit(BlackQueenBits, place)) return Piece::BlackQueen;
-	if (CheckBit(WhiteKingBits, place)) return Piece::WhiteKing;
-	if (CheckBit(BlackKingBits, place)) return Piece::BlackKing;
-	return 0;
-}
+// Board occupancy --------------------------------------------------------------------------------
 
 void Board::GenerateOccupancy() {
 	//for (int i = 0; i < 64; i++) OccupancyInts[i] = GetPieceAtFromBitboards(i);
@@ -327,6 +261,12 @@ const uint64_t Board::GetOccupancy(const uint8_t pieceColor) {
 	if (pieceColor == PieceColor::White) return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
 	return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 }
+
+const uint8_t Board::GetPieceAt(const uint8_t place) {
+	return OccupancyInts[place];
+}
+
+// Making moves -----------------------------------------------------------------------------------
 
 // Converts the uci move input to the engine's own representation, and then plays it
 bool Board::PushUci(const std::string ucistr) {
@@ -485,12 +425,8 @@ void Board::TryMove(const Move move) {
 
 	// 4. Update en passant
 	if (move.flag == MoveFlag::EnPassantPossible) {
-		if (Turn == Turn::White) {
-			EnPassantSquare = move.to - 8;
-		}
-		else {
-			EnPassantSquare = move.to + 8;
-		}
+		if (Turn == Turn::White) EnPassantSquare = move.to - 8;
+		else EnPassantSquare = move.to + 8;
 	}
 	else {
 		EnPassantSquare = -1;
@@ -509,7 +445,6 @@ void Board::Push(const Move move) {
 		Turn = !Turn;
 		const uint64_t previousAttackMap = AttackedSquares;
 		AttackedSquares = CalculateAttackedSquares(TurnToPieceColor(!Turn));
-		//const bool hasMoves = AreThereLegalMoves(Turn, previousAttackMap);
 		HashValue =	HashInternal();
 		return;
 	}
@@ -532,16 +467,96 @@ void Board::Push(const Move move) {
 
 }
 
+// We try to call this function as little as possible
+// Pretends to make a move, check its legality and then revert the variables
+// It only cares about whether the king will be in check, impossible moves won't be noticed
+bool Board::IsLegalMove(const Move m, const bool turn) {
+	const uint64_t whitePawnBits = WhitePawnBits;
+	const uint64_t whiteKnightBits = WhiteKnightBits;
+	const uint64_t whiteBishopBits = WhiteBishopBits;
+	const uint64_t whiteRookBits = WhiteRookBits;
+	const uint64_t whiteQueenBits = WhiteQueenBits;
+	const uint64_t whiteKingBits = WhiteKingBits;
+	const uint64_t blackPawnBits = BlackPawnBits;
+	const uint64_t blackKnightBits = BlackKnightBits;
+	const uint64_t blackBishopBits = BlackBishopBits;
+	const uint64_t blackRookBits = BlackRookBits;
+	const uint64_t blackQueenBits = BlackQueenBits;
+	const uint64_t blackKingBits = BlackKingBits;
+	const int enPassantSquare = EnPassantSquare;
+	const bool whiteShortCastle = WhiteRightToShortCastle;
+	const bool whiteLongCastle = WhiteRightToLongCastle;
+	const bool blackShortCastle = BlackRightToShortCastle;
+	const bool blackLongCastle = BlackRightToLongCastle;
+	const int fullmoveClock = FullmoveClock;
+	const int halfmoveClock = HalfmoveClock;
+	const uint64_t attackedSquares = AttackedSquares;
 
-void Board::GenerateKnightMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
+	// Push move
+	TryMove(m);
+
+	// Check
+	bool inCheck = false;
+	if (Turn == Turn::White) {
+		AttackedSquares = CalculateAttackedSquares(PieceColor::Black);
+		inCheck = (AttackedSquares & WhiteKingBits) != 0;
+	}
+	else {
+		AttackedSquares = CalculateAttackedSquares(PieceColor::White);
+		inCheck = (AttackedSquares & BlackKingBits) != 0;
+	}
+
+	// Revert
+	WhitePawnBits = whitePawnBits;
+	WhiteKnightBits = whiteKnightBits;
+	WhiteBishopBits = whiteBishopBits;
+	WhiteRookBits = whiteRookBits;
+	WhiteQueenBits = whiteQueenBits;
+	WhiteKingBits = whiteKingBits;
+	BlackPawnBits = blackPawnBits;
+	BlackKnightBits = blackKnightBits;
+	BlackBishopBits = blackBishopBits;
+	BlackRookBits = blackRookBits;
+	BlackQueenBits = blackQueenBits;
+	BlackKingBits = blackKingBits;
+	EnPassantSquare = enPassantSquare;
+	WhiteRightToShortCastle = whiteShortCastle;
+	WhiteRightToLongCastle = whiteLongCastle;
+	BlackRightToShortCastle = blackShortCastle;
+	BlackRightToLongCastle = blackLongCastle;
+	FullmoveClock = fullmoveClock;
+	HalfmoveClock = halfmoveClock;
+	AttackedSquares = attackedSquares;
+
+	return !inCheck;
+}
+
+const bool Board::IsMoveQuiet(const Move& move) {
+	if (GetPieceAt(move.to) != Piece::None) return false;
+	if ((move.flag == MoveFlag::PromotionToQueen) || (move.flag == MoveFlag::PromotionToKnight) || (move.flag == MoveFlag::PromotionToRook) || (move.flag == MoveFlag::PromotionToBishop)) return false;
+	if ((GetPieceAt(move.from) == Piece::WhitePawn) && (SquareRankArray[move.to] >= 5)) return false; // 6
+	if ((GetPieceAt(move.from) == Piece::BlackPawn) && (SquareRankArray[move.to] <= 2)) return false; // 1
+	if (move.flag == MoveFlag::EnPassantPerformed) return false;
+	return true;
+}
+
+// Generating moves -------------------------------------------------------------------------------
+
+const void Board::GenerateKingMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
+	for (const int& l : KingMoves[home]) {
+		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
+		if (!quiescenceOnly || (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(!Turn))) moves.push_back(Move(home, l));
+	}
+}
+
+const void Board::GenerateKnightMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
 	for (const int &l : KnightMoves[home]) {
 		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
 		if (!quiescenceOnly || (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(!Turn))) moves.push_back(Move(home, l));
 	}
 }
 
-void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy, const bool quiescenceOnly) {
-
+const void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy, const bool quiescenceOnly) {
 	const int pieceColor = ColorOfPiece(piece);
 	const int pieceType = TypeOfPiece(piece);
 	const int opponentColor = (pieceColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
@@ -573,22 +588,7 @@ void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece, cons
 
 }
 
-const uint64_t Board::GenerateKnightAttacks(const int from) {
-	return KnightMoveBits[from];
-}
-
-const uint64_t Board::GenerateKingAttacks(const int from) {
-	return KingMoveBits[from];
-}
-
-void Board::GenerateKingMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
-	for (const int &l : KingMoves[home]) {
-		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
-		if (!quiescenceOnly || (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(!Turn))) moves.push_back(Move(home, l));
-	}
-}
-
-void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
+const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
 	const int piece = GetPieceAt(home);
 	const int color = ColorOfPiece(piece);
 	const int file = GetSquareFile(home);
@@ -706,7 +706,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home, const bo
 	}
 }
 
-void Board::GenerateCastlingMoves(std::vector<Move>& moves) {
+const void Board::GenerateCastlingMoves(std::vector<Move>& moves) {
 	if ((Turn == Turn::White) && (WhiteRightToShortCastle)) {
 		const bool empty_f1 = GetPieceAt(Squares::F1) == 0;
 		const bool empty_g1 = GetPieceAt(Squares::G1) == 0;
@@ -755,6 +755,47 @@ void Board::GenerateCastlingMoves(std::vector<Move>& moves) {
 	}
 }
 
+const void Board::GenerateLegalMoves(std::vector<Move>& moves, const bool turn) {
+	std::vector<Move> legalMoves;
+
+	GeneratePseudoLegalMoves(legalMoves, turn, false);
+	for (const Move& m : legalMoves) {
+		if (IsLegalMove(m, turn)) moves.push_back(m);
+	}
+}
+
+const void Board::GenerateNonQuietMoves(std::vector<Move>& moves, const bool turn) {
+	GeneratePseudoLegalMoves(moves, turn, true);
+}
+
+const void Board::GeneratePseudoLegalMoves(std::vector<Move>& moves, const bool turn, const bool quiescenceOnly) {
+	const int myColor = TurnToPieceColor(turn);
+	uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
+	uint64_t blackOccupancy = GetOccupancy(PieceColor::Black);
+	uint64_t friendlyOccupancy = GetOccupancy(TurnToPieceColor(turn));
+	while (friendlyOccupancy != 0) {
+		int i = 63 - Lzcount(friendlyOccupancy);
+		SetBitFalse(friendlyOccupancy, i);
+
+		int piece = GetPieceAt(i);
+		int color = ColorOfPiece(piece);
+		int type = TypeOfPiece(piece);
+		if (color != myColor) continue;
+
+		if (type == PieceType::Pawn) GeneratePawnMoves(moves, i, quiescenceOnly);
+		else if (type == PieceType::Knight) GenerateKnightMoves(moves, i, quiescenceOnly);
+		else if (type == PieceType::Bishop) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, quiescenceOnly);
+		else if (type == PieceType::Rook) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, quiescenceOnly);
+		else if (type == PieceType::Queen) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, quiescenceOnly);
+		else if (type == PieceType::King) {
+			GenerateKingMoves(moves, i, quiescenceOnly);
+			if (!quiescenceOnly) GenerateCastlingMoves(moves);
+		}
+	}
+}
+
+// Generating attack maps -------------------------------------------------------------------------
+
 // Attack maps are an integral part of this engine, they are used to check the legality of pseudolegal moves
 const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
 	uint64_t squares = 0ULL;
@@ -777,16 +818,6 @@ const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
 	}
 
 	// Sliding piece attack generation
-	
-	/*squares |= GenerateSlidingAttacksShiftDown(1, ~Bitboards::FileA, parallelSliders, friendlyPieces, opponentPieces); // Left
-	squares |= GenerateSlidingAttacksShiftDown(8, ~Bitboards::Rank1, parallelSliders, friendlyPieces, opponentPieces); // Down
-	squares |= GenerateSlidingAttacksShiftUp(1, ~Bitboards::FileH, parallelSliders, friendlyPieces, opponentPieces); // Right
-	squares |= GenerateSlidingAttacksShiftUp(8, ~Bitboards::Rank8, parallelSliders, friendlyPieces, opponentPieces); // Up
-	squares |= GenerateSlidingAttacksShiftDown(7, ~Bitboards::FileH & ~Bitboards::Rank1, diagonalSliders, friendlyPieces, opponentPieces); // Right-down
-	squares |= GenerateSlidingAttacksShiftDown(9, ~Bitboards::FileA & ~Bitboards::Rank1, diagonalSliders, friendlyPieces, opponentPieces); // Left-down
-	squares |= GenerateSlidingAttacksShiftUp(9, ~Bitboards::FileH & ~Bitboards::Rank8, diagonalSliders, friendlyPieces, opponentPieces); // Right-up
-	squares |= GenerateSlidingAttacksShiftUp(7, ~Bitboards::FileA & ~Bitboards::Rank8, diagonalSliders, friendlyPieces, opponentPieces); // Left-up*/
-
 	uint64_t occ = GetOccupancy();
 	uint64_t parallelBits = colorOfPieces == PieceColor::White ? WhiteRookBits | WhiteQueenBits : BlackRookBits | BlackQueenBits;
 	while (Popcount(parallelBits) != 0) {
@@ -847,49 +878,19 @@ const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
 	}
 
 	return squares;
-
 }
 
-void Board::GenerateLegalMoves(std::vector<Move>& moves, const bool turn) {
-	std::vector<Move> legalMoves;
-
-	GeneratePseudoLegalMoves(legalMoves, turn, false);
-	for (const Move& m : legalMoves) {
-		if (IsLegalMove(m, turn)) moves.push_back(m);
-	}
+const uint64_t Board::GenerateKnightAttacks(const int from) {
+	return KnightMoveBits[from];
 }
 
-void Board::GenerateNonQuietMoves(std::vector<Move>& moves, const bool turn) {
-	GeneratePseudoLegalMoves(moves, turn, true);
+const uint64_t Board::GenerateKingAttacks(const int from) {
+	return KingMoveBits[from];
 }
 
-void Board::GeneratePseudoLegalMoves(std::vector<Move>& moves, const bool turn, const bool quiescenceOnly) {
-	const int myColor = TurnToPieceColor(turn);
-	uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
-	uint64_t blackOccupancy = GetOccupancy(PieceColor::Black);
-	uint64_t friendlyOccupancy = GetOccupancy(TurnToPieceColor(turn));
-	while (friendlyOccupancy != 0) {
-		int i = 63 - Lzcount(friendlyOccupancy);
-		SetBitFalse(friendlyOccupancy, i);
+// Other ------------------------------------------------------------------------------------------
 
-		int piece = GetPieceAt(i);
-		int color = ColorOfPiece(piece);
-		int type = TypeOfPiece(piece);
-		if (color != myColor) continue;
-
-		if (type == PieceType::Pawn) GeneratePawnMoves(moves, i, quiescenceOnly);
-		else if (type == PieceType::Knight) GenerateKnightMoves(moves, i, quiescenceOnly);
-		else if (type == PieceType::Bishop) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, quiescenceOnly);
-		else if (type == PieceType::Rook) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, quiescenceOnly);
-		else if (type == PieceType::Queen) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, quiescenceOnly);
-		else if (type == PieceType::King) {
-			GenerateKingMoves(moves, i, quiescenceOnly);
-			if (!quiescenceOnly) GenerateCastlingMoves(moves);
-		}
-	}
-}
-
-bool Board::AreThereLegalMoves(const bool turn) {
+const bool Board::AreThereLegalMoves(const bool turn) {
 	bool hasMoves = false;
 	const int myColor = TurnToPieceColor(turn);
 	uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
@@ -933,82 +934,9 @@ bool Board::AreThereLegalMoves(const bool turn) {
 			}
 			moves.clear();
 		}
-
 		if (hasMoves) break;
 	}
 	return hasMoves;
-}
-
-// We try to call this function as little as possible
-// Pretends to make a move, check its legality and then revert the variables
-// It only cares about whether the king will be in check, completely invalid moves won't be noticed
-bool Board::IsLegalMove(const Move m, const bool turn) {
-	const uint64_t whitePawnBits = WhitePawnBits;
-	const uint64_t whiteKnightBits = WhiteKnightBits;
-	const uint64_t whiteBishopBits = WhiteBishopBits;
-	const uint64_t whiteRookBits = WhiteRookBits;
-	const uint64_t whiteQueenBits = WhiteQueenBits;
-	const uint64_t whiteKingBits = WhiteKingBits;
-	const uint64_t blackPawnBits = BlackPawnBits;
-	const uint64_t blackKnightBits = BlackKnightBits;
-	const uint64_t blackBishopBits = BlackBishopBits;
-	const uint64_t blackRookBits = BlackRookBits;
-	const uint64_t blackQueenBits = BlackQueenBits;
-	const uint64_t blackKingBits = BlackKingBits;
-	const int enPassantSquare = EnPassantSquare;
-	const bool whiteShortCastle = WhiteRightToShortCastle;
-	const bool whiteLongCastle = WhiteRightToLongCastle;
-	const bool blackShortCastle = BlackRightToShortCastle;
-	const bool blackLongCastle = BlackRightToLongCastle;
-	const int fullmoveClock = FullmoveClock;
-	const int halfmoveClock = HalfmoveClock;
-	const uint64_t attackedSquares = AttackedSquares;
-
-	// Push move
-	TryMove(m);
-
-	// Check
-	bool inCheck = false;
-	if (Turn == Turn::White) {
-		AttackedSquares = CalculateAttackedSquares(PieceColor::Black);
-		inCheck = (AttackedSquares & WhiteKingBits) != 0;
-	} else {
-		AttackedSquares = CalculateAttackedSquares(PieceColor::White);
-		inCheck = (AttackedSquares & BlackKingBits) != 0;
-	}
-
-	// Revert
-	WhitePawnBits = whitePawnBits;
-	WhiteKnightBits = whiteKnightBits;
-	WhiteBishopBits = whiteBishopBits;
-	WhiteRookBits = whiteRookBits;
-	WhiteQueenBits = whiteQueenBits;
-	WhiteKingBits = whiteKingBits;
-	BlackPawnBits = blackPawnBits;
-	BlackKnightBits = blackKnightBits;
-	BlackBishopBits = blackBishopBits;
-	BlackRookBits = blackRookBits;
-	BlackQueenBits = blackQueenBits;
-	BlackKingBits = blackKingBits;
-	EnPassantSquare = enPassantSquare;
-	WhiteRightToShortCastle = whiteShortCastle;
-	WhiteRightToLongCastle = whiteLongCastle;
-	BlackRightToShortCastle = blackShortCastle;
-	BlackRightToLongCastle = blackLongCastle;
-	FullmoveClock = fullmoveClock;
-	HalfmoveClock = halfmoveClock;
-	AttackedSquares = attackedSquares;
-
-	return !inCheck;
-}
-
-const bool Board::IsMoveQuiet(const Move& move) {
-	if (GetPieceAt(move.to) != Piece::None) return false;
-	if ((move.flag == MoveFlag::PromotionToQueen) || (move.flag == MoveFlag::PromotionToKnight) || (move.flag == MoveFlag::PromotionToRook) || (move.flag == MoveFlag::PromotionToBishop)) return false;
-	if ((GetPieceAt(move.from) == Piece::WhitePawn) && (SquareRankArray[move.to] >= 5)) return false;
-	if ((GetPieceAt(move.from) == Piece::BlackPawn) && (SquareRankArray[move.to] <= 2)) return false;
-	if (move.flag == MoveFlag::EnPassantPerformed) return false;
-	return true;
 }
 
 const bool Board::IsDraw() {
@@ -1075,4 +1003,56 @@ const GameState Board::GetGameState() {
 	// Check other types of draws
 	if (IsDraw()) return GameState::Draw;
 	else return GameState::Playing;
+}
+
+const std::string Board::GetFEN() {
+	std::string result;
+	for (int r = 7; r >= 0; r--) {
+		int spaces = 0;
+		for (int f = 0; f < 8; f++) {
+			int piece = GetPieceAt(Square(r, f));
+			if (piece == 0) {
+				spaces += 1;
+			}
+			else {
+				if (spaces != 0) result += std::to_string(spaces);
+				result += PieceChars[piece];
+				spaces = 0;
+			}
+		}
+		if (spaces != 0) result += std::to_string(spaces);
+		if (r != 0) result += '/';
+	}
+
+	if (Turn == Turn::White) result += " w ";
+	else if (Turn == Turn::Black) result += " b ";
+
+	bool castlingPossible = false;
+	if (WhiteRightToShortCastle) { result += 'K'; castlingPossible = true; }
+	if (WhiteRightToLongCastle) { result += 'Q'; castlingPossible = true; }
+	if (BlackRightToShortCastle) { result += 'k'; castlingPossible = true; }
+	if (BlackRightToLongCastle) { result += 'q'; castlingPossible = true; }
+	if (!castlingPossible) result += '-';
+	result += ' ';
+
+	bool enPassantPossible = false;
+	if ((EnPassantSquare != -1) && (Turn == Turn::White)) {
+		bool fromRight = (((WhitePawnBits & ~Bitboards::FileA) << 7) & SquareBits[EnPassantSquare]) != 0ULL;
+		bool fromLeft = (((WhitePawnBits & ~Bitboards::FileH) << 9) & SquareBits[EnPassantSquare]) != 0ULL;
+		if (fromLeft || fromRight) enPassantPossible = true;
+	}
+	if ((EnPassantSquare != -1) && (Turn == Turn::Black)) {
+		bool fromRight = (((BlackPawnBits & ~Bitboards::FileA) >> 9) & SquareBits[EnPassantSquare]) != 0ULL;
+		bool fromLeft = (((BlackPawnBits & ~Bitboards::FileH) >> 7) & SquareBits[EnPassantSquare]) != 0ULL;
+		if (fromLeft || fromRight) enPassantPossible = true;
+	}
+	if (enPassantPossible) result += SquareStrings[EnPassantSquare];
+	else result += '-';
+
+	result += ' ' + std::to_string(HalfmoveClock) + ' ' + std::to_string(FullmoveClock);
+	return result;
+}
+
+const int Board::GetPlys() {
+	return (FullmoveClock - 1) * 2 + (Turn == Turn::White ? 0 : 1);
 }
