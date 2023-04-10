@@ -155,6 +155,10 @@ enum class GameState { Playing, WhiteVictory, BlackVictory, Draw };
 
 enum class PerftType { Normal, PerftDiv, Debug };
 
+enum class MoveGen { All, Noisy };
+
+enum class Legality { Legal, Pseudolegal };
+
 struct SearchParams {
 	int wtime = 0;
 	int btime = 0;

@@ -130,7 +130,7 @@ void Engine::Start() {
 			if (parts[1] == "plys") cout << "Game plys: " << board.GetPlys() << endl;
 			if (parts[1] == "pseudolegal") {
 				std::vector<Move> v;
-				board.GeneratePseudoLegalMoves(v, board.Turn, false);
+				board.GenerateMoves(v, MoveGen::All, Legality::Pseudolegal);
 				for (Move m : v) cout << m.ToString() << " ";
 				cout << endl;
 			}
@@ -343,7 +343,7 @@ void Engine::Start() {
 
 		if (parts[0] == "goall") {
 			std::vector<Move> moves;
-			board.GenerateLegalMoves(moves, board.Turn);
+			board.GenerateMoves(moves, MoveGen::All, Legality::Legal);
 			cout << moves.size() << " legal moves";
 			int time = 1000;
 			if (parts.size() > 1) {

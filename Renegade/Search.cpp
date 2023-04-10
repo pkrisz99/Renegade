@@ -49,7 +49,7 @@ const void Search::Perft(Board& board, const int depth, const PerftType type) {
 
 const uint64_t Search::PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) {
 	std::vector<Move> moves;
-	board.GenerateLegalMoves(moves, board.Turn);
+	board.GenerateMoves(moves, MoveGen::All, Legality::Legal);
 	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << moves.size() << "): " << endl;
 	uint64_t count = 0;
 	for (Move m : moves) {
@@ -155,8 +155,10 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 		Statistics.SelDepth = 0;
 		int result = SearchRecursive(board, Depth, 0, NegativeInfinity, PositiveInfinity, true);
 		if (IsMateScore(result)) {  // Impatience in action
-			Constraints.SearchTimeMin = static_cast<int>(Constraints.SearchTimeMin * 0.8);
-			Constraints.SearchTimeMax = static_cast<int>(Constraints.SearchTimeMax * 0.8);
+			//if (Constraints.SearchTimeMin != -1) Constraints.SearchTimeMin = static_cast<int>(Constraints.SearchTimeMin * 0.8);
+			//if (Constraints.SearchTimeMax != -1) Constraints.SearchTimeMax = static_cast<int>(Constraints.SearchTimeMax * 0.8);
+			Constraints.SearchTimeMin *= 0.8;
+			Constraints.SearchTimeMax *= 0.8;
 		}
 
 		// Check limits
@@ -188,7 +190,7 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 		Board b = board.Copy();
 		for (const Move& m : returnedPVs) {
 			std::vector<Move> legalMoves;
-			b.GenerateLegalMoves(legalMoves, b.Turn);
+			b.GenerateMoves(legalMoves, MoveGen::All, Legality::Legal);
 			if (std::find(legalMoves.begin(), legalMoves.end(), m) != legalMoves.end()) {
 				e.pv.push_back(m);
 				b.Push(m);
@@ -334,14 +336,14 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 	// Initalize variables and generate moves
 	MoveList.clear();
-	board.GeneratePseudoLegalMoves(MoveList, board.Turn, false);
+	board.GenerateMoves(MoveList, MoveGen::All, Legality::Pseudolegal);
 
 	// Move ordering
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
 	bool foundPvMove = false;
 	for (const Move& m : MoveList) {
-		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, FollowingPV, transpositionMove);
+		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, FollowingPV, transpositionMove);
 		if (FollowingPV && Heuristics.IsPvMove(m, level)) foundPvMove = true;
 		MoveOrder[level].push_back({ m, orderScore });
 	}
@@ -356,7 +358,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	Move bestMove;
 	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
 		Move m = get<0>(o);
-		if (!board.IsLegalMove(m, board.Turn)) continue;
+		if (!board.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
 		Boards[level] = board;
 		Board& b = Boards[level];
@@ -384,7 +386,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				if (legalMoveCount > lmpCount[depth]) continue;
 			}*/
 
-			// Late-move reductions
+			// Late-move reductions (+53 elo)
 			if ((legalMoveCount >= 4) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
 				if (!pvNode) reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 			}
@@ -437,7 +439,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 // Quiescence search: for captures (incl. en passant) and promotions only
 int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta, const bool rootNode) {
 	MoveList.clear();
-	board.GeneratePseudoLegalMoves(MoveList, board.Turn, true);
+	board.GenerateMoves(MoveList, MoveGen::Noisy, Legality::Pseudolegal);
 	if (!rootNode) {
 		Statistics.Nodes += 1;
 		Statistics.QuiescenceNodes += 1;
@@ -448,6 +450,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	if (staticEval >= beta) return beta;
 	if (staticEval < alpha - 1000) return alpha; // Delta pruning (-9 elo, should be removed)
 	if (staticEval > alpha) alpha = staticEval;
+	if (level >= 63) return alpha;
 
 	// Order capture moves
 	const float phase = CalculateGamePhase(board);
@@ -463,7 +466,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	// Search recursively
 	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
 		Move m = get<0>(o);
-		if (!board.IsLegalMove(m, board.Turn)) continue;
+		if (!board.IsLegalMove(m)) continue;
 
 		// Limiting quiescence search to not try underpromotions (experiments show a 0.9% underpromotion rate)
 		if ((level <= Depth + 3) && (level >= 5) && (m.IsUnderpromotion())) continue;

@@ -58,8 +58,8 @@ public:
 
 	// Reused variables
 	std::vector<Move> MoveList;
-	std::array<std::vector<std::tuple<Move, int>>, 32> MoveOrder;
-	std::array<Board, 32> Boards;
+	std::array<std::vector<std::tuple<Move, int>>, 64> MoveOrder;
+	std::array<Board, 64> Boards;
 
 	std::array<std::array<int, 32>, 32> LMRTable;
 

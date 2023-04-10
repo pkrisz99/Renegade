@@ -347,9 +347,10 @@ bool Board::PushUci(const std::string ucistr) {
 		}
 	}
 
+	// Generate the list of valid moves
 	std::vector<Move> legalMoves;
 	legalMoves.reserve(7);
-	GenerateLegalMoves(legalMoves, Turn);
+	GenerateMoves(legalMoves, MoveGen::All, Legality::Legal);
 	bool valid = false;
 	for (const Move &m : legalMoves) {
 		if ((m.to == move.to) && (m.from == move.from) && (m.flag == move.flag)) {
@@ -358,6 +359,7 @@ bool Board::PushUci(const std::string ucistr) {
 		}
 	}
 
+	// Make the move if valid
 	if (valid) {
 		Push(move);
 		return true;
@@ -506,7 +508,7 @@ void Board::Push(const Move move) {
 // We try to call this function as little as possible
 // Pretends to make a move, check its legality and then revert the variables
 // It only cares about whether the king will be in check, impossible moves won't be noticed
-bool Board::IsLegalMove(const Move m, const bool turn) {
+bool Board::IsLegalMove(const Move m) {
 	const uint64_t whitePawnBits = WhitePawnBits;
 	const uint64_t whiteKnightBits = WhiteKnightBits;
 	const uint64_t whiteBishopBits = WhiteBishopBits;
@@ -526,6 +528,7 @@ bool Board::IsLegalMove(const Move m, const bool turn) {
 	const bool blackLongCastle = BlackRightToLongCastle;
 	const int fullmoveClock = FullmoveClock;
 	const int halfmoveClock = HalfmoveClock;
+	const bool turn = Turn;
 
 	// Push move
 	TryMove(m);
@@ -553,6 +556,7 @@ bool Board::IsLegalMove(const Move m, const bool turn) {
 	BlackRightToLongCastle = blackLongCastle;
 	FullmoveClock = fullmoveClock;
 	HalfmoveClock = halfmoveClock;
+	Turn = turn;
 
 	return !inCheck;
 }
@@ -568,26 +572,30 @@ const bool Board::IsMoveQuiet(const Move& move) {
 
 // Generating moves -------------------------------------------------------------------------------
 
-const void Board::GenerateKingMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
+template <bool side, MoveGen moveGen>
+const void Board::GenerateKingMoves(std::vector<Move>& moves, const int home) {
+	const uint8_t friendlyPieceColor = (side == Turn::White) ? PieceColor::White : PieceColor::Black;
+	const uint8_t opponentPieceColor = (side == Turn::White) ? PieceColor::Black : PieceColor::White;
 	for (const int& l : KingMoves[home]) {
-		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
-		if (!quiescenceOnly || (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(!Turn))) moves.push_back(Move(home, l));
+		if (ColorOfPiece(GetPieceAt(l)) == friendlyPieceColor) continue;
+		if ((moveGen == MoveGen::All) || (ColorOfPiece(GetPieceAt(l)) == opponentPieceColor)) moves.push_back(Move(home, l));
 	}
 }
 
-const void Board::GenerateKnightMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
+template <bool side, MoveGen moveGen>
+const void Board::GenerateKnightMoves(std::vector<Move>& moves, const int home) {
+	const uint8_t friendlyPieceColor = (side == Turn::White) ? PieceColor::White : PieceColor::Black;
+	const uint8_t opponentPieceColor = (side == Turn::White) ? PieceColor::Black : PieceColor::White;
 	for (const int &l : KnightMoves[home]) {
-		if (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(Turn)) continue;
-		if (!quiescenceOnly || (ColorOfPiece(GetPieceAt(l)) == TurnToPieceColor(!Turn))) moves.push_back(Move(home, l));
+		if (ColorOfPiece(GetPieceAt(l)) == friendlyPieceColor) continue;
+		if ((moveGen == MoveGen::All) || (ColorOfPiece(GetPieceAt(l)) == opponentPieceColor)) moves.push_back(Move(home, l));
 	}
 }
 
-const void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy, const bool quiescenceOnly) {
-	const int pieceColor = ColorOfPiece(piece);
-	const int pieceType = TypeOfPiece(piece);
-	const int opponentColor = (pieceColor == PieceColor::White) ? PieceColor::Black : PieceColor::White;
-	const uint64_t friendlyOccupance = pieceColor == PieceColor::White ? whiteOccupancy : blackOccupancy;
-	const uint64_t opponentOccupance = pieceColor == PieceColor::White ? blackOccupancy : whiteOccupancy;
+template <bool side, int pieceType, MoveGen moveGen>
+const void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) {
+	const uint64_t friendlyOccupance = (side == PieceColor::White) ? whiteOccupancy : blackOccupancy;
+	const uint64_t opponentOccupance = (side == PieceColor::White) ? blackOccupancy : whiteOccupancy;
 	const uint64_t occupancy = whiteOccupancy | blackOccupancy;
 	uint64_t map = 0;
 
@@ -603,7 +611,7 @@ const void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece
 		break;
 	}
 
-	if (quiescenceOnly) map &= opponentOccupance;
+	if (moveGen == MoveGen::Noisy) map &= opponentOccupance;
 	if (map == 0) return;
 
 	while (Popcount(map) != 0) {
@@ -614,19 +622,18 @@ const void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int piece
 
 }
 
-const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home, const bool quiescenceOnly) {
-	const int piece = GetPieceAt(home);
-	const int color = ColorOfPiece(piece);
+template <bool side, MoveGen moveGen>
+const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) {
 	const int file = GetSquareFile(home);
 	const int rank = GetSquareRank(home);
 	int target;
 
-	if (color == PieceColor::White) {
+	if (side == Turn::White) {
 		// 1. Can move forward? + check promotions
 		target = home + 8;
 		if (GetPieceAt(target) == 0) {
 			if (GetSquareRank(target) != 7) {
-				if (!quiescenceOnly || (SquareRankArray[target] == 6)) moves.push_back(Move(home, target));
+				if ((moveGen == MoveGen::All) || (SquareRankArray[target] == 6)) moves.push_back(Move(home, target));
 			} else { // Promote
 				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
 				moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
@@ -671,17 +678,17 @@ const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home, co
 			bool free1 = GetPieceAt(home + 8) == 0;
 			bool free2 = GetPieceAt(home + 16) == 0;
 			if (free1 && free2) {
-				if (!quiescenceOnly) moves.push_back(Move(home, home+16, MoveFlag::EnPassantPossible));
+				if (moveGen == MoveGen::All) moves.push_back(Move(home, home+16, MoveFlag::EnPassantPossible));
 			}
 		}
 	}
 
-	if (color == PieceColor::Black) {
+	if (side == Turn::Black) {
 		// 1. Can move forward? + check promotions
 		target = home - 8;
 		if (GetPieceAt(target) == 0) {
 			if (GetSquareRank(target) != 0) {
-				if (!quiescenceOnly || (SquareRankArray[target] == 1)) moves.push_back(Move(home, target));
+				if ((moveGen == MoveGen::All) || (SquareRankArray[target] == 1)) moves.push_back(Move(home, target));
 			} else { // Promote
 				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
 				moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
@@ -726,12 +733,13 @@ const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home, co
 			bool free1 = GetPieceAt(home - 8) == 0;
 			bool free2 = GetPieceAt(home - 16) == 0;
 			if (free1 && free2) {
-				if (!quiescenceOnly) moves.push_back(Move(home, home - 16, MoveFlag::EnPassantPossible));
+				if (moveGen == MoveGen::All) moves.push_back(Move(home, home - 16, MoveFlag::EnPassantPossible));
 			}
 		}
 	}
 }
 
+template <bool side>
 const void Board::GenerateCastlingMoves(std::vector<Move>& moves) {
 	if ((Turn == Turn::White) && (WhiteRightToShortCastle)) {
 		const bool empty_f1 = GetPieceAt(Squares::F1) == 0;
@@ -785,41 +793,54 @@ const void Board::GenerateCastlingMoves(std::vector<Move>& moves) {
 	}
 }
 
-const void Board::GenerateLegalMoves(std::vector<Move>& moves, const bool turn) {
-	std::vector<Move> legalMoves;
+const void Board::GenerateMoves(std::vector<Move>& moves, const MoveGen moveGen, const Legality legality) {
 
-	GeneratePseudoLegalMoves(legalMoves, turn, false);
-	for (const Move& m : legalMoves) {
-		if (IsLegalMove(m, turn)) moves.push_back(m);
+	if (legality == Legality::Pseudolegal) {
+		if (moveGen == MoveGen::All) {
+			if (Turn == Turn::White) GeneratePseudolegalMoves<Turn::White, MoveGen::All>(moves);
+			else GeneratePseudolegalMoves<Turn::Black, MoveGen::All>(moves);
+		}
+		else if (moveGen == MoveGen::Noisy) {
+			if (Turn == Turn::White) GeneratePseudolegalMoves<Turn::White, MoveGen::Noisy>(moves);
+			else GeneratePseudolegalMoves<Turn::Black, MoveGen::Noisy>(moves);
+		}
+	}
+	else {
+		std::vector<Move> legalMoves;
+		if (moveGen == MoveGen::All) {
+			if (Turn == Turn::White) GeneratePseudolegalMoves<Turn::White, MoveGen::All>(legalMoves);
+			else GeneratePseudolegalMoves<Turn::Black, MoveGen::All>(legalMoves);
+		}
+		else if (moveGen == MoveGen::Noisy) {
+			if (Turn == Turn::White) GeneratePseudolegalMoves<Turn::White, MoveGen::Noisy>(legalMoves);
+			else GeneratePseudolegalMoves<Turn::Black, MoveGen::Noisy>(legalMoves);
+		}
+		for (const Move& m : legalMoves) {
+			if (IsLegalMove(m)) moves.push_back(m);
+		}
 	}
 }
 
-const void Board::GenerateNonQuietMoves(std::vector<Move>& moves, const bool turn) {
-	GeneratePseudoLegalMoves(moves, turn, true);
-}
+template <bool side, MoveGen moveGen>
+const void Board::GeneratePseudolegalMoves(std::vector<Move>& moves) {
+	const uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
+	const uint64_t blackOccupancy = GetOccupancy(PieceColor::Black);
+	uint64_t friendlyOccupancy = (Turn == Turn::White) ? whiteOccupancy : blackOccupancy;
+	const bool quiescenceOnly = (moveGen == MoveGen::Noisy) ? true : false;
 
-const void Board::GeneratePseudoLegalMoves(std::vector<Move>& moves, const bool turn, const bool quiescenceOnly) {
-	const int myColor = TurnToPieceColor(turn);
-	uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
-	uint64_t blackOccupancy = GetOccupancy(PieceColor::Black);
-	uint64_t friendlyOccupancy = GetOccupancy(TurnToPieceColor(turn));
 	while (friendlyOccupancy != 0) {
-		int i = 63 - Lzcount(friendlyOccupancy);
-		SetBitFalse(friendlyOccupancy, i);
+		const int sq = 63 - Lzcount(friendlyOccupancy);
+		SetBitFalse(friendlyOccupancy, sq);
+		const int type = TypeOfPiece(GetPieceAt(sq));
 
-		int piece = GetPieceAt(i);
-		int color = ColorOfPiece(piece);
-		int type = TypeOfPiece(piece);
-		if (color != myColor) continue;
-
-		if (type == PieceType::Pawn) GeneratePawnMoves(moves, i, quiescenceOnly);
-		else if (type == PieceType::Knight) GenerateKnightMoves(moves, i, quiescenceOnly);
-		else if (type == PieceType::Bishop) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, quiescenceOnly);
-		else if (type == PieceType::Rook) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, quiescenceOnly);
-		else if (type == PieceType::Queen) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, quiescenceOnly);
+		if (type == PieceType::Pawn) GeneratePawnMoves<side, moveGen>(moves, sq);
+		else if (type == PieceType::Knight) GenerateKnightMoves<side, moveGen>(moves, sq);
+		else if (type == PieceType::Bishop) GenerateSlidingMoves<side, PieceType::Bishop, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
+		else if (type == PieceType::Rook) GenerateSlidingMoves<side, PieceType::Rook, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
+		else if (type == PieceType::Queen) GenerateSlidingMoves<side, PieceType::Queen, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
 		else if (type == PieceType::King) {
-			GenerateKingMoves(moves, i, quiescenceOnly);
-			if (!quiescenceOnly) GenerateCastlingMoves(moves);
+			GenerateKingMoves<side, moveGen>(moves, sq);
+			if (moveGen == MoveGen::All) GenerateCastlingMoves<side>(moves);
 		}
 	}
 }
@@ -947,22 +968,14 @@ bool Board::IsSquareAttacked(const uint8_t square) {
 
 // Other ------------------------------------------------------------------------------------------
 
-const bool Board::AreThereLegalMoves(const bool turn) {
+const bool Board::AreThereLegalMoves() {
 	bool hasMoves = false;
-	const int myColor = TurnToPieceColor(turn);
-	uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
-	uint64_t blackOccupancy = GetOccupancy(PieceColor::Black);
-
-	/*
-	// Quick king test - if the king can move to a free square without being attacked, then we have a legal move
-	const uint64_t kingBits = turn == Turn::White ? WhiteKingBits : BlackKingBits;
-	const uint64_t sq = 63ULL - Lzcount(kingBits);
-	const uint64_t kingMoveBits = GenerateKingAttacks(static_cast<int>(sq));
-	const uint64_t fastKingCheck = (~previousAttackMap) & (~GetOccupancy()) & kingMoveBits;
-	if (fastKingCheck != 0) return true;*/
+	const int myColor = TurnToPieceColor(Turn);
+	const uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
+	const uint64_t blackOccupancy = GetOccupancy(PieceColor::Black);
 
 	std::vector<Move> moves;
-	uint64_t occupancy = GetOccupancy(TurnToPieceColor(turn));
+	uint64_t occupancy = (Turn == Turn::White) ? whiteOccupancy : blackOccupancy;
 	while (occupancy != 0) {
 		int i = 63 - Lzcount(occupancy);
 		SetBitFalse(occupancy, i);
@@ -971,19 +984,28 @@ const bool Board::AreThereLegalMoves(const bool turn) {
 		int type = TypeOfPiece(piece);
 		if (color != myColor) continue;
 
-		if (type == PieceType::Pawn) GeneratePawnMoves(moves, i, false);
-		else if (type == PieceType::Knight) GenerateKnightMoves(moves, i, false);
-		else if (type == PieceType::Bishop) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, false);
-		else if (type == PieceType::Rook) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, false);
-		else if (type == PieceType::Queen) GenerateSlidingMoves(moves, piece, i, whiteOccupancy, blackOccupancy, false);
-		else if (type == PieceType::King) {
-			GenerateKingMoves(moves, i, false);
-			GenerateCastlingMoves(moves);
+		if (type == Piece::WhitePawn) GeneratePawnMoves<Turn::White, MoveGen::All>(moves, i);
+		if (type == Piece::BlackPawn) GeneratePawnMoves<Turn::Black, MoveGen::All>(moves, i);
+		else if (type == Piece::WhiteKnight) GenerateKnightMoves<Turn::White, MoveGen::All>(moves, i);
+		else if (type == Piece::BlackKnight) GenerateKnightMoves<Turn::Black, MoveGen::All>(moves, i);
+		else if (type == Piece::WhiteBishop) GenerateSlidingMoves<Turn::White, PieceType::Bishop, MoveGen::All>(moves, i, whiteOccupancy, blackOccupancy);
+		else if (type == Piece::BlackBishop) GenerateSlidingMoves<Turn::Black, PieceType::Bishop, MoveGen::All>(moves, i, whiteOccupancy, blackOccupancy);
+		else if (type == Piece::WhiteRook) GenerateSlidingMoves<Turn::White, PieceType::Rook, MoveGen::All>(moves, i, whiteOccupancy, blackOccupancy);
+		else if (type == Piece::BlackRook) GenerateSlidingMoves<Turn::Black, PieceType::Rook, MoveGen::All>(moves, i, whiteOccupancy, blackOccupancy);
+		else if (type == Piece::WhiteQueen) GenerateSlidingMoves<Turn::White, PieceType::Queen, MoveGen::All>(moves, i, whiteOccupancy, blackOccupancy);
+		else if (type == Piece::BlackQueen) GenerateSlidingMoves<Turn::Black, PieceType::Queen, MoveGen::All>(moves, i, whiteOccupancy, blackOccupancy);
+		else if (type == Piece::WhiteKing) {
+			GenerateKingMoves<Turn::White, MoveGen::All>(moves, i);
+			GenerateCastlingMoves<Turn::White>(moves);
+		}
+		else if (type == Piece::BlackKing) {
+			GenerateKingMoves<Turn::Black, MoveGen::All>(moves, i);
+			GenerateCastlingMoves<Turn::Black>(moves);
 		}
 
 		if (moves.size() != 0) {
 			for (Move m : moves) {
-				if (IsLegalMove(m, turn)) {
+				if (IsLegalMove(m)) {
 					moves.clear();
 					hasMoves = true;
 					break;
@@ -1042,7 +1064,7 @@ const bool Board::IsDraw() {
 const GameState Board::GetGameState() {
 
 	// Check checkmates & stalemates
-	if (!AreThereLegalMoves(Turn)) {
+	if (!AreThereLegalMoves()) {
 		if (IsInCheck()) {
 			if (Turn == Turn::Black) return GameState::WhiteVictory;
 			else return GameState::BlackVictory;
