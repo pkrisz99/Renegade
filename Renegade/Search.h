@@ -61,7 +61,7 @@ public:
 	std::array<std::vector<std::tuple<Move, int>>, 64> MoveOrder;
 	std::array<Board, 64> Boards;
 
-	std::array<std::array<int, 32>, 32> LMRTable;
+	std::array<std::array<int, 32>, 64> LMRTable;
 
 };
 

@@ -26,14 +26,8 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 		return orderScore;
 	}
 
-	// Promotions
-	bool promoting = true;
-	if (m.flag == MoveFlag::PromotionToQueen) orderScore = 950 * 16 + 700000;
-	else if (m.flag == MoveFlag::PromotionToRook) orderScore = 500 * 16 + 500000;
-	else if (m.flag == MoveFlag::PromotionToBishop) orderScore = 290 * 16 + 500000;
-	else if (m.flag == MoveFlag::PromotionToKnight) orderScore = 310 * 16 + 500000;
-	else promoting = false;
-	if (promoting) return orderScore;
+	// Queen promotions
+	if (m.flag == MoveFlag::PromotionToQueen) return orderScore = 700000 + values[attackedPiece];
 	
 	// Quiet killer moves
 	if (IsFirstKillerMove(m, level)) return 100100;
@@ -119,8 +113,13 @@ void Heuristics::ClearPvLine() {
 // Killer moves -----------------------------------------------------------------------------------
 
 void Heuristics::AddKillerMove(const Move& move, const int level) {
-	if (IsKillerMove(move, level)) return;
 	if (level >= 32) return;
+	if (IsFirstKillerMove(move, level)) return;
+	if (IsSecondKillerMove(move, level)) {
+		KillerMoves[level][1] = KillerMoves[level][0];
+		KillerMoves[level][0] = move;
+		return;
+	}
 	KillerMoves[level][1] = KillerMoves[level][0];
 	KillerMoves[level][0] = move;
 }

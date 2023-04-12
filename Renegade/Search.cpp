@@ -2,7 +2,7 @@
 
 Search::Search() {
 	for (int i = 1; i < 32; i++) {
-		for (int j = 1; j < 32; j++) {
+		for (int j = 1; j < 64; j++) {
 			LMRTable[i][j] = static_cast<int>(0.25 * log(i) * log(j) + 0.7);
 		}
 	}
@@ -324,7 +324,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		if (staticEval - rfpMargin[depth] > beta) return staticEval;
 	}
 
-	// Razoring (?) - seems to be losing strength
+	// Razoring (+1 elo haha)
 	const int razoringMargin[] = { 0, 300, 750 };
 	if ((depth < 2) && !inCheck && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
