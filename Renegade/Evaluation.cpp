@@ -283,10 +283,9 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	int score = 0, earlyScore = 0, lateScore = 0;
 
 	const uint64_t occupancy = board.GetOccupancy();
-	uint64_t piecesOnBoard = occupancy;
-	uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
-	uint64_t blackPieces = board.GetOccupancy(PieceColor::Black);
-	float phase = CalculateGamePhase(board);
+	const uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
+	const uint64_t blackPieces = board.GetOccupancy(PieceColor::Black);
+	const float phase = CalculateGamePhase(board);
 
 	int mobilityScore = 0;
 	uint64_t allOccupancy = occupancy;
@@ -298,28 +297,28 @@ inline static const int EvaluateBoard(Board& board, const int level, const int w
 	int blackDangerPieces = 0;
 	const int dangerWeights[] = { 0, weights[IndexPawnDanger], weights[IndexKnightDanger], weights[IndexBishopDanger], weights[IndexRookDanger], weights[IndexQueenDanger], 4 };
 
-	int whiteKingSquare = 63 - Lzcount(board.WhiteKingBits);
-	int whiteKingFile = GetSquareFile(whiteKingSquare);
-	int whiteKingRank = GetSquareRank(whiteKingSquare);
-	uint64_t whiteKingZone = KingArea[whiteKingSquare];
-	int blackKingSquare = 63 - Lzcount(board.BlackKingBits);
-	int blackKingFile = GetSquareFile(blackKingSquare);
-	int blackKingRank = GetSquareRank(blackKingSquare);
-	uint64_t blackKingZone = KingArea[blackKingSquare];
+	const int whiteKingSquare = 63 - Lzcount(board.WhiteKingBits);
+	const int whiteKingFile = GetSquareFile(whiteKingSquare);
+	const int whiteKingRank = GetSquareRank(whiteKingSquare);
+	const uint64_t whiteKingZone = KingArea[whiteKingSquare];
+	const int blackKingSquare = 63 - Lzcount(board.BlackKingBits);
+	const int blackKingFile = GetSquareFile(blackKingSquare);
+	const int blackKingRank = GetSquareRank(blackKingSquare);
+	const uint64_t blackKingZone = KingArea[blackKingSquare];
 
-	uint64_t whiteMajorBits = board.WhiteRookBits | board.WhiteQueenBits;
-	uint64_t whiteMinorBits = board.WhiteKnightBits | board.WhiteBishopBits;
-	uint64_t blackMajorBits = board.BlackRookBits | board.BlackQueenBits;
-	uint64_t blackMinorBits = board.BlackKnightBits | board.BlackBishopBits;
+	const uint64_t whiteMajorBits = board.WhiteRookBits | board.WhiteQueenBits;
+	const uint64_t whiteMinorBits = board.WhiteKnightBits | board.WhiteBishopBits;
+	const uint64_t blackMajorBits = board.BlackRookBits | board.BlackQueenBits;
+	const uint64_t blackMinorBits = board.BlackKnightBits | board.BlackBishopBits;
 
+	uint64_t piecesOnBoard = occupancy;
 	while (piecesOnBoard != 0) {
-		int i = 63 - Lzcount(piecesOnBoard);
-		SetBitFalse(piecesOnBoard, i);
-		int piece = board.GetPieceAt(i);
-		int pieceType = TypeOfPiece(piece);
-		int pieceColor = ColorOfPiece(piece);
-		int file = GetSquareFile(i);
-		int rank = GetSquareRank(i);
+		const int i = Popsquare(piecesOnBoard);
+		const int piece = board.GetPieceAt(i);
+		const int pieceType = TypeOfPiece(piece);
+		const int pieceColor = ColorOfPiece(piece);
+		const int file = GetSquareFile(i);
+		const int rank = GetSquareRank(i);
 
 		// Material and piece-square tables
 		if (pieceColor == PieceColor::White) {

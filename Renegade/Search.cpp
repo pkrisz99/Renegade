@@ -387,8 +387,9 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			}*/
 
 			// Late-move reductions (+53 elo)
-			if ((legalMoveCount >= 4) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
-				if (!pvNode) reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
+			//if ((legalMoveCount >= 4) && isQuiet && !inCheck && !givingCheck && (depth + pvNode * 2 >= 3)) {
+			if ((legalMoveCount >= 4 + pvNode * 2) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
+				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 			}
 
 			// Principal variation search

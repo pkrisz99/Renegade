@@ -128,63 +128,53 @@ const uint64_t Board::HashInternal() {
 
 	uint64_t bits = WhitePawnBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		hash ^= Zobrist[64 * 1 + sq];
-		SetBitFalse(bits, sq);
 	}
 	bits = BlackPawnBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		hash ^= Zobrist[64 * 0 + sq];
-		SetBitFalse(bits, sq);
 	}
 	bits = WhiteKnightBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		hash ^= Zobrist[64 * 3 + sq];
-		SetBitFalse(bits, sq);
 	}
 	bits = BlackKnightBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		hash ^= Zobrist[64 * 2 + sq];
-		SetBitFalse(bits, sq);
 	}
 	bits = WhiteBishopBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		hash ^= Zobrist[64 * 5 + sq];
-		SetBitFalse(bits, sq);
 	}
 	bits = BlackBishopBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		hash ^= Zobrist[64 * 4 + sq];
-		SetBitFalse(bits, sq);
 	}
 	bits = WhiteRookBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		hash ^= Zobrist[64 * 7 + sq];
-		SetBitFalse(bits, sq);
 	}
 	bits = BlackRookBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		hash ^= Zobrist[64 * 6 + sq];
-		SetBitFalse(bits, sq);
 	}
 	bits = WhiteQueenBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		hash ^= Zobrist[64 * 9 + sq];
-		SetBitFalse(bits, sq);
 	}
 	bits = BlackQueenBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		hash ^= Zobrist[64 * 8 + sq];
-		SetBitFalse(bits, sq);
 	}
 
 	int sq = 63 - Lzcount(WhiteKingBits);
@@ -230,63 +220,53 @@ void Board::GenerateOccupancy() {
 
 	uint64_t bits = WhitePawnBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::WhitePawn;
-		SetBitFalse(bits, sq);
 	}
 	bits = BlackPawnBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::BlackPawn;
-		SetBitFalse(bits, sq);
 	}
 	bits = WhiteKnightBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::WhiteKnight;
-		SetBitFalse(bits, sq);
 	}
 	bits = BlackKnightBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::BlackKnight;
-		SetBitFalse(bits, sq);
 	}
 	bits = WhiteBishopBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::WhiteBishop;
-		SetBitFalse(bits, sq);
 	}
 	bits = BlackBishopBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::BlackBishop;
-		SetBitFalse(bits, sq);
 	}
 	bits = WhiteRookBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::WhiteRook;
-		SetBitFalse(bits, sq);
 	}
 	bits = BlackRookBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::BlackRook;
-		SetBitFalse(bits, sq);
 	}
 	bits = WhiteQueenBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::WhiteQueen;
-		SetBitFalse(bits, sq);
 	}
 	bits = BlackQueenBits;
 	while (Popcount(bits) != 0) {
-		const int sq = 63 - Lzcount(bits);
+		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::BlackQueen;
-		SetBitFalse(bits, sq);
 	}
 
 	int sq = 63 - Lzcount(WhiteKingBits);
@@ -829,8 +809,7 @@ const void Board::GeneratePseudolegalMoves(std::vector<Move>& moves) {
 	const bool quiescenceOnly = (moveGen == MoveGen::Noisy) ? true : false;
 
 	while (friendlyOccupancy != 0) {
-		const int sq = 63 - Lzcount(friendlyOccupancy);
-		SetBitFalse(friendlyOccupancy, sq);
+		const int sq = Popsquare(friendlyOccupancy);
 		const int type = TypeOfPiece(GetPieceAt(sq));
 
 		if (type == PieceType::Pawn) GeneratePawnMoves<side, moveGen>(moves, sq);
@@ -872,15 +851,13 @@ const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
 	uint64_t occ = GetOccupancy();
 	uint64_t parallelBits = colorOfPieces == PieceColor::White ? WhiteRookBits | WhiteQueenBits : BlackRookBits | BlackQueenBits;
 	while (Popcount(parallelBits) != 0) {
-		uint8_t sq = 63 - Lzcount(parallelBits);
+		const uint8_t sq = Popsquare(parallelBits);
 		squares |= GetRookAttacks(sq, occ);
-		SetBitFalse(parallelBits, sq);
 	}
 	uint64_t diagonalBits = colorOfPieces == PieceColor::White ? WhiteBishopBits | WhiteQueenBits : BlackBishopBits | BlackQueenBits;
 	while (Popcount(diagonalBits) != 0) {
-		uint8_t sq = 63 - Lzcount(diagonalBits);
+		const uint8_t sq = Popsquare(diagonalBits);
 		squares |= GetBishopAttacks(sq, occ);
-		SetBitFalse(diagonalBits, sq);
 	}
 
 	// King attack gen
@@ -892,9 +869,8 @@ const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
 	uint64_t knightBits = colorOfPieces == PieceColor::White ? WhiteKnightBits : BlackKnightBits;
 	fill = 0;
 	while (Popcount(knightBits) != 0) {
-		uint8_t sq = 63 - Lzcount(knightBits);
+		uint8_t sq = Popsquare(knightBits);
 		fill |= GenerateKnightAttacks(sq);
-		SetBitFalse(knightBits, sq);
 	}
 	squares |= fill;
 

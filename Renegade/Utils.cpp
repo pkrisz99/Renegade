@@ -238,6 +238,18 @@ static inline int Lzcount(const uint64_t& number) {
 #endif
 }
 
+static inline int Popsquare(uint64_t& number) {
+#ifdef LEGACY_CPU
+	const int place = 63 - std::countl_zero(number);
+	number &= ~(1ULL << place);
+	return place;
+#else
+	const int place = static_cast<int>(63 - __lzcnt64(number));
+	number &= ~(1ULL << place);
+	return place;
+#endif
+}
+
 static inline bool Overlapping(const uint64_t& a, const uint64_t& b) {
 	return (a & b) != 0;
 }
