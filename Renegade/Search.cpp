@@ -292,7 +292,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			// The branch was not analysed sufficiently, but we can use it for move ordering purposes
 			transpositionMove = Move(entry.moveFrom, entry.moveTo, entry.moveFlag);
 			staticEval = entry.score;
-			//if (entry.scoreType == ScoreType::Exact) staticEval = entry.score;
 		}
 		Statistics.TranspositionHits += 1;
 	}
@@ -343,6 +342,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	}
 
 	// Razoring (+1 elo haha)
+	/*
 	const int razoringMargin[] = { 0, 300, 750 };
 	if ((depth < 2) && !inCheck && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
@@ -350,7 +350,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			int e = SearchQuiescence(board, level, alpha, beta, true);
 			if (e < alpha) return alpha;
 		}
-	}
+	}*/
 
 	// Initalize variables and generate moves
 	MoveList.clear();
@@ -374,8 +374,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
 	Move bestMove;
-	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
-		Move m = get<0>(o);
+	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
 		Boards[level] = board;
@@ -405,7 +404,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			}*/
 
 			// Late-move reductions (+53 elo)
-			//if ((legalMoveCount >= 4) && isQuiet && !inCheck && !givingCheck && (depth + pvNode * 2 >= 3)) {
 			if ((legalMoveCount >= 4 + pvNode * 2) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 			}
@@ -483,12 +481,8 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	});
 
 	// Search recursively
-	for (const std::tuple<Move, int>& o : MoveOrder[level]) {
-		Move m = get<0>(o);
+	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
-
-		// Limiting quiescence search to not try underpromotions (experiments show a 0.9% underpromotion rate)
-		if ((level <= Depth + 3) && (level >= 5) && (m.IsUnderpromotion())) continue;
 
 		Boards[level] = board;
 		Board& b = Boards[level];

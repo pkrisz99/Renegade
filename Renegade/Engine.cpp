@@ -32,7 +32,7 @@ void Engine::Start() {
 			cout << "id name Renegade " << Version << endl;
 			cout << "id author Krisztian Peocz" << endl;
 			cout << "option name Clear Hash type button" << endl;
-			cout << "option name Hash type spin default 64 min 0 max 256" << endl;
+			cout << "option name Hash type spin default 64 min 0 max 1024" << endl;
 			cout << "option name OwnBook type check default false" << endl;
 			cout << "option name ExtendedOutput type check default false" << endl;
 			cout << "uciok" << endl;

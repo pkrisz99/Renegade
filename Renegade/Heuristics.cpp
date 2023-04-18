@@ -10,7 +10,6 @@ Heuristics::Heuristics() {
 // Move ordering & clearing -----------------------------------------------------------------------
 
 const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& trMove) {
-	int orderScore = 0;
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
@@ -21,13 +20,13 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 
 	// Captures
 	if ((attackedPiece != PieceType::None) || (m.flag == MoveFlag::EnPassantPerformed)) {
-		orderScore = values[attackedPiece] * 16 - values[attackingPiece] + 600000;
+		int orderScore = values[attackedPiece] * 16 - values[attackingPiece] + 600000;
 		if (m.flag == MoveFlag::EnPassantPerformed) orderScore = values[PieceType::Pawn] * 16 - values[PieceType::Pawn] + 600000;
 		return orderScore;
 	}
 
 	// Queen promotions
-	if (m.flag == MoveFlag::PromotionToQueen) return orderScore = 700000 + values[attackedPiece];
+	if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[attackedPiece];
 	
 	// Quiet killer moves
 	if (IsFirstKillerMove(m, level)) return 100100;
@@ -42,6 +41,7 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 		return historyScore;
 	}
 	else {
+		int orderScore = 0;
 		// Use PSQT change if not
 		if (turn == Turn::White) {
 			orderScore -= LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, m.from)], Weights[IndexLatePSQT(attackingPiece, m.from)], phase);
