@@ -453,7 +453,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	return e;
 }
 
-// Quiescence search: for captures (incl. en passant) and promotions only
+// Quiescence search: for noisy moves only (captures, queen promotions, pawn pushes threatening promotion)
 int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta, const bool rootNode) {
 	MoveList.clear();
 	board.GenerateMoves(MoveList, MoveGen::Noisy, Legality::Pseudolegal);
@@ -463,9 +463,9 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	}
 
 	// Update alpha-beta bounds, return alpha if no captures left
-	int staticEval = StaticEvaluation(board, level, true);
+	const int staticEval = StaticEvaluation(board, level, true);
 	if (staticEval >= beta) return beta;
-	if (staticEval < alpha - 1000) return alpha; // Delta pruning (-9 elo, should be removed)
+	//if (staticEval < alpha - 1000) return alpha; // Delta pruning (loses strength)
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= 63) return alpha;
 
@@ -487,7 +487,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 		Boards[level] = board;
 		Board& b = Boards[level];
 		b.Push(m);
-		int childEval = -SearchQuiescence(b, level + 1, -beta, -alpha, false);
+		const int childEval = -SearchQuiescence(b, level + 1, -beta, -alpha, false);
 		if (childEval >= beta) return beta;
 		if (childEval > alpha) alpha = childEval;
 	}
