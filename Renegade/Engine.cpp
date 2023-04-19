@@ -5,6 +5,7 @@ Engine::Engine() {
 	Settings.Hash = 64;
 	Settings.UseBook = false;
 	Settings.ExtendedOutput = false;
+	Settings.UciOutput = false;
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
 	Search.Heuristics.SetHashSize(Settings.Hash);
@@ -29,13 +30,14 @@ void Engine::Start() {
 		if (cmd == "quit") break;
 
 		if (cmd == "uci") {
-			cout << "id name Renegade " << Version << endl;
-			cout << "id author Krisztian Peocz" << endl;
-			cout << "option name Clear Hash type button" << endl;
-			cout << "option name Hash type spin default 64 min 0 max 1024" << endl;
-			cout << "option name OwnBook type check default false" << endl;
+			cout << "id name Renegade " << Version << '\n';
+			cout << "id author Krisztian Peocz" << '\n';
+			cout << "option name Clear Hash type button" << '\n';
+			cout << "option name Hash type spin default 64 min 0 max 1024" << '\n';
+			cout << "option name OwnBook type check default false" << '\n';
 			cout << "option name ExtendedOutput type check default false" << endl;
 			cout << "uciok" << endl;
+			Settings.UciOutput = true;
 			continue;
 		}
 

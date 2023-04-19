@@ -192,6 +192,7 @@ struct EngineSettings {
 	bool UseBook;
 	int Hash;
 	bool ExtendedOutput;
+	bool UciOutput;
 };
 
 struct SearchStatistics {

@@ -19,11 +19,8 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 	if ((m.from == trMove.from) && (m.to == trMove.to) && (m.flag == trMove.flag)) return 800000;
 
 	// Captures
-	if ((attackedPiece != PieceType::None) || (m.flag == MoveFlag::EnPassantPerformed)) {
-		int orderScore = values[attackedPiece] * 16 - values[attackingPiece] + 600000;
-		if (m.flag == MoveFlag::EnPassantPerformed) orderScore = values[PieceType::Pawn] * 16 - values[PieceType::Pawn] + 600000;
-		return orderScore;
-	}
+	if (attackedPiece != PieceType::None) return 600000 + values[attackedPiece] * 16 - values[attackingPiece];
+	if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
 
 	// Queen promotions
 	if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[attackedPiece];
@@ -32,10 +29,9 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 	if (IsFirstKillerMove(m, level)) return 100100;
 	if (IsSecondKillerMove(m, level)) return 100000;
 
+	// Quiet moves
 	const bool turn = board.Turn;
 	const int historyScore = HistoryTables[turn][m.from][m.to];
-
-	// Quiet moves
 	if (historyScore != 0) {
 		// When at least we have some history scores
 		return historyScore;

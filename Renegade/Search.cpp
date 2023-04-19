@@ -2,7 +2,7 @@
 
 Search::Search() {
 	for (int i = 1; i < 32; i++) {
-		for (int j = 1; j < 64; j++) {
+		for (int j = 1; j < 32; j++) {
 			LMRTable[i][j] = static_cast<int>(0.25 * log(i) * log(j) + 0.7);
 		}
 	}
@@ -304,8 +304,10 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	}*/
 
 	// Internal iterative deepening
+	bool skipHashVerification = false;
 	if (pvNode && (depth > 3) && transpositionMove.IsEmpty()) {
 		SearchRecursive(board, depth - 2, level + 1, -beta, -alpha, true);
+		skipHashVerification = true;
 		transpositionMove = Heuristics.PvTable[level+1][level + 1];
 	}
 
@@ -375,7 +377,9 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	int legalMoveCount = 0;
 	Move bestMove;
 	for (const auto& [m, order] : MoveOrder[level]) {
-		if (!board.IsLegalMove(m)) continue;
+		//if ((transpositionMove != m) || !skipHashVerification) {
+			if (!board.IsLegalMove(m)) continue;
+		//}
 		legalMoveCount += 1;
 		Boards[level] = board;
 		Board& b = Boards[level];
@@ -406,6 +410,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			// Late-move reductions (+53 elo)
 			if ((legalMoveCount >= 4 + pvNode * 2) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
+				// if (!pvNode && (Heuristics.HistoryTables[board.Turn][m.from][m.to] < -3000)) reduction += 1;
 			}
 
 			// Principal variation search
@@ -571,7 +576,7 @@ const int Search::GetBookSize() {
 
 // Communicating the search results ---------------------------------------------------------------
 
-const void Search::PrintInfo(const Results e, const EngineSettings settings) {
+const void Search::PrintInfo(const Results& e, const EngineSettings& settings) {
 	std::string score;
 	if (IsMateScore(e.score)) {
 		int movesToMate = (MateEval - abs(e.score) + 1) / 2;
@@ -602,6 +607,10 @@ const void Search::PrintInfo(const Results e, const EngineSettings settings) {
 	cout << endl;
 	//if (e.time < 50) cout << '\n';
 	//else cout << endl;
+}
+
+const void Search::PrintPretty(const Results& e, const EngineSettings& settings) {
+	//
 }
 
 const void Search::PrintBestmove(Move move) {

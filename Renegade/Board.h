@@ -77,7 +77,7 @@ public:
 
 private:
 	void GenerateOccupancy();
-	void TryMove(const Move move);
+	void TryMove(const Move& move);
 
 	template <bool side, MoveGen moveGen> const void GeneratePseudolegalMoves(std::vector<Move>& moves);
 	template <bool side, MoveGen moveGen> const void GenerateKnightMoves(std::vector<Move>& moves, const int home);
