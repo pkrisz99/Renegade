@@ -21,7 +21,7 @@ void Move::SetFlag(uint8_t flag) {
 	this->flag = flag;
 }
 
-const std::string Move::ToString() {
+const std::string Move::ToString() const {
 	if ((from == 0) && (to == 0)) return "0000";
 
 	int file1 = from % 8;

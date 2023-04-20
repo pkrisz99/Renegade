@@ -16,7 +16,7 @@ public:
 	Move(uint8_t from, uint8_t to);
 	Move(uint8_t from, uint8_t to, uint8_t flag);
 	void SetFlag(uint8_t flag);
-	const std::string ToString();
+	const std::string ToString() const;
 	const bool IsNotNull();
 	const bool IsEmpty();
 	const bool IsUnderpromotion();

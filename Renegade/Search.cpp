@@ -577,6 +577,11 @@ const int Search::GetBookSize() {
 // Communicating the search results ---------------------------------------------------------------
 
 const void Search::PrintInfo(const Results& e, const EngineSettings& settings) {
+	if (!settings.UciOutput) {
+		PrintPretty(e, settings);
+		return;
+	}
+
 	std::string score;
 	if (IsMateScore(e.score)) {
 		int movesToMate = (MateEval - abs(e.score) + 1) / 2;
@@ -610,7 +615,38 @@ const void Search::PrintInfo(const Results& e, const EngineSettings& settings) {
 }
 
 const void Search::PrintPretty(const Results& e, const EngineSettings& settings) {
-	//
+	const std::string green = "\x1b[92m";
+	const std::string blue = "\x1b[96m";
+	const std::string red = "\x1b[91m";
+	const std::string white = "\x1b[0m";
+	const std::string gray = "\x1b[90m";
+
+	std::string output1 = std::format(" \x1b[0m{:2d}/{:2d}", 
+		e.depth, e.stats.SelDepth);
+
+	std::string output3 = std::format("{} {:9d} {:7d}ms  {:4d}knps  h={:4.1f}% {} -> ",
+		gray, e.stats.Nodes, e.time, e.nps / 1000, e.hashfull / 10.0, white);
+
+	const int neutralMargin = 50;
+	std::string scoreColor = blue;
+	if (e.score > neutralMargin) scoreColor = green;
+	else if (e.score < -neutralMargin) scoreColor = red;
+
+	std::string output2 = std::format("{} {:+5.2f}  {}",
+		scoreColor, e.score / 100.0, white);
+
+	std::string pvOutput;
+	for (int i = 0; i < 5; i++) {
+		if (i >= e.pv.size()) break;
+		pvOutput += e.pv.at(i).ToString() + " ";
+	}
+	pvOutput.pop_back();
+	if (e.pv.size() > 5) pvOutput += " (+" + std::to_string(e.pv.size() - 5) + ")";
+	if (e.pv.size() != 0) pvOutput = white + "[" + pvOutput + white + "]";
+
+	std::string output = output1 + output3 + output2 + pvOutput + white;
+
+	cout << output << endl;
 }
 
 const void Search::PrintBestmove(Move move) {
