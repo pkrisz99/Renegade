@@ -153,7 +153,7 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 		FollowingPV = true;
 		Heuristics.ResetPvTable();
 		Depth += 1;
-		Statistics.SelDepth = 0;
+		Statistics.SelDepth = Depth;
 
 		// Obtain score
 		if (Depth < 5) {
@@ -173,10 +173,8 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 
 
 		if (IsMateScore(result)) {  // Impatience in action
-			//if (Constraints.SearchTimeMin != -1) Constraints.SearchTimeMin = static_cast<int>(Constraints.SearchTimeMin * 0.8);
-			//if (Constraints.SearchTimeMax != -1) Constraints.SearchTimeMax = static_cast<int>(Constraints.SearchTimeMax * 0.8);
-			Constraints.SearchTimeMin *= 0.8;
-			Constraints.SearchTimeMax *= 0.8;
+			if (Constraints.SearchTimeMin != -1) Constraints.SearchTimeMin = static_cast<int>(Constraints.SearchTimeMin * 0.8);
+			if (Constraints.SearchTimeMax != -1) Constraints.SearchTimeMax = static_cast<int>(Constraints.SearchTimeMax * 0.8);
 		}
 
 		// Check limits
@@ -247,9 +245,17 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		}
 	}
 
+	const bool pvNode = beta - alpha > 1;
+
+	// Mate distance pruning
+	if (level != 0) {
+		alpha = std::max(alpha, -MateEval + level);
+		beta = std::min(beta, MateEval - level - 1);
+		if (alpha >= beta) return alpha;
+	}
+
 	Statistics.Nodes += 1;
 	int staticEval = NoEval;
-	const bool pvNode = beta - alpha > 1;
 
 	// Check extensions
 	const bool inCheck = board.IsInCheck();
