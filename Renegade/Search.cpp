@@ -157,18 +157,41 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 
 		// Obtain score
 		if (Depth < 5) {
+			// Regular negamax for shallow depths
 			result = SearchRecursive(board, Depth, 0, NegativeInfinity, PositiveInfinity, true);
 		}
 		else {
 			// Aspiration windows
-			const int windowSize = 40;
-			const int alpha = result - windowSize;
-			const int beta = result + windowSize;
-			result = SearchRecursive(board, Depth, 0, alpha, beta, true);
-			// Re-search if outside bounds
-			if ((result <= alpha) || (result >= beta)) {
-				result = SearchRecursive(board, Depth, 0, NegativeInfinity, PositiveInfinity, true);
+			const int windowSizes[] = { 0, 40, PositiveInfinity, PositiveInfinity };
+			int attempts = 0;
+			int windowSize = 25;
+
+			while (true) {
+				if (Aborting) break;
+
+				attempts += 1;
+				
+				int alpha = std::max(result - windowSize, NegativeInfinity);
+				int beta = std::min(result + windowSize, PositiveInfinity);
+
+				result = SearchRecursive(board, Depth, 0, alpha, beta, true);
+
+				if (result <= alpha) {
+					alpha = std::max(result - windowSize, NegativeInfinity);
+					beta = (alpha + beta) / 2;
+				}
+				else if (result >= beta) {
+					beta = std::min(result + windowSize, PositiveInfinity);
+				}
+				else {
+					// Success!
+					break;
+				}
+
+				windowSize *= 2;
+
 			}
+
 		}
 
 
