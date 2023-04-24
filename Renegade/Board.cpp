@@ -219,52 +219,52 @@ void Board::GenerateOccupancy() {
 	std::fill(std::begin(OccupancyInts), std::end(OccupancyInts), 0);
 
 	uint64_t bits = WhitePawnBits;
-	while (Popcount(bits) != 0) {
+	while (bits != 0) {
 		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::WhitePawn;
 	}
 	bits = BlackPawnBits;
-	while (Popcount(bits) != 0) {
+	while (bits != 0) {
 		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::BlackPawn;
 	}
 	bits = WhiteKnightBits;
-	while (Popcount(bits) != 0) {
+	while (bits != 0) {
 		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::WhiteKnight;
 	}
 	bits = BlackKnightBits;
-	while (Popcount(bits) != 0) {
+	while (bits != 0) {
 		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::BlackKnight;
 	}
 	bits = WhiteBishopBits;
-	while (Popcount(bits) != 0) {
+	while (bits != 0) {
 		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::WhiteBishop;
 	}
 	bits = BlackBishopBits;
-	while (Popcount(bits) != 0) {
+	while (bits != 0) {
 		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::BlackBishop;
 	}
 	bits = WhiteRookBits;
-	while (Popcount(bits) != 0) {
+	while (bits != 0) {
 		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::WhiteRook;
 	}
 	bits = BlackRookBits;
-	while (Popcount(bits) != 0) {
+	while (bits != 0) {
 		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::BlackRook;
 	}
 	bits = WhiteQueenBits;
-	while (Popcount(bits) != 0) {
+	while (bits != 0) {
 		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::WhiteQueen;
 	}
 	bits = BlackQueenBits;
-	while (Popcount(bits) != 0) {
+	while (bits != 0) {
 		const int sq = Popsquare(bits);
 		OccupancyInts[sq] = Piece::BlackQueen;
 	}

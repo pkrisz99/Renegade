@@ -632,13 +632,20 @@ const void Search::PrintInfo(const Results& e, const EngineSettings& settings) {
 		if (e.stats.TranspositionQueries != 0) extended += " ttrate " + std::to_string(static_cast<int>(e.stats.TranspositionHits * 1000 / e.stats.TranspositionQueries));
 	}
 
+	/*
 	cout << "info depth " << e.depth << " seldepth " << e.stats.SelDepth << " score " << score << " nodes " << e.stats.Nodes << " nps " << e.nps
-		<< " time " << e.time << " hashfull " << e.hashfull << extended << " pv";
+		<< " time " << e.time << " hashfull " << e.hashfull << extended << " pv";*/
 
-	for (Move move : e.pv)
-		cout << " " << move.ToString();
+	std::string pvString;
+	for (const Move& move : e.pv)
+		pvString += " " + move.ToString();
 
-	cout << endl;
+	std::string output = std::format("info depth {} seldepth {} score {} nodes {} nps {} time {} hashfull {} pv{}",
+		e.depth, e.stats.SelDepth, score, e.stats.Nodes, e.nps, e.time, e.hashfull, pvString);
+
+
+
+	cout << output << endl;
 	//if (e.time < 50) cout << '\n';
 	//else cout << endl;
 }

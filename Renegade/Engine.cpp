@@ -35,7 +35,6 @@ void Engine::Start() {
 			cout << "option name Clear Hash type button" << '\n';
 			cout << "option name Hash type spin default 64 min 0 max 1024" << '\n';
 			cout << "option name OwnBook type check default false" << '\n';
-			cout << "option name ExtendedOutput type check default false" << endl;
 			cout << "uciok" << endl;
 			Settings.UciOutput = true;
 			continue;

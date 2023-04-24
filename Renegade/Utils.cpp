@@ -245,8 +245,8 @@ static inline int Popsquare(uint64_t& number) {
 	number &= ~(1ULL << place);
 	return place;
 #else
-	const int place = static_cast<int>(63 - __lzcnt64(number));
-	number &= ~(1ULL << place);
+	const int place = static_cast<int>(_tzcnt_u64(number));
+	number = _blsr_u64(number);
 	return place;
 #endif
 }
@@ -580,7 +580,7 @@ const bool OutpostFilter[] = {
 };
 
 // Randomly selected FENs from Renegade's games for benchmarking, might replace with something more standard
-const std::array<std::string, 10 > BenchmarkFENs = {
+const std::array<std::string, 10> BenchmarkFENs = {
 	"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 	"2r3k1/2P2pp1/3Np2p/8/7P/5qP1/5P1K/2Q5 b - - 2 42",
 	"rnbqkb1r/pppppppp/8/3nP3/2P5/8/PP1P1PPP/RNBQKBNR b KQkq - 0 3",
