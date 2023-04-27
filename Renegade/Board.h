@@ -48,6 +48,7 @@ public:
 	const bool IsInCheck();
 
 	template <bool side> const uint8_t GetKingSquare();
+	const uint64_t GetAttackersOfSquare(const uint8_t square);
 
 
 	// Board variables:

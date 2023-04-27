@@ -579,7 +579,7 @@ template <bool side, MoveGen moveGen>
 const void Board::GenerateKnightMoves(std::vector<Move>& moves, const int home) {
 	const uint8_t friendlyPieceColor = (side == Turn::White) ? PieceColor::White : PieceColor::Black;
 	const uint8_t opponentPieceColor = (side == Turn::White) ? PieceColor::Black : PieceColor::White;
-	for (const int &l : KnightMoves[home]) {
+	for (const int& l : KnightMoves[home]) {
 		if (ColorOfPiece(GetPieceAt(l)) == friendlyPieceColor) continue;
 		if ((moveGen == MoveGen::All) || (ColorOfPiece(GetPieceAt(l)) == opponentPieceColor)) moves.push_back(Move(home, l));
 	}
@@ -993,6 +993,46 @@ bool Board::IsSquareAttacked(const uint8_t square) {
 		// Okay
 		return false;
 	}
+}
+
+const uint64_t Board::GetAttackersOfSquare(const uint8_t square) {
+	uint64_t occupancy = GetOccupancy();
+	uint64_t attackers = 0;
+
+	// Pawns
+	if (SquareBits[square] & ((WhitePawnBits & ~Bitboards::FileA) << 7)) SetBitTrue(attackers, square - 7);
+	if (SquareBits[square] & ((WhitePawnBits & ~Bitboards::FileH) << 9)) SetBitTrue(attackers, square - 9);
+	if (SquareBits[square] & ((BlackPawnBits & ~Bitboards::FileA) >> 9)) SetBitTrue(attackers, square + 9);
+	if (SquareBits[square] & ((BlackPawnBits & ~Bitboards::FileH) >> 7)) SetBitTrue(attackers, square + 7);
+
+	// Knights
+	uint64_t bits = WhiteKnightBits | BlackKnightBits;
+	while (bits) {
+		const uint8_t sq = Popsquare(bits);
+		if (KnightMoveBits[sq] & SquareBits[square]) SetBitTrue(attackers, sq);
+	}
+
+	// Bishops & queens
+	bits = WhiteBishopBits | WhiteQueenBits | BlackBishopBits | BlackQueenBits;
+	while (bits) {
+		const uint8_t sq = Popsquare(bits);
+		if (GetBishopAttacks(sq, occupancy) & SquareBits[square]) SetBitTrue(attackers, sq);
+	}
+
+	// Rooks & queens
+	bits = WhiteRookBits | WhiteQueenBits | BlackRookBits | BlackQueenBits;
+	while (bits) {
+		const uint8_t sq = Popsquare(bits);
+		if (GetRookAttacks(sq, occupancy) & SquareBits[square]) SetBitTrue(attackers, sq);
+	}
+
+	// Kings
+	uint8_t sq = GetKingSquare<Turn::White>();
+	if (KingMoveBits[sq] & SquareBits[square]) SetBitTrue(attackers, sq);
+	sq = GetKingSquare<Turn::Black>();
+	if (KingMoveBits[sq] & SquareBits[square]) SetBitTrue(attackers, sq);
+
+	return attackers;
 }
 
 // Other ------------------------------------------------------------------------------------------

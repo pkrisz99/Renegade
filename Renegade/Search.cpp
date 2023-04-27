@@ -1,4 +1,5 @@
 #include "Search.h"
+#include <cassert>
 
 Search::Search() {
 	for (int i = 1; i < 32; i++) {
@@ -162,18 +163,12 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 		}
 		else {
 			// Aspiration windows
-			const int windowSizes[] = { 0, 40, PositiveInfinity, PositiveInfinity };
-			int attempts = 0;
 			int windowSize = 25;
 
 			while (true) {
-				if (Aborting) break;
-
-				attempts += 1;
-				
+				if (Aborting) break;		
 				int alpha = std::max(result - windowSize, NegativeInfinity);
 				int beta = std::min(result + windowSize, PositiveInfinity);
-
 				result = SearchRecursive(board, Depth, 0, alpha, beta, true);
 
 				if (result <= alpha) {
@@ -193,14 +188,14 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 			}
 
 		}
-
-
-		if (IsMateScore(result)) {  // Impatience in action
+		
+		// Reduce allocated time if found mate (impatience in action)
+		if (IsMateScore(result)) {
 			if (Constraints.SearchTimeMin != -1) Constraints.SearchTimeMin = static_cast<int>(Constraints.SearchTimeMin * 0.8);
 			if (Constraints.SearchTimeMax != -1) Constraints.SearchTimeMax = static_cast<int>(Constraints.SearchTimeMax * 0.8);
 		}
 
-		// Check limits
+		// Check search limits
 		auto currentTime = Clock::now();
 		elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
 		if ((elapsedMs >= Constraints.SearchTimeMin) && (Constraints.SearchTimeMin != -1)) finished = true;
@@ -223,7 +218,7 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 		e.nps = static_cast<int>(Statistics.Nodes * 1e9 / (currentTime - StartSearchTime).count());
 		e.hashfull = Heuristics.GetHashfull();
 
-		// Check PV validity (note & todo: may not be correct)
+		// Checking PV validity
 		e.pv.clear();
 		std::vector<Move> returnedPVs = Heuristics.GeneratePvLine();
 		Board b = board.Copy();
@@ -253,7 +248,7 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 // Recursively called during the negamax search
 int Search::SearchRecursive(Board &board, int depth, const int level, int alpha, int beta, const bool canNullMove) {
 
-	// Check limits
+	// Check search limits
 	if (Aborting) return NoEval;
 	if ((Constraints.MaxNodes != -1) && (Statistics.Nodes >= Constraints.MaxNodes) && (Depth > 1)) {
 		Aborting = true;
@@ -392,7 +387,8 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	MoveOrder[level].clear();
 	bool foundPvMove = false;
 	for (const Move& m : MoveList) {
-		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, FollowingPV, transpositionMove);
+		const bool losingSEE = false; // !StaticExchangeEval(board, m, 0);
+		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, FollowingPV, transpositionMove, losingSEE);
 		if (FollowingPV && Heuristics.IsPvMove(m, level)) foundPvMove = true;
 		MoveOrder[level].push_back({ m, orderScore });
 	}
@@ -406,9 +402,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	int legalMoveCount = 0;
 	Move bestMove;
 	for (const auto& [m, order] : MoveOrder[level]) {
-		//if ((transpositionMove != m) || !skipHashVerification) {
-			if (!board.IsLegalMove(m)) continue;
-		//}
+		if (!board.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
 		Boards[level] = board;
 		Board& b = Boards[level];
@@ -430,8 +424,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			int reduction = 0;
 
 			// Late-move pruning
-			/*
-			const int lmpCount[] = { 0, 10, 14, 18, 22 };
+			/*const int lmpCount[] = { 0, 10, 14, 18, 22 };
 			if ((depth < 5) && !pvNode && !inCheck && isQuiet) {
 				if (legalMoveCount > lmpCount[depth]) continue;
 			}*/
@@ -439,6 +432,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			// Late-move reductions (+53 elo)
 			if ((legalMoveCount >= 4 + pvNode * 2) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
+				// Idea: increase reduction for bad history moves
 				// if (!pvNode && (Heuristics.HistoryTables[board.Turn][m.from][m.to] < -3000)) reduction += 1;
 			}
 
@@ -507,7 +501,8 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
-		int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false, Move());
+		const bool losingSEE = false; // !StaticExchangeEval(board, m, 0);
+		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false, Move(), losingSEE);
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
@@ -517,6 +512,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	// Search recursively
 	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
+		if (!StaticExchangeEval(board, m, 0)) continue;
 
 		Boards[level] = board;
 		Board& b = Boards[level];
@@ -535,6 +531,104 @@ int Search::StaticEvaluation(Board &board, int level, bool checkDraws) {
 		if (board.IsDraw()) return 0;
 	}
 	return EvaluateBoard(board, level);
+}
+
+// Static exchange evaluation (SEE) ---------------------------------------------------------------
+
+const int values[] = { 0, 100, 300, 300, 500, 1000, 999999 };
+
+
+bool Search::StaticExchangeEval(Board& board, const Move& move, const int threshold) {
+	// This is more or less the standard way of doing this
+	// The implementation follows Ethereal's method
+
+	// Get the initial piece
+	uint8_t victim = TypeOfPiece(board.GetPieceAt(move.from));
+	if (move.IsPromotion()) victim = move.GetPromotionPieceType();
+
+	// Get estimated move value
+	int estimatedMoveValue = values[TypeOfPiece(board.GetPieceAt(move.to))];
+	if (move.IsPromotion()) estimatedMoveValue += values[move.GetPromotionPieceType()] - values[PieceType::Pawn];
+	else if (move.flag == MoveFlag::EnPassantPerformed) estimatedMoveValue = values[PieceType::Pawn];
+
+	// Handle trivial cases (losing the piece for nothing still above / having initial gain below threshold)
+	int score = -threshold;
+	score += estimatedMoveValue;
+	if (score < 0) return false;
+	score -= values[victim];
+	if (score >= 0) return true;
+
+	// Lookups (should be optimized) 
+	const uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
+	const uint64_t blackPieces = board.GetOccupancy(PieceColor::Black);
+	const uint64_t parallels = board.WhiteRookBits | board.BlackRookBits | board.WhiteQueenBits | board.BlackQueenBits; 
+	const uint64_t diagonals = board.WhiteBishopBits | board.BlackBishopBits | board.WhiteQueenBits | board.BlackQueenBits;
+	uint64_t occupancy = whitePieces | blackPieces;
+	SetBitFalse(occupancy, move.from);
+	SetBitTrue(occupancy, move.to);
+	bool turn = board.Turn;
+	if (move.flag == MoveFlag::EnPassantPerformed) {
+		if (turn == Turn::White) SetBitFalse(occupancy, move.to - 8);
+		else SetBitFalse(occupancy, move.to + 8);
+	};
+	turn = !turn;
+	uint64_t attackers = board.GetAttackersOfSquare(move.to) & occupancy;
+
+	// Pseudo-generating steps
+	while (true) {
+
+		uint64_t currentAttackers = attackers & ((turn == Turn::White) ? whitePieces : blackPieces);
+		if (!currentAttackers) break;
+
+		// Retrieve the locaion of the least valuable attacking piece type
+		int sq = -1;
+		if (turn == Turn::White) {
+			if (currentAttackers & board.WhitePawnBits) sq = LsbSquare(currentAttackers & board.WhitePawnBits);
+			else if (currentAttackers & board.WhiteKnightBits) sq = LsbSquare(currentAttackers & board.WhiteKnightBits);
+			else if (currentAttackers & board.WhiteBishopBits) sq = LsbSquare(currentAttackers & board.WhiteBishopBits);
+			else if (currentAttackers & board.WhiteRookBits) sq = LsbSquare(currentAttackers & board.WhiteRookBits);
+			else if (currentAttackers & board.WhiteQueenBits) sq = LsbSquare(currentAttackers & board.WhiteQueenBits);
+			else if (currentAttackers & board.WhiteKingBits) sq = LsbSquare(currentAttackers & board.WhiteKingBits);
+		}
+		else {
+			if (currentAttackers & board.BlackPawnBits) sq = LsbSquare(currentAttackers & board.BlackPawnBits);
+			else if (currentAttackers & board.BlackKnightBits) sq = LsbSquare(currentAttackers & board.BlackKnightBits);
+			else if (currentAttackers & board.BlackBishopBits) sq = LsbSquare(currentAttackers & board.BlackBishopBits);
+			else if (currentAttackers & board.BlackRookBits) sq = LsbSquare(currentAttackers & board.BlackRookBits);
+			else if (currentAttackers & board.BlackQueenBits) sq = LsbSquare(currentAttackers & board.BlackQueenBits);
+			else if (currentAttackers & board.BlackKingBits) sq = LsbSquare(currentAttackers & board.BlackKingBits);
+		}
+		assert(sq != -1);
+
+		// Update fields
+		victim = TypeOfPiece(board.GetPieceAt(sq));
+		SetBitFalse(occupancy, sq);
+
+		// Update potentially uncovered sliding pieces
+		if ((victim == PieceType::Pawn) || (victim == PieceType::Bishop) || (victim == PieceType::Queen)) {
+			attackers |= GetBishopAttacks(move.to, occupancy) & diagonals;
+		}
+		if ((victim == PieceType::Rook) || (victim == PieceType::Queen)) {
+			attackers |= GetRookAttacks(move.to, occupancy) & parallels;
+		}
+
+		attackers &= occupancy;
+		turn = !turn;
+
+		// Break conditions
+		score = -score - values[victim] - 1;
+		if (score >= 0) {
+			const uint64_t upcomingOccupnacy = (turn == Turn::White) ? whitePieces : blackPieces;
+			if ((victim == PieceType::King) && (currentAttackers & upcomingOccupnacy)) {
+				turn = !turn;
+			}
+			break;
+		}
+
+	}
+
+	// If after the exchange it's our opponent's turn, that means we won
+	return turn != board.Turn;
 }
 
 // Opening book -----------------------------------------------------------------------------------
@@ -656,6 +750,7 @@ const void Search::PrintPretty(const Results& e, const EngineSettings& settings)
 	const std::string red = "\x1b[91m";
 	const std::string white = "\x1b[0m";
 	const std::string gray = "\x1b[90m";
+	const std::string yellow = "\x1b[93m";
 
 	std::string output1 = std::format(" \x1b[0m{:2d}/{:2d}", 
 		e.depth, e.stats.SelDepth);
@@ -665,11 +760,24 @@ const void Search::PrintPretty(const Results& e, const EngineSettings& settings)
 
 	const int neutralMargin = 50;
 	std::string scoreColor = blue;
-	if (e.score > neutralMargin) scoreColor = green;
-	else if (e.score < -neutralMargin) scoreColor = red;
+	if (!IsMateScore(e.score)) {
+		if (e.score > neutralMargin) scoreColor = green;
+		else if (e.score < -neutralMargin) scoreColor = red;
+	}
+	else {
+		scoreColor = yellow;
+	}
 
-	std::string output2 = std::format("{} {:+5.2f}  {}",
-		scoreColor, e.score / 100.0, white);
+	std::string output2;
+	if (!IsMateScore(e.score))
+		output2 = std::format("{} {:+5.2f}  {}", scoreColor, e.score / 100.0, white);
+	else {
+		std::string output2mate;
+		int movesToMate = (MateEval - abs(e.score) + 1) / 2;
+		if (e.score > 0) output2mate = "#+" + std::to_string(movesToMate);
+		else output2mate = "#-" + std::to_string(movesToMate);
+		output2 = std::format("{} {:5}  {}", scoreColor, output2mate, white);
+	}
 
 	std::string pvOutput;
 	for (int i = 0; i < 5; i++) {
@@ -685,6 +793,6 @@ const void Search::PrintPretty(const Results& e, const EngineSettings& settings)
 	cout << output << endl;
 }
 
-const void Search::PrintBestmove(Move move) {
+const void Search::PrintBestmove(const Move& move) {
 	cout << "bestmove " << move.ToString() << endl;
 }

@@ -32,7 +32,7 @@ public:
 	static const int PvSize = 32;
 
 	Heuristics();
-	const int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& trMove);
+	const int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& trMove, const bool losingSEE);
 	
 	// PV table
 	void UpdatePvTable(const Move& move, const int level, const bool leaf);

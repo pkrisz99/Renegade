@@ -9,7 +9,7 @@ Heuristics::Heuristics() {
 
 // Move ordering & clearing -----------------------------------------------------------------------
 
-const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& trMove) {
+const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& trMove, const bool losingSEE) {
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
@@ -19,8 +19,14 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 	if ((m.from == trMove.from) && (m.to == trMove.to) && (m.flag == trMove.flag)) return 800000;
 
 	// Captures
-	if (attackedPiece != PieceType::None) return 600000 + values[attackedPiece] * 16 - values[attackingPiece];
-	if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
+	if (!losingSEE) {
+		if (attackedPiece != PieceType::None) return 600000 + values[attackedPiece] * 16 - values[attackingPiece];
+		if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
+	}
+	else {
+		if (attackedPiece != PieceType::None) return 600000 + values[attackedPiece] * 16 - values[attackingPiece];
+		if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
+	}
 
 	// Queen promotions
 	if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[attackedPiece];

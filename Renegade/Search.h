@@ -35,6 +35,7 @@ public:
 	int SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove);
 	int SearchQuiescence(Board& board, const int level, int alpha, int beta, const bool rootNode);
 	int StaticEvaluation(Board& board, const int level, bool checkDraws);
+	bool StaticExchangeEval(Board& board, const Move& move, const int threshold);
 
 	// Opening book
 	void InitOpeningBook();
@@ -45,7 +46,7 @@ public:
 	// Communication
 	const void PrintInfo(const Results& e, const EngineSettings& settings);
 	const void PrintPretty(const Results& e, const EngineSettings& settings);
-	const void PrintBestmove(Move move);
+	const void PrintBestmove(const Move& move);
 
 	int Depth;
 	SearchStatistics Statistics;

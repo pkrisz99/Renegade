@@ -251,6 +251,15 @@ static inline int Popsquare(uint64_t& number) {
 #endif
 }
 
+
+static inline int LsbSquare(uint64_t number) {
+#ifdef LEGACY_CPU
+	std::terminate(); // kinda todo
+#else
+	return static_cast<int>(_tzcnt_u64(number));
+#endif
+}
+
 static inline bool Overlapping(const uint64_t& a, const uint64_t& b) {
 	return (a & b) != 0;
 }

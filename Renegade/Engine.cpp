@@ -197,6 +197,26 @@ void Engine::Start() {
 			if (parts[1] == "isdraw") {
 				cout << "Is draw? " << board.IsDraw() << endl;
 			}
+			if (parts[1] == "attackersofsquare") {
+				const int sq = stoi(parts[2]);
+				DebugBitboard(board.GetAttackersOfSquare(sq));
+			}
+			if (parts[1] == "see") {
+				const Move m = Move(stoi(parts[2]), stoi(parts[3]), stoi(parts[4]));
+				cout << "SEE: " << Search.StaticExchangeEval(board, m, stoi(parts[5])) << endl;
+			}
+			if (parts[1] == "seemulti") {
+				const Move m = Move(stoi(parts[2]), stoi(parts[3]), stoi(parts[4]));
+				int threshold = -2000;
+				while (Search.StaticExchangeEval(board, m, threshold)) {
+					threshold += 1;
+				}
+				cout << "SEE value: " << threshold << endl;
+			}
+			if (parts[1] == "sqtoi") {
+				for (int i = 2; i < parts.size(); i++)
+					cout << parts[i] << " -> " << static_cast<int>(SquareToNum(parts[i])) << endl;
+			}
 			continue;
 		}
 

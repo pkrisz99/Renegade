@@ -54,5 +54,20 @@ const bool Move::IsEmpty() {
 }
 
 const bool Move::IsUnderpromotion() {
-	return ((flag == MoveFlag::PromotionToRook) || (flag == MoveFlag::PromotionToKnight) || (flag == MoveFlag::PromotionToBishop));
+	return (flag == MoveFlag::PromotionToRook) || (flag == MoveFlag::PromotionToKnight) || (flag == MoveFlag::PromotionToBishop);
+}
+
+const bool Move::IsPromotion() const {
+	return (flag == MoveFlag::PromotionToQueen) || (flag == MoveFlag::PromotionToRook) 
+		|| (flag == MoveFlag::PromotionToKnight) || (flag == MoveFlag::PromotionToBishop);
+}
+
+const uint8_t Move::GetPromotionPieceType() const {
+	switch (flag) {
+	case MoveFlag::PromotionToQueen: return PieceType::Queen;
+	case MoveFlag::PromotionToRook: return PieceType::Rook;
+	case MoveFlag::PromotionToKnight: return PieceType::Knight;
+	case MoveFlag::PromotionToBishop: return PieceType::Bishop;
+	default: return PieceType::None;
+	}
 }
