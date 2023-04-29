@@ -98,9 +98,9 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 		int minTime;
 		if (params.movestogo > 0) {
 			// Repeating time control
-			maxTime = static_cast<int>((myTime / params.movestogo * 2));
-			minTime = static_cast<int>((myTime / params.movestogo * 0.3));
-			maxTime = std::min(maxTime, myTime / 2);
+			maxTime = static_cast<int>((myTime / params.movestogo * 2.2));
+			minTime = static_cast<int>((myTime / params.movestogo * 0.5));
+			maxTime = std::min(maxTime, static_cast<int>(myTime * 0.8));
 		}
 		else {
 			// Sudden death 
@@ -116,6 +116,21 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 
 	// Default: go infinite
 	return constraints;
+}
+
+const inline bool Search::ShouldAbort() {
+	if (Aborting) return true;
+	if ((Constraints.MaxNodes != -1) && (Statistics.Nodes >= Constraints.MaxNodes) && (Depth > 1)) {
+		return true;
+	}
+	if ((Statistics.Nodes % 1024 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
+		auto now = Clock::now();
+		const int elapsedMs = static_cast<int>((now - StartSearchTime).count() / 1e6);
+		if (elapsedMs >= Constraints.SearchTimeMax) {
+			return true;
+		}
+	}
+	return false;
 }
 
 // Negamax search routine and handling ------------------------------------------------------------
@@ -249,19 +264,8 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 int Search::SearchRecursive(Board &board, int depth, const int level, int alpha, int beta, const bool canNullMove) {
 
 	// Check search limits
+	Aborting = ShouldAbort();
 	if (Aborting) return NoEval;
-	if ((Constraints.MaxNodes != -1) && (Statistics.Nodes >= Constraints.MaxNodes) && (Depth > 1)) {
-		Aborting = true;
-		return NoEval;
-	}
-	if ((Statistics.Nodes % 1024 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
-		auto now = Clock::now();
-		const int elapsedMs = (int)((now - StartSearchTime).count() / 1e6);
-		if (elapsedMs >= Constraints.SearchTimeMax) {
-			Aborting = true;
-			return NoEval;
-		}
-	}
 
 	const bool pvNode = beta - alpha > 1;
 
@@ -483,6 +487,12 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 // Quiescence search: for noisy moves only (captures, queen promotions, pawn pushes threatening promotion)
 int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta, const bool rootNode) {
+
+	// Check search limits
+	Aborting = ShouldAbort();
+	if (Aborting) return NoEval;
+
+	// Generate noisy moves
 	MoveList.clear();
 	board.GenerateMoves(MoveList, MoveGen::Noisy, Legality::Pseudolegal);
 	if (!rootNode) {
