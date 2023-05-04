@@ -9,14 +9,14 @@ Heuristics::Heuristics() {
 
 // Move ordering & clearing -----------------------------------------------------------------------
 
-const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& trMove, const bool losingSEE) {
+const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& ttMove, const bool losingSEE) {
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
 	
 	// PV and transposition moves
 	if (IsPvMove(m, level) && onPv) return 900000; // ????
-	if ((m.from == trMove.from) && (m.to == trMove.to) && (m.flag == trMove.flag)) return 800000;
+	if ((m.from == ttMove.from) && (m.to == ttMove.to) && (m.flag == ttMove.flag)) return 800000;
 
 	// Captures
 	if (!losingSEE) {
@@ -263,14 +263,14 @@ const int Heuristics::GetHashfull() {
 void Heuristics::ClearTranspositionTable() {
 	TranspositionTable.clear();
 	TranspositionTable.reserve(HashFilter + 1);
-	for (int i = 0; i < HashFilter; i++) TranspositionTable.push_back(TranspositionEntry());
+	for (int i = 0; i < HashFilter + 1; i++) TranspositionTable.push_back(TranspositionEntry());
 	TranspositionTable.shrink_to_fit();
 	TranspositionEntryCount = 0;
 }
 
-const void Heuristics::GetTranspositionInfo(uint64_t& trTheoretical, uint64_t& trUsable, uint64_t& trBits, uint64_t& trUsed) {
-	trTheoretical = TheoreticalTranspositionEntires;
-	trUsable = HashFilter + 1;
-	trBits = HashBits;
-	trUsed = TranspositionEntryCount;
+const void Heuristics::GetTranspositionInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits, uint64_t& ttUsed) {
+	ttTheoretical = TheoreticalTranspositionEntires;
+	ttUsable = HashFilter + 1;
+	ttBits = HashBits;
+	ttUsed = TranspositionEntryCount;
 }

@@ -1097,30 +1097,30 @@ const bool Board::IsDraw() {
 	// I think this neglects some cases when pawns can't move
 	const int pieceCount = Popcount(GetOccupancy());
 	if (pieceCount <= 4) {
-		const int WhitePawnCount = Popcount(WhitePawnBits);
-		const int WhiteKnightCount = Popcount(WhiteKnightBits);
-		const int WhiteBishopCount = Popcount(WhiteBishopBits);
-		const int WhiteRookCount = Popcount(WhiteRookBits);
-		const int WhiteQueenCount = Popcount(WhiteQueenBits);
-		const int BlackPawnCount = Popcount(BlackPawnBits);
-		const int BlackKnightCount = Popcount(BlackKnightBits);
-		const int BlackBishopCount = Popcount(BlackBishopBits);
-		const int BlackRookCount = Popcount(BlackRookBits);
-		const int BlackQueenCount = Popcount(BlackQueenBits);
-		const int WhitePieceCount = WhitePawnCount + WhiteKnightCount + WhiteBishopCount + WhiteRookCount + WhiteQueenCount;
-		const int BlackPieceCount = BlackPawnCount + BlackKnightCount + BlackBishopCount + BlackRookCount + BlackQueenCount;
-		const int WhiteLightBishopCount = Popcount(WhiteBishopBits & Bitboards::LightSquares);
-		const int WhiteDarkBishopCount = Popcount(WhiteBishopBits & Bitboards::DarkSquares);
-		const int BlackLightBishopCount = Popcount(BlackBishopBits & Bitboards::LightSquares);
-		const int BlackDarkBishopCount = Popcount(BlackBishopBits & Bitboards::DarkSquares);
+		const int whitePawnCount = Popcount(WhitePawnBits);
+		const int whiteKnightCount = Popcount(WhiteKnightBits);
+		const int whiteBishopCount = Popcount(WhiteBishopBits);
+		const int whiteRookCount = Popcount(WhiteRookBits);
+		const int whiteQueenCount = Popcount(WhiteQueenBits);
+		const int blackPawnCount = Popcount(BlackPawnBits);
+		const int blackKnightCount = Popcount(BlackKnightBits);
+		const int blackBishopCount = Popcount(BlackBishopBits);
+		const int blackRookCount = Popcount(BlackRookBits);
+		const int blackQueenCount = Popcount(BlackQueenBits);
+		const int whitePieceCount = whitePawnCount + whiteKnightCount + whiteBishopCount + whiteRookCount + whiteQueenCount;
+		const int blackPieceCount = blackPawnCount + blackKnightCount + blackBishopCount + blackRookCount + blackQueenCount;
+		const int whiteLightBishopCount = Popcount(WhiteBishopBits & Bitboards::LightSquares);
+		const int whiteDarkBishopCount = Popcount(WhiteBishopBits & Bitboards::DarkSquares);
+		const int blackLightBishopCount = Popcount(BlackBishopBits & Bitboards::LightSquares);
+		const int blackDarkBishopCount = Popcount(BlackBishopBits & Bitboards::DarkSquares);
 
-		if (WhitePieceCount == 0 && BlackPieceCount == 0) return true;
-		if (WhitePieceCount == 1 && WhiteKnightCount == 1 && BlackPieceCount == 0) return true;
-		if (BlackPieceCount == 1 && BlackKnightCount == 1 && WhitePieceCount == 0) return true;
-		if (WhitePieceCount == 1 && WhiteBishopCount == 1 && BlackPieceCount == 0) return true;
-		if (BlackPieceCount == 1 && BlackBishopCount == 1 && WhitePieceCount == 0) return true;
-		if (WhitePieceCount == 1 && WhiteLightBishopCount == 1 && BlackPieceCount == 1 && BlackLightBishopCount == 1) return true;
-		if (WhitePieceCount == 1 && WhiteDarkBishopCount == 1 && BlackPieceCount == 1 && BlackDarkBishopCount == 1) return true;
+		if (whitePieceCount == 0 && blackPieceCount == 0) return true;
+		if (whitePieceCount == 1 && whiteKnightCount == 1 && blackPieceCount == 0) return true;
+		if (blackPieceCount == 1 && blackKnightCount == 1 && whitePieceCount == 0) return true;
+		if (whitePieceCount == 1 && whiteBishopCount == 1 && blackPieceCount == 0) return true;
+		if (blackPieceCount == 1 && blackBishopCount == 1 && whitePieceCount == 0) return true;
+		if (whitePieceCount == 1 && whiteLightBishopCount == 1 && blackPieceCount == 1 && blackLightBishopCount == 1) return true;
+		if (whitePieceCount == 1 && whiteDarkBishopCount == 1 && blackPieceCount == 1 && blackDarkBishopCount == 1) return true;
 	}
 
 	// Fifty moves without progress

@@ -33,7 +33,7 @@ void Engine::Start() {
 			cout << "id name Renegade " << Version << '\n';
 			cout << "id author Krisztian Peocz" << '\n';
 			cout << "option name Clear Hash type button" << '\n';
-			cout << "option name Hash type spin default 64 min 0 max 1024" << '\n';
+			cout << "option name Hash type spin default 64 min 0 max 4096" << '\n';
 			cout << "option name OwnBook type check default false" << '\n';
 			cout << "uciok" << endl;
 			Settings.UciOutput = true;
@@ -269,6 +269,15 @@ void Engine::Start() {
 		}
 		if (parts[0] == "test") {
 			cout << "Test trigger point" << endl;
+			continue;
+		}
+		if (parts[0] == "bighash") {
+			Search.Heuristics.SetHashSize(4096);
+			continue;
+		}
+		if (parts[0] == "nohash") {
+			Search.Heuristics.SetHashSize(0);
+			continue;
 		}
 
 		// Position command
@@ -309,7 +318,7 @@ void Engine::Start() {
 		// Go command
 		if (parts[0] == "go") {
 
-			if ((parts[1] == "perft") || (parts[1] == "perftdiv") || (parts[1] == "perfd")) {
+			if ((parts.size() == 3) && ((parts[1] == "perft") || (parts[1] == "perftdiv") || (parts[1] == "perfd"))) {
 				int depth = stoi(parts[2]);
 				PerftType type = PerftType::Normal;
 				if (parts[1] == "perftdiv") type = PerftType::PerftDiv;

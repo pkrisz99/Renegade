@@ -1,5 +1,4 @@
 #include "Search.h"
-#include <cassert>
 
 Search::Search() {
 	for (int i = 1; i < 32; i++) {
@@ -53,7 +52,7 @@ const uint64_t Search::PerftRecursive(Board& board, const int depth, const int o
 	board.GenerateMoves(moves, MoveGen::All, Legality::Legal);
 	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << moves.size() << "): " << endl;
 	uint64_t count = 0;
-	for (Move m : moves) {
+	for (const Move& m : moves) {
 		uint64_t r;
 		if (depth == 1) {
 			r = 1;
@@ -268,6 +267,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	if (Aborting) return NoEval;
 
 	const bool pvNode = beta - alpha > 1;
+	Statistics.AlphaBetaCalls += 1;
 
 	// Mate distance pruning
 	if (level != 0) {
@@ -276,7 +276,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		if (alpha >= beta) return alpha;
 	}
 
-	Statistics.Nodes += 1;
 	int staticEval = NoEval;
 
 	// Check extensions
@@ -324,13 +323,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		Statistics.TranspositionHits += 1;
 	}
 
-	/*
-	Scores[level] = NoEval;
-	if (depth <= 5) {
-		staticEval = EvaluateBoard(board, level);
-		Scores[level] = staticEval;
-	}*/
-
 	// Internal iterative deepening
 	bool skipHashVerification = false;
 	if (pvNode && (depth > 3) && transpositionMove.IsEmpty()) {
@@ -371,7 +363,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		if (staticEval - rfpMargin[depth] > beta) return staticEval;
 	}
 
-	// Razoring (+1 elo haha)
+	// Razoring (neutral)
 	/*
 	const int razoringMargin[] = { 0, 300, 750 };
 	if ((depth < 2) && !inCheck && !pvNode) {
@@ -408,6 +400,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
+		Statistics.Nodes += 1;
 		Boards[level] = board;
 		Board& b = Boards[level];
 		const bool isQuiet = b.IsMoveQuiet(m);
@@ -427,7 +420,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		else {
 			int reduction = 0;
 
-			// Late-move pruning
+			// Late-move pruning (slightly losing)
 			/*const int lmpCount[] = { 0, 10, 14, 18, 22 };
 			if ((depth < 5) && !pvNode && !inCheck && isQuiet) {
 				if (legalMoveCount > lmpCount[depth]) continue;
@@ -496,8 +489,8 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	MoveList.clear();
 	board.GenerateMoves(MoveList, MoveGen::Noisy, Legality::Pseudolegal);
 	if (!rootNode) {
-		Statistics.Nodes += 1;
-		Statistics.QuiescenceNodes += 1;
+		Statistics.AlphaBetaCalls += 1;
+		Statistics.QSeachAlphaBetaCalls += 1;
 	}
 
 	// Update alpha-beta bounds, return alpha if no captures left
@@ -507,7 +500,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= 63) return alpha;
 
-	// Order capture moves
+	// Order noisy moves
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
@@ -523,6 +516,8 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
 		if (!StaticExchangeEval(board, m, 0)) continue;
+		Statistics.Nodes += 1;
+		Statistics.QuiescenceNodes += 1;
 
 		Boards[level] = board;
 		Board& b = Boards[level];
@@ -545,8 +540,7 @@ int Search::StaticEvaluation(Board &board, int level, bool checkDraws) {
 
 // Static exchange evaluation (SEE) ---------------------------------------------------------------
 
-const int values[] = { 0, 100, 300, 300, 500, 1000, 999999 };
-
+const int seeValues[] = { 0, 100, 300, 300, 500, 1000, 999999 };
 
 bool Search::StaticExchangeEval(Board& board, const Move& move, const int threshold) {
 	// This is more or less the standard way of doing this
@@ -557,15 +551,15 @@ bool Search::StaticExchangeEval(Board& board, const Move& move, const int thresh
 	if (move.IsPromotion()) victim = move.GetPromotionPieceType();
 
 	// Get estimated move value
-	int estimatedMoveValue = values[TypeOfPiece(board.GetPieceAt(move.to))];
-	if (move.IsPromotion()) estimatedMoveValue += values[move.GetPromotionPieceType()] - values[PieceType::Pawn];
-	else if (move.flag == MoveFlag::EnPassantPerformed) estimatedMoveValue = values[PieceType::Pawn];
+	int estimatedMoveValue = seeValues[TypeOfPiece(board.GetPieceAt(move.to))];
+	if (move.IsPromotion()) estimatedMoveValue += seeValues[move.GetPromotionPieceType()] - seeValues[PieceType::Pawn];
+	else if (move.flag == MoveFlag::EnPassantPerformed) estimatedMoveValue = seeValues[PieceType::Pawn];
 
 	// Handle trivial cases (losing the piece for nothing still above / having initial gain below threshold)
 	int score = -threshold;
 	score += estimatedMoveValue;
 	if (score < 0) return false;
-	score -= values[victim];
+	score -= seeValues[victim];
 	if (score >= 0) return true;
 
 	// Lookups (should be optimized) 
@@ -590,7 +584,7 @@ bool Search::StaticExchangeEval(Board& board, const Move& move, const int thresh
 		uint64_t currentAttackers = attackers & ((turn == Turn::White) ? whitePieces : blackPieces);
 		if (!currentAttackers) break;
 
-		// Retrieve the locaion of the least valuable attacking piece type
+		// Retrieve the location of the least valuable attacking piece type
 		int sq = -1;
 		if (turn == Turn::White) {
 			if (currentAttackers & board.WhitePawnBits) sq = LsbSquare(currentAttackers & board.WhitePawnBits);
@@ -608,7 +602,7 @@ bool Search::StaticExchangeEval(Board& board, const Move& move, const int thresh
 			else if (currentAttackers & board.BlackQueenBits) sq = LsbSquare(currentAttackers & board.BlackQueenBits);
 			else if (currentAttackers & board.BlackKingBits) sq = LsbSquare(currentAttackers & board.BlackKingBits);
 		}
-		assert(sq != -1);
+		//assert(sq != -1);
 
 		// Update fields
 		victim = TypeOfPiece(board.GetPieceAt(sq));
@@ -626,7 +620,7 @@ bool Search::StaticExchangeEval(Board& board, const Move& move, const int thresh
 		turn = !turn;
 
 		// Break conditions
-		score = -score - values[victim] - 1;
+		score = -score - seeValues[victim] - 1;
 		if (score >= 0) {
 			const uint64_t upcomingOccupnacy = (turn == Turn::White) ? whitePieces : blackPieces;
 			if ((victim == PieceType::King) && (currentAttackers & upcomingOccupnacy)) {
@@ -634,7 +628,6 @@ bool Search::StaticExchangeEval(Board& board, const Move& move, const int thresh
 			}
 			break;
 		}
-
 	}
 
 	// If after the exchange it's our opponent's turn, that means we won

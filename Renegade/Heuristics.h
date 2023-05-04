@@ -32,7 +32,7 @@ public:
 	static const int PvSize = 32;
 
 	Heuristics();
-	const int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& trMove, const bool losingSEE);
+	const int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& ttMove, const bool losingSEE);
 	
 	// PV table
 	void UpdatePvTable(const Move& move, const int level, const bool leaf);
@@ -60,7 +60,7 @@ public:
 	const bool RetrieveTranspositionEntry(const uint64_t& hash, const int depth, TranspositionEntry& entry, const int level);
 	void SetHashSize(const int megabytes);
 	const int GetHashfull();
-	const void GetTranspositionInfo(uint64_t& trTheoretical, uint64_t& trUsable, uint64_t& trBits, uint64_t& trUsed);
+	const void GetTranspositionInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits, uint64_t& ttUsed);
 	void ClearTranspositionTable();
 
 	Move PvTable[PvSize + 1][PvSize + 1];

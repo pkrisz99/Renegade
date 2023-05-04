@@ -196,16 +196,18 @@ struct EngineSettings {
 };
 
 struct SearchStatistics {
-	int SelDepth;
-	int Nodes;
-	int QuiescenceNodes;
-	int Evaluations;
-	int BetaCutoffs;
-	int FirstMoveBetaCutoffs;
+	uint64_t SelDepth;
+	uint64_t Nodes;
+	uint64_t QuiescenceNodes;
+	uint64_t AlphaBetaCalls;
+	uint64_t QSeachAlphaBetaCalls;
+	uint64_t Evaluations;
+	uint64_t BetaCutoffs;
+	uint64_t FirstMoveBetaCutoffs;
 	//int FutilityPruned;
 	//int RazoringPruned;
-	int TranspositionQueries;
-	int TranspositionHits;
+	uint64_t TranspositionQueries;
+	uint64_t TranspositionHits;
 };
 
 // Bitwise operations  ----------------------------------------------------------------------------
