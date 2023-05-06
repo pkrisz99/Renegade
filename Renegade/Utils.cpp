@@ -19,9 +19,9 @@ using std::get;
 typedef std::chrono::high_resolution_clock Clock;
 
 #ifndef LEGACY_CPU
-const std::string Version = "0.10.0+";
+const std::string Version = "0.11.0 dev";
 #else
-const std::string Version = "0.10.0+ (oldcpu)";
+const std::string Version = "0.11.0 dev (oldcpu)";
 #endif
 
 // Evaluation helpers -----------------------------------------------------------------------------

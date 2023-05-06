@@ -209,7 +209,7 @@ const uint64_t Board::HashInternal() {
 	return hash;
 }
 
-const uint64_t Board::Hash() {
+const uint64_t Board::Hash() const {
 	return HashValue;
 }
 
@@ -276,17 +276,17 @@ void Board::GenerateOccupancy() {
 	OccupancyInts[sq] = Piece::BlackKing;
 }
 
-const uint64_t Board::GetOccupancy() {
+const uint64_t Board::GetOccupancy() const {
 	return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits
 		| BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 }
 
-const uint64_t Board::GetOccupancy(const uint8_t pieceColor) {
+const uint64_t Board::GetOccupancy(const uint8_t pieceColor) const {
 	if (pieceColor == PieceColor::White) return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
 	return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 }
 
-const uint8_t Board::GetPieceAt(const uint8_t place) {
+const uint8_t Board::GetPieceAt(const uint8_t place) const {
 	return OccupancyInts[place];
 }
 
@@ -552,7 +552,7 @@ bool Board::IsLegalMove(const Move m) {
 	return !inCheck;
 }
 
-const bool Board::IsMoveQuiet(const Move& move) {
+const bool Board::IsMoveQuiet(const Move& move) const {
 	const uint8_t movedPiece = GetPieceAt(move.from);
 	const uint8_t targetPiece = GetPieceAt(move.to);
 	if (targetPiece != Piece::None) return false;
@@ -566,7 +566,7 @@ const bool Board::IsMoveQuiet(const Move& move) {
 // Generating moves -------------------------------------------------------------------------------
 
 template <bool side, MoveGen moveGen>
-const void Board::GenerateKingMoves(std::vector<Move>& moves, const int home) {
+const void Board::GenerateKingMoves(std::vector<Move>& moves, const int home) const {
 	const uint8_t friendlyPieceColor = (side == Turn::White) ? PieceColor::White : PieceColor::Black;
 	const uint8_t opponentPieceColor = (side == Turn::White) ? PieceColor::Black : PieceColor::White;
 	for (const int& l : KingMoves[home]) {
@@ -576,7 +576,7 @@ const void Board::GenerateKingMoves(std::vector<Move>& moves, const int home) {
 }
 
 template <bool side, MoveGen moveGen>
-const void Board::GenerateKnightMoves(std::vector<Move>& moves, const int home) {
+const void Board::GenerateKnightMoves(std::vector<Move>& moves, const int home) const {
 	const uint8_t friendlyPieceColor = (side == Turn::White) ? PieceColor::White : PieceColor::Black;
 	const uint8_t opponentPieceColor = (side == Turn::White) ? PieceColor::Black : PieceColor::White;
 	for (const int& l : KnightMoves[home]) {
@@ -586,7 +586,7 @@ const void Board::GenerateKnightMoves(std::vector<Move>& moves, const int home) 
 }
 
 template <bool side, int pieceType, MoveGen moveGen>
-const void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) {
+const void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) const {
 	const uint64_t friendlyOccupance = (side == PieceColor::White) ? whiteOccupancy : blackOccupancy;
 	const uint64_t opponentOccupance = (side == PieceColor::White) ? blackOccupancy : whiteOccupancy;
 	const uint64_t occupancy = whiteOccupancy | blackOccupancy;
@@ -614,7 +614,7 @@ const void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int home,
 }
 
 template <bool side, MoveGen moveGen>
-const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) {
+const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 	const int file = GetSquareFile(home);
 	const int rank = GetSquareRank(home);
 	int target;
@@ -731,7 +731,7 @@ const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) {
 }
 
 template <bool side>
-const void Board::GenerateCastlingMoves(std::vector<Move>& moves) {
+const void Board::GenerateCastlingMoves(std::vector<Move>& moves) const {
 	if ((Turn == Turn::White) && (WhiteRightToShortCastle)) {
 		const bool empty_f1 = GetPieceAt(Squares::F1) == 0;
 		const bool empty_g1 = GetPieceAt(Squares::G1) == 0;
@@ -813,7 +813,7 @@ const void Board::GenerateMoves(std::vector<Move>& moves, const MoveGen moveGen,
 }
 
 template <bool side, MoveGen moveGen>
-const void Board::GeneratePseudolegalMoves(std::vector<Move>& moves) {
+const void Board::GeneratePseudolegalMoves(std::vector<Move>& moves) const {
 
 	/*
 	const uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
@@ -880,7 +880,7 @@ const void Board::GeneratePseudolegalMoves(std::vector<Move>& moves) {
 
 // Generating attack maps -------------------------------------------------------------------------
 
-const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
+const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) const {
 	uint64_t squares = 0ULL;
 	uint64_t parallelSliders = 0;
 	uint64_t diagonalSliders = 0;
@@ -953,16 +953,16 @@ const uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) {
 	return squares & ~friendlyPieces; // the second part shouldn't be necessary 
 }
 
-const uint64_t Board::GenerateKnightAttacks(const int from) {
+const uint64_t Board::GenerateKnightAttacks(const int from) const {
 	return KnightMoveBits[from];
 }
 
-const uint64_t Board::GenerateKingAttacks(const int from) {
+const uint64_t Board::GenerateKingAttacks(const int from) const {
 	return KingMoveBits[from];
 }
 
 template <bool attackingSide>
-bool Board::IsSquareAttacked(const uint8_t square) {
+bool Board::IsSquareAttacked(const uint8_t square) const {
 	uint64_t occupancy = GetOccupancy();
 
 	if (attackingSide == Turn::White) {
@@ -995,7 +995,7 @@ bool Board::IsSquareAttacked(const uint8_t square) {
 	}
 }
 
-const uint64_t Board::GetAttackersOfSquare(const uint8_t square) {
+const uint64_t Board::GetAttackersOfSquare(const uint8_t square) const {
 	uint64_t occupancy = GetOccupancy();
 	uint64_t attackers = 0;
 
@@ -1087,7 +1087,7 @@ const bool Board::AreThereLegalMoves() {
 	return hasMoves;
 }
 
-const bool Board::IsDraw() {
+const bool Board::IsDraw() const {
 
 	// Threefold repetitions
 	const int64_t stateCount = std::count(PreviousHashes.begin(), PreviousHashes.end(), HashValue);
@@ -1148,7 +1148,7 @@ const GameState Board::GetGameState() {
 	else return GameState::Playing;
 }
 
-const std::string Board::GetFEN() {
+const std::string Board::GetFEN() const {
 	std::string result;
 	for (int r = 7; r >= 0; r--) {
 		int spaces = 0;
@@ -1196,17 +1196,17 @@ const std::string Board::GetFEN() {
 	return result;
 }
 
-const int Board::GetPlys() {
+const int Board::GetPlys() const {
 	return (FullmoveClock - 1) * 2 + (Turn == Turn::White ? 0 : 1);
 }
 
 template <bool side>
-const uint8_t Board::GetKingSquare() {
+const uint8_t Board::GetKingSquare() const {
 	if (side == Turn::White) return 63 - Lzcount(WhiteKingBits);	
 	else return 63 - Lzcount(BlackKingBits);
 }
 
-const bool Board::IsInCheck() {
+const bool Board::IsInCheck() const {
 	if (Turn == Turn::White) return IsSquareAttacked<Turn::Black>(63 - Lzcount(WhiteKingBits));
 	else return IsSquareAttacked<Turn::White>(63 - Lzcount(BlackKingBits));
 }

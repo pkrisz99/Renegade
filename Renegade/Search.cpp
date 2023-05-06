@@ -267,6 +267,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	if (Aborting) return NoEval;
 
 	const bool pvNode = beta - alpha > 1;
+	const bool rootNode = (level == 0);
 	Statistics.AlphaBetaCalls += 1;
 
 	// Mate distance pruning
@@ -426,8 +427,15 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				if (legalMoveCount > lmpCount[depth]) continue;
 			}*/
 
+			/*
+			const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300 };
+			const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600 };
+			if (!rootNode && (depth < 7) && !IsLosingMateScore(alpha)) {
+				if (!StaticExchangeEval(board, m, isQuiet ? seeQuietMargin[depth] : seeNoisyMargin[depth])) continue;
+			}*/
+
 			// Late-move reductions (+53 elo)
-			if ((legalMoveCount >= 4 + pvNode * 2) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
+			if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 				// Idea: increase reduction for bad history moves
 				// if (!pvNode && (Heuristics.HistoryTables[board.Turn][m.from][m.to] < -3000)) reduction += 1;
