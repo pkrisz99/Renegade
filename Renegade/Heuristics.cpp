@@ -46,12 +46,12 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 		int orderScore = 0;
 		// Use PSQT change if not
 		if (turn == Turn::White) {
-			orderScore -= LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, m.from)], Weights[IndexLatePSQT(attackingPiece, m.from)], phase);
-			orderScore += LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, m.to)], Weights[IndexLatePSQT(attackingPiece, m.to)], phase);
+			orderScore -= LinearTaper(Weights.GetPSQT(attackingPiece, m.from).early, Weights.GetPSQT(attackingPiece, m.from).late, phase);
+			orderScore += LinearTaper(Weights.GetPSQT(attackingPiece, m.to).early, Weights.GetPSQT(attackingPiece, m.to).late, phase);
 		}
 		else {
-			orderScore -= LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.from])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.from])], phase);
-			orderScore += LinearTaper(Weights[IndexEarlyPSQT(attackingPiece, Mirror[m.to])], Weights[IndexLatePSQT(attackingPiece, Mirror[m.to])], phase);
+			orderScore -= LinearTaper(Weights.GetPSQT(attackingPiece, Mirror[m.from]).early, Weights.GetPSQT(attackingPiece, Mirror[m.from]).late, phase);
+			orderScore += LinearTaper(Weights.GetPSQT(attackingPiece, Mirror[m.to]).early, Weights.GetPSQT(attackingPiece, Mirror[m.to]).late, phase);
 		}
 		return orderScore;
 	}

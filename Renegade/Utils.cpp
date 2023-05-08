@@ -210,6 +210,27 @@ struct SearchStatistics {
 	uint64_t TranspositionHits;
 };
 
+struct TaperedScore {
+	int early;
+	int late;
+	inline TaperedScore operator+ (const TaperedScore& s) const {
+		return { early + s.early, late + s.late };
+	}
+	inline TaperedScore operator- (const TaperedScore& s) const {
+		return { early - s.early, late - s.late };
+	}
+	inline TaperedScore& operator+= (const TaperedScore& s) {
+		early += s.early;
+		late += s.late;
+		return *this;
+	}
+	inline TaperedScore& operator-= (const TaperedScore& s) {
+		early -= s.early;
+		late -= s.late;
+		return *this;
+	}
+};
+
 // Bitwise operations  ----------------------------------------------------------------------------
 
 static inline void SetBitTrue(uint64_t& number, const uint8_t place) {

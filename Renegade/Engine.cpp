@@ -182,7 +182,8 @@ void Engine::Start() {
 			}
 			if (parts[1] == "weight") {
 				const int id = stoi(parts[2]);
-				cout << "Weight: " << id << "/" << WeightsSize << ": " << Weights[id] << endl;
+				cout << "Weight: " << id << "/" << Weights.WeightSize << ": "
+					<< "S(" << Weights.Weights[id].early << ", " << Weights.Weights[id].late << ")" << endl;
 			}
 			if (parts[1] == "hashalloc") {
 				uint64_t trTheoretical, trUsable, trBits, trUsed;

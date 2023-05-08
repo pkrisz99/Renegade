@@ -19,16 +19,25 @@ public:
 	const double Sigmoid(const int score, const double K);
 	const double FindBestK(std::vector<Board>& boards, std::vector<float>& results);
 	const double CalculateMSE(const double K, std::vector<Board> &boards, std::vector<float> &results);
-	const void UpdateWeightById(const int id, const int value);
-	const int GetWeightById(const int id);
+	const void UpdateWeightById(const int id, const bool isEarlygame, const int value);
+	const int GetWeightById(const int id, const bool isEarlygame);
 	const void Tune(double K);
 
 	std::vector<float> TrainResults;
 	std::vector<Board> TrainBoards;
 	std::vector<float> TestResults;
 	std::vector<Board> TestBoards;
-	int TempWeights[WeightsSize];
+	EvaluationFeatures TempWeights;
 
+	const bool early = true;
+	const bool late = false;
 
 };
 
+struct ParamSettings {
+	int id;
+	int earlyStep;
+	int lateStep;
+	bool tuneEarly;
+	bool tuneLate;
+};

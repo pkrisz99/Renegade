@@ -10,7 +10,7 @@ Tuning::Tuning() {
 	cout << "Note: may take a looong time" << endl;
 
 	// Initialize temporary weights
-	for (int i = 0; i < WeightsSize; i++) TempWeights[i] = Weights[i];
+	for (int i = 0; i < TempWeights.WeightSize; i++) TempWeights.Weights[i] = Weights.Weights[i];
 
 	// Load into memory
 	std::ifstream ifs("positions.txt");
@@ -21,14 +21,9 @@ Tuning::Tuning() {
 	while (std::getline(ifs, line) && ((lines < positionsToLoad) || (positionsToLoad == -1))) {
 		lines += 1;
 		std::vector<std::string> parts = Split(line);
-		//std::string fen = parts[0] + " " + parts[1] + " " + parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5].substr(0, parts[5].size()-1);
 		std::string fen = parts[0] + " " + parts[1] + " " + parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5];
-		/*size_t resultpos = line.find("pgn=");
-		std::string resultstr = line.substr(resultpos + 4, 3);
-		loadedResults.push_back(ConvertResult(resultstr));*/
 		loadedBoards.push_back(Board(fen));
 		loadedResults.push_back(ConvertResult(parts[6]));
-		//cout << fen << " / " << loadedResults.back() << endl;
 	}
 	cout << "Number of positions loaded: " << loadedBoards.size() << endl;
 
@@ -56,9 +51,9 @@ Tuning::Tuning() {
 }
 
 const float Tuning::ConvertResult(const std::string str) {
-	if (str == "[1.0]") return 1; // White win
-	if (str == "[0.5]") return 0.5; // Draw
-	if (str == "[0.0]") return 0; // Black win
+	if (str == "[1.0]") return 1;
+	if (str == "[0.5]") return 0.5;
+	if (str == "[0.0]") return 0;
 	cout << "!!! Invalid result: '" << str << "' !!!" << endl;
 	return 0.5;
 }
@@ -71,7 +66,7 @@ const double Tuning::Sigmoid(const int score, const double K) {
 const double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) {
 	double totalError = 0;
 	for (int i = 0; i < boards.size(); i++) {
-		const int sign = boards[i].Turn == Turn::White ? 1 : -1; // 1
+		const int sign = boards[i].Turn == Turn::White ? 1 : -1;
 		totalError += pow((results[i] - Sigmoid(sign * EvaluateBoard(boards[i], 0, TempWeights), K)), 2);
 	}
 	return totalError / boards.size();
@@ -79,6 +74,7 @@ const double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, st
 
 const double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results) {
 	return 1.29;
+
 	double K = 1.2;
 	const double maxK = 1.45;
 	const double step = 0.01;
@@ -107,91 +103,84 @@ const void Tuning::Tune(const double K) {
 	std::cout << std::setprecision(6);
 
 	// Change these to tune a specific weight
-	const int defaultStep = 1;
-	std::vector<int> weightsForTuning;
+	std::vector<ParamSettings> weightsForTuning;
+	const int defaultStep = 2;
+	for (int i = 0; i < 64; i++) weightsForTuning.push_back({ TempWeights.IndexPSQT(PieceType::Pawn, i), defaultStep, defaultStep, true, true });
 
-
-	/*for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexEarlyPSQT(PieceType::Pawn, i));
-	for (int i = 0; i < 64; i++) weightsForTuning.push_back(IndexLatePSQT(PieceType::Pawn, i));
-
-	weightsForTuning.push_back(IndexDoubledPawnEarly);
-	weightsForTuning.push_back(IndexDoubledPawnLate);
-	weightsForTuning.push_back(IndexTripledPawnEarly);
-	weightsForTuning.push_back(IndexTripledPawnLate);*/
-
-	for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexPassedPawnBonusEarly(i));
-	for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexPassedPawnBonusLate(i));
-
-	//for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexIsolatedPawnPenaltyEarly(i));
-	//for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexIsolatedPawnPenaltyLate(i));
-
-	//weightsForTuning.push_back(IndexPieceValueEarly(PieceType::Pawn));
-	//weightsForTuning.push_back(IndexPieceValueLate(PieceType::Pawn));
-
-	for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexBlockedPasserEarly(i));
-	for (int i = 0; i < 8; i++) weightsForTuning.push_back(IndexBlockedPasserLate(i));
-
-
-	// Set up steps
-	std::vector<int> stepsForTuning;
-	for (int i = 0; i < WeightsSize; i++) stepsForTuning.push_back(defaultStep);
-
-	// Main optimizer loop
-	// To do: use an efficient (e.g. adam) optimizer
+	// Main optimizer loop (to do: use an efficient e.g. adam optimizer)
 	while (true) {
 		int paramId = 0;
 		improvements = 0;
 
+		auto startTime = Clock::now();
 
-		for (const int i: weightsForTuning) {
-			cout << "Iteration " << iterations << ", tuning parameter " << i + 1 << " of " << WeightsSize << "...      " << '\r' << std::flush;
-			int weightCurrent = GetWeightById(i);
-			int weightPlus = weightCurrent + stepsForTuning[i];
-			int weightMinus = weightCurrent - stepsForTuning[i];
+		// Iterated through the tuned weights
+		int doneInIteration = 0;
+		for (ParamSettings& p: weightsForTuning) {
 
+			// Iterate through early and lategame values
+			for (const bool phase : {early, late}) {
 
-			double weightCurrentMSE = CalculateMSE(K, TrainBoards, TrainResults);
-			UpdateWeightById(i, weightMinus);
-			double weightMinusMSE = CalculateMSE(K, TrainBoards, TrainResults);
-			UpdateWeightById(i, weightPlus);
-			double weightPlusMSE = CalculateMSE(K, TrainBoards, TrainResults);
+				if ((phase == early) && !p.tuneEarly) continue;
+				if ((phase == late) && !p.tuneLate) continue;
 
-			int newWeight = 999;
-			double newMSE = 999;
-			if ((weightMinusMSE < weightCurrentMSE) && (weightMinusMSE < weightPlusMSE)) {
-				newWeight = weightMinus;
-				newMSE = weightMinusMSE;
-				improvements += 1;
+				const int iterationPercent = static_cast<size_t>(doneInIteration) * 100 / weightsForTuning.size();
+
+				cout << "Iteration " << iterations << ", tuning parameter " << ((phase == early) ? "(early) " : "(late)  ")
+					<< p.id << " of " << TempWeights.WeightSize << " (" << iterationPercent << "%)...      " << '\r' << std::flush;
+
+				const int weightCurrent = GetWeightById(p.id, phase);
+				const int weightPlus = weightCurrent + ((phase == early) ? p.earlyStep : p.lateStep);
+				const int weightMinus = weightCurrent - ((phase == early) ? p.earlyStep : p.lateStep);
+
+				const double weightCurrentMSE = CalculateMSE(K, TrainBoards, TrainResults);
+				UpdateWeightById(p.id, phase, weightMinus);
+				const double weightMinusMSE = CalculateMSE(K, TrainBoards, TrainResults);
+				UpdateWeightById(p.id, phase, weightPlus);
+				const double weightPlusMSE = CalculateMSE(K, TrainBoards, TrainResults);
+
+				int newWeight = 999;
+				double newMSE = 999;
+				if ((weightMinusMSE < weightCurrentMSE) && (weightMinusMSE < weightPlusMSE)) {
+					newWeight = weightMinus;
+					newMSE = weightMinusMSE;
+					improvements += 1;
+				}
+				else if ((weightPlusMSE < weightCurrentMSE) && (weightPlusMSE < weightMinusMSE)) {
+					newWeight = weightPlus;
+					newMSE = weightPlusMSE;
+					improvements += 1;
+				}
+				else {
+					newWeight = weightCurrent;
+					newMSE = weightCurrentMSE;
+					if ((phase == early) && (p.earlyStep > 1)) p.earlyStep = 1;
+					if ((phase == late) && (p.lateStep > 1)) p.lateStep = 1;
+				}
+
+				UpdateWeightById(p.id, phase, newWeight);
 			}
-			else if ((weightPlusMSE < weightCurrentMSE) && (weightPlusMSE < weightMinusMSE)) {
-				newWeight = weightPlus;
-				newMSE = weightPlusMSE;
-				improvements += 1;
-			}
-			else {
-				newWeight = weightCurrent;
-				newMSE = weightCurrentMSE;
-				if (stepsForTuning[i] > 1) stepsForTuning[i] = 1;
-			}
 
-			//cout << "Iteration " << iterations << " param " << i << ": " << weightCurrent << " -> " << newWeight << " (" << weightCurrentMSE << " -> " << newMSE << ")" << endl;
-
-			UpdateWeightById(i, newWeight);
+			doneInIteration += 1;
 
 		}
 
-		for (int j = 0; j < 50; j++) cout << " ";
+		for (int j = 0; j < 70; j++) cout << " ";
 		cout << "\n\n\nWeights:" << endl;
 
-		for (const int i: weightsForTuning) {
-			cout << GetWeightById(i) << ", ";
-			if (i % 64 == 63) cout << "\n";
+		int j = 0;
+		for (const ParamSettings& p: weightsForTuning) {
+			j += 1;
+			cout << "S(" << GetWeightById(p.id, early) << ", " << GetWeightById(p.id, late) << "), ";
+			if ((j != 0) && (j % 64 == 0)) cout << "\n";
 		}
+		double newTestMSE = CalculateMSE(K, TestBoards, TestResults);
 
 		cout << "\nChanges made during iteration " << iterations << ": " << improvements << endl;
-		if (improvements == 0) break;
+		auto endTime = Clock::now();
+		int seconds = (endTime - startTime).count() / 1e9;
+		cout << "Iteration took " << seconds << " seconds" << endl;
 
-		double newTestMSE = CalculateMSE(K, TestBoards, TestResults);
 		if (newTestMSE < testMSE) {
 			cout << "Improved test MSE: " << testMSE << " -> " << newTestMSE << '\n' << endl;
 			testMSE = newTestMSE;
@@ -201,16 +190,19 @@ const void Tuning::Tune(const double K) {
 			break;
 		}
 
+		if (improvements == 0) break;
 		iterations += 1;
 	}
 	cout << "Stopping." << endl;
 	cout << "\nCompleted." << endl;
 }
 
-const int Tuning::GetWeightById(const int id) {
-	return TempWeights[id];
+const int Tuning::GetWeightById(const int id, const bool isEarlygame) {
+	if (isEarlygame) return TempWeights.Weights[id].early;
+	else return TempWeights.Weights[id].late;
 }
 
-const void Tuning::UpdateWeightById(const int id, const int value) {
-	TempWeights[id] = value;
+const void Tuning::UpdateWeightById(const int id, const bool isEarlygame, const int value) {
+	if (isEarlygame) TempWeights.Weights[id].early = value;
+	else  TempWeights.Weights[id].late = value;
 }
