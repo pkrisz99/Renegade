@@ -23,7 +23,7 @@ struct EvaluationFeatures {
 	constexpr int IndexBishopMobility(const uint8_t mobility) const { return 399 + mobility; }
 	constexpr int IndexRookMobility(const uint8_t mobility) const { return 413 + mobility; }
 	constexpr int IndexQueenMobility(const uint8_t mobility) const { return 428 + mobility; }
-	constexpr int IndexKingDanger(const uint8_t danger) const { return 456 + danger; }
+	constexpr int IndexKingDanger(const uint8_t danger) const { return 455 + danger; }
 	const int IndexPassedPawn(const uint8_t rank) const { return 481 + rank; }
 	const int IndexBlockedPasser(const uint8_t rank) const { return 489 + rank; }
 	const int IndexIsolatedPawn(const uint8_t file) const { return 497 + file; }
@@ -303,13 +303,13 @@ inline static const int EvaluateBoard(const Board& board, const int level, const
 	//int score = 0, earlyScore = 0, lateScore = 0;
 
 	TaperedScore taperedScore(0, 0);
+	TaperedScore mobilityScore(0, 0);
 
 	const uint64_t occupancy = board.GetOccupancy();
 	const uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
 	const uint64_t blackPieces = board.GetOccupancy(PieceColor::Black);
 	const float phase = CalculateGamePhase(board);
 
-	int mobilityScore = 0;
 	uint64_t allOccupancy = occupancy;
 	uint64_t whiteAttacks = 0, blackAttacks = 0;
 
@@ -411,7 +411,7 @@ inline static const int EvaluateBoard(const Board& board, const int level, const
 			// Get attacks, mobility & update king danger scores
 			mobility = KnightMoveBits[sq] & ~whitePieces;
 			whiteAttacks |= mobility;
-			taperedScore += weights.GetKnightMobility(Popcount(mobility));
+			mobilityScore += weights.GetKnightMobility(Popcount(mobility));
 			if ((blackKingZone & mobility) != 0) {
 				blackDangerScore += weights.PieceDangers[PieceType::Knight];
 				blackDangerPieces += 1;
@@ -429,7 +429,7 @@ inline static const int EvaluateBoard(const Board& board, const int level, const
 			// Get attacks, mobility & update king danger scores
 			mobility = KnightMoveBits[sq] & ~blackPieces;
 			blackAttacks |= mobility;
-			taperedScore -= weights.GetKnightMobility(Popcount(mobility));
+			mobilityScore -= weights.GetKnightMobility(Popcount(mobility));
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += weights.PieceDangers[PieceType::Knight];
 				whiteDangerPieces += 1;
@@ -446,7 +446,7 @@ inline static const int EvaluateBoard(const Board& board, const int level, const
 			// Get attacks, mobility & update king danger scores
 			mobility = GetBishopAttacks(sq, occupancy) & ~whitePieces;
 			whiteAttacks |= mobility;
-			taperedScore += weights.GetBishopMobility(Popcount(mobility));
+			mobilityScore += weights.GetBishopMobility(Popcount(mobility));
 			if ((blackKingZone & mobility) != 0) {
 				blackDangerScore += weights.PieceDangers[PieceType::Bishop];
 				blackDangerPieces += 1;
@@ -457,7 +457,7 @@ inline static const int EvaluateBoard(const Board& board, const int level, const
 			// Get attacks, mobility & update king danger scores
 			mobility = GetBishopAttacks(sq, occupancy) & ~blackPieces;
 			blackAttacks |= mobility;
-			taperedScore -= weights.GetBishopMobility(Popcount(mobility));
+			mobilityScore -= weights.GetBishopMobility(Popcount(mobility));
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += weights.PieceDangers[PieceType::Bishop];
 				whiteDangerPieces += 1;
@@ -468,7 +468,7 @@ inline static const int EvaluateBoard(const Board& board, const int level, const
 			// Get attacks, mobility & update king danger scores
 			mobility = GetRookAttacks(sq, occupancy) & ~whitePieces;
 			whiteAttacks |= mobility;
-			taperedScore += weights.GetRookMobility(Popcount(mobility));
+			mobilityScore += weights.GetRookMobility(Popcount(mobility));
 			if ((blackKingZone & mobility) != 0) {
 				blackDangerScore += weights.PieceDangers[PieceType::Rook];
 				blackDangerPieces += 1;
@@ -488,7 +488,7 @@ inline static const int EvaluateBoard(const Board& board, const int level, const
 			// Get attacks, mobility & update king danger scores
 			mobility = GetRookAttacks(sq, occupancy) & ~blackPieces;
 			blackAttacks |= mobility;
-			taperedScore -= weights.GetRookMobility(Popcount(mobility));
+			mobilityScore -= weights.GetRookMobility(Popcount(mobility));
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += weights.PieceDangers[PieceType::Rook];
 				whiteDangerPieces += 1;
@@ -508,7 +508,7 @@ inline static const int EvaluateBoard(const Board& board, const int level, const
 			// Get attacks, mobility & update king danger scores
 			mobility = GetQueenAttacks(sq, occupancy) & ~whitePieces;
 			whiteAttacks |= mobility;
-			taperedScore += weights.GetQueenMobility(Popcount(mobility));
+			mobilityScore += weights.GetQueenMobility(Popcount(mobility));
 			if ((blackKingZone & mobility) != 0) {
 				blackDangerScore += weights.PieceDangers[PieceType::Queen];
 				blackDangerPieces += 1;
@@ -519,7 +519,7 @@ inline static const int EvaluateBoard(const Board& board, const int level, const
 			// Get attacks, mobility & update king danger scores
 			mobility = GetQueenAttacks(sq, occupancy) & ~blackPieces;
 			blackAttacks |= mobility;
-			taperedScore -= weights.GetQueenMobility(Popcount(mobility));
+			mobilityScore -= weights.GetQueenMobility(Popcount(mobility));
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += weights.PieceDangers[PieceType::Queen];
 				whiteDangerPieces += 1;
@@ -554,7 +554,10 @@ inline static const int EvaluateBoard(const Board& board, const int level, const
 	}
 
 	// Get untapered score
+	int mobilityUntapered = LinearTaper(mobilityScore.early, mobilityScore.late, phase);
+	mobilityUntapered = LinearTaper(mobilityUntapered / 3, mobilityUntapered, std::min(phase * 5.f, 1.f));
 	int score = LinearTaper(taperedScore.early, taperedScore.late, phase);
+	score += mobilityUntapered;
 
 	// Convert to the correct perspective
 	if (!board.Turn) score *= -1;
