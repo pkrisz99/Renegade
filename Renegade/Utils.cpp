@@ -229,6 +229,9 @@ struct TaperedScore {
 		late -= s.late;
 		return *this;
 	}
+	inline TaperedScore operator* (int m) const {
+		return { early * m, late * m};
+	}
 };
 
 // Bitwise operations  ----------------------------------------------------------------------------

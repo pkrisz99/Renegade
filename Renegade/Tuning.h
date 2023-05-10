@@ -3,6 +3,7 @@
 #include "Evaluation.cpp"
 #include "Utils.cpp"
 #include <fstream>
+#include <random>
 
 // This is the header file of Renegade's tuner. It is based on the Texel tuning method, and runs until no improvement can be found.
 // It is almost like a single layer neural network. Uses separate training and test datasets.

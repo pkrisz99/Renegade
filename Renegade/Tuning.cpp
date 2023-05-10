@@ -34,13 +34,19 @@ Tuning::Tuning() {
 
 	// Splitting into train and test datasets
 	const double trainRatio = 0.8;
-	for (int i = 0; i < trainRatio * lines; i++) {
-		TrainBoards.push_back(loadedBoards[i]);
-		TrainResults.push_back(loadedResults[i]);
-	}
-	for (int i = static_cast<int>(trainRatio * lines); i < lines; i++) {
-		TestBoards.push_back(loadedBoards[i]);
-		TestResults.push_back(loadedResults[i]);
+	std::random_device dev;
+	std::mt19937 rng(dev());
+	std::uniform_real_distribution random(0.f, 1.f);
+	for (int i = 0; i < lines; i++) {
+		const float r = random(rng);
+		if (r <= trainRatio) {
+			TrainBoards.push_back(loadedBoards[i]);
+			TrainResults.push_back(loadedResults[i]);
+		}
+		else {
+			TestBoards.push_back(loadedBoards[i]);
+			TestResults.push_back(loadedResults[i]);
+		}
 	}
 	cout << "Train size: " << TrainBoards.size() << endl;
 	cout << "Test size:  " << TestBoards.size() << '\n' << endl;
@@ -104,8 +110,8 @@ const void Tuning::Tune(const double K) {
 
 	// Change these to tune a specific weight
 	std::vector<ParamSettings> weightsForTuning;
-	const int defaultStep = 2;
-	for (int i = 0; i < 64; i++) weightsForTuning.push_back({ TempWeights.IndexPSQT(PieceType::Pawn, i), defaultStep, defaultStep, true, true });
+	const int defaultStep = 6;
+	for (int i = 514; i < 550; i++) weightsForTuning.push_back({ i, defaultStep, defaultStep, true, true });
 
 	// Main optimizer loop (to do: use an efficient e.g. adam optimizer)
 	while (true) {
@@ -154,11 +160,12 @@ const void Tuning::Tune(const double K) {
 				else {
 					newWeight = weightCurrent;
 					newMSE = weightCurrentMSE;
-					if ((phase == early) && (p.earlyStep > 1)) p.earlyStep = 1;
-					if ((phase == late) && (p.lateStep > 1)) p.lateStep = 1;
+					if ((phase == early) && (p.earlyStep > 1)) p.earlyStep = std::max(1, p.earlyStep / 2);
+					if ((phase == late) && (p.lateStep > 1)) p.lateStep = std::max(1, p.lateStep / 2);
 				}
 
 				UpdateWeightById(p.id, phase, newWeight);
+				//cout << improvements << endl;
 			}
 
 			doneInIteration += 1;
