@@ -265,6 +265,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// Check search limits
 	Aborting = ShouldAbort();
 	if (Aborting) return NoEval;
+	if (level >= 63) return board.IsInCheck() ? 0 : EvaluateBoard(board, level);
 
 	const bool pvNode = beta - alpha > 1;
 	const bool rootNode = (level == 0);
@@ -281,7 +282,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 	// Check extensions
 	const bool inCheck = board.IsInCheck();
-	if (inCheck && (depth == 0) && (level < Depth + 10)) depth = 1;
+	if (inCheck) depth += 1;
 
 	// Check for draws
 	if (board.IsDraw()) return 0;
