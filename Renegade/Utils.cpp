@@ -443,7 +443,7 @@ static void ClearScreen(bool endline, bool fancy) {
 
 // Precomputed arrays -----------------------------------------------------------------------------
 
-const static uint8_t Mirror[] = {
+const static uint8_t Mirror[] = { // ^56 would also work
 	56, 57, 58, 59, 60, 61, 62, 63,
 	48, 49, 50, 51, 52, 53, 54, 55,
 	40, 41, 42, 43, 44, 45, 46, 47,
