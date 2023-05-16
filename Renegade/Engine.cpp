@@ -351,7 +351,8 @@ void Engine::Start() {
 			SearchParams params;
 			params.depth = 11;
 			EngineSettings settings;
-			settings.Hash = 16;
+			const int oldHashSize = Settings.Hash;
+			Search.Heuristics.SetHashSize(16);
 			settings.ExtendedOutput = false;
 			settings.UseBook = false;
 			Search.Heuristics.ClearTranspositionTable();
@@ -369,6 +370,7 @@ void Engine::Start() {
 			auto endTime = Clock::now();
 			int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
 			cout << "nodes " << nodes << " nps " << nps << endl;
+			Search.Heuristics.SetHashSize(oldHashSize);
 			continue;
 		}
 

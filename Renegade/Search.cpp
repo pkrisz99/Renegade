@@ -326,10 +326,8 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	}
 
 	// Internal iterative deepening
-	bool skipHashVerification = false;
 	if (pvNode && (depth > 3) && transpositionMove.IsEmpty()) {
 		SearchRecursive(board, depth - 2, level + 1, -beta, -alpha, true);
-		skipHashVerification = true;
 		transpositionMove = Heuristics.PvTable[level+1][level + 1];
 	}
 

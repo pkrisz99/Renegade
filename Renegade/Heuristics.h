@@ -19,7 +19,7 @@ namespace ScoreType {
 };
 
 struct TranspositionEntry {
-	uint64_t hash;
+	uint32_t hash;
 	int32_t score;
 	uint8_t depth;
 	uint8_t scoreType;
