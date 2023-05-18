@@ -24,8 +24,8 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 		if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
 	}
 	else {
-		if (attackedPiece != PieceType::None) return 600000 + values[attackedPiece] * 16 - values[attackingPiece];
-		if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
+		if (attackedPiece != PieceType::None) return -200000 + values[attackedPiece] * 16 - values[attackingPiece];
+		if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
 	}
 
 	// Queen promotions

@@ -383,7 +383,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	MoveOrder[level].clear();
 	bool foundPvMove = false;
 	for (const Move& m : MoveList) {
-		const bool losingSEE = false; // !StaticExchangeEval(board, m, 0);
+		const bool losingSEE = board.IsMoveQuiet(m) ? false : !StaticExchangeEval(board, m, 0);
 		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, FollowingPV, transpositionMove, losingSEE);
 		if (FollowingPV && Heuristics.IsPvMove(m, level)) foundPvMove = true;
 		MoveOrder[level].push_back({ m, orderScore });
@@ -511,8 +511,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
-		const bool losingSEE = false; // !StaticExchangeEval(board, m, 0);
-		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false, Move(), losingSEE);
+		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false, Move(), false);
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
