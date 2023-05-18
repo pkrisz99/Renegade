@@ -230,9 +230,13 @@ struct TaperedScore {
 		return *this;
 	}
 	inline TaperedScore operator* (const int m) const {
-		return { early * m, late * m};
+		return { early * m, late * m };
 	}
 };
+
+static std::ostream& operator<<(std::ostream& os, const TaperedScore& s) {
+	return os << "S(" << s.early << ", " << s.late << ")";
+}
 
 // Bitwise operations  ----------------------------------------------------------------------------
 

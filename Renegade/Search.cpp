@@ -548,7 +548,7 @@ int Search::StaticEvaluation(Board &board, int level, bool checkDraws) {
 
 const int seeValues[] = { 0, 100, 300, 300, 500, 1000, 999999 };
 
-bool Search::StaticExchangeEval(Board& board, const Move& move, const int threshold) {
+const bool Search::StaticExchangeEval(const Board& board, const Move& move, const int threshold) {
 	// This is more or less the standard way of doing this
 	// The implementation follows Ethereal's method
 

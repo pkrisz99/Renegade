@@ -111,10 +111,8 @@ const void Tuning::Tune(const double K) {
 	// Change these to tune a specific weight
 	std::vector<ParamSettings> weightsForTuning;
 	const int defaultStep = 6;
-	for (int i = TempWeights.IndexKnightMobility(0); i <= TempWeights.IndexKnightMobility(8); i++) weightsForTuning.push_back({ i, defaultStep, defaultStep, true, true });
-	for (int i = TempWeights.IndexBishopMobility(0); i <= TempWeights.IndexBishopMobility(13); i++) weightsForTuning.push_back({ i, defaultStep, defaultStep, true, true });
-	for (int i = TempWeights.IndexRookMobility(0); i <= TempWeights.IndexRookMobility(14); i++) weightsForTuning.push_back({ i, defaultStep, defaultStep, true, true });
-	for (int i = TempWeights.IndexQueenMobility(0); i <= TempWeights.IndexQueenMobility(27); i++) weightsForTuning.push_back({ i, defaultStep, defaultStep, true, true });
+	for (int i = TempWeights.IndexPawnSupportingPawn(0); i <= TempWeights.IndexPawnSupportingPawn(7); i++) weightsForTuning.push_back({ i, defaultStep, defaultStep, true, true });
+	for (int i = TempWeights.IndexPawnPhalanx(0); i <= TempWeights.IndexPawnPhalanx(7); i++) weightsForTuning.push_back({ i, defaultStep, defaultStep, true, true });
 
 	// Main optimizer loop (to do: use an efficient e.g. adam optimizer)
 	while (true) {

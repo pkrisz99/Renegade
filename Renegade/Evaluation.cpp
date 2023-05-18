@@ -9,7 +9,7 @@ extern uint64_t GetQueenAttacks(const int square, const uint64_t occupancy);
 struct EvaluationFeatures {
 
 	// Weight size and its array
-	static constexpr int WeightSize = 550;
+	static constexpr int WeightSize = 572;
 	TaperedScore Weights[WeightSize];
 
 	// King safety constants
@@ -40,6 +40,9 @@ struct EvaluationFeatures {
 	constexpr int IndexRookThreats(const uint8_t attackedPieceType) const { return 531 + attackedPieceType; };
 	constexpr int IndexQueenThreats(const uint8_t attackedPieceType) const { return 537 + attackedPieceType; };
 	constexpr int IndexKingThreats(const uint8_t attackedPieceType) const { return 543 + attackedPieceType; };
+	constexpr int IndexPawnSupportingPawn(const uint8_t rank) const { return 550 + rank; };
+	constexpr int IndexPawnPhalanx(const uint8_t rank) const { return 558 + rank; };
+	constexpr int IndexPawnSupportingPiece(const uint8_t pieceType) const { return 565 + pieceType; };
 
 	// Shorthand for retrieving the evaluation
 	inline const TaperedScore& GetMaterial(const uint8_t pieceType) const { return Weights[IndexPieceMaterial(pieceType)]; }
@@ -65,6 +68,10 @@ struct EvaluationFeatures {
 	inline const TaperedScore& GetRookThreat(const uint8_t attackedPieceType) const { return Weights[IndexRookThreats(attackedPieceType)]; }
 	inline const TaperedScore& GetQueenThreat(const uint8_t attackedPieceType) const { return Weights[IndexQueenThreats(attackedPieceType)]; }
 	inline const TaperedScore& GetKingThreat(const uint8_t attackedPieceType) const { return Weights[IndexKingThreats(attackedPieceType)]; }
+	inline const TaperedScore& GetPawnSupportingPawn(const uint8_t rank) const { return Weights[IndexPawnSupportingPawn(rank)]; }
+	inline const TaperedScore& GetPawnPhalanx(const uint8_t rank) const { return Weights[IndexPawnPhalanx(rank)]; }
+	inline const TaperedScore& GetPawnSupportingPiece(const uint8_t pieceType) const { return Weights[IndexPawnSupportingPiece(pieceType)]; }
+
 };
 
 
@@ -216,6 +223,15 @@ static EvaluationFeatures Weights = {
 	S(-6, 12), S(1, 3), S(0, 14), S(1, 7), S(0, 0), S(0, 0),
 	// King attacking
 	S(15, 27), S(-24, 9), S(-24, 18), S(-24, 3), S(0, 0), S(0, 0),
+
+	// 7.2 Supported pawn bonus (by rank)
+	S(0, 0), S(0, 0), S(9, 12), S(5, 4), S(-1, 6), S(7, 2), S(78, 33), S(0, 0),
+
+	// 7.3 Pawn phalanx (by rank)
+	S(2, 0), S(7, 0), S(1, -3), S(14, 17), S(36, 36), S(42, 42), S(42, 42), S(0, 0),
+
+	// 7.4 Pawns supporting other pieces (pawn, knight, bishop, rook, queen, king) - todo
+	S(3, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0),
 };
 
 // Interpolation functions ------------------------------------------------------------------------
@@ -396,11 +412,14 @@ inline static const int EvaluateBoard(const Board& board, const int level, const
 				if (SquareBits[sq + 8] & blackPieces) taperedScore += weights.GetBlockedPasserEval(rank);
 			}
 			// Threats
-			//taperedScore += weights.GetPawnThreat(PieceType::Pawn) * Popcount(attacks & board.BlackPawnBits);
 			if (attacks & board.BlackKnightBits) taperedScore += weights.GetPawnThreat(PieceType::Knight) * Popcount(attacks & board.BlackKnightBits);
 			if (attacks & board.BlackBishopBits) taperedScore += weights.GetPawnThreat(PieceType::Bishop) * Popcount(attacks & board.BlackBishopBits);
 			if (attacks & board.BlackRookBits) taperedScore += weights.GetPawnThreat(PieceType::Rook) * Popcount(attacks & board.BlackRookBits);
 			if (attacks & board.BlackQueenBits) taperedScore += weights.GetPawnThreat(PieceType::Queen) * Popcount(attacks & board.BlackQueenBits);
+			// Pawn is supported?
+			if (whitePawnAttacks & SquareBits[sq]) taperedScore += weights.GetPawnSupportingPawn(rank);
+			// Pawn phalanx
+			if ((file != 7) && (board.GetPieceAt(sq + 1) == Piece::WhitePawn)) taperedScore += weights.GetPawnPhalanx(rank);
 			break;
 
 		case Piece::BlackPawn:
@@ -425,6 +444,10 @@ inline static const int EvaluateBoard(const Board& board, const int level, const
 			if (attacks & board.WhiteBishopBits) taperedScore -= weights.GetPawnThreat(PieceType::Bishop) * Popcount(attacks & board.WhiteBishopBits);
 			if (attacks & board.WhiteRookBits) taperedScore -= weights.GetPawnThreat(PieceType::Rook) * Popcount(attacks & board.WhiteRookBits);
 			if (attacks & board.WhiteQueenBits) taperedScore -= weights.GetPawnThreat(PieceType::Queen) * Popcount(attacks & board.WhiteQueenBits);
+			// Pawn is supported?
+			if (blackPawnAttacks & SquareBits[sq]) taperedScore -= weights.GetPawnSupportingPawn(7-rank);
+			// Pawn phalanx
+			if ((file != 7) && (board.GetPieceAt(sq + 1) == Piece::BlackPawn)) taperedScore -= weights.GetPawnPhalanx(7-rank);
 			break;
 
 		case Piece::WhiteKnight:
