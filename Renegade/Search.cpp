@@ -400,7 +400,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
-		Statistics.Nodes += 1;
 		Boards[level] = board;
 		Board& b = Boards[level];
 		const bool isQuiet = b.IsMoveQuiet(m);
@@ -408,7 +407,15 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		// Performing futility pruning
 		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta)) continue;
 
+		// Main search SEE pruning
+		const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300, -350 };
+		const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600, -700 };
+		if (!rootNode && !pvNode && (depth <= 5) && !IsLosingMateScore(alpha)) {
+			if (!StaticExchangeEval(board, m, isQuiet ? seeQuietMargin[depth] : seeNoisyMargin[depth])) continue;
+		}
+
 		b.Push(m);
+		Statistics.Nodes += 1;
 		int score = NoEval;
 		const bool givingCheck = b.IsInCheck();
 		//bool interestingPawnMove = (TypeOfPiece(board.GetPieceAt(m.from)) == PieceType::Pawn)
@@ -424,13 +431,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			/*const int lmpCount[] = { 0, 10, 14, 18, 22 };
 			if ((depth < 5) && !pvNode && !inCheck && isQuiet) {
 				if (legalMoveCount > lmpCount[depth]) continue;
-			}*/
-
-			/*
-			const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300 };
-			const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600 };
-			if (!rootNode && (depth < 7) && !IsLosingMateScore(alpha)) {
-				if (!StaticExchangeEval(board, m, isQuiet ? seeQuietMargin[depth] : seeNoisyMargin[depth])) continue;
 			}*/
 
 			// Late-move reductions (+53 elo)
