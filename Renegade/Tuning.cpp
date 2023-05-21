@@ -111,11 +111,11 @@ const void Tuning::Tune(const double K) {
 	// Change these to tune a specific weight
 	std::vector<ParamSettings> weightsForTuning;
 	const int defaultStep = 4;
-	//for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexPSQT(PieceType::Pawn, i), defaultStep, defaultStep, true, true });
+	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexPSQT(PieceType::King, i), defaultStep, defaultStep, true, true });
 	//for (int i = 0; i <= 7; i++) weightsForTuning.push_back({ TempWeights.IndexPassedPawn(i), defaultStep, defaultStep, true, true });
 	//for (int i = 0; i <= 7; i++) weightsForTuning.push_back({ TempWeights.IndexBlockedPasser(i), defaultStep, defaultStep, true, true });
-	weightsForTuning.push_back({ TempWeights.IndexDoubledPawns, defaultStep, defaultStep, true, true });
-	weightsForTuning.push_back({ TempWeights.IndexTripledPawns, defaultStep, defaultStep, true, true });
+	//weightsForTuning.push_back({ TempWeights.IndexDoubledPawns, defaultStep, defaultStep, true, true });
+	//weightsForTuning.push_back({ TempWeights.IndexTripledPawns, defaultStep, defaultStep, true, true });
 
 	// Main optimizer loop (to do: use an efficient e.g. adam optimizer)
 	while (true) {

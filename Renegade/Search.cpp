@@ -267,8 +267,8 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	if (Aborting) return NoEval;
 	if (level >= 63) return board.IsInCheck() ? 0 : EvaluateBoard(board, level);
 
-	const bool pvNode = beta - alpha > 1;
 	const bool rootNode = (level == 0);
+	const bool pvNode = rootNode || (beta - alpha > 1);
 	Statistics.AlphaBetaCalls += 1;
 
 	// Mate distance pruning
@@ -289,9 +289,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 	// Return result for terminal nodes
 	if (depth <= 0) {
-		//const int e = SearchQuiescence(board, level, alpha, beta, true);
-		//if (depth < 0) cout << "Check depth: " << depth << endl;
-		//Heuristics.AddEntry(hash, e, ScoreType::Exact);
 		return SearchQuiescence(board, level, alpha, beta, true);
 	}
 
@@ -339,10 +336,8 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		int nmpReduction = 3 + depth / 3 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
 		if (nmpReduction > 0) {
 			nmpReduction = std::min(nmpReduction, depth - 1);
-			Move m = Move();
-			m.SetFlag(MoveFlag::NullMove);
 			Boards[level] = board;
-			Boards[level].Push(m);
+			Boards[level].Push(NullMove);
 			const int nullMoveEval = -SearchRecursive(Boards[level], depth - 1 - nmpReduction, level + 1, -beta, -beta + 1, false);
 			if ((nullMoveEval >= beta) && !IsMateScore(nullMoveEval)) return beta;
 		}
@@ -400,9 +395,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
-		Boards[level] = board;
-		Board& b = Boards[level];
-		const bool isQuiet = b.IsMoveQuiet(m);
+		const bool isQuiet = board.IsMoveQuiet(m);
 
 		// Performing futility pruning
 		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta)) continue;
@@ -414,13 +407,14 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			if (!StaticExchangeEval(board, m, isQuiet ? seeQuietMargin[depth] : seeNoisyMargin[depth])) continue;
 		}
 
+		// Push move
+		Boards[level] = board;
+		Board& b = Boards[level];
 		b.Push(m);
 		Statistics.Nodes += 1;
 		int score = NoEval;
 		const bool givingCheck = b.IsInCheck();
-		//bool interestingPawnMove = (TypeOfPiece(board.GetPieceAt(m.from)) == PieceType::Pawn)
-		//	&& ((phase > 0.8f) || ((board.Turn == Turn::White) && (GetSquareRank(m.to) >= 4)) || ((board.Turn == Turn::Black) && (GetSquareRank(m.to) <= 3)));
-		
+
 		if (legalMoveCount == 1) {
 			score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
 		}
@@ -475,7 +469,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// There was no legal move --> game over 
 	if (legalMoveCount == 0) {
 		const int e = inCheck ? LosingMateScore(level) : 0;
-		Heuristics.AddTranspositionEntry(hash, depth, e, ScoreType::Exact, Move(), level);
+		Heuristics.AddTranspositionEntry(hash, depth, e, ScoreType::Exact, EmptyMove, level);
 		return e;
 	}
 
@@ -511,7 +505,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
-		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false, Move(), false);
+		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false, EmptyMove, false);
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {

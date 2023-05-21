@@ -31,3 +31,6 @@ public:
 static bool operator == (const Move &m1, const Move &m2) {
 	return (m1.from == m2.from) && (m1.to == m2.to) && (m1.flag == m2.flag);
 }
+
+static const Move NullMove { 0, 0, MoveFlag::NullMove };
+static const Move EmptyMove { 0, 0, MoveFlag::None };
