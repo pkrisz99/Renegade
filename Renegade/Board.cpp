@@ -592,19 +592,17 @@ const void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int home,
 	const uint64_t occupancy = whiteOccupancy | blackOccupancy;
 	uint64_t map = 0;
 
-	switch (pieceType) {
-	case PieceType::Rook:
+	if constexpr (pieceType == PieceType::Rook) {
 		map = GetRookAttacks(home, occupancy) & ~friendlyOccupance;
-		break;
-	case PieceType::Bishop:
+	}
+	if constexpr (pieceType == PieceType::Bishop) {
 		map = GetBishopAttacks(home, occupancy) & ~friendlyOccupance;
-		break;
-	case PieceType::Queen:
-		map = (GetQueenAttacks(home, occupancy)) & ~friendlyOccupance;
-		break;
+	}
+	if constexpr (pieceType == PieceType::Queen) {
+		map = GetQueenAttacks(home, occupancy) & ~friendlyOccupance;
 	}
 
-	if (moveGen == MoveGen::Noisy) map &= opponentOccupance;
+	if constexpr (moveGen == MoveGen::Noisy) map &= opponentOccupance;
 	if (map == 0) return;
 
 	while (map != 0) {
@@ -619,7 +617,7 @@ const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) co
 	const int rank = GetSquareRank(home);
 	int target;
 
-	if (side == Turn::White) {
+	if constexpr (side == Turn::White) {
 		// 1. Can move forward? + check promotions
 		target = home + 8;
 		if (GetPieceAt(target) == 0) {
@@ -674,7 +672,7 @@ const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) co
 		}
 	}
 
-	if (side == Turn::Black) {
+	else if constexpr (side == Turn::Black) {
 		// 1. Can move forward? + check promotions
 		target = home - 8;
 		if (GetPieceAt(target) == 0) {
@@ -814,66 +812,35 @@ const void Board::GenerateMoves(std::vector<Move>& moves, const MoveGen moveGen,
 
 template <bool side, MoveGen moveGen>
 const void Board::GeneratePseudolegalMoves(std::vector<Move>& moves) const {
-
-	/*
 	const uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
 	const uint64_t blackOccupancy = GetOccupancy(PieceColor::Black);
 	uint64_t friendlyOccupancy = (Turn == Turn::White) ? whiteOccupancy : blackOccupancy;
-	
-	uint64_t occupancy = (side == Turn::White) ? WhitePawnBits : BlackPawnBits;
-	while (occupancy != 0) {
-		const int sq = Popsquare(occupancy);
-		GeneratePawnMoves<side, moveGen>(moves, sq);
-	}
-
-	occupancy = (side == Turn::White) ? WhiteKnightBits : BlackKnightBits;
-	while (occupancy != 0) {
-		const int sq = Popsquare(occupancy);
-		GenerateKnightMoves<side, moveGen>(moves, sq);
-	}
-
-	occupancy = (side == Turn::White) ? WhiteBishopBits : BlackBishopBits;
-	while (occupancy != 0) {
-		const int sq = Popsquare(occupancy);
-		GenerateSlidingMoves<side, PieceType::Bishop, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
-	}
-
-	occupancy = (side == Turn::White) ? WhiteRookBits : BlackRookBits;
-	while (occupancy != 0) {
-		const int sq = Popsquare(occupancy);
-		GenerateSlidingMoves<side, PieceType::Rook, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
-	}
-
-	occupancy = (side == Turn::White) ? WhiteQueenBits : BlackQueenBits;
-	while (occupancy != 0) {
-		const int sq = Popsquare(occupancy);
-		GenerateSlidingMoves<side, PieceType::Queen, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
-	}
-
-	occupancy = (side == Turn::White) ? WhiteKingBits : BlackKingBits;
-	const int sq = Popsquare(occupancy);
-	GenerateKingMoves<side, moveGen>(moves, sq);
-	if (moveGen == MoveGen::All) GenerateCastlingMoves<side>(moves);
-	*/
-
-
-	const uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
-	const uint64_t blackOccupancy = GetOccupancy(PieceColor::Black);
-	uint64_t friendlyOccupancy = (Turn == Turn::White) ? whiteOccupancy : blackOccupancy;
-	const bool quiescenceOnly = (moveGen == MoveGen::Noisy) ? true : false;
 
 	while (friendlyOccupancy != 0) {
 		const int sq = Popsquare(friendlyOccupancy);
 		const int type = TypeOfPiece(GetPieceAt(sq));
 
-		if (type == PieceType::Pawn) GeneratePawnMoves<side, moveGen>(moves, sq);
-		else if (type == PieceType::Knight) GenerateKnightMoves<side, moveGen>(moves, sq);
-		else if (type == PieceType::Bishop) GenerateSlidingMoves<side, PieceType::Bishop, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
-		else if (type == PieceType::Rook) GenerateSlidingMoves<side, PieceType::Rook, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
-		else if (type == PieceType::Queen) GenerateSlidingMoves<side, PieceType::Queen, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
-		else if (type == PieceType::King) {
+		switch (type) {
+		case PieceType::Pawn:
+			GeneratePawnMoves<side, moveGen>(moves, sq);
+			break;
+		case PieceType::Knight:
+			GenerateKnightMoves<side, moveGen>(moves, sq);
+			break;
+		case PieceType::Bishop:
+			GenerateSlidingMoves<side, PieceType::Bishop, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
+			break;
+		case PieceType::Rook:
+			GenerateSlidingMoves<side, PieceType::Rook, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
+			break;
+		case PieceType::Queen:
+			GenerateSlidingMoves<side, PieceType::Queen, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
+			break;
+		case PieceType::King:
 			GenerateKingMoves<side, moveGen>(moves, sq);
 			if (moveGen == MoveGen::All) GenerateCastlingMoves<side>(moves);
+			break;
+
 		}
 	}
 }
@@ -965,7 +932,7 @@ template <bool attackingSide>
 bool Board::IsSquareAttacked(const uint8_t square) const {
 	uint64_t occupancy = GetOccupancy();
 
-	if (attackingSide == Turn::White) {
+	if constexpr (attackingSide == Turn::White) {
 		// Attacked by a knight?
 		if (KnightMoveBits[square] & WhiteKnightBits) return true;
 		// Attacked by a king?
@@ -1202,7 +1169,7 @@ const int Board::GetPlys() const {
 
 template <bool side>
 const uint8_t Board::GetKingSquare() const {
-	if (side == Turn::White) return 63 - Lzcount(WhiteKingBits);	
+	if constexpr (side == Turn::White) return 63 - Lzcount(WhiteKingBits);	
 	else return 63 - Lzcount(BlackKingBits);
 }
 

@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <intrin.h> // If using MSVC (#ifdef _MSC_VER)
-// #include <stdio.h> // If using GCC (?)
 
 // Uncomment for a compilation that is slightly slower, but supports older CPUs
 // If your CPU is newer than about 2013 (Core 4th gen), you should leave it commented out for about 10% more nps
@@ -193,6 +192,7 @@ struct EngineSettings {
 	int Hash;
 	bool ExtendedOutput;
 	bool UciOutput;
+	bool Colorful;
 };
 
 struct SearchStatistics {
@@ -271,7 +271,7 @@ static inline int Lzcount(const uint64_t& number) {
 
 static inline int Popsquare(uint64_t& number) {
 #ifdef LEGACY_CPU
-	const int place = 63 - std::countl_zero(number);
+	const int place = std::countr_zero(number);
 	number &= ~(1ULL << place);
 	return place;
 #else
@@ -284,14 +284,10 @@ static inline int Popsquare(uint64_t& number) {
 
 static inline int LsbSquare(uint64_t number) {
 #ifdef LEGACY_CPU
-	std::terminate(); // kinda todo
+	return static_cast<int>(std::countr_zero(number));
 #else
 	return static_cast<int>(_tzcnt_u64(number));
 #endif
-}
-
-static inline bool Overlapping(const uint64_t& a, const uint64_t& b) {
-	return (a & b) != 0;
 }
 
 // Board helper functions -------------------------------------------------------------------------

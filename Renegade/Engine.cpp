@@ -6,6 +6,7 @@ Engine::Engine() {
 	Settings.UseBook = false;
 	Settings.ExtendedOutput = false;
 	Settings.UciOutput = false;
+	Settings.Colorful = true;
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
 	Search.Heuristics.SetHashSize(Settings.Hash);
@@ -247,16 +248,16 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "clear") {
-			ClearScreen(false, Fancy);
+			ClearScreen(false, Settings.Colorful);
 			PrintHeader();
 			continue;
 		}
 		if (parts[0] == "fancy") {
-			Fancy = true;
+			Settings.Colorful = true;
 			continue;
 		}
 		if (parts[0] == "plain") {
-			Fancy = false;
+			Settings.Colorful = false;
 			continue;
 		}
 		if (parts[0] == "ch") {
@@ -332,7 +333,7 @@ void Engine::Start() {
 			for (int i = 1; i < parts.size(); i++) {
 				if (parts[i] == "wtime") { params.wtime = stoi(parts[i + 1LL]); i++; }
 				if (parts[i] == "btime") { params.btime = stoi(parts[i + 1LL]); i++; }
-				if (parts[i] == "movestogo") { params.movestogo = stoi(parts[i + 1Ll]); i++; }
+				if (parts[i] == "movestogo") { params.movestogo = stoi(parts[i + 1LL]); i++; }
 				if (parts[i] == "winc") { params.winc = stoi(parts[i + 1LL]); i++; }
 				if (parts[i] == "binc") { params.binc = stoi(parts[i + 1LL]); i++; }
 				if (parts[i] == "nodes") { params.nodes = stoi(parts[i + 1LL]); i++; }
@@ -454,10 +455,10 @@ const void Engine::DrawBoard(Board b, uint64_t customBits) {
 
 			if (CheckBit(customBits, i * 8 + j)) {
 				if (pieceColor == PieceColor::Black) CellStyle = BlackOnTarget;
-				else  CellStyle = WhiteOnTarget;
+				else CellStyle = WhiteOnTarget;
 			}
 
-			if (Fancy) cout << CellStyle << ' ' << piece << ' ' << Default;
+			if (Settings.Colorful) cout << CellStyle << ' ' << piece << ' ' << Default;
 			else cout << ' ' << piece << ' ';
 
 		}
@@ -500,7 +501,7 @@ void Engine::Play() {
 
 	bool quitting = false;
 	while ((board.GetGameState() == GameState::Playing) && !quitting) {
-		ClearScreen(false, Fancy);
+		ClearScreen(false, Settings.Colorful);
 		PrintHeader();
 		cout << "Playing a game through console: \n" << endl;
 		DrawBoard(board);
@@ -520,8 +521,8 @@ void Engine::Play() {
 				cout << "Move to play ? ";
 				cin >> str;
 				success = board.PushUci(str);
-				if (str == "fancy") Fancy = true;
-				if (str == "plain") Fancy = false;
+				if (str == "fancy") Settings.Colorful = true;
+				if (str == "plain") Settings.Colorful = false;
 				if (str == "quit") {
 					quitting = true;
 					success = true;
@@ -546,7 +547,7 @@ void Engine::Play() {
 
 	if (!quitting) cout << "Game over: " << StateString(board.GetGameState()) << '\n' << endl;
 	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-	ClearScreen(false, Fancy);
+	ClearScreen(false, Settings.Colorful);
 	PrintHeader();
 
 }

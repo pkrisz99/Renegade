@@ -25,6 +25,5 @@ public:
 
 	Search Search;
 	EngineSettings Settings;
-	bool Fancy = true;
 };
 

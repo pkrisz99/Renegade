@@ -272,7 +272,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	Statistics.AlphaBetaCalls += 1;
 
 	// Mate distance pruning
-	if (level != 0) {
+	if (!rootNode) {
 		alpha = std::max(alpha, -MateEval + level);
 		beta = std::min(beta, MateEval - level - 1);
 		if (alpha >= beta) return alpha;
@@ -749,18 +749,35 @@ const void Search::PrintInfo(const Results& e, const EngineSettings& settings) {
 }
 
 const void Search::PrintPretty(const Results& e, const EngineSettings& settings) {
-	const std::string green = "\x1b[92m";
-	const std::string blue = "\x1b[96m";
-	const std::string red = "\x1b[91m";
-	const std::string white = "\x1b[0m";
-	const std::string gray = "\x1b[90m";
-	const std::string yellow = "\x1b[93m";
+	const std::string green = settings.Colorful ? "\x1b[92m" : "";
+	const std::string blue = settings.Colorful ? "\x1b[96m": "";
+	const std::string red = settings.Colorful ? "\x1b[91m": "";
+	const std::string white = settings.Colorful ? "\x1b[0m": "";
+	const std::string gray = settings.Colorful ? "\x1b[90m": "";
+	const std::string yellow = settings.Colorful ? "\x1b[93m" : "";
 
-	std::string output1 = std::format(" \x1b[0m{:2d}/{:2d}", 
-		e.depth, e.stats.SelDepth);
+	std::string output1 = std::format("{} {:2d}/{:2d}", 
+		white, e.depth, e.stats.SelDepth);
 
-	std::string output3 = std::format("{} {:9d} {:7d}ms  {:4d}knps  h={:4.1f}% {} -> ",
-		gray, e.stats.Nodes, e.time, e.nps / 1000, e.hashfull / 10.0, white);
+	std::string nodeString;
+	if (e.stats.Nodes < 1e9) nodeString = std::to_string(e.stats.Nodes);
+	else nodeString = std::format("{:8.3f}", e.stats.Nodes / 1e9) + "b";
+
+	std::string timeString;
+	if (e.time < 60000) timeString = std::to_string(e.time) + "ms";
+	else {
+		int seconds = e.time / 1000;
+		int minutes = seconds / 60;
+		seconds = seconds - minutes * 60;
+		timeString = std::format("{}m{:02d}s", minutes, seconds);
+	}
+
+	std::string hashString;
+	if (e.hashfull != 1000) hashString = std::format("{:4.1f}", e.hashfull / 10.0);
+	else hashString = "100";
+
+	std::string output3 = std::format("{}  {:>9}  {:>7}  {:4d}knps  h={:>4}% {} -> ",
+		gray, nodeString, timeString, e.nps / 1000, hashString, white);
 
 	const int neutralMargin = 50;
 	std::string scoreColor = blue;
