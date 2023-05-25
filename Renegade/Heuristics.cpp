@@ -9,7 +9,8 @@ Heuristics::Heuristics() {
 
 // Move ordering & clearing -----------------------------------------------------------------------
 
-const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& ttMove, const bool losingSEE) {
+const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& ttMove,
+	const Move& previousMove, const bool losingCapture) {
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
@@ -19,7 +20,7 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 	if ((m.from == ttMove.from) && (m.to == ttMove.to) && (m.flag == ttMove.flag)) return 800000;
 
 	// Captures
-	if (!losingSEE) {
+	if (!losingCapture) {
 		if (attackedPiece != PieceType::None) return 600000 + values[attackedPiece] * 16 - values[attackingPiece];
 		if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
 	}
@@ -34,6 +35,9 @@ const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int
 	// Quiet killer moves
 	if (IsFirstKillerMove(m, level)) return 100100;
 	if (IsSecondKillerMove(m, level)) return 100000;
+
+	// Countermove heuristic
+	if (IsCountermove(previousMove, m)) return 99000;
 
 	// Quiet moves
 	const bool turn = board.Turn;
@@ -142,10 +146,21 @@ const bool Heuristics::IsSecondKillerMove(const Move& move, const int level) {
 	return false;
 }
 
-void Heuristics::ClearKillerMoves() {
+const bool Heuristics::IsCountermove(const Move& previousMove, const Move& thisMove) {
+	return CounterMoves[previousMove.from][previousMove.to] == thisMove;
+}
+
+const void Heuristics::AddCountermove(const Move& previousMove, const Move& thisMove) {
+	CounterMoves[previousMove.from][previousMove.to] = thisMove;
+}
+
+void Heuristics::ClearKillerAndCounterMoves() {
 	for (int i = 0; i < KillerMoves.size(); i++) {
 		KillerMoves[i][0] = Move();
 		KillerMoves[i][1] = Move();
+	}
+	for (int i = 0; i < CounterMoves.size(); i++) {
+		std::fill(std::begin(CounterMoves[i]), std::end(CounterMoves[i]), EmptyMove);
 	}
 }
 

@@ -49,7 +49,7 @@ void Engine::Start() {
 		if (cmd == "ucinewgame") {
 			Search.Heuristics.ClearTranspositionTable();
 			Search.Heuristics.ClearHistoryTable();
-			Search.Heuristics.ClearKillerMoves();
+			Search.Heuristics.ClearKillerAndCounterMoves();
 			Search.Heuristics.ResetPvTable();
 			Search.Heuristics.ClearPvLine();
 			continue;
@@ -99,7 +99,7 @@ void Engine::Start() {
 				ConvertToLowercase(parts[3]);
 				if (parts[3] == "hash") {
 					Search.Heuristics.ClearTranspositionTable();
-					Search.Heuristics.ClearKillerMoves();
+					Search.Heuristics.ClearKillerAndCounterMoves();
 					Search.Heuristics.ResetPvTable();
 					Search.Heuristics.ClearPvLine();
 					Search.Heuristics.ClearHistoryTable();
@@ -262,7 +262,7 @@ void Engine::Start() {
 		}
 		if (parts[0] == "ch") {
 			Search.Heuristics.ClearTranspositionTable();
-			Search.Heuristics.ClearKillerMoves();
+			Search.Heuristics.ClearKillerAndCounterMoves();
 			Search.Heuristics.ResetPvTable();
 			Search.Heuristics.ClearPvLine();
 			Search.Heuristics.ClearHistoryTable();
@@ -360,7 +360,7 @@ void Engine::Start() {
 			auto startTime = Clock::now();
 
 			for (const std::string& fen : BenchmarkFENs) {
-				Search.Heuristics.ClearKillerMoves();
+				Search.Heuristics.ClearKillerAndCounterMoves();
 				Search.Heuristics.ClearHistoryTable();
 				Search.Heuristics.ClearPvLine();
 				Search.Heuristics.ResetPvTable();
@@ -394,7 +394,7 @@ void Engine::Start() {
 			std::vector<std::tuple<Move, int>> scores;
 			for (Move& m : moves) {
 				Board b = Board(board);
-				Search.Heuristics.ClearKillerMoves();
+				Search.Heuristics.ClearKillerAndCounterMoves();
 				Search.Heuristics.ClearHistoryTable();
 				Search.Heuristics.ClearPvLine();
 				Search.Heuristics.ResetPvTable();

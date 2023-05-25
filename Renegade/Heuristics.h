@@ -32,7 +32,8 @@ public:
 	static const int PvSize = 32;
 
 	Heuristics();
-	const int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& ttMove, const bool losingSEE);
+	const int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& ttMove, 
+		const Move& previousMove, const bool losingCapture);
 	
 	// PV table
 	void UpdatePvTable(const Move& move, const int level, const bool leaf);
@@ -42,12 +43,14 @@ public:
 	void ClearPvLine();
 	void ResetPvTable();
 
-	// Killer moves
+	// Killer and countermoves
 	void AddKillerMove(const Move& m, const int level);
+	const bool IsCountermove(const Move& previousMove, const Move& thisMove);
 	const bool IsKillerMove(const Move& move, const int level);
 	const bool IsFirstKillerMove(const Move& move, const int level);
 	const bool IsSecondKillerMove(const Move& move, const int level);
-	void ClearKillerMoves();
+	void ClearKillerAndCounterMoves();
+	const void AddCountermove(const Move& previousMove, const Move& thisMove);
 
 	// History heuristic
 	void IncrementHistory(const bool side, const int from, const int to, const int depth);
@@ -76,6 +79,7 @@ private:
 	std::array<std::array<Move, 2>, 32> KillerMoves;
 	std::vector<Move> PvMoves;
 	std::array<std::array<std::array<int, 64>, 64>, 2> HistoryTables;
+	std::array<std::array<Move, 64>, 64> CounterMoves;
 
 };
 

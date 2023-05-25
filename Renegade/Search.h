@@ -59,10 +59,11 @@ public:
 	std::chrono::steady_clock::time_point StartSearchTime;
 	bool FollowingPV;
 
-	// Reused variables
+	// Reused variables / stack
 	std::vector<Move> MoveList;
 	std::array<std::vector<std::tuple<Move, int>>, 64> MoveOrder;
 	std::array<Board, 64> Boards;
+	std::array<Move, 64> MoveStack;
 
 	std::array<std::array<int, 32>, 32> LMRTable;
 
