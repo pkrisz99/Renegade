@@ -335,8 +335,8 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	if ((depth >= 3) && !inCheck && canNullMove && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
 		int nmpReduction = 3 + depth / 3 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
-		if (nmpReduction > 0) {
-			nmpReduction = std::min(nmpReduction, depth - 1);
+		nmpReduction = std::min(nmpReduction, depth - 1);
+		if ((staticEval >= beta) && (nmpReduction > 0)) {
 			Boards[level] = board;
 			Boards[level].Push(NullMove);
 			const int nullMoveEval = -SearchRecursive(Boards[level], depth - 1 - nmpReduction, level + 1, -beta, -beta + 1, false);
