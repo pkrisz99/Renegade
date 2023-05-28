@@ -334,7 +334,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	const int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
 	if ((depth >= 3) && !inCheck && canNullMove && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
-		int nmpReduction = 3 + depth / 3 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
+		int nmpReduction = 3 + depth / 4 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
 		nmpReduction = std::min(nmpReduction, depth - 1);
 		if ((staticEval >= beta) && (nmpReduction > 0)) {
 			Boards[level] = board;
