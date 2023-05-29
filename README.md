@@ -23,29 +23,30 @@ The engine is moderately strong, and regularly competes on Lichess over at https
 
 ### Known issues & future plans
 
-While Renegade itself is quite good against human players, it has a significantly harder time against other engines. It struggles in complicated positions, and it has a tendency to overestimate its positional advantage and undervalue its material. The engine relies on hand-crafted evaluation, and does about 1.5 million nps during search.  
+While Renegade itself is quite good against human players, it has a significantly harder time against other engines. It struggles in complicated positions, and it has a tendency to overestimate its positional advantage and undervalue its material. The engine relies on hand-crafted evaluation and does about 1.5 million nps during search.  
 
-The engine is generally stable, and shouldn't make invalid moves or forfeit on time. Some of the issues include the inability to listen for `stop` commands, or responding to `isready` while busy. These can cause issues in Banksia.
+The engine is generally stable and shouldn't make invalid moves or forfeit on time. Some of the issues include the inability to listen for `stop` commands or responding to `isready` while busy. These can cause issues in Banksia.
 
 
 ### Build instructions & system requirements
 
-The project can be compiled using Visual Studio 2019 with C++20 features enabled. The engine makes heavy use of `popcnt` and `lzcnt` instructions, and currently only Windows binaries are compiled, but in the future I would like to make them for Linux and Mac as well.
+The project can be compiled using Visual Studio 2019 with C++20 features enabled. The engine makes heavy use of `popcnt` and `lzcnt` instructions, and currently only Windows binaries are compiled, but in the future, I would like to make them for Linux and Mac as well.
 
 
 ## Usage
 Like most chess engines, this is a command line application implementing the UCI protocol, which is widely supported by graphical chess programs.  
+
 As of version 0.11.0, if the engine doesn't receive the `uci` command, it defaults to pretty print outputs:  
 ```
-Renegade chess engine 0.11.0 dev [May 29 2023 11:23:29]
+Renegade chess engine 0.11.0 [May 29 2023 12:31:30]
 go depth 7
-  1/ 1         20      0ms   338knps  h= 0.0%  ->  +0.46  [g1f3]
-  2/ 2         93      0ms   178knps  h= 0.0%  ->  +0.18  [g1f3 g8f6]
-  3/ 3        272      0ms   273knps  h= 0.0%  ->  +0.39  [g1f3 g8f6 b1c3]
-  4/ 6       1059      2ms   513knps  h= 0.0%  ->  +0.18  [g1f3 g8f6 b1c3 b8c6]
-  5/ 7       1974      3ms   587knps  h= 0.0%  ->  +0.33  [g1f3 g8f6 b1c3 b8c6 d2d4]
-  6/12       5190      7ms   715knps  h= 0.0%  ->  +0.18  [g1f3 g8f6 b1c3 b8c6 d2d4 (+1)]
-  7/12      15014     14ms  1023knps  h= 0.0%  ->  +0.14  [g1f3 g8f6 b1c3 b8c6 d2d4 (+2)]
+  1/ 1         20      0ms   326knps  h= 0.0%  ->  +0.46  [g1f3]
+  2/ 2         93      0ms   154knps  h= 0.0%  ->  +0.18  [g1f3 g8f6]
+  3/ 3        272      0ms   281knps  h= 0.0%  ->  +0.39  [g1f3 g8f6 b1c3]
+  4/ 6       1059      1ms   530knps  h= 0.0%  ->  +0.18  [g1f3 g8f6 b1c3 b8c6]
+  5/ 7       1974      3ms   614knps  h= 0.0%  ->  +0.33  [g1f3 g8f6 b1c3 b8c6 d2d4]
+  6/12       5190      6ms   751knps  h= 0.0%  ->  +0.18  [g1f3 g8f6 b1c3 b8c6 d2d4 (+1)]
+  7/12      15014     14ms  1036knps  h= 0.0%  ->  +0.14  [g1f3 g8f6 b1c3 b8c6 d2d4 (+2)]
 bestmove g1f3
 ```
 Normally the output is colorful, but you can type `plain` to disable that. Depending on your terminal, this may fix possible display issues.  
