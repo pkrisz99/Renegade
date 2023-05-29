@@ -348,7 +348,7 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "bench") {
-			int nodes = 0;
+			uint64_t nodes = 0;
 			SearchParams params;
 			params.depth = 11;
 			EngineSettings settings;

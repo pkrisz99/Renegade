@@ -9,7 +9,7 @@ extern uint64_t GetQueenAttacks(const int square, const uint64_t occupancy);
 struct EvaluationFeatures {
 
 	// Weight size and its array
-	static constexpr int WeightSize = 572;
+	static constexpr int WeightSize = 566;
 	TaperedScore Weights[WeightSize];
 
 	// King safety constants
@@ -42,7 +42,6 @@ struct EvaluationFeatures {
 	constexpr int IndexKingThreats(const uint8_t attackedPieceType) const { return 543 + attackedPieceType; };
 	constexpr int IndexPawnSupportingPawn(const uint8_t rank) const { return 550 + rank; };
 	constexpr int IndexPawnPhalanx(const uint8_t rank) const { return 558 + rank; };
-	constexpr int IndexPawnSupportingPiece(const uint8_t pieceType) const { return 565 + pieceType; };
 
 	// Shorthand for retrieving the evaluation
 	inline const TaperedScore& GetMaterial(const uint8_t pieceType) const { return Weights[IndexPieceMaterial(pieceType)]; }
@@ -70,8 +69,6 @@ struct EvaluationFeatures {
 	inline const TaperedScore& GetKingThreat(const uint8_t attackedPieceType) const { return Weights[IndexKingThreats(attackedPieceType)]; }
 	inline const TaperedScore& GetPawnSupportingPawn(const uint8_t rank) const { return Weights[IndexPawnSupportingPawn(rank)]; }
 	inline const TaperedScore& GetPawnPhalanx(const uint8_t rank) const { return Weights[IndexPawnPhalanx(rank)]; }
-	inline const TaperedScore& GetPawnSupportingPiece(const uint8_t pieceType) const { return Weights[IndexPawnSupportingPiece(pieceType)]; }
-
 };
 
 
@@ -229,9 +226,6 @@ static EvaluationFeatures Weights = {
 
 	// 7.3 Pawn phalanx (by rank)
 	S(2, 0), S(7, 0), S(1, -3), S(14, 17), S(36, 36), S(42, 42), S(42, 42), S(0, 0),
-
-	// 7.4 Pawns supporting other pieces (pawn, knight, bishop, rook, queen, king) - todo
-	S(3, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0),
 };
 
 // Interpolation functions ------------------------------------------------------------------------
@@ -264,22 +258,22 @@ inline static const bool IsDrawishEndgame(const Board& board, const uint64_t whi
 	if (!endgame) return false;
 
 	// Variables for easy access
-	bool pawnless = (board.WhitePawnBits | board.BlackPawnBits) == 0ULL;
-	bool queenless = (board.WhiteQueenBits | board.BlackQueenBits) == 0ULL;
-	bool queenful = (Popcount(board.WhiteQueenBits | board.BlackQueenBits) > 0)
+	const bool pawnless = (board.WhitePawnBits | board.BlackPawnBits) == 0ULL;
+	const bool queenless = (board.WhiteQueenBits | board.BlackQueenBits) == 0ULL;
+	const bool queenful = (Popcount(board.WhiteQueenBits | board.BlackQueenBits) > 0)
 		&& (Popcount(board.WhiteQueenBits) <= 1) && (Popcount(board.BlackQueenBits) <= 1);
-	bool potentiallyDrawishQueenless = queenless && pawnless && endgame;
-	bool potentiallyDrawishQueenful = queenful && pawnless && endgame;
-	int whiteExtras = Popcount(whitePieces) - 1;
-	int blackExtras = Popcount(blackPieces) - 1;
-	int whiteMinors = Popcount(board.WhiteKnightBits | board.WhiteBishopBits);
-	int blackMinors = Popcount(board.BlackKnightBits | board.BlackBishopBits);
-	int whiteKnights = Popcount(board.WhiteKnightBits);
-	int blackKnights = Popcount(board.BlackKnightBits);
-	int whiteBishops = Popcount(board.WhiteBishopBits);
-	int blackBishops = Popcount(board.BlackBishopBits);
-	int whiteRooks = Popcount(board.WhiteRookBits);
-	int blackRooks = Popcount(board.BlackRookBits);
+	const bool potentiallyDrawishQueenless = queenless && pawnless && endgame;
+	const bool potentiallyDrawishQueenful = queenful && pawnless && endgame;
+	const int whiteExtras = Popcount(whitePieces) - 1;
+	const int blackExtras = Popcount(blackPieces) - 1;
+	const int whiteMinors = Popcount(board.WhiteKnightBits | board.WhiteBishopBits);
+	const int blackMinors = Popcount(board.BlackKnightBits | board.BlackBishopBits);
+	const int whiteKnights = Popcount(board.WhiteKnightBits);
+	const int blackKnights = Popcount(board.BlackKnightBits);
+	const int whiteBishops = Popcount(board.WhiteBishopBits);
+	const int blackBishops = Popcount(board.BlackBishopBits);
+	const int whiteRooks = Popcount(board.WhiteRookBits);
+	const int blackRooks = Popcount(board.BlackRookBits);
 
 	// Endgames with no queens
 	if (potentiallyDrawishQueenless) {
@@ -336,24 +330,17 @@ inline static const bool IsDrawishEndgame(const Board& board, const uint64_t whi
 
 // Board evaluation -------------------------------------------------------------------------------
 
-inline static const int EvaluateBoard(const Board& board, const int level, const EvaluationFeatures& weights) {
-
-	// Renegade's definitions in evaluation:
-	// - attacks: squares that a piece can perform a capture on (neglecting checks and friendly pieces)
-	// - mobility: sqaures that a piece can move to (pseudolegal, for now at least)
-
-	//int score = 0, earlyScore = 0, lateScore = 0;
+static const int EvaluateBoard(const Board& board, const int level, const EvaluationFeatures& weights) {
+	
+	// Renegade's evaluation function
 
 	TaperedScore taperedScore(0, 0);
-
 	const uint64_t occupancy = board.GetOccupancy();
 	const uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
 	const uint64_t blackPieces = board.GetOccupancy(PieceColor::Black);
 	const float phase = CalculateGamePhase(board);
-
 	const uint64_t whitePawnAttacks = ((board.WhitePawnBits & ~Bitboards::FileA) << 7) | ((board.WhitePawnBits & ~Bitboards::FileH) << 9);
 	const uint64_t blackPawnAttacks = ((board.BlackPawnBits & ~Bitboards::FileA) >> 9) | ((board.BlackPawnBits & ~Bitboards::FileH) >> 7);
-
 	uint64_t allOccupancy = occupancy;
 	uint64_t whiteAttacks = 0, blackAttacks = 0;
 

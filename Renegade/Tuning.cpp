@@ -134,7 +134,7 @@ const void Tuning::Tune(const double K) {
 				if ((phase == early) && !p.tuneEarly) continue;
 				if ((phase == late) && !p.tuneLate) continue;
 
-				const int iterationPercent = static_cast<size_t>(doneInIteration) * 100 / weightsForTuning.size();
+				const int iterationPercent = static_cast<int>(doneInIteration * 100) / weightsForTuning.size();
 
 				cout << "Iteration " << iterations << ", tuning parameter " << ((phase == early) ? "(early) " : "(late)  ")
 					<< p.id << " of " << TempWeights.WeightSize << " (" << iterationPercent << "%)...      " << '\r' << std::flush;
@@ -189,7 +189,7 @@ const void Tuning::Tune(const double K) {
 
 		cout << "\nChanges made during iteration " << iterations << ": " << improvements << endl;
 		auto endTime = Clock::now();
-		int seconds = (endTime - startTime).count() / 1e9;
+		int seconds = static_cast<int>((endTime - startTime).count() / 1e9);
 		cout << "Iteration took " << seconds << " seconds" << endl;
 
 		if (newTestMSE < testMSE) {
