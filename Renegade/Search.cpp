@@ -329,7 +329,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		transpositionMove = Heuristics.PvTable[level+1][level + 1];
 	}
 
-	// Null-move pruning (+44 elo)
+	// Null-move pruning (+33 elo)
 	const int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
 	const int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
 	if ((depth >= 3) && !inCheck && canNullMove && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
@@ -344,7 +344,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		}
 	}
 
-	// Futility pruning (+41 elo)
+	// Futility pruning (+37 elo)
 	const int futilityMargins[] = { 0, 100, 200, 300, 400, 500 };
 	bool futilityPrunable = false;
 	if ((depth <= 5) && !inCheck && !pvNode) {
@@ -352,7 +352,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		if ((staticEval + futilityMargins[depth] < alpha)) futilityPrunable = true;
 	}
 
-	// Reverse futility pruning (+87 elo)
+	// Reverse futility pruning (+128 elo)
 	const int rfpMargin[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
 	if ((depth <= 7) && !inCheck && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
@@ -402,7 +402,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		// Performing futility pruning
 		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta)) continue;
 
-		// Main search SEE pruning
+		// Main search SEE pruning (+20 elo)
 		const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300, -350 };
 		const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600, -700 };
 		if (!rootNode && !pvNode && (depth <= 5) && !IsLosingMateScore(alpha)) {
@@ -430,7 +430,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				if (legalMoveCount > lmpCount[depth]) continue;
 			}*/
 
-			// Late-move reductions (+53 elo)
+			// Late-move reductions (+119 elo)
 			if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 				// Idea: increase reduction for bad history moves
@@ -521,7 +521,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	// Search recursively
 	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
-		if (!StaticExchangeEval(board, m, 0)) continue;
+		if (!StaticExchangeEval(board, m, 0)) continue; // Quiescence search SEE pruning (+39 elo)
 		Statistics.Nodes += 1;
 		Statistics.QuiescenceNodes += 1;
 
