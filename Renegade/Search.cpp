@@ -286,7 +286,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	if (inCheck) depth += 1;
 
 	// Check for draws
-	if (board.IsDraw()) return 0;
+	if (board.IsDraw(rootNode)) return 0;
 
 	// Return result for terminal nodes
 	if (depth <= 0) {
@@ -535,11 +535,11 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	return alpha;
 }
 
-int Search::StaticEvaluation(Board &board, int level, bool checkDraws) {
+const int Search::StaticEvaluation(const Board &board, const int level, const bool checkDraws) {
 	Statistics.Evaluations += 1;
 	if (level > Statistics.SelDepth) Statistics.SelDepth = level;
 	if (checkDraws) {
-		if (board.IsDraw()) return 0;
+		if (board.IsDraw(level == 0)) return 0;
 	}
 	return EvaluateBoard(board, level);
 }

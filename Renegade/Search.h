@@ -35,7 +35,7 @@ public:
 	Results SearchMoves(Board& board, const SearchParams params, const EngineSettings settings, const bool display);
 	int SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove);
 	int SearchQuiescence(Board& board, const int level, int alpha, int beta, const bool rootNode);
-	int StaticEvaluation(Board& board, const int level, bool checkDraws);
+	const int StaticEvaluation(const Board& board, const int level, const bool checkDraws);
 	const bool StaticExchangeEval(const Board& board, const Move& move, const int threshold);
 
 	// Opening book

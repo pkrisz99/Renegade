@@ -1054,11 +1054,11 @@ const bool Board::AreThereLegalMoves() {
 	return hasMoves;
 }
 
-const bool Board::IsDraw() const {
+const bool Board::IsDraw(const bool threefold) const {
 
 	// Threefold repetitions
 	const int64_t stateCount = std::count(PreviousHashes.begin(), PreviousHashes.end(), HashValue);
-	if (stateCount >= 3) return true;
+	if (stateCount >= (threefold ? 3 : 2)) return true;
 
 	// Insufficient material check
 	// I think this neglects some cases when pawns can't move
@@ -1111,7 +1111,7 @@ const GameState Board::GetGameState() {
 	}
 
 	// Check other types of draws
-	if (IsDraw()) return GameState::Draw;
+	if (IsDraw(true)) return GameState::Draw;
 	else return GameState::Playing;
 }
 

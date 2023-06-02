@@ -40,7 +40,7 @@ public:
 	template <bool attackingSide> bool IsSquareAttacked(const uint8_t square) const;
 
 	const bool AreThereLegalMoves();
-	const bool IsDraw() const;
+	const bool IsDraw(const bool threefold) const;
 	const GameState GetGameState();
 	const int GetPlys() const;
 	const std::string GetFEN() const;

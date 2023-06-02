@@ -197,7 +197,7 @@ void Engine::Start() {
 
 			}
 			if (parts[1] == "isdraw") {
-				cout << "Is draw? " << board.IsDraw() << endl;
+				cout << "Is draw? " << board.IsDraw(true) << endl;
 			}
 			if (parts[1] == "attackersofsquare") {
 				const int sq = stoi(parts[2]);
