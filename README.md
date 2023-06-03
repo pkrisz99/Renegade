@@ -14,7 +14,7 @@ The engine is moderately strong, and regularly competes on Lichess over at https
 
 **Move generation >** Pseudolegal, magic bitboards, insufficient material, checkmate and stalemate recognition, attack map generation for legality checking, lookup tables, parallel bitwise sliding attack generation  
 
-**Search >** Alpha-beta pruning, iterative deepening, principal variation search, aspiration windows, quiescence search, transposition table, history heuristic, killer move heuristic, late-move reductions, null move pruning, delta pruning, check extensions, futility & reverse futility pruning, razoring, internal iterative deepening, static exchange evaluation  
+**Search >** Alpha-beta pruning, iterative deepening, principal variation search, aspiration windows, quiescence search, transposition table, history heuristic, killer move heuristic, late-move reductions, null move pruning, check extensions, futility & reverse futility pruning, countermove heuristic, internal iterative deepening, static exchange evaluation  
 
 **Evaluation >** Material, piece-square tables, tapered evaluation, piece mobility, tempo bonus, doubled & tripled pawn penalty, threats, passed pawn bonus, king safety, outposts, open files, pawn phalanx, drawish endgame recognition
 
