@@ -330,21 +330,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		transpositionMove = Heuristics.PvTable[level+1][level + 1];
 	}
 
-	// Null-move pruning (+33 elo)
-	const int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
-	const int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
-	if ((depth >= 3) && !inCheck && canNullMove && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
-		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
-		int nmpReduction = 3 + depth / 4 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
-		nmpReduction = std::min(nmpReduction, depth - 1);
-		if ((staticEval >= beta) && (nmpReduction > 0)) {
-			Boards[level] = board;
-			Boards[level].Push(NullMove);
-			const int nullMoveEval = -SearchRecursive(Boards[level], depth - 1 - nmpReduction, level + 1, -beta, -beta + 1, false);
-			if ((nullMoveEval >= beta) && !IsMateScore(nullMoveEval)) return beta;
-		}
-	}
-
 	// Futility pruning (+37 elo)
 	const int futilityMargins[] = { 0, 100, 200, 300, 400, 500 };
 	bool futilityPrunable = false;
@@ -358,6 +343,21 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	if ((depth <= 7) && !inCheck && !pvNode) {
 		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
 		if (staticEval - rfpMargin[depth] > beta) return staticEval;
+	}
+
+	// Null-move pruning (+33 elo)
+	const int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
+	const int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
+	if ((depth >= 3) && !inCheck && canNullMove && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
+		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
+		int nmpReduction = 3 + depth / 4 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
+		nmpReduction = std::min(nmpReduction, depth - 1);
+		if ((staticEval >= beta) && (nmpReduction > 0)) {
+			Boards[level] = board;
+			Boards[level].Push(NullMove);
+			const int nullMoveEval = -SearchRecursive(Boards[level], depth - 1 - nmpReduction, level + 1, -beta, -beta + 1, false);
+			if ((nullMoveEval >= beta) && !IsMateScore(nullMoveEval)) return beta;
+		}
 	}
 
 	// Razoring (neutral)
