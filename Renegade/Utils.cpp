@@ -18,14 +18,14 @@ using std::get;
 typedef std::chrono::high_resolution_clock Clock;
 
 #ifndef LEGACY_CPU
-const std::string Version = "0.11.0";
+const std::string Version = "0.11.0+";
 #else
-const std::string Version = "0.11.0 (oldcpu)";
+const std::string Version = "0.11.0+ (oldcpu)";
 #endif
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
-static const int MateEval = 1000000;
+static const int MateEval = 100000;
 static const int NoEval = -666666666;
 static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
 static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong

@@ -181,9 +181,19 @@ Results Search::SearchMoves(Board &board, const SearchParams params, const Engin
 			int windowSize = 25;
 
 			while (true) {
-				if (Aborting) break;		
-				int alpha = std::max(result - windowSize, NegativeInfinity);
-				int beta = std::min(result + windowSize, PositiveInfinity);
+				if (Aborting) break;
+				int alpha, beta;
+				if (windowSize < 500) {
+					alpha = std::max(result - windowSize, NegativeInfinity);
+					beta = std::min(result + windowSize, PositiveInfinity);
+				}
+				else {
+					alpha = NegativeInfinity;
+					beta = PositiveInfinity;
+				}
+
+				//if (!settings.UciOutput) cout << "[" << alpha << ".." << beta << "] ";
+
 				result = SearchRecursive(board, Depth, 0, alpha, beta, true);
 
 				if (result <= alpha) {
