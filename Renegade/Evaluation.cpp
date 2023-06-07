@@ -349,11 +349,11 @@ static const int EvaluateBoard(const Board& board, const int level, const Evalua
 	int whiteDangerPieces = 0;
 	int blackDangerPieces = 0;
 
-	const int whiteKingSquare = 63 - Lzcount(board.WhiteKingBits);
+	const int whiteKingSquare = board.GetKingSquare<Turn::White>();
 	const int whiteKingFile = GetSquareFile(whiteKingSquare);
 	const int whiteKingRank = GetSquareRank(whiteKingSquare);
 	const uint64_t whiteKingZone = KingArea[whiteKingSquare];
-	const int blackKingSquare = 63 - Lzcount(board.BlackKingBits);
+	const int blackKingSquare = board.GetKingSquare<Turn::Black>();
 	const int blackKingFile = GetSquareFile(blackKingSquare);
 	const int blackKingRank = GetSquareRank(blackKingSquare);
 	const uint64_t blackKingZone = KingArea[blackKingSquare];

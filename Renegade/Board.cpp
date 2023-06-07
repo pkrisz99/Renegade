@@ -177,10 +177,10 @@ const uint64_t Board::HashInternal() {
 		hash ^= Zobrist[64 * 8 + sq];
 	}
 
-	int sq = 63 - Lzcount(WhiteKingBits);
+	int sq = LsbSquare(WhiteKingBits);
 	hash ^= Zobrist[64 * 11 + sq];
 
-	sq = 63 - Lzcount(BlackKingBits);
+	sq = LsbSquare(BlackKingBits);
 	hash ^= Zobrist[64 * 10 + sq];
 	
 	// Castling
@@ -269,10 +269,10 @@ void Board::GenerateOccupancy() {
 		OccupancyInts[sq] = Piece::BlackQueen;
 	}
 
-	int sq = 63 - Lzcount(WhiteKingBits);
+	int sq = LsbSquare(WhiteKingBits);
 	OccupancyInts[sq] = Piece::WhiteKing;
 
-	sq = 63 - Lzcount(BlackKingBits);
+	sq = LsbSquare(BlackKingBits);
 	OccupancyInts[sq] = Piece::BlackKing;
 }
 
@@ -499,7 +499,7 @@ void Board::Push(const Move move) {
 // We try to call this function as little as possible
 // Pretends to make a move, check its legality and then revert the variables
 // It only cares about whether the king will be in check, impossible moves won't be noticed
-bool Board::IsLegalMove(const Move m) {
+bool Board::IsLegalMove(const Move& m) {
 	const uint64_t whitePawnBits = WhitePawnBits;
 	const uint64_t whiteKnightBits = WhiteKnightBits;
 	const uint64_t whiteBishopBits = WhiteBishopBits;
@@ -1013,7 +1013,7 @@ const bool Board::AreThereLegalMoves() {
 	std::vector<Move> moves;
 	uint64_t occupancy = (Turn == Turn::White) ? whiteOccupancy : blackOccupancy;
 	while (occupancy != 0) {
-		int i = 63 - Lzcount(occupancy);
+		int i = LsbSquare(occupancy);
 		SetBitFalse(occupancy, i);
 		int piece = GetPieceAt(i);
 		int color = ColorOfPiece(piece);
@@ -1169,11 +1169,11 @@ const int Board::GetPlys() const {
 
 template <bool side>
 const uint8_t Board::GetKingSquare() const {
-	if constexpr (side == Turn::White) return 63 - Lzcount(WhiteKingBits);	
-	else return 63 - Lzcount(BlackKingBits);
+	if constexpr (side == Turn::White) return LsbSquare(WhiteKingBits);	
+	else return LsbSquare(BlackKingBits);
 }
 
 const bool Board::IsInCheck() const {
-	if (Turn == Turn::White) return IsSquareAttacked<Turn::Black>(63 - Lzcount(WhiteKingBits));
-	else return IsSquareAttacked<Turn::White>(63 - Lzcount(BlackKingBits));
+	if (Turn == Turn::White) return IsSquareAttacked<Turn::Black>(LsbSquare(WhiteKingBits));
+	else return IsSquareAttacked<Turn::White>(LsbSquare(BlackKingBits));
 }

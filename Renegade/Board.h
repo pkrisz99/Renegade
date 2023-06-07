@@ -35,7 +35,7 @@ public:
 
 	const void GenerateMoves(std::vector<Move>& moves, const MoveGen moveGen, const Legality legality);
 	const uint64_t CalculateAttackedSquares(const uint8_t colorOfPieces) const;
-	bool IsLegalMove(const Move m);
+	bool IsLegalMove(const Move& m);
 	const bool IsMoveQuiet(const Move& move) const;
 	template <bool attackingSide> bool IsSquareAttacked(const uint8_t square) const;
 
