@@ -67,7 +67,7 @@ public:
 	uint64_t BlackKingBits;
 	uint64_t HashValue;
 	uint16_t FullmoveClock;
-	uint8_t EnPassantSquare;
+	int8_t EnPassantSquare;
 	uint8_t HalfmoveClock;
 	bool WhiteRightToShortCastle;
 	bool WhiteRightToLongCastle;

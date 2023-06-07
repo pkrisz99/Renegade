@@ -1,7 +1,5 @@
 ﻿#include "Board.h"
 
-#pragma once
-
 // Constructors and related -----------------------------------------------------------------------
 
 void Board::Setup(const std::string fen) {
@@ -633,7 +631,7 @@ const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) co
 
 		// 2. Can move up left (can capture?) + check promotions + check en passant
 		target = home + 7;
-		if ((file != 0) && ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target==EnPassantSquare) && (ColorOfPiece(GetPieceAt(target)) == 0))) {
+		if ((file != 0) && ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare))) {
 			if (GetSquareRank(target) != 7) {
 				Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 				moves.push_back(m);
@@ -648,7 +646,7 @@ const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) co
 		// 3. Can move up right (can capture?) + check promotions + check en passant
 		target = home + 9;
 		if (file != 7) {
-			if ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare) && (ColorOfPiece(GetPieceAt(target)) == 0)) {
+			if ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare)) {
 				if (GetSquareRank(target) != 7) {
 					Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 					moves.push_back(m);
@@ -688,7 +686,7 @@ const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) co
 
 		// 2. Can move down right (can capture?) + check promotions + check en passant
 		target = home - 7;
-		if ((file != 7) && ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare) && (ColorOfPiece(GetPieceAt(target)) == 0))) {
+		if ((file != 7) && ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare))) {
 			if (GetSquareRank(target) != 0) {
 				Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 				moves.push_back(m);
@@ -703,7 +701,7 @@ const void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) co
 		// 3. Can move down left (can capture?) + check promotions + check en passant
 		target = home - 9;
 		if (file != 0) {
-			if ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare) && (ColorOfPiece(GetPieceAt(target)) == 0)) {
+			if ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare)) {
 				if (GetSquareRank(target) != 0) {
 					Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 					moves.push_back(m);

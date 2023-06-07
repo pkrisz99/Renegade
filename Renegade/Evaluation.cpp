@@ -72,7 +72,8 @@ struct EvaluationFeatures {
 };
 
 
-typedef TaperedScore S; // using S as tapered score seems somewhat standard
+//typedef TaperedScore S; // using S as tapered score seems somewhat standard
+#define S(early, late) TaperedScore({early, late})
 
 static EvaluationFeatures Weights = {
 
@@ -334,14 +335,13 @@ static const int EvaluateBoard(const Board& board, const int level, const Evalua
 	
 	// Renegade's evaluation function
 
-	TaperedScore taperedScore(0, 0);
+	TaperedScore taperedScore = S(0, 0);
 	const uint64_t occupancy = board.GetOccupancy();
 	const uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
 	const uint64_t blackPieces = board.GetOccupancy(PieceColor::Black);
 	const float phase = CalculateGamePhase(board);
 	const uint64_t whitePawnAttacks = ((board.WhitePawnBits & ~Bitboards::FileA) << 7) | ((board.WhitePawnBits & ~Bitboards::FileH) << 9);
 	const uint64_t blackPawnAttacks = ((board.BlackPawnBits & ~Bitboards::FileA) >> 9) | ((board.BlackPawnBits & ~Bitboards::FileH) >> 7);
-	uint64_t allOccupancy = occupancy;
 	uint64_t whiteAttacks = 0, blackAttacks = 0;
 
 	int whiteDangerScore = 0;
@@ -349,13 +349,9 @@ static const int EvaluateBoard(const Board& board, const int level, const Evalua
 	int whiteDangerPieces = 0;
 	int blackDangerPieces = 0;
 
-	const int whiteKingSquare = board.GetKingSquare<Turn::White>();
-	const int whiteKingFile = GetSquareFile(whiteKingSquare);
-	const int whiteKingRank = GetSquareRank(whiteKingSquare);
+	const int whiteKingSquare = LsbSquare(board.WhiteKingBits);
 	const uint64_t whiteKingZone = KingArea[whiteKingSquare];
-	const int blackKingSquare = board.GetKingSquare<Turn::Black>();
-	const int blackKingFile = GetSquareFile(blackKingSquare);
-	const int blackKingRank = GetSquareRank(blackKingSquare);
+	const int blackKingSquare = LsbSquare(board.BlackKingBits);
 	const uint64_t blackKingZone = KingArea[blackKingSquare];
 
 	uint64_t piecesOnBoard = occupancy;
