@@ -351,11 +351,8 @@ bool Board::PushUci(const std::string ucistr) {
 void Board::TryMove(const Move& move) {
 	
 	const int piece = GetPieceAt(move.from);
-	const int pieceColor = ColorOfPiece(piece);
 	const int pieceType = TypeOfPiece(piece);
 	const int targetPiece = GetPieceAt(move.to);
-	const int targetPieceColor = ColorOfPiece(targetPiece);
-	const int targetPieceType = TypeOfPiece(targetPiece);
 
 	switch (piece) {
 	case Piece::WhitePawn: SetBitFalse(WhitePawnBits, move.from); SetBitTrue(WhitePawnBits, move.to); break;

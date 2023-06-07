@@ -659,7 +659,6 @@ void Search::InitOpeningBook() {
 	if (!ifs) return;
 
 	uint64_t buffer[2];
-	int c = 0;
 
 	while (ifs.read(reinterpret_cast<char*>(&buffer), 16)) {
 		BookEntry entry;

@@ -134,8 +134,9 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <Optimization>MaxSpeed</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -147,7 +148,6 @@
   <ItemGroup>
     <ClCompile Include="Board.cpp" />
     <ClCompile Include="Engine.cpp" />
-    <ClCompile Include="Evaluation.cpp" />
     <ClCompile Include="Magics.cpp" />
     <ClCompile Include="Move.cpp" />
     <ClCompile Include="Heuristics.cpp" />
@@ -160,12 +160,14 @@
   <ItemGroup>
     <ClInclude Include="Board.h" />
     <ClInclude Include="Engine.h" />
+    <ClInclude Include="Evaluation.h" />
     <ClInclude Include="Magics.h" />
     <ClInclude Include="Move.h" />
     <ClInclude Include="Heuristics.h" />
     <ClInclude Include="Results.h" />
     <ClInclude Include="Search.h" />
     <ClInclude Include="Tuning.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

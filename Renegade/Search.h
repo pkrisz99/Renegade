@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Board.h"
-#include "Results.h"
+#include "Evaluation.h"
 #include "Heuristics.h"
-#include "Evaluation.cpp"
-#include "Utils.cpp"
+#include "Results.h"
+#include "Utils.h"
 #include <tuple>
 #include <iomanip>
 #include <algorithm>

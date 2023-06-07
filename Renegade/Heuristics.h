@@ -1,8 +1,8 @@
 #pragma once
-#include "Results.h"
 #include "Board.h"
-#include "Evaluation.cpp"
-#include "Utils.cpp"
+#include "Evaluation.h"
+#include "Results.h"
+#include "Utils.h"
 #include <algorithm>
 #include <array>
 #include <memory>

@@ -119,9 +119,7 @@ const void Tuning::Tune(const double K) {
 
 	// Main optimizer loop (to do: use an efficient e.g. adam optimizer)
 	while (true) {
-		int paramId = 0;
 		improvements = 0;
-
 		auto startTime = Clock::now();
 
 		// Iterated through the tuned weights
@@ -182,7 +180,7 @@ const void Tuning::Tune(const double K) {
 		int j = 0;
 		for (const ParamSettings& p: weightsForTuning) {
 			j += 1;
-			cout << "S(" << GetWeightById(p.id, early) << ", " << GetWeightById(p.id, late) << "), ";
+			cout << "S(" << TempWeights.Weights[p.id] << "), ";
 			if ((j != 0) && (j % 64 == 0)) cout << "\n";
 		}
 		double newTestMSE = CalculateMSE(K, TestBoards, TestResults);

@@ -1,7 +1,7 @@
 #pragma once
 #include "Move.h"
 #include "Magics.h"
-#include "Utils.cpp"
+#include "Utils.h"
 
 /*
 * This is the board representation of Renegade.

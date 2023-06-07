@@ -1,7 +1,7 @@
 #pragma once
 #include "Board.h"
-#include "Evaluation.cpp"
-#include "Utils.cpp"
+#include "Evaluation.h"
+#include "Utils.h"
 #include <fstream>
 #include <random>
 

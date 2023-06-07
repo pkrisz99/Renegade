@@ -71,3 +71,7 @@ const uint8_t Move::GetPromotionPieceType() const {
 	default: return PieceType::None;
 	}
 }
+
+const bool Move::operator== (const Move& m) const {
+	return (from == m.from) && (to == m.to) && (flag == m.flag);
+}

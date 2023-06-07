@@ -18,7 +18,7 @@ struct EvaluationFeatures {
 
 	// Indices (these are here to be easily used for tuning)
 	constexpr int IndexPieceMaterial(const uint8_t pieceType) const { return pieceType - 1; }
-	constexpr int IndexPSQT(const uint8_t pieceType, const uint8_t sq) const { return 6 + (pieceType-1) * 64 + sq; }
+	constexpr int IndexPSQT(const uint8_t pieceType, const uint8_t sq) const { return 6 + (pieceType - 1) * 64 + sq; }
 	constexpr int IndexKnightMobility(const uint8_t mobility) const { return 390 + mobility; }
 	constexpr int IndexBishopMobility(const uint8_t mobility) const { return 399 + mobility; }
 	constexpr int IndexRookMobility(const uint8_t mobility) const { return 413 + mobility; }
@@ -73,7 +73,7 @@ struct EvaluationFeatures {
 
 
 //typedef TaperedScore S; // using S as tapered score seems somewhat standard
-#define S(early, late) TaperedScore({early, late})
+#define S(early, late) TaperedScore{early, late}
 
 static EvaluationFeatures Weights = {
 
@@ -145,10 +145,10 @@ static EvaluationFeatures Weights = {
 
 	// 3. Piece mobility
 	// Score tables depending on the pseudolegal moves available
-	
+
 	// 3.1 Knight mobility (0-8)
 	S(-19, -24), S(-2, 4), S(8, 18), S(11, 28), S(15, 33), S(20, 38), S(26, 36), S(31, 31), S(31, 24),
-	
+
 	// 3.2 Bishop mobility (0-13)
 	S(-21, -42), S(-11, -24), S(-1, -8), S(6, 6), S(12, 16), S(16, 28), S(20, 32),
 	S(21, 35), S(22, 41), S(26, 36), S(32, 33), S(40, 31), S(37, 40), S(38, 24),
@@ -165,27 +165,27 @@ static EvaluationFeatures Weights = {
 	// 4. King safety (1-25 danger points)
 	// Danger points are given for attacks near the king, and then scaled according to the attacker count
 
-	S(-5, -5), S(-5, -5), S(-20, -20), S(-25, -25), S(-36, -36), 
+	S(-5, -5), S(-5, -5), S(-20, -20), S(-25, -25), S(-36, -36),
 	S(-56, -56), S(-72, -72), S(-90, -90), S(-133, -133), S(-190, -190),
 	S(-222, -222), S(-252, -252), S(-255, -255), S(-178, -178), S(-322, -322),
 	S(-332, -332), S(-350, -350), S(-370, -370), S(-400, -400), S(-422, -422),
 	S(-425, -425), S(-430, -430), S(-435, -435), S(-440, -440), S(-445, -445),
-	
+
 	// 5. Pawn structure
 	// Collection of features to evaluate the pawn structure
-	
+
 	// 5.1 Passed pawns by rank
 	S(0, 0), S(-13, 14), S(-15, 19), S(-9, 46), S(16, 65), S(26, 78), S(41, 62), S(0, 0),
-	
+
 	// 5.2 Blocked passed pawn penalties by rank
 	S(0, 0), S(-28, 4), S(-21, 4), S(-20, -14), S(-10, -35), S(-17, -80), S(-46, -100), S(0, 0),
-	
+
 	// 5.3 Isolated pawns by file
 	S(-13, 1), S(-12, -9), S(-13, -14), S(-17, -20), S(-18, -18), S(-20, -8), S(-6, -16), S(-5, -3),
 
 	// 5.4 Doubled and tripled pawns
 	S(-7, -20), S(-12, -37),
-	
+
 	// 6. Misc & piece-specific evaluation
 
 	// 6.1 Bishop pairs
@@ -332,7 +332,7 @@ inline static const bool IsDrawishEndgame(const Board& board, const uint64_t whi
 // Board evaluation -------------------------------------------------------------------------------
 
 static const int EvaluateBoard(const Board& board, const int level, const EvaluationFeatures& weights) {
-	
+
 	// Renegade's evaluation function
 
 	TaperedScore taperedScore = S(0, 0);
@@ -428,9 +428,9 @@ static const int EvaluateBoard(const Board& board, const int level, const Evalua
 			if (attacks & board.WhiteRookBits) taperedScore -= weights.GetPawnThreat(PieceType::Rook) * Popcount(attacks & board.WhiteRookBits);
 			if (attacks & board.WhiteQueenBits) taperedScore -= weights.GetPawnThreat(PieceType::Queen) * Popcount(attacks & board.WhiteQueenBits);
 			// Pawn is supported?
-			if (blackPawnAttacks & SquareBits[sq]) taperedScore -= weights.GetPawnSupportingPawn(7-rank);
+			if (blackPawnAttacks & SquareBits[sq]) taperedScore -= weights.GetPawnSupportingPawn(7 - rank);
 			// Pawn phalanx
-			if ((file != 7) && (board.GetPieceAt(sq + 1) == Piece::BlackPawn)) taperedScore -= weights.GetPawnPhalanx(7-rank);
+			if ((file != 7) && (board.GetPieceAt(sq + 1) == Piece::BlackPawn)) taperedScore -= weights.GetPawnPhalanx(7 - rank);
 			break;
 
 		case Piece::WhiteKnight:

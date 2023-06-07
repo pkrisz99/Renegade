@@ -201,7 +201,7 @@ void Engine::Start() {
 			}
 			if (parts[1] == "attackersofsquare") {
 				const int sq = stoi(parts[2]);
-				DebugBitboard(board.GetAttackersOfSquare(sq));
+				PrintBitboard(board.GetAttackersOfSquare(sq));
 			}
 			if (parts[1] == "see") {
 				const Move m = Move(stoi(parts[2]), stoi(parts[3]), stoi(parts[4]));
@@ -390,7 +390,6 @@ void Engine::Start() {
 			settings.ExtendedOutput = false;
 			settings.UseBook = false;
 			Search.Heuristics.ClearTranspositionTable();
-			auto startTime = Clock::now();
 			std::vector<std::tuple<Move, int>> scores;
 			for (Move& m : moves) {
 				Board b = Board(board);

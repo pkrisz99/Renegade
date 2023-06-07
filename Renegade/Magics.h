@@ -1,6 +1,6 @@
 #pragma once
 #include <random>
-#include "Utils.cpp"
+#include "Utils.h"
 
 // Methods:
 // void GenerateMagicNumbers();
