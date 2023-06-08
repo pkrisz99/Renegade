@@ -13,7 +13,7 @@ Engine::Engine() {
 	Search.Heuristics.ClearTranspositionTable();
 }
 
-const void Engine::PrintHeader() {
+void Engine::PrintHeader() {
 	cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
 }
 
@@ -240,7 +240,7 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "eval") {
-			cout << "Static evaluation: " << EvaluateBoard(board, 0) << " (for the side to come)" << endl;
+			cout << "Static evaluation: " << EvaluateBoard(board) << " (for the side to come)" << endl;
 			continue;
 		}
 		if (parts[0] == "fen") {
@@ -419,7 +419,7 @@ void Engine::Start() {
 	cout << "Stopping engine." << endl;
 }
 
-const void Engine::DrawBoard(Board b, uint64_t customBits) {
+void Engine::DrawBoard(Board b, uint64_t customBits) {
 
 	const std::string side = b.Turn ? "white" : "black";
 	cout << "    Move: " << b.FullmoveClock << " - " << side << " to play" << endl;;

@@ -56,7 +56,7 @@ Tuning::Tuning() {
 
 }
 
-const float Tuning::ConvertResult(const std::string str) {
+float Tuning::ConvertResult(const std::string str) {
 	if (str == "[1.0]") return 1;
 	if (str == "[0.5]") return 0.5;
 	if (str == "[0.0]") return 0;
@@ -65,20 +65,20 @@ const float Tuning::ConvertResult(const std::string str) {
 }
 
 
-const double Tuning::Sigmoid(const int score, const double K) {
+double Tuning::Sigmoid(const int score, const double K) {
 	return 1.0 / (1.0 + pow(10.0, -K * score / 400.0));
 }
 
-const double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) {
+double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) {
 	double totalError = 0;
 	for (int i = 0; i < boards.size(); i++) {
 		const int sign = boards[i].Turn == Turn::White ? 1 : -1;
-		totalError += pow((results[i] - Sigmoid(sign * EvaluateBoard(boards[i], 0, TempWeights), K)), 2);
+		totalError += pow((results[i] - Sigmoid(sign * EvaluateBoard(boards[i], TempWeights), K)), 2);
 	}
 	return totalError / boards.size();
 }
 
-const double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results) {
+double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results) {
 	return 1.29;
 
 	double K = 1.2;
@@ -100,7 +100,7 @@ const double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& r
 	return bestK;
 }
 
-const void Tuning::Tune(const double K) {
+void Tuning::Tune(const double K) {
 	int improvements = 0;
 	int iterations = 1;
 	double testMSE = CalculateMSE(K, TestBoards, TestResults);
@@ -206,12 +206,12 @@ const void Tuning::Tune(const double K) {
 	cout << "\nCompleted." << endl;
 }
 
-const int Tuning::GetWeightById(const int id, const bool isEarlygame) {
+int Tuning::GetWeightById(const int id, const bool isEarlygame) {
 	if (isEarlygame) return TempWeights.Weights[id].early;
 	else return TempWeights.Weights[id].late;
 }
 
-const void Tuning::UpdateWeightById(const int id, const bool isEarlygame, const int value) {
+void Tuning::UpdateWeightById(const int id, const bool isEarlygame, const int value) {
 	if (isEarlygame) TempWeights.Weights[id].early = value;
 	else  TempWeights.Weights[id].late = value;
 }

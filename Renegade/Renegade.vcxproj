@@ -148,6 +148,7 @@
   <ItemGroup>
     <ClCompile Include="Board.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="Evaluation.cpp" />
     <ClCompile Include="Magics.cpp" />
     <ClCompile Include="Move.cpp" />
     <ClCompile Include="Heuristics.cpp" />

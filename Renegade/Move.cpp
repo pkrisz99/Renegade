@@ -45,24 +45,24 @@ const std::string Move::ToString() const {
 
 }
 
-const bool Move::IsNotNull() {
+bool Move::IsNotNull() {
 	return (from != 0) || (to != 0);
 }
 
-const bool Move::IsEmpty() {
+bool Move::IsEmpty() {
 	return (from == 0) && (to == 0) && (flag == 0);
 }
 
-const bool Move::IsUnderpromotion() {
+bool Move::IsUnderpromotion() {
 	return (flag == MoveFlag::PromotionToRook) || (flag == MoveFlag::PromotionToKnight) || (flag == MoveFlag::PromotionToBishop);
 }
 
-const bool Move::IsPromotion() const {
+bool Move::IsPromotion() const {
 	return (flag == MoveFlag::PromotionToQueen) || (flag == MoveFlag::PromotionToRook) 
 		|| (flag == MoveFlag::PromotionToKnight) || (flag == MoveFlag::PromotionToBishop);
 }
 
-const uint8_t Move::GetPromotionPieceType() const {
+uint8_t Move::GetPromotionPieceType() const {
 	switch (flag) {
 	case MoveFlag::PromotionToQueen: return PieceType::Queen;
 	case MoveFlag::PromotionToRook: return PieceType::Rook;
@@ -72,6 +72,6 @@ const uint8_t Move::GetPromotionPieceType() const {
 	}
 }
 
-const bool Move::operator== (const Move& m) const {
+bool Move::operator== (const Move& m) const {
 	return (from == m.from) && (to == m.to) && (flag == m.flag);
 }

@@ -26,28 +26,28 @@ public:
 	void ResetStatistics();
 
 	// Perft methods
-	const void Perft(Board& board, const int depth, const PerftType type);
-	const uint64_t PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type);
+	void Perft(Board& board, const int depth, const PerftType type);
+	uint64_t PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type);
 
 	// Move search
 	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn);
-	const inline bool ShouldAbort();
-	Results SearchMoves(Board& board, const SearchParams params, const EngineSettings settings, const bool display);
+	inline bool ShouldAbort();
+	const Results SearchMoves(Board& board, const SearchParams params, const EngineSettings settings, const bool display);
 	int SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove);
 	int SearchQuiescence(Board& board, const int level, int alpha, int beta, const bool rootNode);
-	const int StaticEvaluation(const Board& board, const int level, const bool checkDraws);
-	const bool StaticExchangeEval(const Board& board, const Move& move, const int threshold);
+	int Evaluate(const Board& board, const int level, const bool checkDraws);
+	bool StaticExchangeEval(const Board& board, const Move& move, const int threshold);
 
 	// Opening book
 	void InitOpeningBook();
 	const std::string GetBookMove(const uint64_t hash);
 	const BookEntry GetBookEntry(const int item);
-	const int GetBookSize();
+	int GetBookSize();
 
 	// Communication
-	const void PrintInfo(const Results& e, const EngineSettings& settings);
-	const void PrintPretty(const Results& e, const EngineSettings& settings);
-	const void PrintBestmove(const Move& move);
+	void PrintInfo(const Results& e, const EngineSettings& settings);
+	void PrintPretty(const Results& e, const EngineSettings& settings);
+	void PrintBestmove(const Move& move);
 
 	int Depth;
 	SearchStatistics Statistics;

@@ -16,13 +16,13 @@ class Tuning
 {
 public:
 	Tuning();
-	const float ConvertResult(const std::string str);
-	const double Sigmoid(const int score, const double K);
-	const double FindBestK(std::vector<Board>& boards, std::vector<float>& results);
-	const double CalculateMSE(const double K, std::vector<Board> &boards, std::vector<float> &results);
-	const void UpdateWeightById(const int id, const bool isEarlygame, const int value);
-	const int GetWeightById(const int id, const bool isEarlygame);
-	const void Tune(double K);
+	float ConvertResult(const std::string str);
+	double Sigmoid(const int score, const double K);
+	double FindBestK(std::vector<Board>& boards, std::vector<float>& results);
+	double CalculateMSE(const double K, std::vector<Board> &boards, std::vector<float> &results);
+	void UpdateWeightById(const int id, const bool isEarlygame, const int value);
+	int GetWeightById(const int id, const bool isEarlygame);
+	void Tune(double K);
 
 	std::vector<float> TrainResults;
 	std::vector<Board> TrainBoards;

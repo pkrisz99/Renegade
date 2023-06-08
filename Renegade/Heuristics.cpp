@@ -9,7 +9,7 @@ Heuristics::Heuristics() {
 
 // Move ordering & clearing -----------------------------------------------------------------------
 
-const int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& ttMove,
+int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& ttMove,
 	const Move& previousMove, const bool losingCapture) {
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
@@ -86,8 +86,8 @@ void Heuristics::UpdatePvTable(const Move& move, const int level, const bool lea
 	cout << "]" << endl;*/
 }
 
-const bool Heuristics::IsPvMove(const Move& move, const int level) {
-	if (level >= PvMoves.size()) return false;
+bool Heuristics::IsPvMove(const Move& move, const int level) {
+	if (level >= static_cast<int>(PvMoves.size())) return false;
 	if (move == PvMoves[level]) return true;
 	return false;
 }
@@ -130,27 +130,27 @@ void Heuristics::AddKillerMove(const Move& move, const int level) {
 	KillerMoves[level][0] = move;
 }
 
-const bool Heuristics::IsKillerMove(const Move& move, const int level) {
+bool Heuristics::IsKillerMove(const Move& move, const int level) {
 	if (KillerMoves[level][0] == move) return true;
 	if (KillerMoves[level][1] == move) return true;
 	return false;
 }
 
-const bool Heuristics::IsFirstKillerMove(const Move& move, const int level) {
+bool Heuristics::IsFirstKillerMove(const Move& move, const int level) {
 	if (KillerMoves[level][0] == move) return true;
 	return false;
 }
 
-const bool Heuristics::IsSecondKillerMove(const Move& move, const int level) {
+bool Heuristics::IsSecondKillerMove(const Move& move, const int level) {
 	if (KillerMoves[level][1] == move) return true;
 	return false;
 }
 
-const bool Heuristics::IsCountermove(const Move& previousMove, const Move& thisMove) {
+bool Heuristics::IsCountermove(const Move& previousMove, const Move& thisMove) {
 	return CounterMoves[previousMove.from][previousMove.to] == thisMove;
 }
 
-const void Heuristics::AddCountermove(const Move& previousMove, const Move& thisMove) {
+void Heuristics::AddCountermove(const Move& previousMove, const Move& thisMove) {
 	CounterMoves[previousMove.from][previousMove.to] = thisMove;
 }
 
@@ -179,7 +179,7 @@ void Heuristics::IncrementHistory(const bool side, const int from, const int to,
 	}
 }
 
-void Heuristics::DecrementHistory(const bool side, const int from, const int to, const int depth) {
+void Heuristics::DecrementHistory(const bool side, const int from, const int to, [[maybe_unused]] const int depth) {
 	HistoryTables[side][from][to] -= 1;
 	if (HistoryTables[side][from][to] <= -256 * 128) {
 		for (int i = 0; i < 64; i++) {
@@ -229,7 +229,7 @@ void Heuristics::AddTranspositionEntry(const uint64_t hash, const int depth, int
 	}
 }
 
-const bool Heuristics::RetrieveTranspositionEntry(const uint64_t& hash, const int depth, TranspositionEntry& entry, const int level) {
+bool Heuristics::RetrieveTranspositionEntry(const uint64_t& hash, TranspositionEntry& entry, const int level) {
 	if (HashBits == 0) return false;
 	const uint64_t key = hash & HashFilter;
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
@@ -273,19 +273,19 @@ void Heuristics::SetHashSize(const int megabytes) {
 	ClearTranspositionTable();
 }
 
-const int Heuristics::GetHashfull() {
+int Heuristics::GetHashfull() {
 	return static_cast<int>(TranspositionEntryCount * 1000LL / (HashFilter + 1LL));
 }
 
 void Heuristics::ClearTranspositionTable() {
 	TranspositionTable.clear();
 	TranspositionTable.reserve(HashFilter + 1);
-	for (int i = 0; i < HashFilter + 1; i++) TranspositionTable.push_back(TranspositionEntry());
+	for (uint64_t i = 0; i < HashFilter + 1; i++) TranspositionTable.push_back(TranspositionEntry());
 	TranspositionTable.shrink_to_fit();
 	TranspositionEntryCount = 0;
 }
 
-const void Heuristics::GetTranspositionInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits, uint64_t& ttUsed) {
+void Heuristics::GetTranspositionInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits, uint64_t& ttUsed) {
 	ttTheoretical = TheoreticalTranspositionEntires;
 	ttUsable = HashFilter + 1;
 	ttBits = HashBits;

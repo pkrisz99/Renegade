@@ -172,10 +172,10 @@ struct SearchParams {
 };
 
 struct SearchConstraints {
+	int64_t MaxNodes;
+	int MaxDepth;
 	int SearchTimeMin;
 	int SearchTimeMax;
-	int MaxDepth;
-	int MaxNodes;
 };
 
 struct BookEntry {
@@ -196,8 +196,7 @@ struct EngineSettings {
 };
 
 struct SearchStatistics {
-	uint64_t SelDepth;
-	uint64_t Nodes;
+	int64_t Nodes;
 	uint64_t QuiescenceNodes;
 	uint64_t AlphaBetaCalls;
 	uint64_t QSeachAlphaBetaCalls;
@@ -208,6 +207,7 @@ struct SearchStatistics {
 	//int RazoringPruned;
 	uint64_t TranspositionQueries;
 	uint64_t TranspositionHits;
+	int SelDepth;
 };
 
 struct TaperedScore {

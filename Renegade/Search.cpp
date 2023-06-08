@@ -29,7 +29,7 @@ void Search::ResetStatistics() {
 
 // Perft methods ----------------------------------------------------------------------------------
 
-const void Search::Perft(Board& board, const int depth, const PerftType type) {
+void Search::Perft(Board& board, const int depth, const PerftType type) {
 	Board b = board.Copy();
 	const bool startingPosition = b.Hash() == 0x463b96181691fc9c;
 	const uint64_t startingPerfts[] = { 1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860 };
@@ -47,7 +47,7 @@ const void Search::Perft(Board& board, const int depth, const PerftType type) {
 	else cout << r << endl;
 }
 
-const uint64_t Search::PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) {
+uint64_t Search::PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) {
 	std::vector<Move> moves;
 	board.GenerateMoves(moves, MoveGen::All, Legality::Pseudolegal);
 	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << moves.size() << "): " << endl;
@@ -118,7 +118,7 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 	return constraints;
 }
 
-const inline bool Search::ShouldAbort() {
+inline bool Search::ShouldAbort() {
 	if (Aborting) return true;
 	if ((Constraints.MaxNodes != -1) && (Statistics.Nodes >= Constraints.MaxNodes) && (Depth > 1)) {
 		return true;
@@ -135,7 +135,7 @@ const inline bool Search::ShouldAbort() {
 
 // Negamax search routine and handling ------------------------------------------------------------
 
-Results Search::SearchMoves(Board &board, const SearchParams params, const EngineSettings settings, const bool display) {
+const Results Search::SearchMoves(Board &board, const SearchParams params, const EngineSettings settings, const bool display) {
 
 	StartSearchTime = Clock::now();
 	int elapsedMs = 0;
@@ -277,7 +277,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// Check search limits
 	Aborting = ShouldAbort();
 	if (Aborting) return NoEval;
-	if (level >= 63) return board.IsInCheck() ? 0 : EvaluateBoard(board, level);
+	if (level >= 63) return board.IsInCheck() ? 0 : Evaluate(board, level, true);
 
 	const bool rootNode = (level == 0);
 	const bool pvNode = rootNode || (beta - alpha > 1);
@@ -307,7 +307,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// Calculate hash and probe transposition table
 	const uint64_t hash = board.Hash();
 	TranspositionEntry entry;
-	const bool found = Heuristics.RetrieveTranspositionEntry(hash, depth, entry, level);
+	const bool found = Heuristics.RetrieveTranspositionEntry(hash, entry, level);
 	Move transpositionMove;
 	Statistics.TranspositionQueries += 1;
 	if (found) {
@@ -344,14 +344,14 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	const int futilityMargins[] = { 0, 100, 200, 300, 400, 500 };
 	bool futilityPrunable = false;
 	if ((depth <= 5) && !inCheck && !pvNode) {
-		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
+		if (staticEval == NoEval) staticEval = Evaluate(board, level, true);
 		if ((staticEval + futilityMargins[depth] < alpha)) futilityPrunable = true;
 	}
 
 	// Reverse futility pruning (+128 elo)
 	const int rfpMargin[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
 	if ((depth <= 7) && !inCheck && !pvNode) {
-		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
+		if (staticEval == NoEval) staticEval = Evaluate(board, level, true);
 		if (staticEval - rfpMargin[depth] > beta) return staticEval;
 	}
 
@@ -359,7 +359,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	const int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
 	const int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
 	if ((depth >= 3) && !inCheck && canNullMove && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
-		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
+		if (staticEval == NoEval) staticEval = Evaluate(board, level, true);
 		int nmpReduction = 3 + depth / 4 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
 		nmpReduction = std::min(nmpReduction, depth - 1);
 		if ((staticEval >= beta) && (nmpReduction > 0)) {
@@ -374,7 +374,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	/*
 	const int razoringMargin[] = { 0, 300, 750 };
 	if ((depth < 2) && !inCheck && !pvNode) {
-		if (staticEval == NoEval) staticEval = EvaluateBoard(board, level);
+		if (staticEval == NoEval) staticEval = Evaluate(board, level, true);
 		if (staticEval + razoringMargin[depth] < alpha) {
 			int e = SearchQuiescence(board, level, alpha, beta, true);
 			if (e < alpha) return alpha;
@@ -512,7 +512,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	}
 
 	// Update alpha-beta bounds, return alpha if no captures left
-	const int staticEval = StaticEvaluation(board, level, true);
+	const int staticEval = Evaluate(board, level, true);
 	if (staticEval >= beta) return beta;
 	//if (staticEval < alpha - 1000) return alpha; // Delta pruning (loses strength)
 	if (staticEval > alpha) alpha = staticEval;
@@ -546,20 +546,20 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	return alpha;
 }
 
-const int Search::StaticEvaluation(const Board &board, const int level, const bool checkDraws) {
+int Search::Evaluate(const Board &board, const int level, const bool checkDraws) {
 	Statistics.Evaluations += 1;
 	if (level > Statistics.SelDepth) Statistics.SelDepth = level;
 	if (checkDraws) {
 		if (board.IsDraw(level == 0)) return 0;
 	}
-	return EvaluateBoard(board, level);
+	return EvaluateBoard(board);
 }
 
 // Static exchange evaluation (SEE) ---------------------------------------------------------------
 
 const int seeValues[] = { 0, 100, 300, 300, 500, 1000, 999999 };
 
-const bool Search::StaticExchangeEval(const Board& board, const Move& move, const int threshold) {
+bool Search::StaticExchangeEval(const Board& board, const Move& move, const int threshold) {
 	// This is more or less the standard way of doing this
 	// The implementation follows Ethereal's method
 
@@ -711,14 +711,14 @@ const BookEntry Search::GetBookEntry(int item) {
 	return BookEntries[item];
 }
 
-const int Search::GetBookSize() {
+int Search::GetBookSize() {
 	return static_cast<int>(BookEntries.size());
 }
 
 
 // Communicating the search results ---------------------------------------------------------------
 
-const void Search::PrintInfo(const Results& e, const EngineSettings& settings) {
+void Search::PrintInfo(const Results& e, const EngineSettings& settings) {
 	if (!settings.UciOutput) {
 		PrintPretty(e, settings);
 		return;
@@ -763,7 +763,7 @@ const void Search::PrintInfo(const Results& e, const EngineSettings& settings) {
 	//else cout << endl;
 }
 
-const void Search::PrintPretty(const Results& e, const EngineSettings& settings) {
+void Search::PrintPretty(const Results& e, const EngineSettings& settings) {
 	const std::string green = settings.Colorful ? "\x1b[92m" : "";
 	const std::string blue = settings.Colorful ? "\x1b[96m": "";
 	const std::string red = settings.Colorful ? "\x1b[91m": "";
@@ -817,7 +817,7 @@ const void Search::PrintPretty(const Results& e, const EngineSettings& settings)
 
 	std::string pvOutput;
 	for (int i = 0; i < 5; i++) {
-		if (i >= e.pv.size()) break;
+		if (i >= static_cast<int>(e.pv.size())) break;
 		pvOutput += e.pv.at(i).ToString() + " ";
 	}
 	pvOutput.pop_back();
@@ -829,6 +829,6 @@ const void Search::PrintPretty(const Results& e, const EngineSettings& settings)
 	cout << output << endl;
 }
 
-const void Search::PrintBestmove(const Move& move) {
+void Search::PrintBestmove(const Move& move) {
 	cout << "bestmove " << move.ToString() << endl;
 }
