@@ -179,6 +179,7 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 		else {
 			// Aspiration windows
 			int windowSize = 25;
+			int searchDepth = Depth;
 
 			while (true) {
 				if (Aborting) break;
@@ -194,14 +195,16 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 
 				//if (!settings.UciOutput) cout << "[" << alpha << ".." << beta << "] ";
 
-				result = SearchRecursive(board, Depth, 0, alpha, beta, true);
+				result = SearchRecursive(board, searchDepth, 0, alpha, beta, true);
 
 				if (result <= alpha) {
 					alpha = std::max(result - windowSize, NegativeInfinity);
 					beta = (alpha + beta) / 2;
+					searchDepth = Depth;
 				}
 				else if (result >= beta) {
 					beta = std::min(result + windowSize, PositiveInfinity);
+					//if (!IsMateScore(result) && (searchDepth > 1)) searchDepth -= 1;
 				}
 				else {
 					// Success!
@@ -435,11 +438,11 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		else {
 			int reduction = 0;
 
-			// Late-move pruning (slightly losing)
-			/*const int lmpCount[] = { 0, 10, 14, 18, 22 };
+			// Late-move pruning
+			const int lmpCount[] = { 0, 9, 13, 17, 22 };
 			if ((depth < 5) && !pvNode && !inCheck && isQuiet) {
-				if (legalMoveCount > lmpCount[depth]) continue;
-			}*/
+				if (legalMoveCount >= lmpCount[depth]) continue;
+			}
 
 			// Late-move reductions (+119 elo)
 			if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
