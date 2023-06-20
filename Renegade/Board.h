@@ -49,6 +49,27 @@ public:
 	template <bool side> uint8_t GetKingSquare() const;
 	uint64_t GetAttackersOfSquare(const uint8_t square) const;
 
+	template <bool side>
+	inline uint64_t GetPawnAttacks() const {
+		// For whatever reason there's some trouble with using templates
+		if constexpr (side == Turn::White) return ((WhitePawnBits & ~Bitboards::FileA) << 7) | ((WhitePawnBits & ~Bitboards::FileH) << 9);
+		else if (side == Turn::Black) return ((BlackPawnBits & ~Bitboards::FileA) >> 9) | ((BlackPawnBits & ~Bitboards::FileH) >> 7);
+	}
+
+	inline uint64_t GetWhitePawnAttacks() const {
+		return GetPawnAttacks<Turn::White>();
+	}
+
+	inline uint64_t GetBlackPawnAttacks() const {
+		return GetPawnAttacks<Turn::Black>();
+	}
+
+	inline bool ShouldNullMovePrune() const {
+		const int friendlyPieces = (Turn == Turn::White) ? Popcount(GetOccupancy(PieceColor::White)) : Popcount(GetOccupancy(PieceColor::Black));
+		const int friendlyPawns = (Turn == Turn::White) ? Popcount(WhitePawnBits) : Popcount(BlackPawnBits);
+		return (friendlyPieces - friendlyPawns) > 2;
+	}
+
 
 	// Board variables:
 	std::vector<uint64_t> PreviousHashes;

@@ -1,7 +1,5 @@
 #include "Evaluation.h"
 
-
-
 int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 
 	// Renegade's evaluation function
@@ -11,8 +9,8 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 	const uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
 	const uint64_t blackPieces = board.GetOccupancy(PieceColor::Black);
 	const float phase = CalculateGamePhase(board);
-	const uint64_t whitePawnAttacks = ((board.WhitePawnBits & ~Bitboards::FileA) << 7) | ((board.WhitePawnBits & ~Bitboards::FileH) << 9);
-	const uint64_t blackPawnAttacks = ((board.BlackPawnBits & ~Bitboards::FileA) >> 9) | ((board.BlackPawnBits & ~Bitboards::FileH) >> 7);
+	const uint64_t whitePawnAttacks = board.GetWhitePawnAttacks();
+	const uint64_t blackPawnAttacks = board.GetBlackPawnAttacks();
 	uint64_t whiteAttacks = 0, blackAttacks = 0;
 
 	int whiteDangerScore = 0;

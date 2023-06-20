@@ -1,9 +1,11 @@
 #include "Search.h"
 
 Search::Search() {
+	const double lmrMultiplier = 0.25; // 0.33;
+	const double lmrBase = 0.7; // 0.5;
 	for (int i = 1; i < 32; i++) {
 		for (int j = 1; j < 32; j++) {
-			LMRTable[i][j] = static_cast<int>(0.25 * log(i) * log(j) + 0.7);
+			LMRTable[i][j] = static_cast<int>(lmrMultiplier * log(i) * log(j) + lmrBase);
 		}
 	}
 	Reset();
@@ -359,9 +361,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	}
 
 	// Null-move pruning (+33 elo)
-	const int friendlyPieces = Popcount(board.GetOccupancy(TurnToPieceColor(board.Turn)));
-	const int friendlyPawns = board.Turn == Turn::White ? Popcount(board.WhitePawnBits) : Popcount(board.BlackPawnBits);
-	if ((depth >= 3) && !inCheck && canNullMove && ((friendlyPieces - friendlyPawns) > 2) && !pvNode) {
+	if ((depth >= 3) && !inCheck && !pvNode && canNullMove && board.ShouldNullMovePrune()) {
 		if (staticEval == NoEval) staticEval = Evaluate(board, level, true);
 		int nmpReduction = 3 + depth / 4 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
 		nmpReduction = std::min(nmpReduction, depth - 1);
@@ -392,10 +392,11 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
 	bool foundPvMove = false;
+	const Move previousMove = (level > 0) ? MoveStack[level - 1LL] : EmptyMove;
 	for (const Move& m : MoveList) {
 		const bool losingCapture = board.IsMoveQuiet(m) ? false : !StaticExchangeEval(board, m, 0);
 		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, FollowingPV, transpositionMove, 
-			(level > 0) ? MoveStack[level-1LL] : EmptyMove, losingCapture);
+			previousMove, losingCapture);
 		if (FollowingPV && Heuristics.IsPvMove(m, level)) foundPvMove = true;
 		MoveOrder[level].push_back({ m, orderScore });
 	}
@@ -438,7 +439,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		else {
 			int reduction = 0;
 
-			// Late-move pruning
+			// Late-move pruning (+9 elo)
 			const int lmpCount[] = { 0, 9, 13, 17, 22 };
 			if ((depth < 5) && !pvNode && !inCheck && isQuiet) {
 				if (legalMoveCount >= lmpCount[depth]) continue;

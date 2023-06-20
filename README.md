@@ -12,7 +12,7 @@ The engine is moderately strong, and regularly competes on Lichess over at https
 ## Features
 **Board representation >** Bitboards, redundant mailbox, board hash vector for threefold repetition detection  
 
-**Move generation >** Pseudolegal, magic bitboards, insufficient material, checkmate and stalemate recognition, attack map generation for legality checking, lookup tables, parallel bitwise sliding attack generation  
+**Move generation >** Pseudolegal, magic bitboards, insufficient material, checkmate and stalemate recognition, attack map generation for legality checking, lookup tables
 
 **Search >** Alpha-beta pruning, iterative deepening, principal variation search, aspiration windows, quiescence search, transposition table, history heuristic, killer move heuristic, late-move reductions, null move pruning, check extensions, futility & reverse futility pruning, countermove heuristic, internal iterative deepening, static exchange evaluation  
 
