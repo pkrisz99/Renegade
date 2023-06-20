@@ -51,6 +51,8 @@ Tuning::Tuning() {
 	cout << "Train size: " << TrainBoards.size() << endl;
 	cout << "Test size:  " << TestBoards.size() << '\n' << endl;
 
+	cout << "Initial MSE: " << CalculateMSE(K, TestBoards, TestResults) << endl;
+
 	// Start tuning
 	Tune(K);
 

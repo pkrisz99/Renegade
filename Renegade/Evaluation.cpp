@@ -104,7 +104,8 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 
 		case Piece::WhiteKnight:
 			// Get attacks, mobility & update king danger scores
-			mobility = KnightMoveBits[sq] & ~whitePieces;
+			attacks = KnightMoveBits[sq];
+			mobility = attacks & ~whitePieces;
 			whiteAttacks |= mobility;
 			taperedScore += weights.GetKnightMobility(Popcount(mobility & ~blackPawnAttacks));
 			if ((blackKingZone & mobility) != 0) {
@@ -119,16 +120,15 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			}
 			// Threats
 			taperedScore += weights.GetKnightThreat(PieceType::Pawn) * Popcount(mobility & board.BlackPawnBits);
-			//taperedScore += weights.GetKnightThreat(PieceType::Knight) * Popcount(mobility & board.BlackKnightBits);
 			taperedScore += weights.GetKnightThreat(PieceType::Bishop) * Popcount(mobility & board.BlackBishopBits);
 			taperedScore += weights.GetKnightThreat(PieceType::Rook) * Popcount(mobility & board.BlackRookBits);
 			taperedScore += weights.GetKnightThreat(PieceType::Queen) * Popcount(mobility & board.BlackQueenBits);
-			//taperedScore += weights.GetKnightThreat(PieceType::King) * Popcount(mobility & board.BlackKingBits);
 			break;
 
 		case Piece::BlackKnight:
 			// Get attacks, mobility & update king danger scores
-			mobility = KnightMoveBits[sq] & ~blackPieces;
+			attacks = KnightMoveBits[sq];
+			mobility = attacks & ~blackPieces;
 			blackAttacks |= mobility;
 			taperedScore -= weights.GetKnightMobility(Popcount(mobility & ~whitePawnAttacks));
 			if ((whiteKingZone & mobility) != 0) {
@@ -143,16 +143,15 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			}
 			// Threats
 			taperedScore -= weights.GetKnightThreat(PieceType::Pawn) * Popcount(mobility & board.WhitePawnBits);
-			//taperedScore -= weights.GetKnightThreat(PieceType::Knight) * Popcount(mobility & board.WhiteKnightBits);
 			taperedScore -= weights.GetKnightThreat(PieceType::Bishop) * Popcount(mobility & board.WhiteBishopBits);
 			taperedScore -= weights.GetKnightThreat(PieceType::Rook) * Popcount(mobility & board.WhiteRookBits);
 			taperedScore -= weights.GetKnightThreat(PieceType::Queen) * Popcount(mobility & board.WhiteQueenBits);
-			//taperedScore -= weights.GetKnightThreat(PieceType::King) * Popcount(mobility & board.WhiteKingBits);
 			break;
 
 		case Piece::WhiteBishop:
 			// Get attacks, mobility & update king danger scores
-			mobility = GetBishopAttacks(sq, occupancy) & ~whitePieces;
+			attacks = GetBishopAttacks(sq, occupancy);
+			mobility = attacks & ~whitePieces;
 			whiteAttacks |= mobility;
 			taperedScore += weights.GetBishopMobility(Popcount(mobility & ~blackPawnAttacks));
 			if ((blackKingZone & mobility) != 0) {
@@ -162,15 +161,14 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			// Threats
 			taperedScore += weights.GetBishopThreat(PieceType::Pawn) * Popcount(mobility & board.BlackPawnBits);
 			taperedScore += weights.GetBishopThreat(PieceType::Knight) * Popcount(mobility & board.BlackKnightBits);
-			//taperedScore += weights.GetBishopThreat(PieceType::Bishop) * Popcount(mobility & board.BlackBishopBits);
 			taperedScore += weights.GetBishopThreat(PieceType::Rook) * Popcount(mobility & board.BlackRookBits);
 			taperedScore += weights.GetBishopThreat(PieceType::Queen) * Popcount(mobility & board.BlackQueenBits);
-			//taperedScore += weights.GetBishopThreat(PieceType::King) * Popcount(mobility & board.BlackKingBits);
 			break;
 
 		case Piece::BlackBishop:
 			// Get attacks, mobility & update king danger scores
-			mobility = GetBishopAttacks(sq, occupancy) & ~blackPieces;
+			attacks = GetBishopAttacks(sq, occupancy);
+			mobility = attacks & ~blackPieces;
 			blackAttacks |= mobility;
 			taperedScore -= weights.GetBishopMobility(Popcount(mobility & ~whitePawnAttacks));
 			if ((whiteKingZone & mobility) != 0) {
@@ -180,15 +178,14 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			// Threats
 			taperedScore -= weights.GetBishopThreat(PieceType::Pawn) * Popcount(mobility & board.WhitePawnBits);
 			taperedScore -= weights.GetBishopThreat(PieceType::Knight) * Popcount(mobility & board.WhiteKnightBits);
-			//taperedScore -= weights.GetBishopThreat(PieceType::Bishop) * Popcount(mobility & board.WhiteBishopBits);
 			taperedScore -= weights.GetBishopThreat(PieceType::Rook) * Popcount(mobility & board.WhiteRookBits);
 			taperedScore -= weights.GetBishopThreat(PieceType::Queen) * Popcount(mobility & board.WhiteQueenBits);
-			//taperedScore -= weights.GetBishopThreat(PieceType::King) * Popcount(mobility & board.WhiteKingBits);
 			break;
 
 		case Piece::WhiteRook:
 			// Get attacks, mobility & update king danger scores
-			mobility = GetRookAttacks(sq, occupancy) & ~whitePieces;
+			attacks = GetRookAttacks(sq, occupancy);
+			mobility = attacks & ~whitePieces;
 			whiteAttacks |= mobility;
 			taperedScore += weights.GetRookMobility(Popcount(mobility & ~blackPawnAttacks));
 			if ((blackKingZone & mobility) != 0) {
@@ -208,14 +205,13 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			taperedScore += weights.GetRookThreat(PieceType::Pawn) * Popcount(mobility & board.BlackPawnBits);
 			taperedScore += weights.GetRookThreat(PieceType::Knight) * Popcount(mobility & board.BlackKnightBits);
 			taperedScore += weights.GetRookThreat(PieceType::Bishop) * Popcount(mobility & board.BlackBishopBits);
-			//taperedScore += weights.GetRookThreat(PieceType::Rook) * Popcount(mobility & board.BlackRookBits);
 			taperedScore += weights.GetRookThreat(PieceType::Queen) * Popcount(mobility & board.BlackQueenBits);
-			//taperedScore += weights.GetRookThreat(PieceType::King) * Popcount(mobility & board.BlackKingBits);
 			break;
 
 		case Piece::BlackRook:
 			// Get attacks, mobility & update king danger scores
-			mobility = GetRookAttacks(sq, occupancy) & ~blackPieces;
+			attacks = GetRookAttacks(sq, occupancy);
+			mobility = attacks & ~blackPieces;
 			blackAttacks |= mobility;
 			taperedScore -= weights.GetRookMobility(Popcount(mobility & ~whitePawnAttacks));
 			if ((whiteKingZone & mobility) != 0) {
@@ -235,14 +231,13 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			taperedScore -= weights.GetRookThreat(PieceType::Pawn) * Popcount(mobility & board.WhitePawnBits);
 			taperedScore -= weights.GetRookThreat(PieceType::Knight) * Popcount(mobility & board.WhiteKnightBits);
 			taperedScore -= weights.GetRookThreat(PieceType::Bishop) * Popcount(mobility & board.WhiteBishopBits);
-			//taperedScore -= weights.GetRookThreat(PieceType::Rook) * Popcount(mobility & board.WhiteRookBits);
 			taperedScore -= weights.GetRookThreat(PieceType::Queen) * Popcount(mobility & board.WhiteQueenBits);
-			//taperedScore -= weights.GetRookThreat(PieceType::King) * Popcount(mobility & board.WhiteKingBits);
 			break;
 
 		case Piece::WhiteQueen:
 			// Get attacks, mobility & update king danger scores
-			mobility = GetQueenAttacks(sq, occupancy) & ~whitePieces;
+			attacks = GetQueenAttacks(sq, occupancy);
+			mobility = attacks & ~whitePieces;
 			whiteAttacks |= mobility;
 			taperedScore += weights.GetQueenMobility(Popcount(mobility & ~blackPawnAttacks));
 			if ((blackKingZone & mobility) != 0) {
@@ -254,13 +249,12 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			taperedScore += weights.GetQueenThreat(PieceType::Knight) * Popcount(mobility & board.BlackKnightBits);
 			taperedScore += weights.GetQueenThreat(PieceType::Bishop) * Popcount(mobility & board.BlackBishopBits);
 			taperedScore += weights.GetQueenThreat(PieceType::Rook) * Popcount(mobility & board.BlackRookBits);
-			//taperedScore += weights.GetQueenThreat(PieceType::Queen) * Popcount(mobility & board.BlackQueenBits);
-			//taperedScore += weights.GetQueenThreat(PieceType::King) * Popcount(mobility & board.BlackKingBits);
 			break;
 
 		case Piece::BlackQueen:
 			// Get attacks, mobility & update king danger scores
-			mobility = GetQueenAttacks(sq, occupancy) & ~blackPieces;
+			attacks = GetQueenAttacks(sq, occupancy);
+			mobility = attacks & ~blackPieces;
 			blackAttacks |= mobility;
 			taperedScore -= weights.GetQueenMobility(Popcount(mobility & ~whitePawnAttacks));
 			if ((whiteKingZone & mobility) != 0) {
@@ -272,28 +266,26 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			taperedScore -= weights.GetQueenThreat(PieceType::Knight) * Popcount(mobility & board.WhiteKnightBits);
 			taperedScore -= weights.GetQueenThreat(PieceType::Bishop) * Popcount(mobility & board.WhiteBishopBits);
 			taperedScore -= weights.GetQueenThreat(PieceType::Rook) * Popcount(mobility & board.WhiteRookBits);
-			//taperedScore -= weights.GetQueenThreat(PieceType::Queen) * Popcount(mobility & board.WhiteQueenBits);
-			//taperedScore -= weights.GetQueenThreat(PieceType::King) * Popcount(mobility & board.WhiteKingBits);
 			break;
 
 		case Piece::WhiteKing:
-			mobility = KingMoveBits[sq] & ~whitePieces;
+			attacks = KingMoveBits[sq];
+			mobility = attacks & ~whitePieces;
 			// Threats
 			taperedScore += weights.GetKingThreat(PieceType::Pawn) * Popcount(mobility & board.BlackPawnBits);
 			taperedScore += weights.GetKingThreat(PieceType::Knight) * Popcount(mobility & board.BlackKnightBits);
 			taperedScore += weights.GetKingThreat(PieceType::Bishop) * Popcount(mobility & board.BlackBishopBits);
 			taperedScore += weights.GetKingThreat(PieceType::Rook) * Popcount(mobility & board.BlackRookBits);
 			taperedScore += weights.GetKingThreat(PieceType::Queen) * Popcount(mobility & board.BlackQueenBits);
-			//taperedScore += weights.GetKingThreat(PieceType::King) * Popcount(mobility & board.BlackKingBits);
 			break;
 		case Piece::BlackKing:
-			mobility = KingMoveBits[sq] & ~blackPieces;
+			attacks = KingMoveBits[sq];
+			mobility = attacks & ~blackPieces;
 			taperedScore -= weights.GetKingThreat(PieceType::Pawn) * Popcount(mobility & board.WhitePawnBits);
 			taperedScore -= weights.GetKingThreat(PieceType::Knight) * Popcount(mobility & board.WhiteKnightBits);
 			taperedScore -= weights.GetKingThreat(PieceType::Bishop) * Popcount(mobility & board.WhiteBishopBits);
 			taperedScore -= weights.GetKingThreat(PieceType::Rook) * Popcount(mobility & board.WhiteRookBits);
 			taperedScore -= weights.GetKingThreat(PieceType::Queen) * Popcount(mobility & board.WhiteQueenBits);
-			//taperedScore -= weights.GetKingThreat(PieceType::King) * Popcount(mobility & board.WhiteKingBits);
 			break;
 		}
 	}
