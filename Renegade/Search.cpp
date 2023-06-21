@@ -106,8 +106,8 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 		}
 		else {
 			// Sudden death 
-			maxTime = static_cast<int>(myTime * 0.333);
-			minTime = static_cast<int>((myTime + myInc * 10.0) * 0.0175);
+			maxTime = static_cast<int>(myTime * 0.20);
+			minTime = static_cast<int>(myTime * 0.016 + myInc * 0.4);
 		}
 
 		constraints.SearchTimeMax = maxTime;
