@@ -302,7 +302,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	if (inCheck) depth += 1;
 
 	// Check for draws
-	if (board.IsDraw(rootNode)) return 0;
+	if (board.IsDraw(rootNode)) return DrawEvaluation();
 
 	// Return result for terminal nodes
 	if (depth <= 0) {
@@ -372,17 +372,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			if ((nullMoveEval >= beta) && !IsMateScore(nullMoveEval)) return beta;
 		}
 	}
-
-	// Razoring (neutral)
-	/*
-	const int razoringMargin[] = { 0, 300, 750 };
-	if ((depth < 2) && !inCheck && !pvNode) {
-		if (staticEval == NoEval) staticEval = Evaluate(board, level, true);
-		if (staticEval + razoringMargin[depth] < alpha) {
-			int e = SearchQuiescence(board, level, alpha, beta, true);
-			if (e < alpha) return alpha;
-		}
-	}*/
 
 	// Initalize variables and generate moves
 	MoveList.clear();
@@ -554,9 +543,14 @@ int Search::Evaluate(const Board &board, const int level, const bool checkDraws)
 	Statistics.Evaluations += 1;
 	if (level > Statistics.SelDepth) Statistics.SelDepth = level;
 	if (checkDraws) {
-		if (board.IsDraw(level == 0)) return 0;
+		if (board.IsDraw(level == 0)) return DrawEvaluation();
 	}
 	return EvaluateBoard(board);
+}
+
+int Search::DrawEvaluation() {
+	// Returns a small randomized score to avoid search getting stuck in threefold lines
+	return Statistics.Nodes % 4 - 2;
 }
 
 // Static exchange evaluation (SEE) ---------------------------------------------------------------

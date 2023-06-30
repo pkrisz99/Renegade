@@ -37,6 +37,7 @@ public:
 	int SearchQuiescence(Board& board, const int level, int alpha, int beta, const bool rootNode);
 	int Evaluate(const Board& board, const int level, const bool checkDraws);
 	bool StaticExchangeEval(const Board& board, const Move& move, const int threshold);
+	int DrawEvaluation();
 
 	// Opening book
 	void InitOpeningBook();
