@@ -63,43 +63,30 @@ int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level
 
 // PV table ---------------------------------------------------------------------------------------
 
-void Heuristics::UpdatePvTable(const Move& move, const int level, const bool leaf) {
-	if (level < PvSize) PvTable[level][level] = move;
-	for (int i = level + 1; i < PvSize; i++) {
-		Move lowerMove = PvTable[level + 1][i];
-		if (lowerMove.IsEmpty()) break;
-		PvTable[level][i] = lowerMove;
-	}
-	if (leaf) {
-		for (int i = level + 1; i < PvSize; i++) {
-			if (PvTable[level][i].IsEmpty()) break;
-			PvTable[level][i] = Move();
-		}
-	}
-	/*cout << "[" << endl;
-	for (int i = 0; i < 6; i++) {
-		for (int j = 0; j < 6; j++) {
-			cout << " " << PvTable[i][j].ToString();
-		}
-		cout << endl;
-	}
-	cout << "]" << endl;*/
+void Heuristics::InitPvLength(const int level) {
+	PvLength[level] = level;
 }
 
-bool Heuristics::IsPvMove(const Move& move, const int level) {
+void Heuristics::UpdatePvTable(const Move& move, const int level) {
+	PvTable[level][level] = move;
+	for (int nextLevel = level + 1; nextLevel < PvLength[level + 1]; nextLevel++) {
+		PvTable[level][nextLevel] = PvTable[level + 1][nextLevel];
+	}
+	PvLength[level] = PvLength[level + 1];
+}
+
+bool Heuristics::IsPvMove(const Move& move, const int level) const {
 	if (level >= static_cast<int>(PvMoves.size())) return false;
 	if (move == PvMoves[level]) return true;
 	return false;
 }
 
-const std::vector<Move> Heuristics::GeneratePvLine() {
-	std::vector<Move> list = std::vector<Move>();
-	for (int i = 0; i < PvSize; i++) {
+void Heuristics::GeneratePvLine(std::vector<Move>& list) const {
+	for (int i = 0; i < PvLength[0]; i++) {
 		Move m = PvTable[0][i];
 		if (m.IsEmpty()) break;
 		list.push_back(m);
 	}
-	return list;
 }
 
 void Heuristics::SetPvLine(const std::vector<Move> pv) {
@@ -109,6 +96,7 @@ void Heuristics::SetPvLine(const std::vector<Move> pv) {
 void Heuristics::ResetPvTable() {
 	for (int i = 0; i < PvSize; i++) {
 		for (int j = 0; j < PvSize; j++) PvTable[i][j] = Move();
+		PvLength[i] = 0; // ?
 	}
 }
 

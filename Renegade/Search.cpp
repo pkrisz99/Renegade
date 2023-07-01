@@ -250,8 +250,8 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 
 		// Checking PV validity
 		e.pv.clear();
-		std::vector<Move> returnedPVs = Heuristics.GeneratePvLine();
-		Board b = board.Copy();
+		Heuristics.GeneratePvLine(e.pv);
+		/*Board b = board.Copy();
 		for (const Move& m : returnedPVs) {
 			std::vector<Move> legalMoves;
 			b.GenerateMoves(legalMoves, MoveGen::All, Legality::Legal);
@@ -260,7 +260,7 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 				b.Push(m);
 			}
 			else break;
-		}
+		}*/
 
 		Heuristics.SetPvLine(e.pv);
 		if (display) PrintInfo(e, settings);
@@ -282,6 +282,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// Check search limits
 	Aborting = ShouldAbort();
 	if (Aborting) return NoEval;
+	Heuristics.InitPvLength(level);
 	if (level >= 63) return board.IsInCheck() ? 0 : Evaluate(board, level, true);
 
 	const bool rootNode = (level == 0);
@@ -326,7 +327,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			else usable = false;
 			if (usable) {
 				if ((score > alpha) && (score < beta)) {
-					Heuristics.UpdatePvTable(Move(entry.moveFrom, entry.moveTo, entry.moveFlag), level, depth == 1);
+					//Heuristics.UpdatePvTable(Move(entry.moveFrom, entry.moveTo, entry.moveFlag), level, depth == 1);
 				}
 				return score;
 			}
@@ -398,6 +399,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
 	Move bestMove;
+	int bestScore = NegativeInfinity;
 	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
@@ -447,6 +449,11 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			if ((score > alpha) && (score < beta)) score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
 		}
 
+		if (score > bestScore) {
+			bestScore = score;
+			Heuristics.UpdatePvTable(m, level);
+		}
+
 		// Checking alpha-beta bounds
 		if (score >= beta) {
 			if (isQuiet) {
@@ -458,8 +465,10 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			Statistics.BetaCutoffs += 1;
 			if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
 			/*
-			for (int i = 1; i < pseudoLegalCount; i++) {
-				if (LegalAndQuiet[i]) Heuristics.DecrementHistory(board.Turn, m.from, m.to, depth);
+			// Decrement history scores for all previously tried quiet moves
+			for (int i = 1; i < pseudoLegalMoveCount; i++) {
+				Move& previouslyTriedMove = get<0>(MoveOrder[level][i]);
+				if (LegalAndQuiet[level][i]) Heuristics.DecrementHistory(board.Turn, previouslyTriedMove.from, previouslyTriedMove.to, depth);
 			}*/
 
 			return beta;
@@ -468,7 +477,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			scoreType = ScoreType::Exact;
 			bestMove = m;
 			alpha = score;
-			Heuristics.UpdatePvTable(m, level, depth == 1);
+			//Heuristics.UpdatePvTable(m, level, depth == 1);
 		}
 
 		// Should only be reduced if there's a beta-cutoff, but that loses strength...

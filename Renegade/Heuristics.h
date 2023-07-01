@@ -29,17 +29,18 @@ struct TranspositionEntry {
 class Heuristics
 {
 public:
-	static const int PvSize = 32;
+	static const int PvSize = 64;
 
 	Heuristics();
 	int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& ttMove, 
 		const Move& previousMove, const bool losingCapture);
 	
 	// PV table
-	void UpdatePvTable(const Move& move, const int level, const bool leaf);
+	void UpdatePvTable(const Move& move, const int level);
+	void InitPvLength(const int level);
 	void SetPvLine(const std::vector<Move> pv);
-	const std::vector<Move> GeneratePvLine();
-	bool IsPvMove(const Move& move, const int level);
+	void GeneratePvLine(std::vector<Move>& list) const;
+	bool IsPvMove(const Move& move, const int level) const;
 	void ClearPvLine();
 	void ResetPvTable();
 
@@ -66,7 +67,8 @@ public:
 	void GetTranspositionInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits, uint64_t& ttUsed);
 	void ClearTranspositionTable();
 
-	Move PvTable[PvSize + 1][PvSize + 1];
+	std::array<std::array<Move, PvSize + 1>, PvSize + 1> PvTable;
+	std::array<int, PvSize + 1> PvLength;
 
 
 private:
