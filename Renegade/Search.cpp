@@ -406,12 +406,12 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		const bool isQuiet = board.IsMoveQuiet(m);
 
 		// Performing futility pruning
-		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta)) continue;
+		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta) && (bestScore > -MateEval + 10000)) continue;
 
 		// Main search SEE pruning (+20 elo)
 		const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300, -350 };
 		const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600, -700 };
-		if (!rootNode && !pvNode && (depth <= 5) && !IsLosingMateScore(alpha)) {
+		if (!rootNode && !pvNode && (depth <= 5) && !IsLosingMateScore(alpha) && (bestScore > -MateEval + 10000)) {
 			if (!StaticExchangeEval(board, m, isQuiet ? seeQuietMargin[depth] : seeNoisyMargin[depth])) continue;
 		}
 
