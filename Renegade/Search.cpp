@@ -398,7 +398,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// Iterate through legal moves
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
-	Move bestMove;
+	Move bestMove = EmptyMove;
 	int bestScore = NegativeInfinity;
 	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
@@ -451,33 +451,33 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 		if (score > bestScore) {
 			bestScore = score;
-			Heuristics.UpdatePvTable(m, level);
-		}
-
-		// Checking alpha-beta bounds
-		if (score >= beta) {
-			if (isQuiet) {
-				Heuristics.AddKillerMove(m, level);
-				if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1], m);
-				Heuristics.IncrementHistory(board.Turn, m.from, m.to, depth);
-			}
-			Heuristics.AddTranspositionEntry(hash, depth, beta, ScoreType::LowerBound, m, level);
-			Statistics.BetaCutoffs += 1;
-			if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
-			/*
-			// Decrement history scores for all previously tried quiet moves
-			for (int i = 1; i < pseudoLegalMoveCount; i++) {
-				Move& previouslyTriedMove = get<0>(MoveOrder[level][i]);
-				if (LegalAndQuiet[level][i]) Heuristics.DecrementHistory(board.Turn, previouslyTriedMove.from, previouslyTriedMove.to, depth);
-			}*/
-
-			return beta;
-		}
-		if (score > alpha) {
-			scoreType = ScoreType::Exact;
 			bestMove = m;
-			alpha = score;
-			//Heuristics.UpdatePvTable(m, level, depth == 1);
+			Heuristics.UpdatePvTable(m, level);
+
+			// Checking alpha-beta bounds
+			if (score >= beta) {
+				if (isQuiet) {
+					Heuristics.AddKillerMove(m, level);
+					if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1], m);
+					Heuristics.IncrementHistory(board.Turn, m.from, m.to, depth);
+				}
+				Heuristics.AddTranspositionEntry(hash, depth, bestScore, ScoreType::LowerBound, m, level);
+				Statistics.BetaCutoffs += 1;
+				if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
+				/*
+				// Decrement history scores for all previously tried quiet moves
+				for (int i = 1; i < pseudoLegalMoveCount; i++) {
+					Move& previouslyTriedMove = get<0>(MoveOrder[level][i]);
+					if (LegalAndQuiet[level][i]) Heuristics.DecrementHistory(board.Turn, previouslyTriedMove.from, previouslyTriedMove.to, depth);
+				}*/
+
+				return bestScore;
+			}
+			if (score > alpha) {
+				scoreType = ScoreType::Exact;
+				alpha = score;
+				//Heuristics.UpdatePvTable(m, level, depth == 1);
+			}
 		}
 
 		// Should only be reduced if there's a beta-cutoff, but that loses strength...
@@ -492,10 +492,9 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		return e;
 	}
 
-	// Return alpha otherwise
-	const int e = alpha;
-	Heuristics.AddTranspositionEntry(hash, depth, e, scoreType, bestMove, level);
-	return e;
+	// Return the best score (fail-soft)
+	Heuristics.AddTranspositionEntry(hash, depth, bestScore, scoreType, bestMove, level);
+	return bestScore;
 }
 
 // Quiescence search: for noisy moves only (captures, queen promotions, pawn pushes threatening promotion)
@@ -515,10 +514,10 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 
 	// Update alpha-beta bounds, return alpha if no captures left
 	const int staticEval = Evaluate(board, level, true);
-	if (staticEval >= beta) return beta;
+	if (staticEval >= beta) return staticEval;
 	//if (staticEval < alpha - 1000) return alpha; // Delta pruning (loses strength)
 	if (staticEval > alpha) alpha = staticEval;
-	if (level >= 63) return alpha;
+	if (level >= 63) return staticEval;
 
 	// Order noisy moves
 	const float phase = CalculateGamePhase(board);
@@ -532,6 +531,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 	});
 
 	// Search recursively
+	int bestScore = staticEval;
 	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
 		if (!StaticExchangeEval(board, m, 0)) continue; // Quiescence search SEE pruning (+39 elo)
@@ -541,11 +541,14 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 		Boards[level] = board;
 		Board& b = Boards[level];
 		b.Push(m);
-		const int childEval = -SearchQuiescence(b, level + 1, -beta, -alpha, false);
-		if (childEval >= beta) return beta;
-		if (childEval > alpha) alpha = childEval;
+		const int score = -SearchQuiescence(b, level + 1, -beta, -alpha, false);
+		if (score > bestScore) {
+			bestScore = score;
+			if (bestScore >= beta) return bestScore;
+			if (bestScore > alpha) alpha = bestScore;
+		}
 	}
-	return alpha;
+	return bestScore;
 }
 
 int Search::Evaluate(const Board &board, const int level, const bool checkDraws) {
