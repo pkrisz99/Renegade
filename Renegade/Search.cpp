@@ -248,19 +248,9 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 		e.nps = static_cast<int>(Statistics.Nodes * 1e9 / (currentTime - StartSearchTime).count());
 		e.hashfull = Heuristics.GetHashfull();
 
-		// Checking PV validity
+		// Obtaining PV line
 		e.pv.clear();
 		Heuristics.GeneratePvLine(e.pv);
-		/*Board b = board.Copy();
-		for (const Move& m : returnedPVs) {
-			std::vector<Move> legalMoves;
-			b.GenerateMoves(legalMoves, MoveGen::All, Legality::Legal);
-			if (std::find(legalMoves.begin(), legalMoves.end(), m) != legalMoves.end()) {
-				e.pv.push_back(m);
-				b.Push(m);
-			}
-			else break;
-		}*/
 
 		Heuristics.SetPvLine(e.pv);
 		if (display) PrintInfo(e, settings);
@@ -343,7 +333,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// Internal iterative deepening
 	if (pvNode && (depth > 3) && transpositionMove.IsEmpty()) {
 		SearchRecursive(board, depth - 2, level + 1, -beta, -alpha, true);
-		transpositionMove = Heuristics.PvTable[level+1][level + 1];
+		transpositionMove = Heuristics.PvTable[level + 1][level + 1];
 	}
 
 	// Futility pruning (+37 elo)
@@ -397,13 +387,16 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 	// Iterate through legal moves
 	int scoreType = ScoreType::UpperBound;
-	int legalMoveCount = 0;
+	int legalMoveCount = 0, pseudoLegalCount = 0;
 	Move bestMove = EmptyMove;
 	int bestScore = NegativeInfinity;
 	for (const auto& [m, order] : MoveOrder[level]) {
+		pseudoLegalCount += 1;
+		LegalAndQuiet[level][pseudoLegalCount] = false;
 		if (!board.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
 		const bool isQuiet = board.IsMoveQuiet(m);
+		LegalAndQuiet[level][pseudoLegalCount] = isQuiet;
 
 		// Performing futility pruning
 		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta) && (bestScore > -MateEval + 10000)) continue;
@@ -464,24 +457,25 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				Heuristics.AddTranspositionEntry(hash, depth, bestScore, ScoreType::LowerBound, m, level);
 				Statistics.BetaCutoffs += 1;
 				if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
-				/*
+
 				// Decrement history scores for all previously tried quiet moves
-				for (int i = 1; i < pseudoLegalMoveCount; i++) {
-					Move& previouslyTriedMove = get<0>(MoveOrder[level][i]);
-					if (LegalAndQuiet[level][i]) Heuristics.DecrementHistory(board.Turn, previouslyTriedMove.from, previouslyTriedMove.to, depth);
-				}*/
+				for (int i = 1; i < pseudoLegalCount; i++) {
+					if (LegalAndQuiet[level][i]) {
+						Move& previouslyTriedMove = get<0>(MoveOrder[level][i]);
+						Heuristics.DecrementHistory(board.Turn, previouslyTriedMove.from, previouslyTriedMove.to, depth);
+					}
+				}
 
 				return bestScore;
 			}
 			if (score > alpha) {
 				scoreType = ScoreType::Exact;
 				alpha = score;
-				//Heuristics.UpdatePvTable(m, level, depth == 1);
 			}
 		}
 
 		// Should only be reduced if there's a beta-cutoff, but that loses strength...
-		if (isQuiet) Heuristics.DecrementHistory(board.Turn, m.from, m.to, depth);
+		//if (isQuiet) Heuristics.DecrementHistory(board.Turn, m.from, m.to, depth);
 
 	}
 

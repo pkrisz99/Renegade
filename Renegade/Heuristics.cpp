@@ -155,26 +155,22 @@ void Heuristics::ClearKillerAndCounterMoves() {
 // History heuristic ------------------------------------------------------------------------------
 
 void Heuristics::IncrementHistory(const bool side, const int from, const int to, const int depth) {
-	HistoryTables[side][from][to] += std::min(depth * depth / 2, 50);
-
-	// If values become too large, shrink values
-	if (HistoryTables[side][from][to] >= 256 * 128) {
-		for (int i = 0; i < 64; i++) {
-			for (int j = 0; j < 64; j++) {
-				HistoryTables[side][i][j] /= 2;
-			}
-		}
+	const int bonus = std::min(depth * depth * 4, 400);
+	const int gravity = HistoryTables[side][from][to] / 64;
+	HistoryTables[side][from][to] += std::max(bonus - gravity, 0);
+	if (HistoryTables[side][from][to] > 32767) {
+		//cout << HistoryTables[side][from][to] << " " << endl;
+		HistoryTables[side][from][to] = 32767;
 	}
 }
 
-void Heuristics::DecrementHistory(const bool side, const int from, const int to, [[maybe_unused]] const int depth) {
-	HistoryTables[side][from][to] -= 1;
-	if (HistoryTables[side][from][to] <= -256 * 128) {
-		for (int i = 0; i < 64; i++) {
-			for (int j = 0; j < 64; j++) {
-				HistoryTables[side][i][j] /= 2;
-			}
-		}
+void Heuristics::DecrementHistory(const bool side, const int from, const int to, const int depth) {
+	const int bonus = -1 * std::min(depth * depth * 2, 200);
+	const int gravity = HistoryTables[side][from][to] / 64;
+	HistoryTables[side][from][to] += std::min(bonus - gravity, 0);
+	if (HistoryTables[side][from][to] < -32768) {
+		//cout << HistoryTables[side][from][to] << " " << endl;
+		HistoryTables[side][from][to] = -32768;
 	}
 }
 
