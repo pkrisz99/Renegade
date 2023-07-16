@@ -1,8 +1,8 @@
 #include "Search.h"
 
 Search::Search() {
-	const double lmrMultiplier = 0.25; // 0.33;
-	const double lmrBase = 0.7; // 0.5;
+	const double lmrMultiplier = 0.4;
+	const double lmrBase = 0.7;
 	for (int i = 1; i < 32; i++) {
 		for (int j = 1; j < 32; j++) {
 			LMRTable[i][j] = static_cast<int>(lmrMultiplier * log(i) * log(j) + lmrBase);
@@ -273,7 +273,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	Aborting = ShouldAbort();
 	if (Aborting) return NoEval;
 	Heuristics.InitPvLength(level);
-	if (level >= 63) return board.IsInCheck() ? 0 : Evaluate(board, level, true);
+	if (level >= 63) return Evaluate(board, level, true);
 
 	const bool rootNode = (level == 0);
 	const bool pvNode = rootNode || (beta - alpha > 1);

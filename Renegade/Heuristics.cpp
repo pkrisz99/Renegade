@@ -44,7 +44,7 @@ int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level
 	const int historyScore = HistoryTables[turn][m.from][m.to];
 	if (historyScore != 0) {
 		// When at least we have some history scores
-		return historyScore;
+		return historyScore > 0 ? (historyScore + 100) : (historyScore - 100);
 	}
 	else {
 		int orderScore = 0;
