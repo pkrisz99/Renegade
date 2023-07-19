@@ -5,8 +5,8 @@ Engine::Engine(int argc, char* argv[]) {
 	Settings.Hash = 64;
 	Settings.UseBook = false;
 	Settings.ExtendedOutput = false;
-	Settings.UciOutput = false;
 	Settings.Colorful = true;
+	Settings.UciOutput = !PrettySupport;
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
 	Search.Heuristics.SetHashSize(Settings.Hash);
@@ -37,7 +37,7 @@ void Engine::Start() {
 			cout << "id name Renegade " << Version << '\n';
 			cout << "id author Krisztian Peocz" << '\n';
 			cout << "option name Clear Hash type button" << '\n';
-			cout << "option name Hash type spin default 64 min 0 max 4096" << '\n';
+			cout << "option name Hash type spin default 64 min 1 max 4096" << '\n';
 			cout << "option name OwnBook type check default false" << '\n';
 			cout << "uciok" << endl;
 			Settings.UciOutput = true;
@@ -50,16 +50,7 @@ void Engine::Start() {
 		}
 
 		if (cmd == "ucinewgame") {
-			Search.Heuristics.ClearTranspositionTable();
-			Search.Heuristics.ClearHistoryTable();
-			Search.Heuristics.ClearKillerAndCounterMoves();
-			Search.Heuristics.ResetPvTable();
-			Search.Heuristics.ClearPvLine();
-			continue;
-		}
-
-		if (cmd == "play") {
-			Play();
+			ResetState();
 			continue;
 		}
 
@@ -101,11 +92,7 @@ void Engine::Start() {
 			else if (parts[2] == "clear") {
 				ConvertToLowercase(parts[3]);
 				if (parts[3] == "hash") {
-					Search.Heuristics.ClearTranspositionTable();
-					Search.Heuristics.ClearKillerAndCounterMoves();
-					Search.Heuristics.ResetPvTable();
-					Search.Heuristics.ClearPvLine();
-					Search.Heuristics.ClearHistoryTable();
+					ResetState();
 					valid = true;
 				}
 			}
@@ -119,24 +106,14 @@ void Engine::Start() {
 		// Debug commands
 		if (parts[0] == "debug") {
 			if (parts[1] == "attackmap") DrawBoard(board, board.CalculateAttackedSquares(TurnToPieceColor(board.Turn)));
-			if (parts[1] == "whitepassedpawn") {
-				int sq = stoi(parts[2]);
-				DrawBoard(board, WhitePassedPawnMask[sq]);
-				DrawBoard(board, WhitePassedPawnFilter[sq]);
-			}
-			if (parts[1] == "blackpassedpawn") {
-				int sq = stoi(parts[2]);
-				DrawBoard(board, BlackPassedPawnMask[sq]);
-				DrawBoard(board, BlackPassedPawnFilter[sq]);
-			}
 			if (parts[1] == "enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
 			if (parts[1] == "halfmovecounter") cout << "Half move counter: " << board.HalfmoveClock << endl;
 			if (parts[1] == "fullmovecounter") cout << "Full move counter: " << board.FullmoveClock << endl;
 			if (parts[1] == "plys") cout << "Game plys: " << board.GetPlys() << endl;
 			if (parts[1] == "pseudolegal") {
-				std::vector<Move> v;
-				board.GenerateMoves(v, MoveGen::All, Legality::Pseudolegal);
-				for (Move m : v) cout << m.ToString() << " ";
+				std::vector<Move> pseudoMoves;
+				board.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
+				for (const Move &m : pseudoMoves) cout << m.ToString() << " ";
 				cout << endl;
 			}
 			if (parts[1] == "hash") {
@@ -144,7 +121,8 @@ void Engine::Start() {
 			}
 			if (parts[1] == "book") {
 				if (parts[2] == "count") {
-					cout << "Book entries: " << Search.GetBookSize() << " (from: " << std::filesystem::current_path().string() << ")" << endl;
+					cout << "Book entries: " << Search.GetBookSize() << endl;
+					// "from: " << std::filesystem::current_path().string()
 				}
 				else if (parts[2] == "entry") {
 					int n = stoi(parts[3]);
@@ -190,33 +168,27 @@ void Engine::Start() {
 					<< "S(" << Weights.Weights[id].early << ", " << Weights.Weights[id].late << ")" << endl;
 			}
 			if (parts[1] == "hashalloc") {
-				uint64_t trTheoretical, trUsable, trBits, trUsed;
-				Search.Heuristics.GetTranspositionInfo(trTheoretical, trUsable, trBits, trUsed);
-				cout << "Theoretical transposition size: " << trTheoretical << endl;
-				cout << "Usable transposition size:      " << trUsable << endl;
-				cout << "Usable bits:                    " << trBits << endl;
-				cout << "Used transposition entry count: " << trUsed << endl;
+				uint64_t ttTheoretical, ttUsable, ttBits, ttUsed;
+				Search.Heuristics.GetTranspositionInfo(ttTheoretical, ttUsable, ttBits, ttUsed);
+				cout << "Theoretical transposition size: " << ttTheoretical << endl;
+				cout << "Usable transposition size:      " << ttUsable << endl;
+				cout << "Usable bits:                    " << ttBits << endl;
+				cout << "Used transposition entry count: " << ttUsed << endl;
 				cout << "Bytes per entry:                " << sizeof(TranspositionEntry) << endl;
 
 			}
 			if (parts[1] == "isdraw") {
-				cout << "Is draw? " << board.IsDraw(true) << endl;
-			}
-			if (parts[1] == "attackersofsquare") {
-				const int sq = stoi(parts[2]);
-				PrintBitboard(board.GetAttackersOfSquare(sq));
+				cout << "Is drawn? " << board.IsDraw(true) << endl;
 			}
 			if (parts[1] == "see") {
 				const Move m = Move(stoi(parts[2]), stoi(parts[3]), stoi(parts[4]));
 				cout << "SEE: " << Search.StaticExchangeEval(board, m, stoi(parts[5])) << endl;
-			}
-			if (parts[1] == "seemulti") {
-				const Move m = Move(stoi(parts[2]), stoi(parts[3]), stoi(parts[4]));
+
 				int threshold = -2000;
 				while (Search.StaticExchangeEval(board, m, threshold)) {
 					threshold += 1;
 				}
-				cout << "SEE value: " << threshold << endl;
+				cout << "SEE toggle threshold: " << threshold << endl;
 			}
 			if (parts[1] == "sqtoi") {
 				for (int i = 2; i < parts.size(); i++)
@@ -227,15 +199,7 @@ void Engine::Start() {
 
 		// Custom commands
 		if (parts[0] == "help") {
-			cout << "\nRenegade is a basic chess engine written in C++. It is a command line "
-				<< "application supporting the UCI protocol, for example 'position startpos' "
-				<< "sets up the board and 'go depth 5' initiates a 5 ply deep search." << endl;
-			cout << "There are some additional commands supported as well, including: "
-				<< "\n- draw: draws the current board"
-				<< "\n- fancy & plain: sets board drawing style"
-				<< "\n- eval: prints the static evaluation of the position"
-				<< "\n- fen: displays the current position's FEN string"
-				<< "\n- go perft [n] & go perftdiv [n]: retuns the number of possible positions after n plys (incl. duplicates)" << endl;
+			HandleHelp();
 			continue;
 		}
 		if (parts[0] == "draw") {
@@ -264,11 +228,7 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "ch") {
-			Search.Heuristics.ClearTranspositionTable();
-			Search.Heuristics.ClearKillerAndCounterMoves();
-			Search.Heuristics.ResetPvTable();
-			Search.Heuristics.ClearPvLine();
-			Search.Heuristics.ClearHistoryTable();
+			ResetState();
 			cout << "Transposition table cleared." << endl;
 			continue;
 		}
@@ -277,11 +237,13 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "bighash") {
-			Search.Heuristics.SetHashSize(4096);
+			Search.Heuristics.SetHashSize(1024);
+			cout << "Using big hash: 1024 MB" << endl;
 			continue;
 		}
-		if (parts[0] == "nohash") {
-			Search.Heuristics.SetHashSize(0);
+		if (parts[0] == "hugehash") {
+			Search.Heuristics.SetHashSize(4096);
+			cout << "Using huge hash: 4096 MB" << endl;
 			continue;
 		}
 
@@ -323,11 +285,10 @@ void Engine::Start() {
 		// Go command
 		if (parts[0] == "go") {
 
-			if ((parts.size() == 3) && ((parts[1] == "perft") || (parts[1] == "perftdiv") || (parts[1] == "perfd"))) {
+			if ((parts.size() == 3) && ((parts[1] == "perft") || (parts[1] == "perftdiv"))) {
 				int depth = stoi(parts[2]);
 				PerftType type = PerftType::Normal;
 				if (parts[1] == "perftdiv") type = PerftType::PerftDiv;
-				if (parts[1] == "perfd") type = PerftType::Debug;
 				Search.Perft(board, depth, type);
 				continue;
 			}
@@ -352,6 +313,11 @@ void Engine::Start() {
 
 		if (parts[0] == "bench") {
 			HandleBench();
+			continue;
+		}
+
+		if (parts[0] == "compiler") {
+			HandleCompiler();
 			continue;
 		}
 
@@ -399,7 +365,7 @@ void Engine::Start() {
 	cout << "Stopping engine." << endl;
 }
 
-void Engine::DrawBoard(Board b, uint64_t customBits) {
+void Engine::DrawBoard(const Board &b, const uint64_t customBits) const {
 
 	const std::string side = b.Turn ? "white" : "black";
 	cout << "    Move: " << b.FullmoveClock << " - " << side << " to play" << endl;;
@@ -421,23 +387,23 @@ void Engine::DrawBoard(Board b, uint64_t customBits) {
 			const int pieceColor = ColorOfPiece(pieceId);
 			char piece = PieceChars[pieceId];
 
-			std::string CellStyle;
+			std::string cellStyle;
 
 			if ((i + j) % 2 == 1) {
-				if (pieceColor == PieceColor::Black) CellStyle = BlackOnLightSquare;
-				else CellStyle = WhiteOnLightSquare;
+				if (pieceColor == PieceColor::Black) cellStyle = BlackOnLightSquare;
+				else cellStyle = WhiteOnLightSquare;
 			}
 			else {
-				if (pieceColor == PieceColor::Black) CellStyle = BlackOnDarkSquare;
-				else CellStyle = WhiteOnDarkSquare;
+				if (pieceColor == PieceColor::Black) cellStyle = BlackOnDarkSquare;
+				else cellStyle = WhiteOnDarkSquare;
 			}
 
 			if (CheckBit(customBits, i * 8 + j)) {
-				if (pieceColor == PieceColor::Black) CellStyle = BlackOnTarget;
-				else CellStyle = WhiteOnTarget;
+				if (pieceColor == PieceColor::Black) cellStyle = BlackOnTarget;
+				else cellStyle = WhiteOnTarget;
 			}
 
-			if (Settings.Colorful) cout << CellStyle << ' ' << piece << ' ' << Default;
+			if (Settings.Colorful) cout << cellStyle << ' ' << piece << ' ' << Default;
 			else cout << ' ' << piece << ' ';
 
 		}
@@ -457,9 +423,7 @@ void Engine::HandleBench() {
 	Search.Heuristics.SetHashSize(16);
 	settings.ExtendedOutput = false;
 	settings.UseBook = false;
-	Search.Heuristics.ClearTranspositionTable();
 	auto startTime = Clock::now();
-
 	for (const std::string& fen : BenchmarkFENs) {
 		Search.Heuristics.ClearKillerAndCounterMoves();
 		Search.Heuristics.ClearHistoryTable();
@@ -472,88 +436,43 @@ void Engine::HandleBench() {
 	auto endTime = Clock::now();
 	int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
 	cout << nodes << " nodes " << nps << " nps" << endl;
-	Search.Heuristics.SetHashSize(oldHashSize);
+	Search.Heuristics.SetHashSize(oldHashSize); // also clears the transposition table
 }
 
-void Engine::Play() {
-	Board board = Board(FEN::StartPos);
+void Engine::HandleCompiler() const {
+	cout << endl;
+#if defined(__clang__)
+	cout << "Compiler: clang" << endl;
+	cout << "Version: " << __clang_major__ << endl;
+#elif defined(__GNUC__) || defined(__GNUG__)
+	cout << "Compiler: gcc" << endl;
+	cout << "Version: " << __GNUC__ << endl;
+#elif defined(_MSC_VER)
+	cout << "Compiler: MSVC" << endl;
+	cout << "Version: " << _MSC_VER << endl;
+#elif
+	cout << "Interesting compiler you've got there!" << endl;
+#endif
+	cout << endl;
+}
 
-	cout << "c - Computer, h - Human" << endl;
-	cout << "White player? ";
-	char white;
-	int whiteMovetime = 200;
-	cin >> white;
-	if ((white != 'c') && (white != 'h')) {
-		cout << "Invalid player." << endl;
-		return;
-	}
-	if (white == 'c') {
-		cout << "How long should the computer think in milliseconds? ";
-		cin >> whiteMovetime;
-	}
+void Engine::HandleHelp() const {
+	cout << "\nRenegade is a chess engine written in C++. It is a command line "
+		<< "application supporting the UCI protocol, for example 'position startpos' "
+		<< "sets up the board and 'go depth 5' initiates a 5 ply deep search.\n" 
+		<< "Read up on the UCI protocol for more information." << endl;
+	cout << "There are some additional commands supported as well, including: "
+		<< "\n- draw: draws the current board"
+		<< "\n- fancy & plain: sets board drawing style"
+		<< "\n- eval: prints the static evaluation of the position"
+		<< "\n- fen: displays the current position's FEN string"
+		<< "\n- go perft [n] & go perftdiv [n]: retuns the number of possible positions after n plys (incl. duplicates)" << endl;
+}
 
-	cout << "Black player? ";
-	char black;
-	cin >> black;
-	int blackMovetime = 200;
-	if ((black != 'c') && (black != 'h')) {
-		cout << "Invalid player." << endl;
-		return;
-	}
-	if (black == 'c') {
-		cout << "How long should the computer think in milliseconds? ";
-		cin >> blackMovetime;
-	}
-
-	bool quitting = false;
-	while ((board.GetGameState() == GameState::Playing) && !quitting) {
-		ClearScreen(false, Settings.Colorful);
-		PrintHeader();
-		cout << "Playing a game through console: \n" << endl;
-		DrawBoard(board);
-
-		char player = board.Turn ? white : black;
-
-		if (player == 'h') {
-			// Human
-			std::string str;
-			bool success = false;
-			cout << "\n";
-			if (board.FullmoveClock == 1) {
-				cout << "Type input in UCI notation (e.g. e2e4, e1g1, f7f8q)\n";
-				cout << "If you want to return to the main interface, write 'quit'\n";
-			}
-			while (!success) {
-				cout << "Move to play ? ";
-				cin >> str;
-				success = board.PushUci(str);
-				if (str == "fancy") Settings.Colorful = true;
-				if (str == "plain") Settings.Colorful = false;
-				if (str == "quit") {
-					quitting = true;
-					success = true;
-				}
-			}
-		} else {
-			// Computer
-			SearchParams p;
-			EngineSettings s;
-			p.movetime = board.Turn ? whiteMovetime : blackMovetime;
-			s.Hash = 8;
-			s.UseBook = false;
-			s.ExtendedOutput = false;
-			cout << '\n';
-			Results e = Search.SearchMoves(board, p, s, true);
-			board.Push(e.BestMove());
-			cout << "\nEngine plays " << e.BestMove().ToString() << endl;
-			std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-		}
-
-	}
-
-	if (!quitting) cout << "Game over: " << StateString(board.GetGameState()) << '\n' << endl;
-	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-	ClearScreen(false, Settings.Colorful);
-	PrintHeader();
-
+void Engine::ResetState() {
+	Search.Heuristics.ClearTranspositionTable();
+	Search.Heuristics.ClearKillerAndCounterMoves();
+	Search.Heuristics.ResetPvTable();
+	Search.Heuristics.ClearPvLine();
+	Search.Heuristics.ClearHistoryTable();
 }

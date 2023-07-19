@@ -325,7 +325,7 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 	return score;
 }
 
-inline static bool IsDrawishEndgame(const Board& board, const uint64_t whitePieces, const uint64_t blackPieces) {
+inline bool IsDrawishEndgame(const Board& board, const uint64_t whitePieces, const uint64_t blackPieces) {
 	// Drawish endgame detection
 	// To avoid simplifying down to a non-winning endgame with a nominal material advantage
 	// This list is not complete, and probably should be expanded even more (e.g. by including pawns)

@@ -1,7 +1,9 @@
 #pragma once
 #include <array>
 #include <iostream>
+#include <iterator>
 #include <chrono>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -18,9 +20,9 @@ using std::get;
 typedef std::chrono::high_resolution_clock Clock;
 
 #ifndef LEGACY_CPU
-const std::string Version = "0.11.0+";
+const std::string Version = "0.12.0 dev";
 #else
-const std::string Version = "0.11.0+ (oldcpu)";
+const std::string Version = "0.12.0 dev (oldcpu)";
 #endif
 
 // Evaluation helpers -----------------------------------------------------------------------------
@@ -152,7 +154,7 @@ const std::array<std::string, 64> SquareStrings = {
 
 enum class GameState { Playing, WhiteVictory, BlackVictory, Draw };
 
-enum class PerftType { Normal, PerftDiv, Debug };
+enum class PerftType { Normal, PerftDiv };
 
 enum class MoveGen { All, Noisy };
 
@@ -314,11 +316,11 @@ const static uint8_t SquareFileArray[] = {
 	0, 1, 2, 3, 4, 5, 6, 7
 };
 
-constexpr static uint8_t GetSquareRank(const int square) {
+const static uint8_t GetSquareRank(const int square) {
 	return SquareRankArray[square];
 }
 
-constexpr static uint8_t GetSquareFile(const int square) {
+const static uint8_t GetSquareFile(const int square) {
 	return SquareFileArray[square];
 }
 

@@ -42,11 +42,8 @@ void Search::Perft(Board& board, const int depth, const PerftType type) {
 
 	const float seconds = static_cast<float>((t1 - t0).count() / 1e9);
 	const float speed = r / seconds / 1000000;
-	if ((type == PerftType::Normal) || (type == PerftType::PerftDiv)) {
-		cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps | No bulk counting" << endl;
-		if (startingPosition && (depth <= 6) && (startingPerfts[depth] != r)) cout << "Uh-oh. (expected: " << startingPerfts[depth] << ")" << endl;
-	}
-	else cout << r << endl;
+	cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps | No bulk counting" << endl;
+	if (startingPosition && (depth <= 6) && (startingPerfts[depth] != r)) cout << "Uh-oh. (expected: " << startingPerfts[depth] << ")" << endl;
 }
 
 uint64_t Search::PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) {
@@ -345,21 +342,18 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	const int futilityMargins[] = { 0, 90, 180, 270, 360, 450 };
 	bool futilityPrunable = false;
 	if ((depth <= 5) && !inCheck && !pvNode) {
-		if (staticEval == NoEval) staticEval = Evaluate(board, level, true);
 		if ((staticEval + futilityMargins[depth] < alpha)) futilityPrunable = true;
 	}
 
 	// Reverse futility pruning (+128 elo)
 	const int rfpMarginDefault[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
 	if ((depth <= 7) && !inCheck && !pvNode) {
-		const int rfpMargin = improving ? (rfpMarginDefault[depth] * 0.7f) : rfpMarginDefault[depth];
-		if (staticEval == NoEval) staticEval = Evaluate(board, level, true);
+		const int rfpMargin = improving ? (static_cast<int>(rfpMarginDefault[depth] * 0.7f)) : rfpMarginDefault[depth];
 		if (staticEval - rfpMargin > beta) return staticEval;
 	}
 
 	// Null-move pruning (+33 elo)
 	if ((depth >= 3) && !inCheck && !pvNode && canNullMove && board.ShouldNullMovePrune()) {
-		if (staticEval == NoEval) staticEval = Evaluate(board, level, true);
 		int nmpReduction = 3 + depth / 4 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
 		nmpReduction = std::min(nmpReduction, depth - 1);
 		if ((staticEval >= beta) && (nmpReduction > 0)) {
@@ -479,9 +473,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				alpha = score;
 			}
 		}
-
-		// Should only be reduced if there's a beta-cutoff, but that loses strength...
-		//if (isQuiet) Heuristics.DecrementHistory(board.Turn, m.from, m.to, depth);
 
 	}
 
@@ -744,6 +735,7 @@ void Search::PrintInfo(const Results& e, const EngineSettings& settings) {
 		score = "cp " + std::to_string(e.score);
 	}
 
+	/*
 	std::string extended;
 	if (settings.ExtendedOutput) {
 		extended += " evals " + std::to_string(e.stats.Evaluations);
@@ -753,27 +745,26 @@ void Search::PrintInfo(const Results& e, const EngineSettings& settings) {
 		if (e.stats.BetaCutoffs != 0) extended += " fmbcrate " + std::to_string(static_cast<int>(e.stats.FirstMoveBetaCutoffs * 1000 / e.stats.BetaCutoffs));
 		extended += " tthits " + std::to_string(e.stats.TranspositionHits);
 		if (e.stats.TranspositionQueries != 0) extended += " ttrate " + std::to_string(static_cast<int>(e.stats.TranspositionHits * 1000 / e.stats.TranspositionQueries));
-	}
-
-	/*
-	cout << "info depth " << e.depth << " seldepth " << e.stats.SelDepth << " score " << score << " nodes " << e.stats.Nodes << " nps " << e.nps
-		<< " time " << e.time << " hashfull " << e.hashfull << extended << " pv";*/
+	}*/
 
 	std::string pvString;
 	for (const Move& move : e.pv)
 		pvString += " " + move.ToString();
 
+#if defined(_MSC_VER)
 	std::string output = std::format("info depth {} seldepth {} score {} nodes {} nps {} time {} hashfull {} pv{}",
 		e.depth, e.stats.SelDepth, score, e.stats.Nodes, e.nps, e.time, e.hashfull, pvString);
-
-
+#else
+	std::string output = "info depth " + std::to_string(e.depth) + " seldepth " + std::to_string(e.stats.SelDepth)
+		+ " score " + score + " nodes " + std::to_string(e.stats.Nodes) + " nps " + std::to_string(e.nps)
+		+ " time " + std::to_string(e.time) + " hashfull " + std::to_string(e.hashfull) + " pv" + pvString;
+#endif
 
 	cout << output << endl;
-	//if (e.time < 50) cout << '\n';
-	//else cout << endl;
 }
 
 void Search::PrintPretty(const Results& e, const EngineSettings& settings) {
+#if defined(_MSC_VER)
 	const std::string green = settings.Colorful ? "\x1b[92m" : "";
 	const std::string blue = settings.Colorful ? "\x1b[96m": "";
 	const std::string red = settings.Colorful ? "\x1b[91m": "";
@@ -837,6 +828,7 @@ void Search::PrintPretty(const Results& e, const EngineSettings& settings) {
 	std::string output = output1 + output3 + output2 + pvOutput + white;
 
 	cout << output << endl;
+#endif
 }
 
 void Search::PrintBestmove(const Move& move) {

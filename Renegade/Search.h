@@ -9,8 +9,8 @@
 #include <iomanip>
 #include <algorithm>
 #include <fstream>
+//#include <format>
 #include <random>
-#include <filesystem>
 
 /*
 * This is the code responsible for performing move selection.
@@ -57,7 +57,7 @@ public:
 	Heuristics Heuristics;
 	SearchConstraints Constraints;
 	bool Aborting = false;
-	std::chrono::steady_clock::time_point StartSearchTime;
+	std::chrono::high_resolution_clock::time_point StartSearchTime;
 	bool FollowingPV;
 
 	// Reused variables / stack

@@ -5,7 +5,6 @@
 #include "Results.h"
 #include "Search.h"
 #include "Tuning.h"
-#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <random>
@@ -19,12 +18,21 @@ class Engine
 public:
 	Engine(int argc, char* argv[]);
 	void Start();
-	void Play();
-	void DrawBoard(Board b, uint64_t customBits = 0);
-	void HandleBench();
+	void ResetState();
 	void PrintHeader();
+	void DrawBoard(const Board &b, const uint64_t customBits = 0) const;
+	void HandleBench();
+	void HandleHelp() const;
+	void HandleCompiler() const;
 
 	Search Search;
 	EngineSettings Settings;
+
+#if defined(_MSC_VER)
+	const bool PrettySupport = true;
+#else
+	const bool PrettySupport = false;
+#endif
+
 };
 

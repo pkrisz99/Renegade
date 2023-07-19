@@ -2,6 +2,7 @@
 #include "Move.h"
 #include "Magics.h"
 #include "Utils.h"
+#include <algorithm>
 
 /*
 * This is the board representation of Renegade.
