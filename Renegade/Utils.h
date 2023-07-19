@@ -546,7 +546,7 @@ const bool OutpostFilter[] = {
 };
 
 // Randomly selected FENs from Renegade's games for benchmarking, might replace with something more standard
-const std::array<std::string, 10> BenchmarkFENs = {
+const std::array<std::string, 15> BenchmarkFENs = {
 	"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 	"2r3k1/2P2pp1/3Np2p/8/7P/5qP1/5P1K/2Q5 b - - 2 42",
 	"rnbqkb1r/pppppppp/8/3nP3/2P5/8/PP1P1PPP/RNBQKBNR b KQkq - 0 3",
@@ -556,7 +556,12 @@ const std::array<std::string, 10> BenchmarkFENs = {
 	"7k/pp4rp/3p1Q2/1P1P4/2Pp4/3Pb2P/2q3P1/5R1K w - - 7 37",
 	"8/8/4p3/4P1p1/Pk6/2p5/1p3K2/1r6 b - - 1 52",
 	"r2qr1k1/pp2bppp/2n2n2/5b2/2P1N3/3P1N2/PP1BQPPP/R3KB1R w KQ - 2 11",
-	"r6k/p1nP3p/n1QP1qp1/1B6/1b6/7P/2P2PP1/1R1R2K1 b - - 0 32"
+	"r6k/p1nP3p/n1QP1qp1/1B6/1b6/7P/2P2PP1/1R1R2K1 b - - 0 32",
+	"1n3rk1/7p/1q4p1/p1p2pR1/2B2P2/4P3/P1QP1P2/4K3 b - - 1 24",
+	"2r4k/5Qp1/p6p/3Np1b1/4P3/P7/1P2n1PP/2r2R1K w - - 1 33",
+	"3r4/5p1k/5bpP/8/4K1P1/2p1PN2/8/7R b - - 9 105",
+	"r1bqk2r/p1p1bppp/1p2pB2/8/3P4/3B1N2/PPP2PPP/R2QK2R b KQkq - 0 9",
+	"1rbqk2r/4ppb1/2np2p1/p1p4p/N1P1P3/4BP1P/PP1Q2P1/2KR1B1R w k - 1 15"
 };
 
 // Polyglot hashing numbers, taken from python-chess

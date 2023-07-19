@@ -66,6 +66,7 @@ public:
 	std::array<Board, 64> Boards;
 	std::array<Move, 64> MoveStack;
 	std::array<std::array<bool, 256>, 64> LegalAndQuiet;
+	std::array<int, 64> EvalStack;
 
 	std::array<std::array<int, 32>, 32> LMRTable;
 

@@ -1,6 +1,6 @@
 #include "Engine.h"
 
-Engine::Engine() {
+Engine::Engine(int argc, char* argv[]) {
 	Settings = EngineSettings();
 	Settings.Hash = 64;
 	Settings.UseBook = false;
@@ -11,6 +11,9 @@ Engine::Engine() {
 	GenerateMagicTables();
 	Search.Heuristics.SetHashSize(Settings.Hash);
 	Search.Heuristics.ClearTranspositionTable();
+
+	if ((argc == 2) && (std::string(argv[1]) == "bench")) HandleBench();
+	else PrintHeader();
 }
 
 void Engine::PrintHeader() {
@@ -20,8 +23,8 @@ void Engine::PrintHeader() {
 // Start UCI protocol
 void Engine::Start() {
 	Board board = Board(FEN::StartPos);
-	PrintHeader();
 	std::string cmd = "";
+
 	while (getline(cin, cmd)) {
 
 		cmd = Trim(cmd);
@@ -348,30 +351,7 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "bench") {
-			uint64_t nodes = 0;
-			SearchParams params;
-			params.depth = 11;
-			EngineSettings settings;
-			const int oldHashSize = Settings.Hash;
-			Search.Heuristics.SetHashSize(16);
-			settings.ExtendedOutput = false;
-			settings.UseBook = false;
-			Search.Heuristics.ClearTranspositionTable();
-			auto startTime = Clock::now();
-
-			for (const std::string& fen : BenchmarkFENs) {
-				Search.Heuristics.ClearKillerAndCounterMoves();
-				Search.Heuristics.ClearHistoryTable();
-				Search.Heuristics.ClearPvLine();
-				Search.Heuristics.ResetPvTable();
-				Board b = Board(fen);
-				Results r = Search.SearchMoves(b, params, settings, false);
-				nodes += r.stats.Nodes;
-			}
-			auto endTime = Clock::now();
-			int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
-			cout << "nodes " << nodes << " nps " << nps << endl;
-			Search.Heuristics.SetHashSize(oldHashSize);
+			HandleBench();
 			continue;
 		}
 
@@ -466,6 +446,33 @@ void Engine::DrawBoard(Board b, uint64_t customBits) {
 	cout << "    ------------------------ " << '\n';
 	cout << "     a  b  c  d  e  f  g  h" << endl;
 
+}
+
+void Engine::HandleBench() {
+	uint64_t nodes = 0;
+	SearchParams params;
+	params.depth = 14;
+	EngineSettings settings;
+	const int oldHashSize = Settings.Hash;
+	Search.Heuristics.SetHashSize(16);
+	settings.ExtendedOutput = false;
+	settings.UseBook = false;
+	Search.Heuristics.ClearTranspositionTable();
+	auto startTime = Clock::now();
+
+	for (const std::string& fen : BenchmarkFENs) {
+		Search.Heuristics.ClearKillerAndCounterMoves();
+		Search.Heuristics.ClearHistoryTable();
+		Search.Heuristics.ClearPvLine();
+		Search.Heuristics.ResetPvTable();
+		Board b = Board(fen);
+		Results r = Search.SearchMoves(b, params, settings, false);
+		nodes += r.stats.Nodes;
+	}
+	auto endTime = Clock::now();
+	int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
+	cout << nodes << " nodes " << nps << " nps" << endl;
+	Search.Heuristics.SetHashSize(oldHashSize);
 }
 
 void Engine::Play() {

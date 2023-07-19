@@ -17,10 +17,11 @@ extern void GenerateMagicTables();
 class Engine
 {
 public:
-	Engine();
+	Engine(int argc, char* argv[]);
 	void Start();
 	void Play();
 	void DrawBoard(Board b, uint64_t customBits = 0);
+	void HandleBench();
 	void PrintHeader();
 
 	Search Search;

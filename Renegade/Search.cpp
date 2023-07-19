@@ -286,8 +286,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		if (alpha >= beta) return alpha;
 	}
 
-	int staticEval = NoEval;
-
 	// Check extensions
 	const bool inCheck = board.IsInCheck();
 	if (inCheck) depth += 1;
@@ -300,9 +298,10 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		return SearchQuiescence(board, level, alpha, beta, true);
 	}
 
-	// Calculate hash and probe transposition table
+	// Probe transposition table
 	const uint64_t hash = board.Hash();
 	TranspositionEntry entry;
+	int ttEval = NoEval;
 	const bool found = Heuristics.RetrieveTranspositionEntry(hash, entry, level);
 	Move transpositionMove;
 	Statistics.TranspositionQueries += 1;
@@ -325,10 +324,16 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		else {
 			// The branch was not analysed sufficiently, but we can use it for move ordering purposes
 			transpositionMove = Move(entry.moveFrom, entry.moveTo, entry.moveFlag);
-			staticEval = entry.score;
+			ttEval = entry.score;
 		}
 		Statistics.TranspositionHits += 1;
 	}
+	
+	// Obtain the evaluation of the position
+	int staticEval = (ttEval != NoEval) ? ttEval : Evaluate(board, level, true);
+	EvalStack[level] = staticEval;
+	const bool improving = (level >= 2) && (EvalStack[level] > EvalStack[level - 2]) && !inCheck;
+	// ^ add nullmove condition? (!inCheck is cosmetic for now)
 
 	// Internal iterative deepening
 	if (pvNode && (depth > 3) && transpositionMove.IsEmpty()) {
@@ -345,10 +350,11 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	}
 
 	// Reverse futility pruning (+128 elo)
-	const int rfpMargin[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
+	const int rfpMarginDefault[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
 	if ((depth <= 7) && !inCheck && !pvNode) {
+		const int rfpMargin = improving ? (rfpMarginDefault[depth] * 0.7f) : rfpMarginDefault[depth];
 		if (staticEval == NoEval) staticEval = Evaluate(board, level, true);
-		if (staticEval - rfpMargin[depth] > beta) return staticEval;
+		if (staticEval - rfpMargin > beta) return staticEval;
 	}
 
 	// Null-move pruning (+33 elo)
