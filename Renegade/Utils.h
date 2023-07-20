@@ -1,14 +1,13 @@
 #pragma once
 #include <array>
+#include <bit>
 #include <iostream>
 #include <iterator>
 #include <chrono>
 #include <sstream>
 #include <string>
 #include <vector>
-// #include <bits>
 // #include <intrin.h>
-// #include <stdio.h>
 
 using std::cout;
 using std::cin;

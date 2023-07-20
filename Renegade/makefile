@@ -1,20 +1,19 @@
 # Makefile for compiling Renegade
 # (consider this experimental, despite other engines using a similar one)
-# also please no g++ :(
+# I welcome reporting issues
+# also 'bench' output depends on the compiler -- not good.
 
 TARGET    := Renegade
 
 _THIS     := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 _ROOT     := $(_THIS)
 CXX       := clang++
-CXXFLAGS  :=  -Wall -Wcast-qual -fno-exceptions -std=c++20 -pedantic -Wextra -Wdouble-promotion -Wformat=2 -Wnull-dereference -Wunused -Wundef -DNDEBUG
+CXXFLAGS  :=  -Wall -Wcast-qual -fno-exceptions -std=c++20 -pedantic -Wextra -Wdouble-promotion -Wformat=2 -Wnull-dereference -Wunused -Wundef -DNDEBUG -fpermissive
 NATIVE     = -march=native
+# added -fpermissive for the time being
 
 $(warning Compiling via makefile is experimental and may have bugs)
 
-ifeq ($(CXX),g++)
-	$(warning PLEASE NO g++ D:)
-endif
 
 # Detect Windows
 ifeq ($(OS), Windows_NT)
@@ -36,7 +35,8 @@ else
 	ifeq ($(CXX),g++)
 		FLAGS   = -lpthread -lstdc++
 	else ifeq ($(CXX),clang++)
-  		CXXFLAGS += -static -fuse-ld=lld
+  		CXXFLAGS += -static
+		# -fuse-ld=lld here?
 	endif
 
 endif
