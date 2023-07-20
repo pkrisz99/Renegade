@@ -663,9 +663,15 @@ void Search::InitOpeningBook() {
 
 	while (ifs.read(reinterpret_cast<char*>(&buffer), 16)) {
 		BookEntry entry;
+#if defined(__GNUC__) || defined(__GNUG__)
+		int a = __builtin_bswap16(0x0000FFFF & buffer[1]);
+		int b = __builtin_bswap16((0xFFFF0000 & buffer[1]) >> 16);
+		entry.hash = __builtin_bswap32(buffer[0]);
+#else
 		int a = _byteswap_ushort(0x0000FFFF & buffer[1]);
 		int b = _byteswap_ushort((0xFFFF0000 & buffer[1]) >> 16);
 		entry.hash = _byteswap_uint64(buffer[0]);
+#endif
 		entry.to = (0b000000000111111 & a) >> 0;
 		entry.from = (0b000111111000000 & a) >> 6;
 		entry.promotion = (0b111000000000000 & a) >> 12;

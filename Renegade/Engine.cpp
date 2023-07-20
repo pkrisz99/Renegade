@@ -321,6 +321,12 @@ void Engine::Start() {
 			continue;
 		}
 
+		if (parts[0] == "flip") {
+			cout << "Turn flipped." << endl;
+			board.Turn = !board.Turn;
+			continue;
+		}
+
 		if (parts[0] == "goall") {
 			std::vector<Move> moves;
 			board.GenerateMoves(moves, MoveGen::All, Legality::Legal);

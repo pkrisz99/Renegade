@@ -6,12 +6,9 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
-#include <intrin.h> // If using MSVC (#ifdef _MSC_VER)
-
-// Uncomment for a compilation that is slightly slower, but supports older CPUs
-// If your CPU is newer than about 2013 (Core 4th gen), you should leave it commented out for about 10% more nps
-// #define LEGACY_CPU
+// #include <bits>
+// #include <intrin.h>
+// #include <stdio.h>
 
 using std::cout;
 using std::cin;
@@ -19,11 +16,7 @@ using std::endl;
 using std::get;
 typedef std::chrono::high_resolution_clock Clock;
 
-#ifndef LEGACY_CPU
 const std::string Version = "0.12.0 dev";
-#else
-const std::string Version = "0.12.0 dev (oldcpu)";
-#endif
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -253,41 +246,31 @@ static inline bool CheckBit(const uint64_t& number, const uint8_t place) {
 }
 
 static inline int Popcount(const uint64_t& number) {
-#ifdef LEGACY_CPU
 	return std::popcount(number);
-#else
-	return static_cast<int>(__popcnt64(number));
-	// return static_cast<int>(__builtin_popcount(number)); // for GCC (?)
-#endif
+	// return static_cast<int>(__popcnt64(number));
 }
 
 static inline int Lzcount(const uint64_t& number) {
-#ifdef LEGACY_CPU
 	return std::countl_zero(number);
-#else
-	return static_cast<int>(__lzcnt64(number));
-#endif
+	// return static_cast<int>(__lzcnt64(number));
 }
 
 static inline int Popsquare(uint64_t& number) {
-#ifdef LEGACY_CPU
 	const int place = std::countr_zero(number);
-	number &= ~(1ULL << place);
+	number &= (number - 1);
 	return place;
-#else
+
+	/*
 	const int place = static_cast<int>(_tzcnt_u64(number));
 	number = _blsr_u64(number);
 	return place;
-#endif
+	*/
 }
 
 
 static inline int LsbSquare(uint64_t number) {
-#ifdef LEGACY_CPU
 	return static_cast<int>(std::countr_zero(number));
-#else
-	return static_cast<int>(_tzcnt_u64(number));
-#endif
+	// return static_cast<int>(_tzcnt_u64(number));
 }
 
 // Board helper functions -------------------------------------------------------------------------
