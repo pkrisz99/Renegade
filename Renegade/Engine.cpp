@@ -246,6 +246,16 @@ void Engine::Start() {
 			cout << "Using huge hash: 4096 MB" << endl;
 			continue;
 		}
+		if (parts[0] == "evaltest") {
+			int sum = 0;
+			for (const std::string& fen : BenchmarkFENs) {
+				int eval = EvaluateBoard(Board(fen));
+				sum += eval;
+				cout << eval << "    - " << fen << endl;
+			}
+			cout << sum << endl;
+			continue;
+		}
 
 		// Position command
 		if (parts[0] == "position") {
