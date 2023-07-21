@@ -381,7 +381,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	FollowingPV = foundPvMove;
-	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
+	std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
 		return get<1>(t1) > get<1>(t2);
 	});
 
@@ -517,7 +517,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false, EmptyMove, EmptyMove, false);
 		MoveOrder[level].push_back({ m, orderScore });
 	}
-	std::sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
+	std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
 		return get<1>(t1) > get<1>(t2);
 	});
 
