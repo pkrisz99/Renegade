@@ -45,15 +45,19 @@ const std::string Move::ToString() const {
 
 }
 
-bool Move::IsNotNull() {
-	return (from != 0) || (to != 0);
-}
-
-bool Move::IsEmpty() {
+bool Move::IsEmpty() const {
 	return (from == 0) && (to == 0) && (flag == 0);
 }
 
-bool Move::IsUnderpromotion() {
+bool Move::IsNull() const {
+	return (from == 0) && (to == 0);
+}
+
+bool Move::IsNotNull() const {
+	return (from != 0) || (to != 0);
+}
+
+bool Move::IsUnderpromotion() const {
 	return (flag == MoveFlag::PromotionToRook) || (flag == MoveFlag::PromotionToKnight) || (flag == MoveFlag::PromotionToBishop);
 }
 

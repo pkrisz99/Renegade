@@ -192,8 +192,7 @@ struct EngineSettings {
 struct SearchStatistics {
 	int64_t Nodes;
 	uint64_t QuiescenceNodes;
-	uint64_t AlphaBetaCalls;
-	uint64_t QSeachAlphaBetaCalls;
+	uint64_t AlphaBetaCalls; // double counts when drops into QS
 	uint64_t Evaluations;
 	uint64_t BetaCutoffs;
 	uint64_t FirstMoveBetaCutoffs;

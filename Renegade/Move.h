@@ -16,10 +16,11 @@ public:
 	Move(uint8_t from, uint8_t to, uint8_t flag);
 	void SetFlag(uint8_t flag);
 	const std::string ToString() const;
-	bool IsNotNull();
-	bool IsEmpty();
+	bool IsEmpty() const;
+	bool IsNull() const;
+	bool IsNotNull() const;
 	bool IsPromotion() const;
-	bool IsUnderpromotion();
+	bool IsUnderpromotion() const;
 	uint8_t GetPromotionPieceType() const;
 	bool operator== (const Move& m) const;
 

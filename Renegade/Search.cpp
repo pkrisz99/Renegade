@@ -27,6 +27,7 @@ void Search::ResetStatistics() {
 	Statistics.FirstMoveBetaCutoffs = 0;
 	Statistics.TranspositionQueries = 0;
 	Statistics.TranspositionHits = 0;
+	Statistics.AlphaBetaCalls = 0;
 }
 
 // Perft methods ----------------------------------------------------------------------------------
@@ -292,7 +293,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 	// Return result for terminal nodes
 	if (depth <= 0) {
-		return SearchQuiescence(board, level, alpha, beta, true);
+		return SearchQuiescence(board, level, alpha, beta);
 	}
 
 	// Probe transposition table
@@ -489,24 +490,22 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 }
 
 // Quiescence search: for noisy moves only (captures, queen promotions, pawn pushes threatening promotion)
-int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta, const bool rootNode) {
+int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta) {
 
 	// Check search limits
 	Aborting = ShouldAbort();
 	if (Aborting) return NoEval;
 
+	// Update statistics
+	Statistics.AlphaBetaCalls += 1;
+
 	// Generate noisy moves
 	MoveList.clear();
 	board.GenerateMoves(MoveList, MoveGen::Noisy, Legality::Pseudolegal);
-	if (!rootNode) {
-		Statistics.AlphaBetaCalls += 1;
-		Statistics.QSeachAlphaBetaCalls += 1;
-	}
 
 	// Update alpha-beta bounds, return alpha if no captures left
 	const int staticEval = Evaluate(board, level, true);
 	if (staticEval >= beta) return staticEval;
-	//if (staticEval < alpha - 1000) return alpha; // Delta pruning (loses strength)
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= 63) return staticEval;
 
@@ -532,7 +531,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta,
 		Boards[level] = board;
 		Board& b = Boards[level];
 		b.Push(m);
-		const int score = -SearchQuiescence(b, level + 1, -beta, -alpha, false);
+		const int score = -SearchQuiescence(b, level + 1, -beta, -alpha);
 		if (score > bestScore) {
 			bestScore = score;
 			if (bestScore >= beta) return bestScore;

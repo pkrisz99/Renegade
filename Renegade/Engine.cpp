@@ -39,6 +39,7 @@ void Engine::Start() {
 			cout << "option name Clear Hash type button" << '\n';
 			cout << "option name Hash type spin default 64 min 1 max 4096" << '\n';
 			cout << "option name OwnBook type check default false" << '\n';
+			cout << "option name Threads type spin default 1 min 1 max 1" << '\n';
 			cout << "uciok" << endl;
 			Settings.UciOutput = true;
 			continue;
@@ -95,6 +96,9 @@ void Engine::Start() {
 					ResetState();
 					valid = true;
 				}
+			}
+			else if (parts[2] == "threads") {
+				valid = true;
 			}
 			
 			if (!valid) cout << "Invalid option: '" << parts[2] << "'" << endl;
@@ -244,16 +248,6 @@ void Engine::Start() {
 		if (parts[0] == "hugehash") {
 			Search.Heuristics.SetHashSize(4096);
 			cout << "Using huge hash: 4096 MB" << endl;
-			continue;
-		}
-		if (parts[0] == "evaltest") {
-			int sum = 0;
-			for (const std::string& fen : BenchmarkFENs) {
-				int eval = EvaluateBoard(Board(fen));
-				sum += eval;
-				cout << eval << "    - " << fen << endl;
-			}
-			cout << sum << endl;
 			continue;
 		}
 
