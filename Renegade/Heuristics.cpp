@@ -201,12 +201,14 @@ void Heuristics::AddTranspositionEntry(const uint64_t hash, const int depth, int
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
 	if ((TranspositionTable[key].hash != storedHash) || (TranspositionTable[key].depth <= depth)) {
 		if (TranspositionTable[key].hash == 0) TranspositionEntryCount += 1;
-		TranspositionTable[key].hash = storedHash;
 		TranspositionTable[key].depth = depth;
-		TranspositionTable[key].moveFrom = bestMove.from;
-		TranspositionTable[key].moveTo = bestMove.to;
-		TranspositionTable[key].moveFlag = bestMove.flag;
+		if ((TranspositionTable[key].hash != storedHash) || (bestMove.IsNotNull())) {
+			TranspositionTable[key].moveFrom = bestMove.from;
+			TranspositionTable[key].moveTo = bestMove.to;
+			TranspositionTable[key].moveFlag = bestMove.flag;
+		}
 		TranspositionTable[key].scoreType = scoreType;
+		TranspositionTable[key].hash = storedHash;
 		if (IsWinningMateScore(score)) score += level; // Adjusting mate scores with plies (some black magic stuff)
 		else if (IsLosingMateScore(score)) score -= level;
 		TranspositionTable[key].score = score;
@@ -218,12 +220,12 @@ bool Heuristics::RetrieveTranspositionEntry(const uint64_t& hash, TranspositionE
 	const uint64_t key = hash & HashFilter;
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
 	if (TranspositionTable[key].hash == storedHash) {
-		entry.hash = storedHash;
 		entry.depth = TranspositionTable[key].depth;
 		entry.moveFrom = TranspositionTable[key].moveFrom;
 		entry.moveTo = TranspositionTable[key].moveTo;
 		entry.moveFlag = TranspositionTable[key].moveFlag;
 		entry.scoreType = TranspositionTable[key].scoreType;
+		entry.hash = storedHash;
 		int score = TranspositionTable[key].score;
 		if (IsLosingMateScore(score)) score += level;
 		else if (IsWinningMateScore(score)) score -= level;

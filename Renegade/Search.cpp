@@ -445,11 +445,11 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 		if (score > bestScore) {
 			bestScore = score;
-			bestMove = m;
 			Heuristics.UpdatePvTable(m, level);
 
 			// Checking alpha-beta bounds
 			if (score >= beta) {
+				bestMove = m;
 				if (isQuiet) {
 					Heuristics.AddKillerMove(m, level);
 					if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1], m);
@@ -470,6 +470,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				return bestScore;
 			}
 			if (score > alpha) {
+				bestMove = m;
 				scoreType = ScoreType::Exact;
 				alpha = score;
 			}
