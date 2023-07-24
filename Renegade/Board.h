@@ -68,7 +68,7 @@ public:
 	inline bool ShouldNullMovePrune() const {
 		const int friendlyPieces = (Turn == Turn::White) ? Popcount(GetOccupancy(PieceColor::White)) : Popcount(GetOccupancy(PieceColor::Black));
 		const int friendlyPawns = (Turn == Turn::White) ? Popcount(WhitePawnBits) : Popcount(BlackPawnBits);
-		return (friendlyPieces - friendlyPawns) > 2;
+		return (friendlyPieces - friendlyPawns) > 1;
 	}
 
 
