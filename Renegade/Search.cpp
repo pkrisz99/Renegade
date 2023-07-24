@@ -312,12 +312,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			else if ((entry.scoreType == ScoreType::UpperBound) && (entry.score <= alpha)) score = alpha;
 			else if ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta)) score = beta;
 			else usable = false;
-			if (usable) {
-				if ((score > alpha) && (score < beta)) {
-					//Heuristics.UpdatePvTable(Move(entry.moveFrom, entry.moveTo, entry.moveFlag), level, depth == 1);
-				}
-				return score;
-			}
+			if (usable) return score;
 		}
 		else {
 			// The branch was not analysed sufficiently, but we can use it for move ordering purposes
@@ -328,7 +323,13 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	}
 	
 	// Obtain the evaluation of the position
-	int staticEval = (ttEval != NoEval) ? ttEval : Evaluate(board, level, true);
+	int staticEval = NoEval;
+	if ((ttEval == NoEval) || (entry.scoreType != ScoreType::Exact)) staticEval = Evaluate(board, level, true);
+	if (ttEval != NoEval) {
+		if ((entry.scoreType == ScoreType::Exact)
+			|| ((entry.scoreType == ScoreType::LowerBound) && (staticEval < ttEval))
+			|| ((entry.scoreType == ScoreType::UpperBound) && (staticEval > ttEval))) staticEval = ttEval;
+	}
 	EvalStack[level] = staticEval;
 	const bool improving = (level >= 2) && (EvalStack[level] > EvalStack[level - 2]) && !inCheck;
 	// ^ add nullmove condition? (!inCheck is cosmetic for now)
