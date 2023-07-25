@@ -313,6 +313,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			else if ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta)) score = beta;
 			else usable = false;
 			if (usable) return score;
+			// ttEval = entry.score; // Elo difference: 2.8 +/- 4.7,
 		}
 		else {
 			// The branch was not analysed sufficiently, but we can use it for move ordering purposes
@@ -350,7 +351,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// Reverse futility pruning (+128 elo)
 	const int rfpMarginDefault[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
 	if ((depth <= 7) && !inCheck && !pvNode) {
-		const int rfpMargin = improving ? (static_cast<int>(rfpMarginDefault[depth] * 0.7f)) : rfpMarginDefault[depth];
+		const int rfpMargin = improving ? (static_cast<int>(rfpMarginDefault[depth] * 0.5f)) : rfpMarginDefault[depth];
 		if (staticEval - rfpMargin > beta) return staticEval;
 	}
 
