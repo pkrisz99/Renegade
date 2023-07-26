@@ -59,6 +59,7 @@ public:
 	bool Aborting = false;
 	std::chrono::high_resolution_clock::time_point StartSearchTime;
 	bool FollowingPV;
+	uint16_t Age = 0;
 
 	// Reused variables / stack
 	std::vector<Move> MoveList;

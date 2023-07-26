@@ -195,11 +195,13 @@ void Heuristics::ClearHistoryTable() {
 
 // Transposition table ----------------------------------------------------------------------------
 
-void Heuristics::AddTranspositionEntry(const uint64_t hash, const int depth, int score, const int scoreType, const Move bestMove, const int level) {
+void Heuristics::AddTranspositionEntry(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move bestMove, const int level) {
 	if (HashBits == 0) return;
 	const uint64_t key = hash & HashFilter;
+	const uint16_t quality = age * 2 + depth;
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
-	if ((TranspositionTable[key].hash != storedHash) || (TranspositionTable[key].depth <= depth)) {
+
+	if (quality >= TranspositionTable[key].quality) { // (TranspositionTable[key].depth <= depth)
 		if (TranspositionTable[key].hash == 0) TranspositionEntryCount += 1;
 		TranspositionTable[key].depth = depth;
 		if ((TranspositionTable[key].hash != storedHash) || (bestMove.IsNotNull())) {
@@ -209,6 +211,7 @@ void Heuristics::AddTranspositionEntry(const uint64_t hash, const int depth, int
 		}
 		TranspositionTable[key].scoreType = scoreType;
 		TranspositionTable[key].hash = storedHash;
+		TranspositionTable[key].quality = quality;
 		if (IsWinningMateScore(score)) score += level; // Adjusting mate scores with plies (some black magic stuff)
 		else if (IsLosingMateScore(score)) score -= level;
 		TranspositionTable[key].score = score;
@@ -225,6 +228,7 @@ bool Heuristics::RetrieveTranspositionEntry(const uint64_t& hash, TranspositionE
 		entry.moveTo = TranspositionTable[key].moveTo;
 		entry.moveFlag = TranspositionTable[key].moveFlag;
 		entry.scoreType = TranspositionTable[key].scoreType;
+		entry.quality = TranspositionTable[key].quality; // not needed
 		entry.hash = storedHash;
 		int score = TranspositionTable[key].score;
 		if (IsLosingMateScore(score)) score += level;

@@ -19,11 +19,12 @@ namespace ScoreType {
 };
 
 struct TranspositionEntry {
-	uint32_t hash;
-	int32_t score;
-	uint8_t depth;
-	uint8_t scoreType;
-	uint8_t moveFrom, moveTo, moveFlag;
+	uint32_t hash = 0;
+	int32_t score = 0;
+	uint16_t quality = 0;
+	uint8_t depth = 0;
+	uint8_t scoreType = 0;
+	uint8_t moveFrom = 0, moveTo = 0, moveFlag = 0;
 };
 
 class Heuristics
@@ -60,7 +61,7 @@ public:
 	void ClearHistoryTable();
 
 	// Transposition table
-	void AddTranspositionEntry(const uint64_t hash, const int depth, int score, const int scoreType, const Move bestMove, const int level);
+	void AddTranspositionEntry(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move bestMove, const int level);
 	bool RetrieveTranspositionEntry(const uint64_t& hash, TranspositionEntry& entry, const int level);
 	void SetHashSize(const int megabytes);
 	int GetHashfull();

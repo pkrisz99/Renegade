@@ -485,4 +485,5 @@ void Engine::ResetState() {
 	Search.Heuristics.ResetPvTable();
 	Search.Heuristics.ClearPvLine();
 	Search.Heuristics.ClearHistoryTable();
+	Search.Age = 0;
 }
