@@ -358,15 +358,13 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 	// Null-move pruning (+33 elo)
 	if ((depth >= 3) && !inCheck && !pvNode && canNullMove && (staticEval >= beta) && board.ShouldNullMovePrune()) {
-		int nmpReduction = 3 + depth / 4 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
-		nmpReduction = std::min(nmpReduction, depth - 1);
-		if (nmpReduction > 0) {
-			Boards[level] = board;
-			Boards[level].Push(NullMove);
-			const int nullMoveEval = -SearchRecursive(Boards[level], depth - 1 - nmpReduction, level + 1, -beta, -beta + 1, false);
-			if (nullMoveEval >= beta) {
-				return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
-			}
+		int nmpReduction = 3 + depth / 3 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
+		nmpReduction = std::min(nmpReduction, depth);
+		Boards[level] = board;
+		Boards[level].Push(NullMove);
+		const int nullMoveEval = -SearchRecursive(Boards[level], depth - nmpReduction, level + 1, -beta, -beta + 1, false);
+		if (nullMoveEval >= beta) {
+			return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
 		}
 	}
 
