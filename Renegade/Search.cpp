@@ -434,10 +434,10 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			}
 
 			// Late-move reductions (+119 elo)
-			if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && !inCheck && !givingCheck && (depth >= 3)) {
+			if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && !inCheck && (depth >= 3)) {
+				//const bool badCheck = givingCheck && !StaticExchangeEval(board, m, 0);
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
-				// Idea: increase reduction for bad history moves
-				// if (!pvNode && (Heuristics.HistoryTables[board.Turn][m.from][m.to] < -3000)) reduction += 1;
+				if (givingCheck) reduction /= 2;
 			}
 
 			// Principal variation search
