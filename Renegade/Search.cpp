@@ -199,12 +199,12 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 				result = SearchRecursive(board, searchDepth, 0, alpha, beta, true);
 
 				if (result <= alpha) {
-					alpha = std::max(result - windowSize, NegativeInfinity);
+					alpha = std::max(alpha - windowSize, NegativeInfinity);
 					beta = (alpha + beta) / 2;
 					searchDepth = Depth;
 				}
 				else if (result >= beta) {
-					beta = std::min(result + windowSize, PositiveInfinity);
+					beta = std::min(beta + windowSize, PositiveInfinity);
 					//if (!IsMateScore(result) && (searchDepth > 1)) searchDepth -= 1;
 				}
 				else {
