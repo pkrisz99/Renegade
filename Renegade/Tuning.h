@@ -18,14 +18,14 @@ class Tuning
 public:
 	Tuning();
 	float ConvertResult(const std::string str);
-	double Sigmoid(const int score, const double K);
-	double FindBestK(std::vector<Board>& boards, std::vector<float>& results);
+	double Sigmoid(const int score, const double K) const;
+	double FindBestK(std::vector<Board>& boards, std::vector<float>& results) const;
 	void UpdateWeightById(const int id, const bool isEarlygame, const int value);
 	int GetWeightById(const int id, const bool isEarlygame);
 	void Tune(double K);
-	double CalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results);
-	//double MultithreadedCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results);
-	//double PartialCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results, const int start, const int end);
+	double SimpleCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) const;
+	double MultithreadedCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) const;
+	void PartialCalculateMSE(const double K, const std::vector<Board>& boards, const std::vector<float>& results, const int start, const int end, double& errorSum) const;
 
 	std::vector<float> TrainResults;
 	std::vector<Board> TrainBoards;
@@ -35,6 +35,8 @@ public:
 
 	const bool early = true;
 	const bool late = false;
+	
+	const int ThreadCount = 6;
 
 };
 

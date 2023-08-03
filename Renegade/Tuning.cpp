@@ -8,6 +8,7 @@ Tuning::Tuning() {
 	cin >> positionsToLoad;
 	cout << "\nStarting tuning..." << endl;
 	cout << "Note: may take a looong time" << endl;
+	cout << "Using " << ThreadCount << " threads." << endl;
 
 	// Initialize temporary weights
 	for (int i = 0; i < TempWeights.WeightSize; i++) TempWeights.Weights[i] = Weights.Weights[i];
@@ -49,13 +50,11 @@ Tuning::Tuning() {
 		}
 	}
 	cout << "Train size: " << TrainBoards.size() << endl;
-	cout << "Test size:  " << TestBoards.size() << '\n' << endl;
-
-	cout << "Initial MSE: " << CalculateMSE(K, TestBoards, TestResults) << endl;
+	cout << "Test size:  " << TestBoards.size() << endl;
+	cout << "Initial MSE: " << MultithreadedCalculateMSE(K, TestBoards, TestResults) << '\n' << endl;
 
 	// Start tuning
 	Tune(K);
-
 }
 
 float Tuning::ConvertResult(const std::string str) {
@@ -67,11 +66,11 @@ float Tuning::ConvertResult(const std::string str) {
 }
 
 
-double Tuning::Sigmoid(const int score, const double K) {
+double Tuning::Sigmoid(const int score, const double K) const {
 	return 1.0 / (1.0 + pow(10.0, -K * score / 400.0));
 }
 
-double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) {
+double Tuning::SimpleCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) const {
 	double totalError = 0;
 	for (int i = 0; i < boards.size(); i++) {
 		const int sign = boards[i].Turn == Turn::White ? 1 : -1;
@@ -80,38 +79,38 @@ double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, std::vec
 	return totalError / boards.size();
 }
 
-/*
-double Tuning::PartialCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results, const int start, const int end) {
+
+void Tuning::PartialCalculateMSE(const double K, const std::vector<Board>& boards, const std::vector<float>& results, const int start, const int end, double& errorSum) const {
 	// start: inclusive, end: exclusive
 	double totalError = 0;
 	for (int i = start; i < end; i++) {
 		const int sign = boards[i].Turn == Turn::White ? 1 : -1;
 		totalError += pow((results[i] - Sigmoid(sign * EvaluateBoard(boards[i], TempWeights), K)), 2);
 	}
-	return totalError;
+	errorSum = totalError;
 }
 
-double Tuning::MultithreadedCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) {
-	const int threadCount = 6;
+double Tuning::MultithreadedCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) const {
 	std::vector<std::thread> threads = std::vector<std::thread>();
-	std::vector<double> errors(threadCount, 0);
-	const int chunckSize = boards.size() / threadCount;
+	std::vector<double> errors(ThreadCount, 0);
+	const int chunckSize = boards.size() / ThreadCount;
 
-	for (int i = 1; i <= threadCount; i++) {
+	for (int i = 1; i <= ThreadCount; i++) {
 		int start = (i - 1) * chunckSize;
-		int end = (i != threadCount) ? (start + chunckSize) : boards.size();
-		const std::thread t = std::thread{ &Tuning::PartialCalculateMSE, std::ref(boards), std::ref(results), start, end, std::ref(errors[i]) };
-		threads.emplace_back(t);
+		int end = (i != ThreadCount) ? (start + chunckSize) : boards.size();
+		threads.emplace_back(&Tuning::PartialCalculateMSE, this, K, std::ref(boards), std::ref(results), start, end, std::ref(errors[i - 1]));
 	}
 	for (std::thread& t : threads) t.join();
 
 	double totalError = 0;
-	for (const double partialSum : errors) totalError += partialSum;
+	for (const double partialSum : errors) {
+		totalError += partialSum;
+	}
 	return totalError / boards.size();
 
-}*/
+}
 
-double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results) {
+double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results) const {
 	return 1.30;
 
 	double K = 1.2;
@@ -122,7 +121,7 @@ double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results
 	double bestError = 1;
 
 	while (K <= maxK) {
-		double Kerror = CalculateMSE(K, boards, results);
+		double Kerror = MultithreadedCalculateMSE(K, boards, results);
 		if (Kerror < bestError) {
 			bestError = Kerror;
 			bestK = K;
@@ -136,7 +135,7 @@ double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results
 void Tuning::Tune(const double K) {
 	int improvements = 0;
 	int iterations = 1;
-	double testMSE = CalculateMSE(K, TestBoards, TestResults);
+	double testMSE = MultithreadedCalculateMSE(K, TestBoards, TestResults);
 
 	std::cout << std::fixed;
 	std::cout << std::setprecision(6);
@@ -223,18 +222,18 @@ void Tuning::Tune(const double K) {
 
 				const int iterationPercent = static_cast<int>(doneInIteration * 100 / weightsForTuning.size());
 
-				cout << "Iteration " << iterations << ", tuning parameter " << p.id << ((phase == early) ? " (early)" : " (late) ")
+				cout << "Iteration " << iterations << ", tuning parameter " << p.id << ((phase == early) ? ".1" : ".2")
 					<< " of " << TempWeights.WeightSize << " (" << iterationPercent << "%)...      " << '\r' << std::flush;
 
 				const int weightCurrent = GetWeightById(p.id, phase);
 				const int weightPlus = weightCurrent + ((phase == early) ? p.earlyStep : p.lateStep);
 				const int weightMinus = weightCurrent - ((phase == early) ? p.earlyStep : p.lateStep);
 
-				const double weightCurrentMSE = CalculateMSE(K, TrainBoards, TrainResults);
+				const double weightCurrentMSE = MultithreadedCalculateMSE(K, TrainBoards, TrainResults);
 				UpdateWeightById(p.id, phase, weightMinus);
-				const double weightMinusMSE = CalculateMSE(K, TrainBoards, TrainResults);
+				const double weightMinusMSE = MultithreadedCalculateMSE(K, TrainBoards, TrainResults);
 				UpdateWeightById(p.id, phase, weightPlus);
-				const double weightPlusMSE = CalculateMSE(K, TrainBoards, TrainResults);
+				const double weightPlusMSE = MultithreadedCalculateMSE(K, TrainBoards, TrainResults);
 
 				int newWeight = 999;
 				double newMSE = 999;
@@ -272,7 +271,7 @@ void Tuning::Tune(const double K) {
 			cout << TempWeights.Weights[p.id] << ", ";
 			if ((j != 0) && (j % 64 == 0)) cout << "\n";
 		}
-		double newTestMSE = CalculateMSE(K, TestBoards, TestResults);
+		double newTestMSE = MultithreadedCalculateMSE(K, TestBoards, TestResults);
 
 		cout << "\nChanges made during iteration " << iterations << ": " << improvements << " (out of " << triedInIteration << ")" << endl;
 		auto endTime = Clock::now();
