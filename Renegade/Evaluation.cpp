@@ -195,10 +195,10 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			// Rook on open or semi-open file
 			if ((board.WhitePawnBits & Files[file]) == 0) {
 				if ((board.BlackPawnBits & Files[file]) == 0) { // open file
-					taperedScore += weights.GetRookOnOpenFileEval();
+					taperedScore += weights.GetRookOnOpenFileBonus(sq);
 				}
 				else { // semi-open file
-					taperedScore += weights.GetRookOnSemiOpenFileEval();
+					taperedScore += weights.GetRookOnSemiOpenFileBonus(sq);
 				}
 			}
 			// Threats
@@ -221,10 +221,10 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			// Rook on open or semi-open file
 			if ((board.BlackPawnBits & Files[file]) == 0) {
 				if ((board.WhitePawnBits & Files[file]) == 0) { // open file
-					taperedScore -= weights.GetRookOnOpenFileEval();
+					taperedScore -= weights.GetRookOnOpenFileBonus(Mirror[sq]);
 				}
 				else { // semi-open file
-					taperedScore -= weights.GetRookOnSemiOpenFileEval();
+					taperedScore -= weights.GetRookOnSemiOpenFileBonus(Mirror[sq]);
 				}
 			}
 			// Threats

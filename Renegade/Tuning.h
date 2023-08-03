@@ -20,10 +20,12 @@ public:
 	float ConvertResult(const std::string str);
 	double Sigmoid(const int score, const double K);
 	double FindBestK(std::vector<Board>& boards, std::vector<float>& results);
-	double CalculateMSE(const double K, std::vector<Board> &boards, std::vector<float> &results);
 	void UpdateWeightById(const int id, const bool isEarlygame, const int value);
 	int GetWeightById(const int id, const bool isEarlygame);
 	void Tune(double K);
+	double CalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results);
+	//double MultithreadedCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results);
+	//double PartialCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results, const int start, const int end);
 
 	std::vector<float> TrainResults;
 	std::vector<Board> TrainBoards;

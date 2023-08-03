@@ -80,6 +80,37 @@ double Tuning::CalculateMSE(const double K, std::vector<Board>& boards, std::vec
 	return totalError / boards.size();
 }
 
+/*
+double Tuning::PartialCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results, const int start, const int end) {
+	// start: inclusive, end: exclusive
+	double totalError = 0;
+	for (int i = start; i < end; i++) {
+		const int sign = boards[i].Turn == Turn::White ? 1 : -1;
+		totalError += pow((results[i] - Sigmoid(sign * EvaluateBoard(boards[i], TempWeights), K)), 2);
+	}
+	return totalError;
+}
+
+double Tuning::MultithreadedCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) {
+	const int threadCount = 6;
+	std::vector<std::thread> threads = std::vector<std::thread>();
+	std::vector<double> errors(threadCount, 0);
+	const int chunckSize = boards.size() / threadCount;
+
+	for (int i = 1; i <= threadCount; i++) {
+		int start = (i - 1) * chunckSize;
+		int end = (i != threadCount) ? (start + chunckSize) : boards.size();
+		const std::thread t = std::thread{ &Tuning::PartialCalculateMSE, std::ref(boards), std::ref(results), start, end, std::ref(errors[i]) };
+		threads.emplace_back(t);
+	}
+	for (std::thread& t : threads) t.join();
+
+	double totalError = 0;
+	for (const double partialSum : errors) totalError += partialSum;
+	return totalError / boards.size();
+
+}*/
+
 double Tuning::FindBestK(std::vector<Board>& boards, std::vector<float>& results) {
 	return 1.30;
 
@@ -112,7 +143,7 @@ void Tuning::Tune(const double K) {
 
 	// Change these to tune a specific weight
 	std::vector<ParamSettings> weightsForTuning;
-	const int defaultStep = 3;
+	const int defaultStep = 4;
 	
 	// Tune material values
 	//for (int i = 1; i <= 5; i++) weightsForTuning.push_back({ TempWeights.IndexPieceMaterial(i), defaultStep, defaultStep, true, true });
@@ -143,11 +174,11 @@ void Tuning::Tune(const double K) {
 	weightsForTuning.push_back({ TempWeights.IndexBishopPair, defaultStep, defaultStep, true, true });*/
 
 	// Rook values
-	/*for (int i = 0; i <= 63; i++) weightsForTuning.push_back({TempWeights.IndexPSQT(PieceType::Rook, i), defaultStep, defaultStep, true, true});
+	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexPSQT(PieceType::Rook, i), defaultStep, defaultStep, true, true });
+	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexRookOnOpenFile(i), defaultStep, defaultStep, true, true });
+	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexRookOnSemiOpenFile(i), defaultStep, defaultStep, true, true });
 	for (int i = 0; i <= 14; i++) weightsForTuning.push_back({ TempWeights.IndexRookMobility(i), defaultStep, defaultStep, true, true });
 	weightsForTuning.push_back({ TempWeights.IndexPieceMaterial(PieceType::Rook), defaultStep, defaultStep, true, true });
-	weightsForTuning.push_back({ TempWeights.IndexRookOnOpenFile, defaultStep, defaultStep, true, true });
-	weightsForTuning.push_back({ TempWeights.IndexRookOnSemiOpenFile, defaultStep, defaultStep, true, true });*/
 
 	// Queen values
 	/*for (int i = 0; i <= 63; i++) weightsForTuning.push_back({TempWeights.IndexPSQT(PieceType::Queen, i), defaultStep, defaultStep, true, true});
@@ -166,7 +197,7 @@ void Tuning::Tune(const double K) {
 	for (int i = 1; i <= 5; i++) weightsForTuning.push_back({ TempWeights.IndexKingThreats(i), defaultStep, defaultStep, true, true });*/
 
 	// King safety
-	for (int i = 1; i <= 25; i++) weightsForTuning.push_back({ TempWeights.IndexKingDanger(i), defaultStep, defaultStep, true, true });
+	//for (int i = 1; i <= 25; i++) weightsForTuning.push_back({ TempWeights.IndexKingDanger(i), defaultStep, defaultStep, true, true });
 
 	//for (int i = 0; i <= 7; i++) weightsForTuning.push_back({ TempWeights.IndexPassedPawn(i), defaultStep, defaultStep, true, true });
 	//for (int i = 0; i <= 7; i++) weightsForTuning.push_back({ TempWeights.IndexBlockedPasser(i), defaultStep, defaultStep, true, true });

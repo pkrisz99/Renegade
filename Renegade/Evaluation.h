@@ -9,7 +9,7 @@ extern uint64_t GetQueenAttacks(const int square, const uint64_t occupancy);
 struct EvaluationFeatures {
 
 	// Weight size and its array
-	static constexpr int WeightSize = 566;
+	static constexpr int WeightSize = 694;
 	TaperedScore Weights[WeightSize];
 
 	// King safety constants
@@ -30,8 +30,8 @@ struct EvaluationFeatures {
 	const int IndexDoubledPawns = 505;
 	const int IndexTripledPawns = 506;
 	const int IndexBishopPair = 507;
-	const int IndexRookOnOpenFile = 508;
-	const int IndexRookOnSemiOpenFile = 509;
+	//const int IndexRookOnOpenFile = 508;
+	//const int IndexRookOnSemiOpenFile = 509;
 	const int IndexKnightOutpost = 510;
 	const int IndexTempoBonus = 513;
 	constexpr int IndexPawnThreats(const uint8_t attackedPieceType) const { return 513 + attackedPieceType; };
@@ -42,6 +42,8 @@ struct EvaluationFeatures {
 	constexpr int IndexKingThreats(const uint8_t attackedPieceType) const { return 543 + attackedPieceType; };
 	constexpr int IndexPawnSupportingPawn(const uint8_t rank) const { return 550 + rank; };
 	constexpr int IndexPawnPhalanx(const uint8_t rank) const { return 558 + rank; };
+	constexpr int IndexRookOnOpenFile(const uint8_t sq) const { return 566 + sq; };
+	constexpr int IndexRookOnSemiOpenFile(const uint8_t sq) const { return 630 + sq; };
 
 	// Shorthand for retrieving the evaluation
 	inline const TaperedScore& GetMaterial(const uint8_t pieceType) const { return Weights[IndexPieceMaterial(pieceType)]; }
@@ -57,8 +59,8 @@ struct EvaluationFeatures {
 	inline const TaperedScore& GetDoubledPawnEval() const { return Weights[IndexDoubledPawns]; }
 	inline const TaperedScore& GetTripledPawnEval() const { return Weights[IndexTripledPawns]; }
 	inline const TaperedScore& GetBishopPairEval() const { return Weights[IndexBishopPair]; }
-	inline const TaperedScore& GetRookOnOpenFileEval() const { return Weights[IndexRookOnOpenFile]; }
-	inline const TaperedScore& GetRookOnSemiOpenFileEval() const { return Weights[IndexRookOnSemiOpenFile]; }
+	//inline const TaperedScore& GetRookOnOpenFileEval() const { return Weights[IndexRookOnOpenFile]; }
+	//inline const TaperedScore& GetRookOnSemiOpenFileEval() const { return Weights[IndexRookOnSemiOpenFile]; }
 	inline const TaperedScore& GetKnightOutpostEval() const { return Weights[IndexKnightOutpost]; }
 	inline const TaperedScore& GetTempoBonus() const { return Weights[IndexTempoBonus]; }
 	inline const TaperedScore& GetPawnThreat(const uint8_t attackedPieceType) const { return Weights[IndexPawnThreats(attackedPieceType)]; }
@@ -69,6 +71,8 @@ struct EvaluationFeatures {
 	inline const TaperedScore& GetKingThreat(const uint8_t attackedPieceType) const { return Weights[IndexKingThreats(attackedPieceType)]; }
 	inline const TaperedScore& GetPawnSupportingPawn(const uint8_t rank) const { return Weights[IndexPawnSupportingPawn(rank)]; }
 	inline const TaperedScore& GetPawnPhalanx(const uint8_t rank) const { return Weights[IndexPawnPhalanx(rank)]; }
+	inline const TaperedScore& GetRookOnOpenFileBonus(const uint8_t sq) const { return Weights[IndexRookOnOpenFile(sq)]; }
+	inline const TaperedScore& GetRookOnSemiOpenFileBonus(const uint8_t sq) const { return Weights[IndexRookOnSemiOpenFile(sq)]; }
 };
 
 
@@ -78,7 +82,7 @@ struct EvaluationFeatures {
 constexpr EvaluationFeatures Weights = {
 
 	// 1. Material values (pawn, knight, bishop, rook, queen, king)
-	S(80, 93), S(356, 355), S(368, 380), S(480, 682), S(1107, 1245), S(0, 0),
+	S(80, 93), S(356, 355), S(368, 380), S(479, 684), S(1107, 1245), S(0, 0),
 
 	// 2. Piece-square tables
 	// Be careful, counter-intuitively the 1st element corresponds to white's bottom-left corner
@@ -93,8 +97,8 @@ constexpr EvaluationFeatures Weights = {
 	S(-8, -17), S(20, -6), S(-4, -5), S(-10, -5), S(-3, -7), S(-10, 6), S(12, -16), S(12, -42), S(8, -13), S(7, -15), S(18, -20), S(-1, 0), S(11, -4), S(20, -11), S(27, -7), S(13, -26), S(-12, -7), S(13, 1), S(9, 5), S(10, 8), S(14, 14), S(12, 6), S(13, -4), S(10, -16), S(-12, -8), S(-13, 5), S(4, 10), S(28, 7), S(27, 4), S(4, 6), S(-4, 3), S(0, -20), S(-21, 2), S(-4, 6), S(8, 4), S(35, 14), S(27, 4), S(18, 7), S(-4, 4), S(-10, -5), S(-8, 3), S(14, -5), S(10, 5), S(21, -12), S(17, -6), S(59, -3), S(37, -8), S(23, -4), S(-26, -15), S(-4, -9), S(-14, -4), S(-17, -4), S(-4, -18), S(-7, -10), S(0, -15), S(-21, -17), S(-24, -2), S(-54, 6), S(-29, -10), S(-78, 3), S(-74, -3), S(-74, -8), S(-44, -8), S(-59, -16),
 
 	// 2.4 Rook PSQT
-	S(-18, 13), S(-13, 7), S(-8, 14), S(7, 0), S(10, -3), S(7, 3), S(12, -8), S(-17, -3), S(-33, 3), S(-26, 7), S(-15, 7), S(-11, 1), S(-1, -8), S(4, -12), S(15, -22), S(-20, -10), S(-37, 13), S(-31, 12), S(-25, 11), S(-17, 6), S(-8, 0), S(-7, -6), S(25, -19), S(5, -19), S(-32, 22), S(-30, 20), S(-21, 19), S(-15, 14), S(-10, 8), S(-22, 9), S(6, 1), S(-9, 0), S(-17, 24), S(1, 16), S(-8, 27), S(2, 16), S(7, 3), S(16, -2), S(24, 4), S(18, -2), S(-18, 22), S(18, 17), S(11, 15), S(8, 12), S(39, 0), S(49, -4), S(80, -6), S(50, -11), S(-15, 22), S(-9, 31), S(0, 34), S(19, 22), S(5, 19), S(32, 15), S(32, 12), S(32, 10), S(-16, 25), S(4, 23), S(-3, 33), S(-13, 32), S(-7, 26), S(6, 22), S(36, 16), S(36, 16),
-
+	S(-18, 13), S(-12, 6), S(-5, 6), S(7, 0), S(10, -5), S(7, 3), S(-3, -14), S(-18, -10), S(-33, 3), S(-27, 14), S(-15, 5), S(-11, 2), S(-5, -8), S(3, -10), S(15, -17), S(-27, -18), S(-36, 13), S(-21, 18), S(-22, 12), S(-14, 7), S(-12, 1), S(-1, -5), S(29, -22), S(5, -27), S(-36, 22), S(-12, 30), S(-11, 20), S(-8, 14), S(-7, 6), S(-9, 9), S(11, 1), S(-12, -6), S(-19, 23), S(3, 17), S(-6, 30), S(2, 18), S(1, 3), S(19, 1), S(22, 6), S(12, -8), S(-25, 20), S(21, 22), S(13, 19), S(7, 13), S(40, -5), S(50, -4), S(94, -7), S(49, -12), S(-18, 18), S(-3, 33), S(12, 35), S(18, 23), S(5, 20), S(58, 14), S(44, 12), S(37, 1), S(-42, 21), S(4, 22), S(-5, 37), S(-19, 34), S(9, 34), S(14, 25), S(47, 20), S(35, 17),
+	
 	// 2.5 Queen PSQT
 	S(-14, -19), S(-7, -16), S(0, -16), S(2, 6), S(4, -9), S(-7, -19), S(-1, -22), S(-10, -24), S(-9, -19), S(-4, -24), S(2, -16), S(7, -2), S(6, 3), S(14, -23), S(12, -35), S(30, -72), S(-16, -9), S(-5, 4), S(-5, 15), S(-10, 18), S(-2, 27), S(4, 21), S(12, 12), S(3, 12), S(-12, 3), S(-12, 13), S(-9, 17), S(-4, 36), S(-6, 35), S(-5, 38), S(6, 23), S(4, 39), S(-20, 22), S(-8, 15), S(-11, 22), S(-14, 39), S(1, 43), S(5, 50), S(16, 49), S(13, 31), S(-5, 4), S(-10, 13), S(-8, 40), S(-3, 48), S(14, 50), S(60, 43), S(72, 4), S(51, 36), S(-15, 4), S(-30, 16), S(-19, 34), S(-24, 54), S(-7, 58), S(13, 42), S(-5, 29), S(49, 23), S(-42, 17), S(-19, 10), S(0, 33), S(-14, 53), S(11, 37), S(31, 25), S(49, -13), S(-4, 18),
 
@@ -111,8 +115,7 @@ constexpr EvaluationFeatures Weights = {
 	S(-27, -46), S(-15, -20), S(-3, -6), S(4, 8), S(12, 16), S(16, 28), S(20, 32), S(23, 35), S(22, 41), S(26, 36), S(32, 31), S(41, 29), S(39, 42), S(42, 24),
 
 	// 3.3 Rook mobility (0-14)
-	S(-21, -22), S(-8, -12), S(-4, -7), S(0, 0), S(0, 8), S(7, 12), S(9, 17), S(13, 21), S(18, 25), S(22, 28), S(25, 29), S(24, 34), S(32, 34), S(43, 27), S(41, 29),
-
+	S(-20, -25), S(-8, -10), S(-4, -6), S(0, 4), S(0, 9), S(7, 12), S(9, 18), S(13, 21), S(17, 24), S(22, 28), S(25, 29), S(24, 34), S(32, 34), S(43, 29), S(45, 30),
 
 	// 3.4 Queen mobility (0-27)
 	S(-6, -97), S(-5, -123), S(-13, -94), S(-10, -69), S(-8, -55), S(-5, -42), S(-1, -26), S(1, -16), S(2, 0), S(6, -1), S(7, 13), S(10, 18), S(11, 25), S(12, 29), S(11, 38), S(14, 46), S(11, 60), S(9, 69), S(18, 69), S(36, 62), S(23, 81), S(72, 58), S(61, 70), S(72, 63), S(128, 70), S(100, 49), S(98, 71), S(92, 60),
@@ -147,7 +150,7 @@ constexpr EvaluationFeatures Weights = {
 	// 6.1 Bishop pairs
 	S(23, 73),
 
-	// 6.2 Rook on open and semi-open file
+	// 6.2 Rook on open and semi-open file -- unused
 	S(29, 12), S(13, 9),
 
 	// 6.3 Knight outposts
@@ -183,6 +186,12 @@ constexpr EvaluationFeatures Weights = {
 
 	// 7.3 Pawn phalanx (by rank)
 	S(0, 0), S(7, -4), S(13, 7), S(25, 18), S(58, 54), S(82, 82), S(82, 82), S(0, 0),
+
+	// 7.4 Rook open file bonus PSQT
+	S(30, 8), S(24, 26), S(20, 32), S(19, 20), S(31, 16), S(43, 4), S(81, 18), S(93, 24), S(40, 5), S(23, 6), S(31, 16), S(24, 16), S(36, 18), S(34, 14), S(38, 9), S(77, 11), S(29, 9), S(11, 7), S(21, 10), S(13, 18), S(33, 17), S(31, 8), S(31, 14), S(71, 14), S(36, 1), S(0, 0), S(5, 12), S(12, 12), S(21, 15), S(24, 8), S(47, -6), S(85, 7), S(27, 4), S(21, 2), S(28, -1), S(21, 8), S(29, 10), S(24, -2), S(47, -8), S(71, 6), S(30, 4), S(9, -5), S(19, 3), S(25, 10), S(25, 13), S(14, 11), S(27, -2), S(42, 5), S(36, 5), S(17, 1), S(17, 2), S(37, 0), S(33, 8), S(-6, 6), S(8, 3), S(35, 8), S(65, 7), S(16, 10), S(9, 10), S(13, 12), S(1, 0), S(21, 4), S(-9, 4), S(35, -4),
+	
+	// 7.5 Rook semi-open file bonus PSQT
+	S(15, 7), S(15, 1), S(16, 5), S(17, 2), S(15, 3), S(17, -7), S(51, -5), S(35, -1), S(21, -3), S(22, -18), S(18, -3), S(33, -21), S(23, -10), S(15, 1), S(27, -16), S(37, -9), S(17, 6), S(6, -13), S(17, -6), S(22, -16), S(17, -8), S(4, -2), S(8, -4), S(4, 17), S(16, 19), S(-14, -9), S(9, -5), S(14, 1), S(17, -1), S(-7, 6), S(11, 3), S(13, 10), S(5, 49), S(3, 28), S(9, 17), S(29, 16), S(31, -1), S(13, 9), S(17, 10), S(23, 33), S(30, 65), S(28, 31), S(20, 27), S(45, 4), S(39, 22), S(38, -7), S(21, 10), S(-11, 44), S(45, 67), S(55, 19), S(30, 24), S(24, 31), S(0, 12), S(20, 9), S(21, 8), S(57, 39), S(47, 65), S(33, 36), S(-15, 27), S(26, 19), S(-37, 21), S(-6, 1), S(6, 1), S(-43, 35),
 };
 
 inline int LinearTaper(const int earlyValue, const int lateValue, const float phase) {
