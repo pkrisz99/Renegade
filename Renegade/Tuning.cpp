@@ -149,16 +149,15 @@ void Tuning::Tune(const double K) {
 	//weightsForTuning.push_back({ TempWeights.IndexBishopPair, defaultStep, defaultStep, true, true });
 	
 	// Pawn values
-	/*
 	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexPSQT(PieceType::Pawn, i), defaultStep, defaultStep, true, true });
-	for (int i = 0; i <= 7; i++) weightsForTuning.push_back({ TempWeights.IndexPassedPawn(i), defaultStep, defaultStep, true, true });
+	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexPassedPawn(i), defaultStep, defaultStep, true, true });
 	for (int i = 0; i <= 7; i++) weightsForTuning.push_back({ TempWeights.IndexPawnPhalanx(i), defaultStep, defaultStep, true, true });
 	for (int i = 0; i <= 7; i++) weightsForTuning.push_back({ TempWeights.IndexPawnSupportingPawn(i), defaultStep, defaultStep, true, true });
 	for (int i = 0; i <= 7; i++) weightsForTuning.push_back({ TempWeights.IndexBlockedPasser(i), defaultStep, defaultStep, true, true });
 	for (int i = 0; i <= 7; i++) weightsForTuning.push_back({ TempWeights.IndexIsolatedPawn(i), defaultStep, defaultStep, true, true });
 	weightsForTuning.push_back({ TempWeights.IndexDoubledPawns, defaultStep, defaultStep, true, true });
 	weightsForTuning.push_back({ TempWeights.IndexTripledPawns, defaultStep, defaultStep, true, true });
-	weightsForTuning.push_back({ TempWeights.IndexPieceMaterial(PieceType::Pawn), defaultStep, defaultStep, true, true }); */
+	weightsForTuning.push_back({ TempWeights.IndexPieceMaterial(PieceType::Pawn), defaultStep, defaultStep, true, true });
 
 	// Knight values
 	/*for (int i = 0; i <= 63; i++) weightsForTuning.push_back({TempWeights.IndexPSQT(PieceType::Knight, i), defaultStep, defaultStep, true, true});
@@ -173,11 +172,11 @@ void Tuning::Tune(const double K) {
 	weightsForTuning.push_back({ TempWeights.IndexBishopPair, defaultStep, defaultStep, true, true });*/
 
 	// Rook values
-	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexPSQT(PieceType::Rook, i), defaultStep, defaultStep, true, true });
+	/*for (int i = 0; i <= 63; i++) weightsForTuning.push_back({TempWeights.IndexPSQT(PieceType::Rook, i), defaultStep, defaultStep, true, true});
 	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexRookOnOpenFile(i), defaultStep, defaultStep, true, true });
 	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexRookOnSemiOpenFile(i), defaultStep, defaultStep, true, true });
 	for (int i = 0; i <= 14; i++) weightsForTuning.push_back({ TempWeights.IndexRookMobility(i), defaultStep, defaultStep, true, true });
-	weightsForTuning.push_back({ TempWeights.IndexPieceMaterial(PieceType::Rook), defaultStep, defaultStep, true, true });
+	weightsForTuning.push_back({ TempWeights.IndexPieceMaterial(PieceType::Rook), defaultStep, defaultStep, true, true });*/
 
 	// Queen values
 	/*for (int i = 0; i <= 63; i++) weightsForTuning.push_back({TempWeights.IndexPSQT(PieceType::Queen, i), defaultStep, defaultStep, true, true});

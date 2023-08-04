@@ -36,7 +36,7 @@ public:
 	const bool early = true;
 	const bool late = false;
 	
-	const int ThreadCount = 6;
+	const int ThreadCount = 10;
 
 };
 

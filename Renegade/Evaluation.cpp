@@ -60,7 +60,7 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			}
 			// Passed pawn evaluation
 			if (((WhitePassedPawnMask[sq] & board.BlackPawnBits) == 0) && ((WhitePassedPawnFilter[sq] & board.WhitePawnBits) == 0)) {
-				taperedScore += weights.GetPassedPawnEval(rank);
+				taperedScore += weights.GetPassedPawnEval(sq);
 				if (SquareBits[sq + 8] & blackPieces) taperedScore += weights.GetBlockedPasserEval(rank);
 			}
 			// Threats
@@ -88,7 +88,7 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			}
 			// Passed pawn evaluation
 			if (((BlackPassedPawnMask[sq] & board.WhitePawnBits) == 0) && ((BlackPassedPawnFilter[sq] & board.BlackPawnBits) == 0)) {
-				taperedScore -= weights.GetPassedPawnEval(7 - rank);
+				taperedScore -= weights.GetPassedPawnEval(Mirror[sq]);
 				if (SquareBits[sq - 8] & whitePieces) taperedScore -= weights.GetBlockedPasserEval(7 - rank);
 			}
 			// Threats
