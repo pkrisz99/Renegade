@@ -438,6 +438,9 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				//const bool badCheck = givingCheck && !StaticExchangeEval(board, m, 0);
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 				if (givingCheck) reduction /= 2;
+				else {
+					if (!pvNode) reduction += 1;
+				}
 			}
 
 			// Principal variation search
