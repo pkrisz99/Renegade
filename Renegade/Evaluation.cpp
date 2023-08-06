@@ -271,6 +271,15 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 		case Piece::WhiteKing:
 			attacks = KingMoveBits[sq];
 			mobility = attacks & ~whitePieces;
+			// King on open or semi-open file
+			if ((board.WhitePawnBits & Files[file]) == 0) {
+				if ((board.BlackPawnBits & Files[file]) == 0) { // open file
+					taperedScore += weights.GetKingOnOpenFileEval(sq);
+				}
+				else { // semi-open file
+					taperedScore += weights.GetKingOnSemiOpenFileEval(sq);
+				}
+			}
 			// Threats
 			taperedScore += weights.GetKingThreat(PieceType::Pawn) * Popcount(mobility & board.BlackPawnBits);
 			taperedScore += weights.GetKingThreat(PieceType::Knight) * Popcount(mobility & board.BlackKnightBits);
@@ -281,6 +290,16 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 		case Piece::BlackKing:
 			attacks = KingMoveBits[sq];
 			mobility = attacks & ~blackPieces;
+			// King on open or semi-open file
+			if ((board.BlackPawnBits & Files[file]) == 0) {
+				if ((board.WhitePawnBits & Files[file]) == 0) { // open file
+					taperedScore -= weights.GetKingOnOpenFileEval(Mirror[sq]);
+				}
+				else { // semi-open file
+					taperedScore -= weights.GetKingOnSemiOpenFileEval(Mirror[sq]);
+				}
+			}
+			// Threats
 			taperedScore -= weights.GetKingThreat(PieceType::Pawn) * Popcount(mobility & board.WhitePawnBits);
 			taperedScore -= weights.GetKingThreat(PieceType::Knight) * Popcount(mobility & board.WhiteKnightBits);
 			taperedScore -= weights.GetKingThreat(PieceType::Bishop) * Popcount(mobility & board.WhiteBishopBits);

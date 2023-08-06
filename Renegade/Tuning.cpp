@@ -149,6 +149,7 @@ void Tuning::Tune(const double K) {
 	//weightsForTuning.push_back({ TempWeights.IndexBishopPair, defaultStep, defaultStep, true, true });
 	
 	// Pawn values
+	/*
 	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexPSQT(PieceType::Pawn, i), defaultStep, defaultStep, true, true });
 	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexPassedPawn(i), defaultStep, defaultStep, true, true });
 	for (int i = 0; i <= 7; i++) weightsForTuning.push_back({ TempWeights.IndexPawnPhalanx(i), defaultStep, defaultStep, true, true });
@@ -157,7 +158,7 @@ void Tuning::Tune(const double K) {
 	for (int i = 0; i <= 7; i++) weightsForTuning.push_back({ TempWeights.IndexIsolatedPawn(i), defaultStep, defaultStep, true, true });
 	weightsForTuning.push_back({ TempWeights.IndexDoubledPawns, defaultStep, defaultStep, true, true });
 	weightsForTuning.push_back({ TempWeights.IndexTripledPawns, defaultStep, defaultStep, true, true });
-	weightsForTuning.push_back({ TempWeights.IndexPieceMaterial(PieceType::Pawn), defaultStep, defaultStep, true, true });
+	weightsForTuning.push_back({ TempWeights.IndexPieceMaterial(PieceType::Pawn), defaultStep, defaultStep, true, true });*/
 
 	// Knight values
 	/*for (int i = 0; i <= 63; i++) weightsForTuning.push_back({TempWeights.IndexPSQT(PieceType::Knight, i), defaultStep, defaultStep, true, true});
@@ -184,7 +185,9 @@ void Tuning::Tune(const double K) {
 	weightsForTuning.push_back({ TempWeights.IndexPieceMaterial(PieceType::Queen), defaultStep, defaultStep, true, true });*/
 
 	// King values
-	//for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexPSQT(PieceType::King, i), defaultStep, defaultStep, true, true });
+	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexPSQT(PieceType::King, i), defaultStep, defaultStep, true, true });
+	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexKingOnOpenFile(i), defaultStep, defaultStep, true, true });
+	for (int i = 0; i <= 63; i++) weightsForTuning.push_back({ TempWeights.IndexKingOnSemiOpenFile(i), defaultStep, defaultStep, true, true });
 
 	// Threats
 	/*for (int i = 1; i <= 5; i++) weightsForTuning.push_back({TempWeights.IndexPawnThreats(i), defaultStep, defaultStep, true, true});
@@ -203,6 +206,16 @@ void Tuning::Tune(const double K) {
 	//weightsForTuning.push_back({ TempWeights.IndexTripledPawns, defaultStep, defaultStep, true, true });
 
 	// Main optimizer loop (to do: use an efficient e.g. adam optimizer)
+
+	cout << "\n\nInitial weights:" << endl;
+	int j = 0;
+	for (const ParamSettings& p : weightsForTuning) {
+		j += 1;
+		cout << TempWeights.Weights[p.id] << ", ";
+		if ((j != 0) && (j % 64 == 0)) cout << "\n";
+	}
+	cout << '\n' << endl;
+
 	while (true) {
 		improvements = 0;
 		auto startTime = Clock::now();

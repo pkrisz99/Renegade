@@ -9,7 +9,7 @@ extern uint64_t GetQueenAttacks(const int square, const uint64_t occupancy);
 struct EvaluationFeatures {
 
 	// Weight size and its array
-	static constexpr int WeightSize = 694+64;
+	static constexpr int WeightSize = 886;
 	TaperedScore Weights[WeightSize];
 
 	// King safety constants
@@ -45,6 +45,8 @@ struct EvaluationFeatures {
 	constexpr int IndexRookOnOpenFile(const uint8_t sq) const { return 566 + sq; };
 	constexpr int IndexRookOnSemiOpenFile(const uint8_t sq) const { return 630 + sq; };
 	constexpr int IndexPassedPawn(const uint8_t sq) const { return 694 + sq; }
+	constexpr int IndexKingOnOpenFile(const uint8_t sq) const { return 758 + sq; }
+	constexpr int IndexKingOnSemiOpenFile(const uint8_t sq) const { return 822 + sq; }
 
 	// Shorthand for retrieving the evaluation
 	inline const TaperedScore& GetMaterial(const uint8_t pieceType) const { return Weights[IndexPieceMaterial(pieceType)]; }
@@ -74,6 +76,8 @@ struct EvaluationFeatures {
 	inline const TaperedScore& GetPawnPhalanx(const uint8_t rank) const { return Weights[IndexPawnPhalanx(rank)]; }
 	inline const TaperedScore& GetRookOnOpenFileBonus(const uint8_t sq) const { return Weights[IndexRookOnOpenFile(sq)]; }
 	inline const TaperedScore& GetRookOnSemiOpenFileBonus(const uint8_t sq) const { return Weights[IndexRookOnSemiOpenFile(sq)]; }
+	inline const TaperedScore& GetKingOnOpenFileEval(const uint8_t sq) const { return Weights[IndexKingOnOpenFile(sq)]; }
+	inline const TaperedScore& GetKingOnSemiOpenFileEval(const uint8_t sq) const { return Weights[IndexKingOnSemiOpenFile(sq)]; }
 };
 
 
@@ -104,8 +108,8 @@ constexpr EvaluationFeatures Weights = {
 	S(-14, -19), S(-7, -16), S(0, -16), S(2, 6), S(4, -9), S(-7, -19), S(-1, -22), S(-10, -24), S(-9, -19), S(-4, -24), S(2, -16), S(7, -2), S(6, 3), S(14, -23), S(12, -35), S(30, -72), S(-16, -9), S(-5, 4), S(-5, 15), S(-10, 18), S(-2, 27), S(4, 21), S(12, 12), S(3, 12), S(-12, 3), S(-12, 13), S(-9, 17), S(-4, 36), S(-6, 35), S(-5, 38), S(6, 23), S(4, 39), S(-20, 22), S(-8, 15), S(-11, 22), S(-14, 39), S(1, 43), S(5, 50), S(16, 49), S(13, 31), S(-5, 4), S(-10, 13), S(-8, 40), S(-3, 48), S(14, 50), S(60, 43), S(72, 4), S(51, 36), S(-15, 4), S(-30, 16), S(-19, 34), S(-24, 54), S(-7, 58), S(13, 42), S(-5, 29), S(49, 23), S(-42, 17), S(-19, 10), S(0, 33), S(-14, 53), S(11, 37), S(31, 25), S(49, -13), S(-4, 18),
 
 	// 2.6 King PSQT
-	S(43, -94), S(75, -70), S(42, -45), S(-60, -24), S(-2, -41), S(-35, -24), S(44, -59), S(43, -94), S(61, -57), S(18, -23), S(-2, -7), S(-35, 4), S(-39, 9), S(-26, 1), S(24, -21), S(28, -42), S(-30, -36), S(7, -11), S(-41, 14), S(-57, 30), S(-51, 31), S(-57, 24), S(-22, 0), S(-63, -12), S(-43, -34), S(-40, 2), S(-55, 31), S(-74, 49), S(-79, 50), S(-42, 34), S(-48, 13), S(-76, -10), S(-33, -25), S(-20, 9), S(-42, 37), S(-73, 52), S(-49, 49), S(-37, 43), S(-24, 24), S(-40, -6), S(-56, -18), S(14, 9), S(-42, 35), S(-26, 40), S(-15, 46), S(4, 41), S(12, 32), S(-11, -6), S(-57, -35), S(-1, 0), S(-38, 18), S(7, 18), S(-6, 26), S(11, 35), S(20, 22), S(30, -11), S(-31, -104), S(-17, -60), S(-9, -36), S(-63, -6), S(-32, -19), S(16, -23), S(12, -16), S(-9, -102),
-
+	S(38, -99), S(75, -72), S(43, -44), S(-53, -23), S(3, -53), S(-31, -28), S(43, -64), S(44, -108), S(54, -52), S(23, -18), S(5, -7), S(-31, 9), S(-38, 14), S(-17, -1), S(26, -25), S(27, -47), S(-44, -27), S(6, -12), S(-40, 23), S(-56, 38), S(-48, 41), S(-60, 23), S(-29, -2), S(-70, -17), S(-57, -18), S(-39, 8), S(-59, 39), S(-77, 61), S(-81, 64), S(-43, 34), S(-74, 18), S(-148, 4), S(-65, -10), S(-24, 24), S(-30, 57), S(-79, 74), S(-55, 57), S(-52, 45), S(-44, 26), S(-128, 11), S(-98, -2), S(49, 24), S(-1, 66), S(9, 66), S(4, 55), S(27, 45), S(12, 33), S(-31, -4), S(-50, -9), S(44, 31), S(18, 56), S(32, 41), S(12, 33), S(12, 38), S(34, 31), S(34, -9), S(11, -98), S(36, -10), S(67, -5), S(-60, 13), S(-38, -13), S(29, -17), S(22, -3), S(79, -96),
+	
 	// 3. Piece mobility
 	// Score tables depending on the pseudolegal moves available
 
@@ -197,6 +201,13 @@ constexpr EvaluationFeatures Weights = {
 	// 7.6 Passed pawn bonus PSQT
 	S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(-9, 8), S(-3, 12), S(-15, 13), S(-13, 11), S(4, -7), S(2, 5), S(12, 12), S(5, 8), S(-3, 14), S(-16, 24), S(-21, 22), S(-19, 15), S(-18, 16), S(-12, 17), S(-19, 41), S(17, 11), S(6, 55), S(1, 48), S(-11, 39), S(-5, 33), S(-17, 39), S(-4, 42), S(-14, 60), S(-3, 51), S(29, 93), S(24, 93), S(31, 67), S(21, 65), S(3, 63), S(15, 72), S(-12, 93), S(-10, 94), S(53, 162), S(79, 152), S(47, 139), S(27, 117), S(26, 115), S(16, 134), S(-6, 136), S(-6, 150), S(57, 89), S(27, 88), S(43, 87), S(36, 82), S(45, 79), S(35, 87), S(49, 85), S(48, 82), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0),
 
+	// 7.7 King on open file delta PSQT
+
+	S(-120, -11), S(-120, -14), S(-102, -4), S(-76, 11), S(-71, 28), S(-97, 10), S(-110, 25), S(-102, 28), S(-120, -25), S(-120, -4), S(-89, 2), S(-88, 4), S(-102, 10), S(-102, 12), S(-112, 17), S(-46, -2), S(-68, -25), S(-46, 0), S(-64, -6), S(-71, 1), S(-96, 1), S(-49, 2), S(-77, 12), S(-46, -3), S(-40, -32), S(-34, -13), S(-77, -4), S(-101, 1), S(-95, -1), S(-67, 5), S(-41, 2), S(14, -5), S(-24, -26), S(-35, -20), S(-91, -18), S(-93, -14), S(-42, -3), S(-47, 2), S(-30, 0), S(-19, -4), S(11, -32), S(-47, -31), S(-57, -45), S(-96, -25), S(-40, -14), S(-43, -12), S(-41, -8), S(-18, -6), S(-46, -58), S(-54, -54), S(-104, -49), S(-24, -35), S(-43, -10), S(-43, -3), S(-34, -24), S(27, -19), S(-23, -35), S(-35, -86), S(-44, -53), S(-53, -28), S(-44, -6), S(-35, -9), S(-41, -46), S(56, -61),
+	
+	// 7.8 King on semi-open file delta PSQT
+
+	S(-54, 116), S(-102, 74), S(-49, 28), S(-20, 25), S(-16, 19), S(-34, 18), S(-33, 28), S(-49, 67), S(-59, 66), S(-53, 28), S(-40, 26), S(-25, 11), S(-22, 0), S(-28, 10), S(-34, 20), S(-29, 27), S(-44, 49), S(-10, 13), S(-31, 2), S(-21, -9), S(-20, -18), S(-33, 11), S(-5, 9), S(-12, 29), S(40, -2), S(-44, 2), S(-35, 8), S(10, -23), S(-38, -18), S(-47, 1), S(-38, 3), S(-24, 8), S(27, -12), S(-46, -20), S(-48, -18), S(-5, -42), S(-28, -28), S(-61, -4), S(-41, -14), S(-55, -5), S(-56, -4), S(-17, -29), S(-104, -42), S(-9, -59), S(-5, -58), S(-50, -34), S(-12, -25), S(-21, -12), S(-6, -15), S(42, -39), S(-74, -64), S(-55, -34), S(-25, -39), S(-26, -29), S(-18, -26), S(-17, -54), S(12, 55), S(-14, 28), S(56, -83), S(-69, 19), S(-76, -68), S(-43, -31), S(-7, 42), S(-15, 17),
 };
 
 inline int LinearTaper(const int earlyValue, const int lateValue, const float phase) {
