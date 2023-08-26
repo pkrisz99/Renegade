@@ -94,8 +94,8 @@ void Heuristics::SetPvLine(const std::vector<Move> pv) {
 }
 
 void Heuristics::ResetPvTable() {
-	for (int i = 0; i < PvSize; i++) {
-		for (int j = 0; j < PvSize; j++) PvTable[i][j] = Move();
+	for (int i = 0; i < MaxDepth; i++) {
+		for (int j = 0; j < MaxDepth; j++) PvTable[i][j] = Move();
 		PvLength[i] = 0; // ?
 	}
 }
@@ -107,7 +107,7 @@ void Heuristics::ClearPvLine() {
 // Killer moves -----------------------------------------------------------------------------------
 
 void Heuristics::AddKillerMove(const Move& move, const int level) {
-	if (level >= 32) return;
+	if (level >= MaxDepth) return;
 	if (IsFirstKillerMove(move, level)) return;
 	if (IsSecondKillerMove(move, level)) {
 		KillerMoves[level][1] = KillerMoves[level][0];

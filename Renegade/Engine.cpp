@@ -108,7 +108,7 @@ void Engine::Start() {
 		}
 
 		// Debug commands
-		if (parts[0] == "debug") {
+		if ((parts[0] == "debug") && (parts.size() > 1)) {
 			if (parts[1] == "attackmap") DrawBoard(board, board.CalculateAttackedSquares(TurnToPieceColor(board.Turn)));
 			if (parts[1] == "enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
 			if (parts[1] == "halfmovecounter") cout << "Half move counter: " << board.HalfmoveClock << endl;
@@ -275,7 +275,7 @@ void Engine::Start() {
 					fen = parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " 0 1";
 				board = Board(fen);
 
-				if (parts[8] == "moves") {
+				if ((parts.size() > 8) && (parts[8] == "moves")) {
 					for (int i = 9; i < parts.size(); i++) {
 						bool r = board.PushUci(parts[i]);
 						if (!r) cout << "!!! Error: invalid pushuci move !!!" << endl;

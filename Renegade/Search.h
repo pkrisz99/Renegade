@@ -58,16 +58,15 @@ public:
 	SearchConstraints Constraints;
 	bool Aborting = false;
 	std::chrono::high_resolution_clock::time_point StartSearchTime;
-	bool FollowingPV;
 	uint16_t Age = 0;
 
 	// Reused variables / stack
 	std::vector<Move> MoveList;
-	std::array<std::vector<std::tuple<Move, int>>, 64> MoveOrder;
-	std::array<Board, 64> Boards;
-	std::array<Move, 64> MoveStack;
-	std::array<std::array<bool, 256>, 64> LegalAndQuiet;
-	std::array<int, 64> EvalStack;
+	std::array<std::vector<std::tuple<Move, int>>, MaxDepth> MoveOrder;
+	std::array<Board, MaxDepth> Boards;
+	std::array<Move, MaxDepth> MoveStack;
+	std::array<std::array<bool, 256>, MaxDepth> LegalAndQuiet;
+	std::array<int, MaxDepth> EvalStack;
 
 	std::array<std::array<int, 32>, 32> LMRTable;
 

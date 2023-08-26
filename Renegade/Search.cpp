@@ -167,7 +167,6 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 	Results e = Results();
 	int result = NoEval;
 	while (!finished) {
-		FollowingPV = true;
 		Heuristics.ResetPvTable();
 		Depth += 1;
 		Statistics.SelDepth = Depth;
@@ -194,7 +193,7 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 					beta = PositiveInfinity;
 				}
 
-				//if (!settings.UciOutput) cout << "[" << alpha << ".." << beta << "] ";
+				if (!settings.UciOutput) cout << "[" << alpha << ".." << beta << "] ";
 
 				result = SearchRecursive(board, searchDepth, 0, alpha, beta, true);
 
@@ -220,8 +219,8 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 		
 		// Reduce allocated time if found mate (impatience in action)
 		if (IsMateScore(result)) {
-			if (Constraints.SearchTimeMin != -1) Constraints.SearchTimeMin = static_cast<int>(Constraints.SearchTimeMin * 0.8);
-			if (Constraints.SearchTimeMax != -1) Constraints.SearchTimeMax = static_cast<int>(Constraints.SearchTimeMax * 0.8);
+			//if (Constraints.SearchTimeMin != -1) Constraints.SearchTimeMin = static_cast<int>(Constraints.SearchTimeMin * 0.8);
+			//if (Constraints.SearchTimeMax != -1) Constraints.SearchTimeMax = static_cast<int>(Constraints.SearchTimeMax * 0.8);
 		}
 
 		// Check search limits
@@ -229,7 +228,8 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 		elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
 		if ((elapsedMs >= Constraints.SearchTimeMin) && (Constraints.SearchTimeMin != -1)) finished = true;
 		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
-		if ((Depth >= 31)) finished = true;
+		if (Depth >= MaxDepth) finished = true;
+		if (std::abs(result) == MateEval) finished = true; // Don't search if position is checkmate
 		if (Aborting) {
 			e.stats = Statistics;
 			e.time = elapsedMs;
@@ -272,7 +272,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	Aborting = ShouldAbort();
 	if (Aborting) return NoEval;
 	Heuristics.InitPvLength(level);
-	if (level >= 63) return Evaluate(board, level, true);
+	if (level >= MaxDepth) return Evaluate(board, level, true);
 
 	const bool rootNode = (level == 0);
 	const bool pvNode = rootNode || (beta - alpha > 1);
@@ -290,7 +290,8 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	if (inCheck) depth += 1;
 
 	// Check for draws
-	if (board.IsDraw(rootNode)) return DrawEvaluation();
+	//if (rootNode && board.IsDraw(true)) return 0;
+	if (!rootNode && board.IsDraw(false)) return DrawEvaluation();
 
 	// Return result for terminal nodes
 	if (depth <= 0) {
@@ -379,12 +380,10 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	const Move previousMove = (level > 0) ? MoveStack[level - 1LL] : EmptyMove;
 	for (const Move& m : MoveList) {
 		const bool losingCapture = board.IsMoveQuiet(m) ? false : !StaticExchangeEval(board, m, 0);
-		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, FollowingPV, transpositionMove, 
+		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false, transpositionMove, 
 			previousMove, losingCapture);
-		if (FollowingPV && Heuristics.IsPvMove(m, level)) foundPvMove = true;
 		MoveOrder[level].push_back({ m, orderScore });
 	}
-	FollowingPV = foundPvMove;
 	std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
 		return get<1>(t1) > get<1>(t2);
 	});
@@ -441,6 +440,8 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				else {
 					if (!pvNode) reduction += 1;
 				}
+
+				reduction = std::min(reduction, depth - 1);
 			}
 
 			// Principal variation search
@@ -514,7 +515,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 	const int staticEval = Evaluate(board, level, true);
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
-	if (level >= 63) return staticEval;
+	if (level >= MaxDepth) return staticEval;
 
 	// Order noisy moves
 	const float phase = CalculateGamePhase(board);
@@ -833,7 +834,7 @@ void Search::PrintPretty(const Results& e, const EngineSettings& settings) {
 		if (i >= static_cast<int>(e.pv.size())) break;
 		pvOutput += e.pv.at(i).ToString() + " ";
 	}
-	pvOutput.pop_back();
+	if (pvOutput.length() != 0) pvOutput.pop_back();
 	if (e.pv.size() > 5) pvOutput += " (+" + std::to_string(e.pv.size() - 5) + ")";
 	if (e.pv.size() != 0) pvOutput = white + "[" + pvOutput + white + "]";
 

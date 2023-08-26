@@ -24,6 +24,8 @@ static const int NoEval = -666666666;
 static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
 static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
+static const int MaxDepth = 128;
+
 static inline bool IsMateScore(const int score) {
 	return (std::abs(score) > MateEval - 10000) && (std::abs(score) <= MateEval);
 }

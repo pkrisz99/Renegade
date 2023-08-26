@@ -30,7 +30,6 @@ struct TranspositionEntry {
 class Heuristics
 {
 public:
-	static const int PvSize = 64;
 
 	Heuristics();
 	int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& ttMove, 
@@ -68,8 +67,8 @@ public:
 	void GetTranspositionInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits, uint64_t& ttUsed);
 	void ClearTranspositionTable();
 
-	std::array<std::array<Move, PvSize + 1>, PvSize + 1> PvTable;
-	std::array<int, PvSize + 1> PvLength;
+	std::array<std::array<Move, MaxDepth + 1>, MaxDepth + 1> PvTable;
+	std::array<int, MaxDepth + 1> PvLength;
 
 
 private:
@@ -79,7 +78,7 @@ private:
 	uint64_t TranspositionEntryCount;
 	uint64_t TheoreticalTranspositionEntires;
 
-	std::array<std::array<Move, 2>, 32> KillerMoves;
+	std::array<std::array<Move, 2>, MaxDepth> KillerMoves;
 	std::vector<Move> PvMoves;
 	std::array<std::array<std::array<int, 64>, 64>, 2> HistoryTables;
 	std::array<std::array<Move, 64>, 64> CounterMoves;
