@@ -1,7 +1,6 @@
 # Makefile for compiling Renegade
 # (consider this experimental, despite other engines using a similar one)
 # I welcome reporting issues
-# also 'bench' output depends on the compiler -- not good.
 
 TARGET    := Renegade
 

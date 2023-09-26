@@ -9,15 +9,14 @@ Heuristics::Heuristics() {
 
 // Move ordering & clearing -----------------------------------------------------------------------
 
-int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& ttMove,
+int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const Move& ttMove,
 	const Move& previousMove, const bool losingCapture) {
 	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
 	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
 	
 	// PV and transposition moves
-	//if (IsPvMove(m, level) && onPv) return 900000; // ????
-	if ((m.from == ttMove.from) && (m.to == ttMove.to) && (m.flag == ttMove.flag)) return 800000;
+	if ((m.from == ttMove.from) && (m.to == ttMove.to) && (m.flag == ttMove.flag)) return 900000;
 
 	// Captures
 	if (!losingCapture) {

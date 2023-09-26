@@ -32,7 +32,7 @@ class Heuristics
 public:
 
 	Heuristics();
-	int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const bool onPv, const Move& ttMove, 
+	int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const Move& ttMove, 
 		const Move& previousMove, const bool losingCapture);
 	
 	// PV table

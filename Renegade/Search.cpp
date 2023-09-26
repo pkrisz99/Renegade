@@ -193,7 +193,7 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 					beta = PositiveInfinity;
 				}
 
-				if (!settings.UciOutput) cout << "[" << alpha << ".." << beta << "] ";
+				//if (!settings.UciOutput) cout << "[" << alpha << ".." << beta << "] ";
 
 				result = SearchRecursive(board, searchDepth, 0, alpha, beta, true);
 
@@ -219,8 +219,8 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 		
 		// Reduce allocated time if found mate (impatience in action)
 		if (IsMateScore(result)) {
-			//if (Constraints.SearchTimeMin != -1) Constraints.SearchTimeMin = static_cast<int>(Constraints.SearchTimeMin * 0.8);
-			//if (Constraints.SearchTimeMax != -1) Constraints.SearchTimeMax = static_cast<int>(Constraints.SearchTimeMax * 0.8);
+			if (Constraints.SearchTimeMin != -1) Constraints.SearchTimeMin = static_cast<int>(Constraints.SearchTimeMin * 0.9);
+			if (Constraints.SearchTimeMax != -1) Constraints.SearchTimeMax = static_cast<int>(Constraints.SearchTimeMax * 0.9);
 		}
 
 		// Check search limits
@@ -380,8 +380,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	const Move previousMove = (level > 0) ? MoveStack[level - 1LL] : EmptyMove;
 	for (const Move& m : MoveList) {
 		const bool losingCapture = board.IsMoveQuiet(m) ? false : !StaticExchangeEval(board, m, 0);
-		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false, transpositionMove, 
-			previousMove, losingCapture);
+		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, transpositionMove, previousMove, losingCapture);
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
@@ -469,7 +468,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				// Decrement history scores for all previously tried quiet moves
 				for (int i = 1; i < pseudoLegalCount; i++) {
 					if (LegalAndQuiet[level][i]) {
-						Move& previouslyTriedMove = get<0>(MoveOrder[level][i]);
+						const Move& previouslyTriedMove = get<0>(MoveOrder[level][i]);
 						Heuristics.DecrementHistory(board.Turn, previouslyTriedMove.from, previouslyTriedMove.to, depth);
 					}
 				}
@@ -521,7 +520,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
-		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, false, EmptyMove, EmptyMove, false);
+		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, EmptyMove, EmptyMove, false);
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
