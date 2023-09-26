@@ -53,8 +53,8 @@ int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level
 			orderScore += LinearTaper(Weights.GetPSQT(attackingPiece, m.to).early, Weights.GetPSQT(attackingPiece, m.to).late, phase);
 		}
 		else {
-			orderScore -= LinearTaper(Weights.GetPSQT(attackingPiece, Mirror[m.from]).early, Weights.GetPSQT(attackingPiece, Mirror[m.from]).late, phase);
-			orderScore += LinearTaper(Weights.GetPSQT(attackingPiece, Mirror[m.to]).early, Weights.GetPSQT(attackingPiece, Mirror[m.to]).late, phase);
+			orderScore -= LinearTaper(Weights.GetPSQT(attackingPiece, Mirror(m.from)).early, Weights.GetPSQT(attackingPiece, Mirror(m.from)).late, phase);
+			orderScore += LinearTaper(Weights.GetPSQT(attackingPiece, Mirror(m.to)).early, Weights.GetPSQT(attackingPiece, Mirror(m.to)).late, phase);
 		}
 		return orderScore;
 	}

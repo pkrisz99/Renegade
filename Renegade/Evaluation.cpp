@@ -40,7 +40,7 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 		}
 		else {
 			taperedScore -= weights.GetMaterial(pieceType);
-			taperedScore -= weights.GetPSQT(pieceType, Mirror[sq]);
+			taperedScore -= weights.GetPSQT(pieceType, Mirror(sq));
 		}
 
 		// Piece-specific evaluation
@@ -88,7 +88,7 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			}
 			// Passed pawn evaluation
 			if (((BlackPassedPawnMask[sq] & board.WhitePawnBits) == 0) && ((BlackPassedPawnFilter[sq] & board.BlackPawnBits) == 0)) {
-				taperedScore -= weights.GetPassedPawnEval(Mirror[sq]);
+				taperedScore -= weights.GetPassedPawnEval(Mirror(sq));
 				if (SquareBits[sq - 8] & whitePieces) taperedScore -= weights.GetBlockedPasserEval(7 - rank);
 			}
 			// Threats
@@ -221,10 +221,10 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			// Rook on open or semi-open file
 			if ((board.BlackPawnBits & Files[file]) == 0) {
 				if ((board.WhitePawnBits & Files[file]) == 0) { // open file
-					taperedScore -= weights.GetRookOnOpenFileBonus(Mirror[sq]);
+					taperedScore -= weights.GetRookOnOpenFileBonus(Mirror(sq));
 				}
 				else { // semi-open file
-					taperedScore -= weights.GetRookOnSemiOpenFileBonus(Mirror[sq]);
+					taperedScore -= weights.GetRookOnSemiOpenFileBonus(Mirror(sq));
 				}
 			}
 			// Threats
@@ -293,10 +293,10 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 			// King on open or semi-open file
 			if ((board.BlackPawnBits & Files[file]) == 0) {
 				if ((board.WhitePawnBits & Files[file]) == 0) { // open file
-					taperedScore -= weights.GetKingOnOpenFileEval(Mirror[sq]);
+					taperedScore -= weights.GetKingOnOpenFileEval(Mirror(sq));
 				}
 				else { // semi-open file
-					taperedScore -= weights.GetKingOnSemiOpenFileEval(Mirror[sq]);
+					taperedScore -= weights.GetKingOnSemiOpenFileEval(Mirror(sq));
 				}
 			}
 			// Threats
