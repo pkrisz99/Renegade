@@ -351,7 +351,6 @@ void Engine::Start() {
 				Board b = Board(board);
 				Search.Heuristics.ClearKillerAndCounterMoves();
 				Search.Heuristics.ClearHistoryTable();
-				Search.Heuristics.ClearPvLine();
 				Search.Heuristics.ResetPvTable();
 				b.Push(m);
 				Results r = Search.SearchMoves(b, params, settings, false);
@@ -437,7 +436,6 @@ void Engine::HandleBench() {
 	for (const std::string& fen : BenchmarkFENs) {
 		Search.Heuristics.ClearKillerAndCounterMoves();
 		Search.Heuristics.ClearHistoryTable();
-		Search.Heuristics.ClearPvLine();
 		Search.Heuristics.ResetPvTable();
 		Board b = Board(fen);
 		Results r = Search.SearchMoves(b, params, settings, false);
@@ -483,7 +481,6 @@ void Engine::ResetState() {
 	Search.Heuristics.ClearTranspositionTable();
 	Search.Heuristics.ClearKillerAndCounterMoves();
 	Search.Heuristics.ResetPvTable();
-	Search.Heuristics.ClearPvLine();
 	Search.Heuristics.ClearHistoryTable();
 	Search.Age = 0;
 }

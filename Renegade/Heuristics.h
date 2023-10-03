@@ -38,10 +38,7 @@ public:
 	// PV table
 	void UpdatePvTable(const Move& move, const int level);
 	void InitPvLength(const int level);
-	void SetPvLine(const std::vector<Move> pv);
 	void GeneratePvLine(std::vector<Move>& list) const;
-	bool IsPvMove(const Move& move, const int level) const;
-	void ClearPvLine();
 	void ResetPvTable();
 
 	// Killer and countermoves
@@ -79,7 +76,6 @@ private:
 	uint64_t TheoreticalTranspositionEntires;
 
 	std::array<std::array<Move, 2>, MaxDepth> KillerMoves;
-	std::vector<Move> PvMoves;
 	std::array<std::array<std::array<int, 64>, 64>, 2> HistoryTables;
 	std::array<std::array<Move, 64>, 64> CounterMoves;
 

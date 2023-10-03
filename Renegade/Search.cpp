@@ -250,8 +250,6 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 		// Obtaining PV line
 		e.pv.clear();
 		Heuristics.GeneratePvLine(e.pv);
-
-		Heuristics.SetPvLine(e.pv);
 		if (display) PrintInfo(e, settings);
 	}
 	if (display) PrintBestmove(e.BestMove());
@@ -259,7 +257,6 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 	std::fill(std::begin(MoveStack), std::end(MoveStack), EmptyMove);
 	Heuristics.ClearKillerAndCounterMoves();
 	Heuristics.ResetPvTable();
-	Heuristics.ClearPvLine();
 	Heuristics.AgeHistory();
 	Aborting = true;
 	return e;
@@ -303,7 +300,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	TranspositionEntry entry;
 	int ttEval = NoEval;
 	const bool found = Heuristics.RetrieveTranspositionEntry(hash, entry, level);
-	Move transpositionMove;
+	Move transpositionMove = EmptyMove;
 	Statistics.TranspositionQueries += 1;
 	if (found) {
 		if ((entry.depth >= depth) && !pvNode) {
@@ -346,14 +343,14 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// Futility pruning (+37 elo)
 	const int futilityMargins[] = { 0, 90, 180, 270, 360, 450 };
 	bool futilityPrunable = false;
-	if ((depth <= 5) && !inCheck && !pvNode) {
+	if ((depth <= 5) && !inCheck && !pvNode /* && (abs(beta) < MateEval - 10000)*/) {
 		if ((staticEval + futilityMargins[depth] < alpha)) futilityPrunable = true;
 	}
 
 	// Reverse futility pruning (+128 elo)
 	const int rfpMarginDefault[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
-	if ((depth <= 7) && !inCheck && !pvNode) {
-		const int rfpMargin = improving ? (static_cast<int>(rfpMarginDefault[depth] * 0.5f)) : rfpMarginDefault[depth];
+	if ((depth <= 7) && !inCheck && !pvNode /* && (abs(beta) < MateEval - 10000)*/) {
+		const int rfpMargin = improving ? rfpMarginDefault[depth] / 2 : rfpMarginDefault[depth];
 		if (staticEval - rfpMargin > beta) return staticEval;
 	}
 
@@ -376,7 +373,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// Move ordering
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
-	bool foundPvMove = false;
 	const Move previousMove = (level > 0) ? MoveStack[level - 1LL] : EmptyMove;
 	for (const Move& m : MoveList) {
 		const bool losingCapture = board.IsMoveQuiet(m) ? false : !StaticExchangeEval(board, m, 0);

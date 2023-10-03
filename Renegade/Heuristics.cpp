@@ -2,7 +2,6 @@
 
 Heuristics::Heuristics() {
 	TranspositionEntryCount = 0;
-	PvMoves = std::vector<Move>();
 	SetHashSize(0);
 	ClearHistoryTable();
 }
@@ -16,7 +15,7 @@ int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
 	
 	// PV and transposition moves
-	if ((m.from == ttMove.from) && (m.to == ttMove.to) && (m.flag == ttMove.flag)) return 900000;
+	if (m == ttMove) return 900000;
 
 	// Captures
 	if (!losingCapture) {
@@ -74,12 +73,6 @@ void Heuristics::UpdatePvTable(const Move& move, const int level) {
 	PvLength[level] = PvLength[level + 1];
 }
 
-bool Heuristics::IsPvMove(const Move& move, const int level) const {
-	if (level >= static_cast<int>(PvMoves.size())) return false;
-	if (move == PvMoves[level]) return true;
-	return false;
-}
-
 void Heuristics::GeneratePvLine(std::vector<Move>& list) const {
 	for (int i = 0; i < PvLength[0]; i++) {
 		Move m = PvTable[0][i];
@@ -88,19 +81,11 @@ void Heuristics::GeneratePvLine(std::vector<Move>& list) const {
 	}
 }
 
-void Heuristics::SetPvLine(const std::vector<Move> pv) {
-	PvMoves = pv;
-}
-
 void Heuristics::ResetPvTable() {
 	for (int i = 0; i < MaxDepth; i++) {
 		for (int j = 0; j < MaxDepth; j++) PvTable[i][j] = Move();
 		PvLength[i] = 0; // ?
 	}
-}
-
-void Heuristics::ClearPvLine() {
-	PvMoves.clear();
 }
 
 // Killer moves -----------------------------------------------------------------------------------
