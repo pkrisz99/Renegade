@@ -306,12 +306,13 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		if ((entry.depth >= depth) && !pvNode) {
 			// The branch was already analysed to the same or greater depth, so we can return the result
 			int score = NoEval;
-			bool usable = true;
-			if (entry.scoreType == ScoreType::Exact) score = entry.score;
-			else if ((entry.scoreType == ScoreType::UpperBound) && (entry.score <= alpha)) score = alpha;
-			else if ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta)) score = beta;
-			else usable = false;
-			if (usable) return score;
+
+			if ((entry.scoreType == ScoreType::Exact)
+				|| ((entry.scoreType == ScoreType::UpperBound) && (entry.score <= alpha)) 
+				|| ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta)))
+				return entry.score;
+
+			transpositionMove = Move(entry.moveFrom, entry.moveTo, entry.moveFlag);
 			// ttEval = entry.score; // Elo difference: 2.8 +/- 4.7,
 		}
 		else {
@@ -501,6 +502,12 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 
 	// Update statistics
 	Statistics.AlphaBetaCalls += 1;
+
+	// Probe transposition table
+	const uint64_t hash = board.Hash();
+	TranspositionEntry entry;
+	int ttEval = NoEval;
+	const bool found = Heuristics.RetrieveTranspositionEntry(hash, entry, level);
 
 	// Generate noisy moves
 	MoveList.clear();
