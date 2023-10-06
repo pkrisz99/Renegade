@@ -491,6 +491,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 
 	// Update statistics
 	Statistics.AlphaBetaCalls += 1;
+	if (level > Statistics.SelDepth) Statistics.SelDepth = level;
 
 	// Generate noisy moves
 	MoveList.clear();
@@ -501,6 +502,16 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= MaxDepth) return staticEval;
+
+	// Probe the transposition table
+	const uint64_t hash = board.Hash();
+	TranspositionEntry entry;
+	const bool found = Heuristics.RetrieveTranspositionEntry(hash, entry, level);
+	Statistics.TranspositionQueries += 1;
+	if (found) {
+		if (entry.IsCutoffPermitted(0, alpha, beta)) return entry.score;
+		Statistics.TranspositionHits += 1;
+	}
 
 	// Order noisy moves
 	const float phase = CalculateGamePhase(board);
@@ -515,6 +526,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 
 	// Search recursively
 	int bestScore = staticEval;
+	int scoreType = ScoreType::UpperBound;
 	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
 		if (!StaticExchangeEval(board, m, 0)) continue; // Quiescence search SEE pruning (+39 elo)
@@ -527,16 +539,22 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 		const int score = -SearchQuiescence(b, level + 1, -beta, -alpha);
 		if (score > bestScore) {
 			bestScore = score;
-			if (bestScore >= beta) return bestScore;
-			if (bestScore > alpha) alpha = bestScore;
+			if (bestScore >= beta) {
+				scoreType = ScoreType::LowerBound;
+				break;
+			}
+			if (bestScore > alpha) {
+				alpha = bestScore;
+				scoreType = ScoreType::Exact;
+			}
 		}
 	}
+	Heuristics.AddTranspositionEntry(hash, Age, 0, bestScore, scoreType, EmptyMove, level);
 	return bestScore;
 }
 
 int Search::Evaluate(const Board &board, const int level, const bool checkDraws) {
 	Statistics.Evaluations += 1;
-	if (level > Statistics.SelDepth) Statistics.SelDepth = level;
 	if (checkDraws) {
 		if (board.IsDraw(level == 0)) return DrawEvaluation();
 	}
