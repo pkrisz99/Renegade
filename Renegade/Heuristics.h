@@ -25,6 +25,8 @@ struct TranspositionEntry {
 	uint8_t depth = 0;
 	uint8_t scoreType = 0;
 	uint8_t moveFrom = 0, moveTo = 0, moveFlag = 0;
+
+	bool IsCutoffPermitted(const int searchDepth, const int alpha, const int beta) const;
 };
 
 class Heuristics

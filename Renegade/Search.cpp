@@ -303,14 +303,10 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	Move transpositionMove = EmptyMove;
 	Statistics.TranspositionQueries += 1;
 	if (found) {
-		if ((entry.depth >= depth) && !pvNode) {
-			// The branch was already analysed to the same or greater depth, so we can return the result
-
-			if ((entry.scoreType == ScoreType::Exact)
-				|| ((entry.scoreType == ScoreType::UpperBound) && (entry.score <= alpha)) 
-				|| ((entry.scoreType == ScoreType::LowerBound) && (entry.score >= beta)))
-				return entry.score;
-			// ttEval = entry.score; // Elo difference: 2.8 +/- 4.7,
+		if (!pvNode) {
+			// The branch was already analysed to the same or greater depth, so we can return the result if it's possible
+			if (entry.IsCutoffPermitted(depth, alpha, beta)) return entry.score;
+			if (entry.depth < depth) ttEval = entry.score;
 		}
 		else {
 			ttEval = entry.score;
