@@ -295,23 +295,20 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		return SearchQuiescence(board, level, alpha, beta);
 	}
 
-	// Probe transposition table
+	// Probe the transposition table
 	const uint64_t hash = board.Hash();
 	TranspositionEntry entry;
 	int ttEval = NoEval;
 	const bool found = Heuristics.RetrieveTranspositionEntry(hash, entry, level);
-	Move transpositionMove = EmptyMove;
+	Move ttMove = EmptyMove;
 	Statistics.TranspositionQueries += 1;
 	if (found) {
 		if (!pvNode) {
-			// The branch was already analysed to the same or greater depth, so we can return the result if it's possible
+			// The branch was already analysed to the same or greater depth, so we can return the result if the score is alright
 			if (entry.IsCutoffPermitted(depth, alpha, beta)) return entry.score;
-			if (entry.depth < depth) ttEval = entry.score;
 		}
-		else {
-			ttEval = entry.score;
-		}
-		transpositionMove = Move(entry.moveFrom, entry.moveTo, entry.moveFlag);
+		if (pvNode || (entry.depth < depth)) ttEval = entry.score; // Do these conditions make sense? No.
+		ttMove = Move(entry.moveFrom, entry.moveTo, entry.moveFlag);
 		Statistics.TranspositionHits += 1;
 	}
 	
@@ -328,9 +325,9 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// ^ add nullmove condition? (!inCheck is cosmetic for now)
 
 	// Internal iterative deepening
-	if (pvNode && (depth > 3) && transpositionMove.IsEmpty()) {
+	if (pvNode && (depth > 3) && ttMove.IsEmpty()) {
 		SearchRecursive(board, depth - 2, level + 1, -beta, -alpha, true);
-		transpositionMove = Heuristics.PvTable[level + 1][level + 1];
+		ttMove = Heuristics.PvTable[level + 1][level + 1];
 	}
 
 	// Futility pruning (+37 elo)
@@ -369,7 +366,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	const Move previousMove = (level > 0) ? MoveStack[level - 1LL] : EmptyMove;
 	for (const Move& m : MoveList) {
 		const bool losingCapture = board.IsMoveQuiet(m) ? false : !StaticExchangeEval(board, m, 0);
-		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, transpositionMove, previousMove, losingCapture);
+		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, ttMove, previousMove, losingCapture);
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
