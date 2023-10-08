@@ -552,8 +552,8 @@ bool Board::IsMoveQuiet(const Move& move) const {
 	const uint8_t targetPiece = GetPieceAt(move.to);
 	if (targetPiece != Piece::None) return false;
 	if ((move.flag == MoveFlag::PromotionToQueen) || (move.flag == MoveFlag::PromotionToKnight) || (move.flag == MoveFlag::PromotionToRook) || (move.flag == MoveFlag::PromotionToBishop)) return false;
-	if ((movedPiece == Piece::WhitePawn) && (GetSquareRank(move.to) >= 6)) return false;
-	if ((movedPiece == Piece::BlackPawn) && (GetSquareRank(move.to) <= 1)) return false;
+	//if ((movedPiece == Piece::WhitePawn) && (GetSquareRank(move.to) >= 6)) return false;
+	//if ((movedPiece == Piece::BlackPawn) && (GetSquareRank(move.to) <= 1)) return false;
 	if (move.flag == MoveFlag::EnPassantPerformed) return false;
 	return true;
 }
@@ -621,7 +621,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 		target = home + 8;
 		if (GetPieceAt(target) == 0) {
 			if (GetSquareRank(target) != 7) {
-				if ((moveGen == MoveGen::All) || (GetSquareRank(target) == 6)) moves.push_back(Move(home, target));
+				if ((moveGen == MoveGen::All) /* || (GetSquareRank(target) == 6)*/) moves.push_back(Move(home, target));
 			} else { // Promote
 				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
 				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
@@ -676,7 +676,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 		target = home - 8;
 		if (GetPieceAt(target) == 0) {
 			if (GetSquareRank(target) != 0) {
-				if ((moveGen == MoveGen::All) || (GetSquareRank(target) == 1)) moves.push_back(Move(home, target));
+				if ((moveGen == MoveGen::All) /* || (GetSquareRank(target) == 1)*/) moves.push_back(Move(home, target));
 			} else { // Promote
 				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
 				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
