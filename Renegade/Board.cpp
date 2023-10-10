@@ -2,7 +2,7 @@
 
 // Constructors and related -----------------------------------------------------------------------
 
-void Board::Setup(const std::string fen) {
+void Board::Setup(const std::string& fen) {
 	WhitePawnBits = 0L;
 	WhiteKnightBits = 0L;
 	WhiteBishopBits = 0L;
@@ -81,7 +81,7 @@ Board::Board() {
 	Setup(FEN::StartPos);
 }
 
-Board::Board(const std::string fen) {
+Board::Board(const std::string& fen) {
 	Setup(fen);
 }
 
@@ -291,7 +291,7 @@ uint8_t Board::GetPieceAt(const uint8_t place) const {
 // Making moves -----------------------------------------------------------------------------------
 
 // Converts the uci move input to the engine's own representation, and then plays it
-bool Board::PushUci(const std::string ucistr) {
+bool Board::PushUci(const std::string& ucistr) {
 	const int sq1 = SquareToNum(ucistr.substr(0, 2));
 	const int sq2 = SquareToNum(ucistr.substr(2, 2));
 	const int extra = ucistr[4];
@@ -466,7 +466,7 @@ void Board::TryMove(const Move& move) {
 
 }
 
-void Board::Push(const Move move) {
+void Board::Push(const Move& move) {
 
 	if (move.flag != MoveFlag::NullMove) {
 		HalfmoveClock += 1;

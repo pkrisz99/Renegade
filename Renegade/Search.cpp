@@ -493,15 +493,12 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 	Statistics.AlphaBetaCalls += 1;
 	if (level > Statistics.SelDepth) Statistics.SelDepth = level;
 
-	// Generate noisy moves
-	MoveList.clear();
-	board.GenerateMoves(MoveList, MoveGen::Noisy, Legality::Pseudolegal);
-
 	// Update alpha-beta bounds, return alpha if no captures left
 	const int staticEval = Evaluate(board, level, true);
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= MaxDepth) return staticEval;
+	if (board.IsDraw(false)) return DrawEvaluation(); // maybe staticEval is more sound?
 
 	// Probe the transposition table
 	const uint64_t hash = board.Hash();
@@ -512,6 +509,10 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 		if (entry.IsCutoffPermitted(0, alpha, beta)) return entry.score;
 		Statistics.TranspositionHits += 1;
 	}
+
+	// Generate noisy moves
+	MoveList.clear();
+	board.GenerateMoves(MoveList, MoveGen::Noisy, Legality::Pseudolegal);
 
 	// Order noisy moves
 	const float phase = CalculateGamePhase(board);
@@ -555,9 +556,6 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 
 int Search::Evaluate(const Board &board, const int level, const bool checkDraws) {
 	Statistics.Evaluations += 1;
-	if (checkDraws) {
-		if (board.IsDraw(level == 0)) return DrawEvaluation();
-	}
 	return EvaluateBoard(board);
 }
 
