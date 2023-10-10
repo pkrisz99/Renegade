@@ -35,7 +35,7 @@ public:
 	const Results SearchMoves(Board& board, const SearchParams params, const EngineSettings settings, const bool display);
 	int SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove);
 	int SearchQuiescence(Board& board, const int level, int alpha, int beta);
-	int Evaluate(const Board& board, const int level, const bool checkDraws);
+	int Evaluate(const Board& board);
 	bool StaticExchangeEval(const Board& board, const Move& move, const int threshold);
 	int DrawEvaluation();
 

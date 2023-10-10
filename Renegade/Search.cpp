@@ -204,6 +204,14 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 				}
 				else if (result >= beta) {
 					beta = std::min(beta + windowSize, PositiveInfinity);
+					
+					// Obtain PV line
+					/*std::vector<Move> tempPvLine = std::vector<Move>();
+					Heuristics.GeneratePvLine(tempPvLine);
+					if (!Aborting && (tempPvLine.size() >= 1) && (tempPvLine[0] != EmptyMove)) {
+						e.pv.clear();
+						Heuristics.GeneratePvLine(e.pv);
+					}*/
 					//if (!IsMateScore(result) && (searchDepth > 1)) searchDepth -= 1;
 				}
 				else {
@@ -269,7 +277,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	Aborting = ShouldAbort();
 	if (Aborting) return NoEval;
 	Heuristics.InitPvLength(level);
-	if (level >= MaxDepth) return Evaluate(board, level, true);
+	if (level >= MaxDepth) return Evaluate(board);
 
 	const bool rootNode = (level == 0);
 	const bool pvNode = rootNode || (beta - alpha > 1);
@@ -314,7 +322,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	
 	// Obtain the evaluation of the position
 	int staticEval = NoEval;
-	if ((ttEval == NoEval) || (entry.scoreType != ScoreType::Exact)) staticEval = Evaluate(board, level, true);
+	if ((ttEval == NoEval) || (entry.scoreType != ScoreType::Exact)) staticEval = Evaluate(board);
 	if (ttEval != NoEval) {
 		if ((entry.scoreType == ScoreType::Exact)
 			|| ((entry.scoreType == ScoreType::LowerBound) && (staticEval < ttEval))
@@ -437,7 +445,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 		if (score > bestScore) {
 			bestScore = score;
-			Heuristics.UpdatePvTable(m, level);
+			if (!Aborting) Heuristics.UpdatePvTable(m, level);
 
 			// Checking alpha-beta bounds
 			if (score >= beta) {
@@ -473,7 +481,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// There was no legal move --> game over 
 	if (legalMoveCount == 0) {
 		const int e = inCheck ? LosingMateScore(level) : 0;
-		if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, depth, e, ScoreType::Exact, EmptyMove, level);
+		//if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, depth, e, ScoreType::Exact, EmptyMove, level);
 		return e;
 	}
 
@@ -494,7 +502,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 	if (level > Statistics.SelDepth) Statistics.SelDepth = level;
 
 	// Update alpha-beta bounds, return alpha if no captures left
-	const int staticEval = Evaluate(board, level, true);
+	const int staticEval = Evaluate(board);
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= MaxDepth) return staticEval;
@@ -554,7 +562,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 	return bestScore;
 }
 
-int Search::Evaluate(const Board &board, const int level, const bool checkDraws) {
+int Search::Evaluate(const Board &board) {
 	Statistics.Evaluations += 1;
 	return EvaluateBoard(board);
 }
