@@ -185,6 +185,8 @@ void Heuristics::AddTranspositionEntry(const uint64_t hash, const uint16_t age, 
 	const uint16_t quality = age * 2 + depth;
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
 
+	if (std::abs(score) > MateEval) return;
+
 	if (quality >= TranspositionTable[key].quality) { // (TranspositionTable[key].depth <= depth)
 		if (TranspositionTable[key].hash == 0) TranspositionEntryCount += 1;
 		TranspositionTable[key].depth = depth;

@@ -447,7 +447,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 					if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1], m);
 					Heuristics.IncrementHistory(board.Turn, m.from, m.to, depth);
 				}
-				Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, ScoreType::LowerBound, m, level);
+				if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, ScoreType::LowerBound, m, level);
 				Statistics.BetaCutoffs += 1;
 				if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
 
@@ -473,12 +473,12 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// There was no legal move --> game over 
 	if (legalMoveCount == 0) {
 		const int e = inCheck ? LosingMateScore(level) : 0;
-		Heuristics.AddTranspositionEntry(hash, Age, depth, e, ScoreType::Exact, EmptyMove, level);
+		if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, depth, e, ScoreType::Exact, EmptyMove, level);
 		return e;
 	}
 
 	// Return the best score (fail-soft)
-	Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, scoreType, bestMove, level);
+	if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, scoreType, bestMove, level);
 	return bestScore;
 }
 
@@ -549,7 +549,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 			}
 		}
 	}
-	Heuristics.AddTranspositionEntry(hash, Age, 0, bestScore, scoreType, EmptyMove, level);
+	if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, 0, bestScore, scoreType, EmptyMove, level);
 	return bestScore;
 }
 
