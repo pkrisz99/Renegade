@@ -179,7 +179,7 @@ void Heuristics::ClearHistoryTable() {
 
 // Transposition table ----------------------------------------------------------------------------
 
-void Heuristics::AddTranspositionEntry(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move bestMove, const int level) {
+void Heuristics::AddTranspositionEntry(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move& bestMove, const int level) {
 	if (HashBits == 0) return;
 	const uint64_t key = hash & HashFilter;
 	const uint16_t quality = age * 2 + depth;

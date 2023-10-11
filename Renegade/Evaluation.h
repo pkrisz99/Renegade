@@ -81,11 +81,13 @@ struct EvaluationFeatures {
 };
 
 
-//typedef TaperedScore S; // using S as tapered score seems somewhat standard
+// Using S as tapered score seems somewhat standard
 #define S(early, late) TaperedScore{early, late}
 
 constexpr EvaluationFeatures Weights = {
-
+	// These are the weights used in the hand-crafted evaluation
+	// Please note that some of these are no longer used, but life is short and organizing them takes a while
+	
 	// 1. Material values (pawn, knight, bishop, rook, queen, king)
 	S(80, 92), S(356, 355), S(368, 380), S(479, 684), S(1107, 1245), S(0, 0), 
 

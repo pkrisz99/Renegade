@@ -93,11 +93,11 @@ void Tuning::PartialCalculateMSE(const double K, const std::vector<Board>& board
 double Tuning::MultithreadedCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) const {
 	std::vector<std::thread> threads = std::vector<std::thread>();
 	std::vector<double> errors(ThreadCount, 0);
-	const int chunckSize = boards.size() / ThreadCount;
+	const int chunckSize = static_cast<int>(boards.size()) / ThreadCount;
 
 	for (int i = 1; i <= ThreadCount; i++) {
 		int start = (i - 1) * chunckSize;
-		int end = (i != ThreadCount) ? (start + chunckSize) : boards.size();
+		int end = (i != ThreadCount) ? (start + chunckSize) : static_cast<int>(boards.size());
 		threads.emplace_back(&Tuning::PartialCalculateMSE, this, K, std::ref(boards), std::ref(results), start, end, std::ref(errors[i - 1]));
 	}
 	for (std::thread& t : threads) t.join();
