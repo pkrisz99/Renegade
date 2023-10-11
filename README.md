@@ -29,7 +29,7 @@ The engine is generally stable and shouldn't make invalid moves or forfeit on ti
 
 As one might expect, Renegade can also be interacted with using the terminal. Most UCI commands are supported including limiting search to a specific depth, time limit or node count. Hash size can be configured, and it automatically loads any `book.bin` opening book it finds in the same folder, but only uses it when `OwnBook` is set to `true`.  
 
-If the engine doesn't receive the `uci` command, it defaults to pretty print outputs:
+If the engine doesn't receive the `uci` command, it defaults to pretty print outputs (if the compiler supports it):
 ```
 Renegade chess engine 0.11.0 [May 29 2023 12:31:30]
 go depth 7
