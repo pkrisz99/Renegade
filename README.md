@@ -1,6 +1,8 @@
-<div align = "center"><p><h1>Renegade<br><i><h6><sup>Lighthearted attempt at creating a chess engine. ♞</sup></h6></i></h1></div>
+<div align = "center"><h1>Renegade</h1></div>
 
-Renegade is a simple free and open source chess engine. It is written in C++ using Visual Studio 2019 and values readability and simplicity. As the engine communicates through the UCI protocol, it can be connected to almost all chess user interfaces.  
+**Renegade is a simple free and open source chess engine. ♞**  
+
+It is written in C++ from scratch, and values readability and simplicity. As the engine communicates through the UCI protocol, it can be connected to almost all chess user interfaces.  
 
 The engine is moderately strong, and regularly competes on Lichess over at https://lichess.org/@/RenegadeEngine, as well as in tournaments organized by the engine testing community.  
 
