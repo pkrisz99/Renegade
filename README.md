@@ -31,15 +31,15 @@ As one might expect, Renegade can also be interacted with using the terminal. Mo
 
 If the engine doesn't receive the `uci` command, it defaults to pretty print outputs (if the compiler supports it):
 ```
-Renegade chess engine 0.11.0 [May 29 2023 12:31:30]
+Renegade chess engine 0.12.0 [Oct 12 2023 17:33:27]
 go depth 7
-  1/ 1         20      0ms   326knps  h= 0.0%  ->  +0.46  [g1f3]
-  2/ 2         93      0ms   154knps  h= 0.0%  ->  +0.18  [g1f3 g8f6]
-  3/ 3        272      0ms   281knps  h= 0.0%  ->  +0.39  [g1f3 g8f6 b1c3]
-  4/ 6       1059      1ms   530knps  h= 0.0%  ->  +0.18  [g1f3 g8f6 b1c3 b8c6]
-  5/ 7       1974      3ms   614knps  h= 0.0%  ->  +0.33  [g1f3 g8f6 b1c3 b8c6 d2d4]
-  6/12       5190      6ms   751knps  h= 0.0%  ->  +0.18  [g1f3 g8f6 b1c3 b8c6 d2d4 (+1)]
-  7/12      15014     14ms  1036knps  h= 0.0%  ->  +0.14  [g1f3 g8f6 b1c3 b8c6 d2d4 (+2)]
+  1/ 1         20      0ms   320knps  h= 0.0%  ->  +0.47  [g1f3]
+  2/ 2         77      0ms   179knps  h= 0.0%  ->  +0.20  [g1f3 g8f6]
+  3/ 3        241      0ms   340knps  h= 0.0%  ->  +0.42  [g1f3 g8f6 b1c3]
+  4/ 6        617      1ms   559knps  h= 0.0%  ->  +0.20  [g1f3 g8f6 b1c3 b8c6]
+  5/ 6       1480      1ms   825knps  h= 0.0%  ->  +0.32  [g1f3 g8f6 b1c3 b8c6 e2e3]
+  6/ 9       3242      3ms   989knps  h= 0.0%  ->  +0.20  [g1f3 g8f6 b1c3 b8c6 e2e3 (+1)]
+  7/12       6473      5ms  1175knps  h= 0.0%  ->  +0.18  [g1f3 g8f6 b1c3 d7d5 e2e3 (+2)]
 bestmove g1f3
 ```
 

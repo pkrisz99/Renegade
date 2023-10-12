@@ -226,10 +226,10 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 		}
 		
 		// Reduce allocated time if found mate (impatience in action)
-		if (IsMateScore(result)) {
+		/* if (IsMateScore(result)) {
 			if (Constraints.SearchTimeMin != -1) Constraints.SearchTimeMin = static_cast<int>(Constraints.SearchTimeMin * 0.9);
 			if (Constraints.SearchTimeMax != -1) Constraints.SearchTimeMax = static_cast<int>(Constraints.SearchTimeMax * 0.9);
-		}
+		} */
 
 		// Check search limits
 		auto currentTime = Clock::now();

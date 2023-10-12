@@ -15,7 +15,7 @@ using std::endl;
 using std::get;
 typedef std::chrono::high_resolution_clock Clock;
 
-const std::string Version = "0.12.0 (almost)";
+const std::string Version = "0.12.0";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
