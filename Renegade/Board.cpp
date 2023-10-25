@@ -520,7 +520,7 @@ bool Board::IsLegalMove(const Move& m) {
 	TryMove(m);
 
 	// Check
-	bool inCheck = IsInCheck();
+	const bool inCheck = IsInCheck();
 
 	// Revert
 	WhitePawnBits = whitePawnBits;
@@ -619,7 +619,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 	if constexpr (side == Turn::White) {
 		// 1. Can move forward? + check promotions
 		target = home + 8;
-		if (GetPieceAt(target) == 0) {
+		if (GetPieceAt(target) == Piece::None) {
 			if (GetSquareRank(target) != 7) {
 				if ((moveGen == MoveGen::All) /* || (GetSquareRank(target) == 6)*/) moves.push_back(Move(home, target));
 			} else { // Promote
@@ -634,7 +634,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 		target = home + 7;
 		if ((file != 0) && ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare))) {
 			if (GetSquareRank(target) != 7) {
-				Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
+				const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 				moves.push_back(m);
 			} else { // Promote
 				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
@@ -649,7 +649,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 		if (file != 7) {
 			if ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare)) {
 				if (GetSquareRank(target) != 7) {
-					Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
+					const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 					moves.push_back(m);
 				}
 				else { // Promote
@@ -674,7 +674,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 	else if constexpr (side == Turn::Black) {
 		// 1. Can move forward? + check promotions
 		target = home - 8;
-		if (GetPieceAt(target) == 0) {
+		if (GetPieceAt(target) == Piece::None) {
 			if (GetSquareRank(target) != 0) {
 				if ((moveGen == MoveGen::All) /* || (GetSquareRank(target) == 1)*/) moves.push_back(Move(home, target));
 			} else { // Promote
@@ -689,7 +689,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 		target = home - 7;
 		if ((file != 7) && ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare))) {
 			if (GetSquareRank(target) != 0) {
-				Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
+				const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 				moves.push_back(m);
 			} else { // Promote
 				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
@@ -704,7 +704,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 		if (file != 0) {
 			if ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare)) {
 				if (GetSquareRank(target) != 0) {
-					Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
+					const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 					moves.push_back(m);
 				}
 				else { // Promote
