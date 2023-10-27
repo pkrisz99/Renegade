@@ -5,6 +5,7 @@
 #include "Heuristics.h"
 #include "Results.h"
 #include "Utils.h"
+#include "Neurals.h"
 #include <tuple>
 #include <iomanip>
 #include <algorithm>

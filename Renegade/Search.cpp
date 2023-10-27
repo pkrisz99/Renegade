@@ -564,7 +564,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 
 int Search::Evaluate(const Board &board) {
 	Statistics.Evaluations += 1;
-	return EvaluateBoard(board);
+	return NNEvaluate(board);
 }
 
 int Search::DrawEvaluation() {

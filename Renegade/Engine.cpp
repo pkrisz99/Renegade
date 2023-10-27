@@ -9,6 +9,7 @@ Engine::Engine(int argc, char* argv[]) {
 	Settings.UciOutput = !PrettySupport;
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
+	LoadNetwork();
 	Search.Heuristics.SetHashSize(Settings.Hash);
 	Search.Heuristics.ClearTranspositionTable();
 
@@ -17,7 +18,8 @@ Engine::Engine(int argc, char* argv[]) {
 }
 
 void Engine::PrintHeader() {
-	cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
+	//cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
+	cout << "ReNNegade chess engine [" << __DATE__ << " " << __TIME__ << "]" << endl;
 }
 
 // Start UCI protocol
@@ -211,7 +213,9 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "eval") {
-			cout << "Static evaluation: " << EvaluateBoard(board) << " (for the side to come)" << endl;
+			//cout << "Static evaluation: " << EvaluateBoard(board) << " (for the side to come)" << endl;
+			cout << "Renegade HCE evaluation: " << EvaluateBoard(board) << " (for the side to come)" << endl;
+			cout << "External NN  evaluation: " << NNEvaluate(board) << " (for the side to come)" << endl;
 			continue;
 		}
 		if (parts[0] == "fen") {
@@ -248,6 +252,11 @@ void Engine::Start() {
 		if (parts[0] == "hugehash") {
 			Search.Heuristics.SetHashSize(4096);
 			cout << "Using huge hash: 4096 MB" << endl;
+			continue;
+		}
+		if (parts[0] == "nnue") {
+			cout << "Classical evaluation: " << EvaluateBoard(board) << " (for the side to come)" << endl;
+			cout << "     NNUE evaluation: " << NNEvaluate(board) << " (for the side to come)" << endl;
 			continue;
 		}
 

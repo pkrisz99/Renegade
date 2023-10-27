@@ -1,6 +1,7 @@
 #pragma once
 #include "Board.h"
 #include "Magics.h"
+#include "Neurals.h"
 #include "Heuristics.h"
 #include "Results.h"
 #include "Search.h"
@@ -12,6 +13,8 @@
 #include <tuple>
 
 extern void GenerateMagicTables();
+//extern void LoadNetwork();
+//extern int NNEvaluate(const Board& board);
 
 class Engine
 {

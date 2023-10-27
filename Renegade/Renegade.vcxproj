@@ -153,6 +153,7 @@
     <ClCompile Include="Magics.cpp" />
     <ClCompile Include="Move.cpp" />
     <ClCompile Include="Heuristics.cpp" />
+    <ClCompile Include="Neurals.cpp" />
     <ClCompile Include="Renegade.cpp" />
     <ClCompile Include="Results.cpp" />
     <ClCompile Include="Search.cpp" />
@@ -166,6 +167,7 @@
     <ClInclude Include="Magics.h" />
     <ClInclude Include="Move.h" />
     <ClInclude Include="Heuristics.h" />
+    <ClInclude Include="Neurals.h" />
     <ClInclude Include="Results.h" />
     <ClInclude Include="Search.h" />
     <ClInclude Include="Tuning.h" />
