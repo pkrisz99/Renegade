@@ -18,8 +18,7 @@ Engine::Engine(int argc, char* argv[]) {
 }
 
 void Engine::PrintHeader() {
-	//cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
-	cout << "ReNNegade chess engine [" << __DATE__ << " " << __TIME__ << "]" << endl;
+	cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
 }
 
 // Start UCI protocol

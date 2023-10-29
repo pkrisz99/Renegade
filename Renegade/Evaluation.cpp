@@ -344,6 +344,40 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights) {
 	return score;
 }
 
+int KingTropismEvaluate(const Board& board, const EvaluationFeatures& weights) {
+	const int whiteKingSquare = LsbSquare(board.WhiteKingBits);
+	const int blackKingSquare = LsbSquare(board.BlackKingBits);
+	const int whiteKingRank = GetSquareRank(whiteKingSquare);
+	const int whiteKingFile = GetSquareFile(whiteKingSquare);
+	const int blackKingRank = GetSquareRank(blackKingSquare);
+	const int blackKingFile = GetSquareFile(blackKingSquare);
+
+	int score = 0;
+
+	uint64_t piecesOnBoard = board.GetOccupancy(PieceColor::White);
+	while (piecesOnBoard) {
+		const int sq = Popsquare(piecesOnBoard);
+		const int rank = GetSquareRank(sq);
+		const int file = GetSquareFile(sq);
+
+		const int manhattan = 15 - abs(rank - blackKingRank) + abs(file - blackKingFile);
+		score += manhattan;
+	}
+
+	piecesOnBoard = board.GetOccupancy(PieceColor::Black);
+	while (piecesOnBoard) {
+		const int sq = Popsquare(piecesOnBoard);
+		const int rank = GetSquareRank(sq);
+		const int file = GetSquareFile(sq);
+
+		const int manhattan = 15 - abs(rank - whiteKingRank) + abs(file - whiteKingFile);
+		score -= manhattan;
+	}
+
+	if (!board.Turn) score *= -1;
+	return score * 6;
+}
+
 inline bool IsDrawishEndgame(const Board& board, const uint64_t whitePieces, const uint64_t blackPieces) {
 	// Drawish endgame detection
 	// To avoid simplifying down to a non-winning endgame with a nominal material advantage

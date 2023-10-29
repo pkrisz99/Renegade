@@ -231,6 +231,7 @@ inline float CalculateGamePhase(const Board& board) {
 inline bool IsDrawishEndgame(const Board& board, const uint64_t whitePieces, const uint64_t blackPieces);
 
 int EvaluateBoard(const Board& board, const EvaluationFeatures& weights);
+int KingTropismEvaluate(const Board& board, const EvaluationFeatures& weights);
 
 inline int EvaluateBoard(const Board& board) {
 	return EvaluateBoard(board, Weights);
