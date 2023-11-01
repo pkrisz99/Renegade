@@ -52,7 +52,7 @@ void Engine::Start() {
 		}
 
 		if (cmd == "ucinewgame") {
-			ResetState();
+			Search.ResetState(true);
 			continue;
 		}
 
@@ -63,6 +63,18 @@ void Engine::Start() {
 
 		if (cmd == "tuner") {
 			// Tuning tuner = Tuning();
+			continue;
+		}
+
+		if (cmd == "datagen") {
+			Datagen datagen = Datagen();
+			datagen.Start();
+			continue;
+		}
+
+		if (cmd == "shuffle") {
+			Datagen datagen = Datagen();
+			datagen.ShuffleEntries();
 			continue;
 		}
 
@@ -94,7 +106,7 @@ void Engine::Start() {
 			else if (parts[2] == "clear") {
 				ConvertToLowercase(parts[3]);
 				if (parts[3] == "hash") {
-					ResetState();
+					Search.ResetState(true);
 					valid = true;
 				}
 			}
@@ -235,7 +247,7 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "ch") {
-			ResetState();
+			Search.ResetState(true);
 			cout << "Transposition table cleared." << endl;
 			continue;
 		}
@@ -357,9 +369,7 @@ void Engine::Start() {
 			std::vector<std::tuple<Move, int>> scores;
 			for (Move& m : moves) {
 				Board b = Board(board);
-				Search.Heuristics.ClearKillerAndCounterMoves();
-				Search.Heuristics.ClearHistoryTable();
-				Search.Heuristics.ResetPvTable();
+				Search.ResetState(false);
 				b.Push(m);
 				Results r = Search.SearchMoves(b, params, settings, false);
 				scores.push_back(std::tuple<Move, int>(m, r.score));
@@ -442,9 +452,7 @@ void Engine::HandleBench() {
 	settings.UseBook = false;
 	auto startTime = Clock::now();
 	for (const std::string& fen : BenchmarkFENs) {
-		Search.Heuristics.ClearKillerAndCounterMoves();
-		Search.Heuristics.ClearHistoryTable();
-		Search.Heuristics.ResetPvTable();
+		Search.ResetState(false);
 		Board b = Board(fen);
 		Results r = Search.SearchMoves(b, params, settings, false);
 		nodes += r.stats.Nodes;
@@ -483,12 +491,4 @@ void Engine::HandleHelp() const {
 		<< "\n- eval: prints the static evaluation of the position"
 		<< "\n- fen: displays the current position's FEN string"
 		<< "\n- go perft [n] & go perftdiv [n]: retuns the number of possible positions after n plys (incl. duplicates)" << endl;
-}
-
-void Engine::ResetState() {
-	Search.Heuristics.ClearTranspositionTable();
-	Search.Heuristics.ClearKillerAndCounterMoves();
-	Search.Heuristics.ResetPvTable();
-	Search.Heuristics.ClearHistoryTable();
-	Search.Age = 0;
 }

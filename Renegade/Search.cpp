@@ -395,12 +395,12 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		LegalAndQuiet[level][pseudoLegalCount] = isQuiet;
 
 		// Performing futility pruning
-		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta) && (bestScore > -MateEval + 10000)) continue;
+		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta) && (bestScore > -MateEval + 10000) && !DatagenMode) continue;
 
 		// Main search SEE pruning (+20 elo)
 		const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300, -350 };
 		const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600, -700 };
-		if (!rootNode && !pvNode && (depth <= 5) && !IsLosingMateScore(alpha) && (bestScore > -MateEval + 10000)) {
+		if (!rootNode && !pvNode && (depth <= 5) && !IsLosingMateScore(alpha) && (bestScore > -MateEval + 10000) && !DatagenMode) {
 			if (!StaticExchangeEval(board, m, isQuiet ? seeQuietMargin[depth] : seeNoisyMargin[depth])) continue;
 		}
 
@@ -421,7 +421,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 			// Late-move pruning (+9 elo)
 			const int lmpCount[] = { 0, 9, 13, 17, 22 };
-			if ((depth < 5) && !pvNode && !inCheck && isQuiet) {
+			if ((depth < 5) && !pvNode && !inCheck && isQuiet && !DatagenMode) {
 				if (legalMoveCount >= lmpCount[depth]) continue;
 			}
 
@@ -855,4 +855,14 @@ void Search::PrintPretty(const Results& e, const EngineSettings& settings) {
 
 void Search::PrintBestmove(const Move& move) {
 	cout << "bestmove " << move.ToString() << endl;
+}
+
+void Search::ResetState(const bool clearTT) {
+	Heuristics.ClearHistoryTable();
+	Heuristics.ClearKillerAndCounterMoves();
+	Heuristics.ResetPvTable();
+	if (clearTT) {
+		Heuristics.ClearTranspositionTable();
+		Age = 0;
+	}
 }

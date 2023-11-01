@@ -20,6 +20,7 @@ const std::string Version = "0.12.0 +";
 // Evaluation helpers -----------------------------------------------------------------------------
 
 static const int MateEval = 100000;
+static const int MateThreshold = MateEval - 10000;
 static const int NoEval = -666666666;
 static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
 static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong

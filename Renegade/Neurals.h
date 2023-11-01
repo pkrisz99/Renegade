@@ -11,7 +11,7 @@
 
 // Network constants
 const int FeatureSize = 768;
-const int HiddenSize = 256;
+const int HiddenSize = 32;
 
 struct NetworkRepresentation {
 	std::array<std::array<int16_t, HiddenSize>, FeatureSize> FeatureWeights;

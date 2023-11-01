@@ -51,6 +51,8 @@ public:
 	void PrintPretty(const Results& e, const EngineSettings& settings);
 	void PrintBestmove(const Move& move);
 
+	void ResetState(const bool clearTT);
+
 	int Depth;
 	SearchStatistics Statistics;
 
@@ -60,6 +62,7 @@ public:
 	bool Aborting = false;
 	std::chrono::high_resolution_clock::time_point StartSearchTime;
 	uint16_t Age = 0;
+	bool DatagenMode = false;
 
 	// Reused variables / stack
 	std::vector<Move> MoveList;

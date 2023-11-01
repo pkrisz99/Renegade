@@ -1,5 +1,6 @@
 #pragma once
 #include "Board.h"
+#include "Datagen.h"
 #include "Magics.h"
 #include "Neurals.h"
 #include "Heuristics.h"
@@ -21,7 +22,6 @@ class Engine
 public:
 	Engine(int argc, char* argv[]);
 	void Start();
-	void ResetState();
 	void PrintHeader();
 	void DrawBoard(const Board &b, const uint64_t customBits = 0) const;
 	void HandleBench();

@@ -148,6 +148,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Board.cpp" />
+    <ClCompile Include="Datagen.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Evaluation.cpp" />
     <ClCompile Include="Magics.cpp" />
@@ -162,6 +163,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Board.h" />
+    <ClInclude Include="Datagen.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Evaluation.h" />
     <ClInclude Include="Magics.h" />

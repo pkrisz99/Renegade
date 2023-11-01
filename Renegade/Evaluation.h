@@ -234,5 +234,5 @@ int EvaluateBoard(const Board& board, const EvaluationFeatures& weights);
 int KingTropismEvaluate(const Board& board, const EvaluationFeatures& weights);
 
 inline int EvaluateBoard(const Board& board) {
-	return EvaluateBoard(board, Weights);
+	return KingTropismEvaluate(board, Weights);
 }
