@@ -13,38 +13,54 @@ void Datagen::Start() {
 
 	cout << "\nRenegade's data generation utility\n" << endl;
 
-	cout << "Filename? ";
 	std::string filename;
+	cout << "Filename? ";
 	cin >> filename;
+	cout << endl;
+
+	int threadCount;
+	cout << "How many threads? ";
+	cin >> threadCount;
 	cout << endl;
 
 	cout << "Datagen settings: " << endl;
 	cout << " - " << randomPlyBase << " or " << randomPlyBase + 1 << " random plies, then rollout" << endl;
 	cout << " - Verification at depth " << verificationDepth << " with a threshold of " << startingEvalLimit << endl;
 	cout << " - Playing at depth " << playDepth << '\n' << endl;
-
 	//cout << " - Adjudication if mate is reported for 2 plies, or if eval<20  for 20 plies\n" << endl;
 
 
-	int games = 0, totalFens = 0, acceptedFens = 0;
+	EngineSettings settings = EngineSettings();
+	SearchParams params = SearchParams();
+	params.depth = playDepth;
+	SearchParams verificationParams = SearchParams();
+	verificationParams.depth = verificationDepth;
+
+	StartTime = Clock::now();
+
+	std::vector<std::thread> threads = std::vector<std::thread>();
+	for (int i = 1; i <= threadCount; i++) {
+		std::string filenameForThread = filename + "_" + std::to_string(i);
+		threads.emplace_back(&Datagen::SelfPlay, this, filenameForThread, std::ref(params), std::ref(verificationParams),
+			std::ref(settings), randomPlyBase, startingEvalLimit, i - 1);
+	}
+	for (std::thread& t : threads) t.join();
+
+
+}
+
+void Datagen::SelfPlay(const std::string filename, const SearchParams params, const SearchParams vParams, const EngineSettings settings,
+	const int randomPlyBase, const int startingEvalLimit, const int threadId) {
 
 	Search* Searcher1 = new Search;
 	Search* Searcher2 = new Search;
 
 	Searcher1->Heuristics.SetHashSize(1);
 	Searcher2->Heuristics.SetHashSize(1);
-
-	EngineSettings settings = EngineSettings();
-	Results results;
-	SearchParams params = SearchParams();
-	params.depth = playDepth;
-	SearchParams verificationParams = SearchParams();
-	verificationParams.depth = verificationDepth;
 	
-
+	Results results;
+	int gamesOnThread = 0;
 	std::mt19937 generator(std::random_device{}());
-
-	auto startTime = Clock::now();
 
 	// to do: disable LMP, SEE, FP
 
@@ -57,9 +73,10 @@ void Datagen::Start() {
 		Searcher1->DatagenMode = true;
 		Searcher2->DatagenMode = true;
 		bool failed = false;
+		std::vector<std::pair<std::string, int>> CurrentFENs;
 
 		// 2. Generate random moves from the start
-		int randomPlies = (games % 2 == 0) ? randomPlyBase : (randomPlyBase + 1);
+		int randomPlies = (Games % 2 == 0) ? randomPlyBase : (randomPlyBase + 1);
 		for (int i = 0; i < randomPlies; i++) {
 			std::vector<Move> moves = std::vector<Move>();
 			board.GenerateMoves(moves, MoveGen::All, Legality::Legal);
@@ -73,7 +90,7 @@ void Datagen::Start() {
 		if (failed) continue;
 
 		// 3. Verify evaluation if acceptable
-		results = Searcher1->SearchMoves(board, verificationParams, settings, false);
+		results = Searcher1->SearchMoves(board, vParams, settings, false);
 		if (std::abs(results.score) > startingEvalLimit) failed = true;
 		if (failed) continue;
 		Searcher1->ResetState(true);
@@ -101,9 +118,9 @@ void Datagen::Start() {
 			}
 
 			// Check position if it should be stored
-			totalFens += 1;
+			PositionsTotal += 1;
 			if (!Filter(board, results.BestMove(), results.score)) {
-				acceptedFens += 1;
+				PositionsAccepted += 1;
 				CurrentFENs.push_back(std::pair(board.GetFEN(), whiteScore));
 			}
 			board.Push(results.BestMove());
@@ -116,7 +133,8 @@ void Datagen::Start() {
 
 		if (failed) continue;
 
-		games += 1;
+		Games += 1;
+		gamesOnThread += 1;
 
 		// 5. Store the game
 		std::ofstream file;
@@ -131,13 +149,15 @@ void Datagen::Start() {
 
 		// 6. Update display
 		auto endTime = Clock::now();
-		int seconds = static_cast<int>((endTime - startTime).count() / 1e9);
-		cout << "Games: " << games << "     ";
-		cout << "Positions accepted: " << acceptedFens << " out of " << totalFens << " (" << acceptedFens * 100 / totalFens << "%)"
-			<< "    Runtime: " << seconds << " s" << "     \r";
+		int seconds = static_cast<int>((endTime - StartTime).count() / 1e9);
+		int speed = PositionsAccepted * 3600 / seconds;		
+
+		std::string display = "";
+		display = "Games: " + std::to_string(Games) + "  /   Positions accepted: " + std::to_string(PositionsAccepted) + "  /   Runtime: "
+			+ std::to_string(seconds) + "s  /  " + std::to_string(speed) + " per hour   ";
+		cout << display << '\r';
 
 	}
-
 }
 
 
@@ -165,29 +185,28 @@ std::string Datagen::ToMarlinformat(const std::pair<std::string, int>& position,
 
 void Datagen::ShuffleEntries() {
 	cout << "\nRenegade's data shuffling utility for datagen\n";
+
+	// Ask for filename
 	cout << "Filename? ";
 	std::string filename;
 	cin >> filename;
 	cout << endl;
 	
+	// Read the file
 	std::ifstream ifs(filename);
 	std::vector<std::string> lines;
+	std::string line;
 	lines.reserve(50'000'000);
 
-	auto rng = std::default_random_engine();
-
-	std::string line;
-	
-
-	while (std::getline(ifs, line))  {
-		lines.push_back(line);
-	};
+	while (std::getline(ifs, line)) lines.push_back(line);
 	cout << "Entry count: " << lines.size() << endl;
 	//ifs.close();
 
-	
-	//std::shuffle(std::begin(lines), std::end(lines), rng);
+	// Shuffle entries
+	auto rng = std::default_random_engine();
+	std::shuffle(std::begin(lines), std::end(lines), rng);
 
+	// Write file
 	std::ofstream output(filename + "_shuffled");
 	std::ostream_iterator<std::string> outputIterator(output, "\n");
 	std::copy(lines.begin(), lines.end(), outputIterator);
