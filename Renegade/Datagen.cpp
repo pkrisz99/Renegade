@@ -65,6 +65,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 	std::mt19937 generator(std::random_device{}());
 
 	std::vector<std::pair<std::string, int>> CurrentFENs;
+	std::vector<std::string> unsavedFENs;
 
 	while (true) {
 
@@ -98,6 +99,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 
 		CurrentFENs.clear();
 		GameState outcome = GameState();
+		int adjudicationCounter = 0;
 
 		// 4. Play out the game
 		while (true) {
@@ -107,7 +109,15 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 			int whiteScore = results.score * (board.Turn == Turn::Black ? -1 : 1);
 
 			// Adjudicate
-			//if ((board.GetGameState() != GameState::Playing) || (std::abs(whiteScore) > MateThreshold)) break;
+			if (std::abs(whiteScore) > MateThreshold) {
+				adjudicationCounter += 1;
+				if (adjudicationCounter >= 3) {
+					if (whiteScore > 0) outcome = GameState::WhiteVictory;
+					else outcome = GameState::BlackVictory;
+				}
+			}
+			else adjudicationCounter = 0;
+
 			if (board.HalfmoveClock > 70) {
 				outcome = GameState::Draw;
 				//cout << "Draw adjud" << endl;
@@ -138,13 +148,16 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		gamesOnThread += 1;
 
 		// 5. Store the game
-		std::ofstream file;
-		file.open(filename, std::ios_base::app);
 		for (const auto& position : CurrentFENs) {
 			const std::string marlinformat = ToMarlinformat(position, outcome);
-			file << marlinformat << '\n';
+			unsavedFENs.push_back(marlinformat);
 		}
-		file.close();
+		if (gamesOnThread % 16 == 0) { // periodically save file
+			std::ofstream file(filename, std::ios_base::app);
+			for (const auto& line : unsavedFENs) file << line << '\n';
+			file.close();
+			unsavedFENs.clear();
+		}
 
 		// 6. Update display
 		if (Games % 10 == 0) {
