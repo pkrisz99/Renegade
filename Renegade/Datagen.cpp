@@ -9,7 +9,7 @@ void Datagen::Start() {
 	const int startingEvalLimit = 500;
 	const int playDepth = 8;
 	const int verificationDepth = 11;
-	const int randomPlyBase = 12;
+	const int randomPlyBase = 14;
 
 	cout << "\nRenegade's data generation utility\n" << endl;
 
@@ -107,7 +107,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 
 			// Adjudicate
 			//if ((board.GetGameState() != GameState::Playing) || (std::abs(whiteScore) > MateThreshold)) break;
-			if (board.HalfmoveClock > 50) {
+			if (board.HalfmoveClock > 70) {
 				outcome = GameState::Draw;
 				//cout << "Draw adjud" << endl;
 				break;
@@ -212,5 +212,51 @@ void Datagen::ShuffleEntries() {
 	std::copy(lines.begin(), lines.end(), outputIterator);
 
 	cout << "Complete.\n" << endl;
+	
+}
+
+void Datagen::MergeFiles() {
+	cout << "\nRenegade's file merging utility for datagen\n";
+
+	std::filesystem::path path = std::filesystem::current_path();
+	cout << "Current folder: " << path << endl;
+
+	std::string name;
+	cout << "\nWhat is the base name of the generated files? ";
+	cin >> name;
+	
+	std::vector<std::string> found;
+	
+	// Iterate through files in directory
+	for (const auto& entry : std::filesystem::directory_iterator(path)) {
+		auto filename = entry.path().filename();
+		if (filename.string().starts_with(name)) {
+			found.push_back(filename.string());
+		}
+	}
+	cout << "Found " << found.size() << " files\n" << endl;
+
+	
+	std::vector<std::string> lines;
+	lines.reserve(50'000'000);
+	const std::string mergedName = name + "_merged";
+
+	for (const auto& filename : found) {
+		lines.clear();
+
+		// Read files
+		std::ifstream ifs(filename);
+		std::string line;
+		while (std::getline(ifs, line)) lines.push_back(line);
+		cout << filename << " -> entry count: " << lines.size() << endl;
+		
+		// Write file
+		std::ofstream output;
+		output.open(mergedName, std::ios_base::app);
+		for (const auto& line : lines) output << line << endl;
+		output.close();
+	}
+
+	cout << "\nComplete.\n" << endl;
 	
 }

@@ -78,6 +78,12 @@ void Engine::Start() {
 			continue;
 		}
 
+		if (cmd == "merge") {
+			Datagen datagen = Datagen();
+			datagen.MergeFiles();
+			continue;
+		}
+
 		// Set option
 		if (parts[0] == "setoption") {
 

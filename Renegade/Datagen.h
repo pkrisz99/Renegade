@@ -1,4 +1,5 @@
 #pragma once
+#include <filesystem>
 #include <fstream>
 #include "Board.h"
 #include "Search.h"
@@ -13,6 +14,7 @@ public:
 		const int randomPlyBase, const int startingEvalLimit, const int threadId);
 	bool Filter(const Board& board, const Move& move, const int eval) const;
 	void ShuffleEntries();
+	void MergeFiles();
 
 	std::string ToMarlinformat(const std::pair<std::string, int>& position, const GameState outcome) const;
 	// <fen> | <eval> | <wdl>
