@@ -165,6 +165,7 @@ struct SearchParams {
 	int depth = 0;
 	bool infinite = false;
 	int movetime = 0;
+	int softnodes = 0;
 	// + mate, searchmoves...
 };
 
@@ -173,6 +174,7 @@ struct SearchConstraints {
 	int MaxDepth;
 	int SearchTimeMin;
 	int SearchTimeMax;
+	int64_t SoftNodes;
 };
 
 struct BookEntry {

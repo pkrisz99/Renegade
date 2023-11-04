@@ -75,12 +75,14 @@ uint64_t Search::PerftRecursive(Board& board, const int depth, const int origina
 const SearchConstraints Search::CalculateConstraints(const SearchParams params, const bool turn) {
 	SearchConstraints constraints = SearchConstraints();
 	constraints.MaxNodes = -1;
+	constraints.SoftNodes = -1; // soft node limit (mainly for datagen)
 	constraints.MaxDepth = -1;
 	constraints.SearchTimeMin = -1;
 	constraints.SearchTimeMax = -1;
 
 	// Nodes && depth && movetime 
 	if (params.nodes != 0) constraints.MaxNodes = params.nodes;
+	if (params.softnodes != 0) constraints.SoftNodes = params.softnodes;
 	if (params.depth != 0) constraints.MaxDepth = params.depth;
 	if (params.movetime != 0) {
 		constraints.SearchTimeMin = params.movetime;
@@ -98,8 +100,8 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 		int minTime;
 		if (params.movestogo > 0) {
 			// Repeating time control
-			maxTime = static_cast<int>((myTime / params.movestogo * 2.2));
-			minTime = static_cast<int>((myTime / params.movestogo * 0.5));
+			maxTime = static_cast<int>(myTime / params.movestogo * 2.2);
+			minTime = static_cast<int>(myTime / params.movestogo * 0.5);
 			maxTime = std::min(maxTime, static_cast<int>(myTime * 0.8));
 		}
 		else {
@@ -237,6 +239,7 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 		if ((elapsedMs >= Constraints.SearchTimeMin) && (Constraints.SearchTimeMin != -1)) finished = true;
 		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
 		if (Depth >= MaxDepth) finished = true;
+		if ((Statistics.Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
 		if (std::abs(result) == MateEval) finished = true; // Don't search if position is checkmate
 		if (Aborting) {
 			e.stats = Statistics;
@@ -292,7 +295,9 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 	// Check extensions
 	const bool inCheck = board.IsInCheck();
-	if (inCheck) depth += 1;
+	if (!rootNode || !DatagenMode) {
+		if (inCheck) depth += 1;
+	}
 
 	// Check for draws
 	//if (rootNode && board.IsDraw(true)) return 0;

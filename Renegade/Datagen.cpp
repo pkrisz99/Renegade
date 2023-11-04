@@ -7,8 +7,9 @@ Datagen::Datagen() {
 void Datagen::Start() {
 
 	const int startingEvalLimit = 500;
-	const int playDepth = 8;
-	const int verificationDepth = 11;
+	const int softNodeLimit = 5000;
+	const int depthLimit = 20;
+	const int verificationDepth = 10;
 	const int randomPlyBase = 14;
 
 	cout << "\nRenegade's data generation utility\n" << endl;
@@ -26,13 +27,14 @@ void Datagen::Start() {
 	cout << "Datagen settings: " << endl;
 	cout << " - " << randomPlyBase << " or " << randomPlyBase + 1 << " random plies, then rollout" << endl;
 	cout << " - Verification at depth " << verificationDepth << " with a threshold of " << startingEvalLimit << endl;
-	cout << " - Playing at depth " << playDepth << '\n' << endl;
+	cout << " - Playing with a soft node limit of " << softNodeLimit << '\n' << endl;
 	//cout << " - Adjudication if mate is reported for 2 plies, or if eval<20  for 20 plies\n" << endl;
 
 
 	EngineSettings settings = EngineSettings();
 	SearchParams params = SearchParams();
-	params.depth = playDepth;
+	params.softnodes = softNodeLimit;
+	params.depth = depthLimit;
 	SearchParams verificationParams = SearchParams();
 	verificationParams.depth = verificationDepth;
 
@@ -62,7 +64,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 	int gamesOnThread = 0;
 	std::mt19937 generator(std::random_device{}());
 
-	// to do: disable LMP, SEE, FP
+	std::vector<std::pair<std::string, int>> CurrentFENs;
 
 	while (true) {
 
@@ -73,7 +75,6 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		Searcher1->DatagenMode = true;
 		Searcher2->DatagenMode = true;
 		bool failed = false;
-		std::vector<std::pair<std::string, int>> CurrentFENs;
 
 		// 2. Generate random moves from the start
 		int randomPlies = (Games % 2 == 0) ? randomPlyBase : (randomPlyBase + 1);
@@ -145,17 +146,18 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		}
 		file.close();
 
-
-
 		// 6. Update display
-		auto endTime = Clock::now();
-		int seconds = static_cast<int>((endTime - StartTime).count() / 1e9);
-		int speed = PositionsAccepted * 3600 / seconds;		
+		if (Games % 10 == 0) {
+			const auto endTime = Clock::now();
+			const int seconds = static_cast<int>((endTime - StartTime).count() / 1e9);
+			const int speed = PositionsAccepted * 3600 / std::max(seconds, 1);
 
-		std::string display = "";
-		display = "Games: " + std::to_string(Games) + "  /   Positions accepted: " + std::to_string(PositionsAccepted) + "  /   Runtime: "
-			+ std::to_string(seconds) + "s  /  " + std::to_string(speed) + " per hour   ";
-		cout << display << '\r';
+			std::string display = "";
+			display = "Games: " + std::to_string(Games) + "  /   Positions accepted: " + std::to_string(PositionsAccepted) + "  /   Runtime: "
+				+ std::to_string(seconds) + "s  /  " + std::to_string(speed) + " per hour   ";
+			cout << display << '\r';
+		}
+
 
 	}
 }

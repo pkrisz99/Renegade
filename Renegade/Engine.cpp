@@ -230,9 +230,8 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "eval") {
-			//cout << "Static evaluation: " << EvaluateBoard(board) << " (for the side to come)" << endl;
-			cout << "Renegade HCE evaluation: " << EvaluateBoard(board) << " (for the side to come)" << endl;
-			cout << "External NN  evaluation: " << NNEvaluate(board) << " (for the side to come)" << endl;
+			cout << "Hand-crafted evaluation:   " << EvaluateBoard(board) << endl;
+			cout << "Neural network evaluation: " << NNEvaluate(board) << endl;
 			continue;
 		}
 		if (parts[0] == "fen") {
@@ -331,6 +330,7 @@ void Engine::Start() {
 				if (parts[i] == "winc") { params.winc = stoi(parts[i + 1LL]); i++; }
 				if (parts[i] == "binc") { params.binc = stoi(parts[i + 1LL]); i++; }
 				if (parts[i] == "nodes") { params.nodes = stoi(parts[i + 1LL]); i++; }
+				if (parts[i] == "softnodes") { params.softnodes = stoi(parts[i + 1LL]); i++; }
 				if (parts[i] == "depth") { params.depth = stoi(parts[i + 1LL]); i++; }
 				if (parts[i] == "mate") { params.depth = stoi(parts[i + 1LL]); i++; } // To do: search for mates only
 				if (parts[i] == "movetime") { params.movetime = stoi(parts[i + 1LL]); i++; }
