@@ -13,8 +13,8 @@ public:
 	void SelfPlay(const std::string filename, const SearchParams params, const SearchParams vParams, const EngineSettings settings,
 		const int randomPlyBase, const int startingEvalLimit, const int threadId);
 	bool Filter(const Board& board, const Move& move, const int eval) const;
-	void ShuffleEntries();
-	void MergeFiles();
+	void ShuffleEntries() const;
+	void MergeFiles() const;
 
 	std::string ToMarlinformat(const std::pair<std::string, int>& position, const GameState outcome) const;
 	// <fen> | <eval> | <wdl>
@@ -24,6 +24,7 @@ public:
 	uint64_t PositionsTotal = 0;
 	uint64_t Games = 0;
 	Clock::time_point StartTime;
+	int ThreadCount = 0;
 
 };
 

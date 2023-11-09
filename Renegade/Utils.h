@@ -145,6 +145,17 @@ const std::array<std::string, 64> SquareStrings = {
 	"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
 };
 
+namespace Console {
+	// Console escape strings
+	const std::string Green = "\x1b[92m";
+	const std::string Blue = "\x1b[96m";
+	const std::string Red = "\x1b[91m";
+	const std::string White = "\x1b[0m";
+	const std::string Gray = "\x1b[90m";
+	const std::string Yellow = "\x1b[93m";
+	// std::string str = "\033[" + std::to_string(row) + ";" + std::to_string(col) + "H";
+}
+
 // Structures  ------------------------------------------------------------------------------------
 
 enum class GameState { Playing, WhiteVictory, BlackVictory, Draw };

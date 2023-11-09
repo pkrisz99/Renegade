@@ -8,29 +8,27 @@ void Datagen::Start() {
 
 	const int startingEvalLimit = 500;
 	const int softNodeLimit = 5000;
-	const int hardNodeLimit = 15000;
+	const int hardNodeLimit = 1000000;
 	const int depthLimit = 20;
 	const int verificationDepth = 10;
 	const int randomPlyBase = 14;
 
-	cout << "\nRenegade's data generation utility\n" << endl;
+	ClearScreen(false, true);
+	cout << "Renegade's datagen tool\n" << endl;
 
 	std::string filename;
 	cout << "Filename? ";
 	cin >> filename;
-	cout << endl;
 
-	int threadCount;
 	cout << "How many threads? ";
-	cin >> threadCount;
+	cin >> ThreadCount;
 	cout << endl;
 
 	cout << "Datagen settings: " << endl;
 	cout << " - " << randomPlyBase << " or " << randomPlyBase + 1 << " random plies, then rollout" << endl;
 	cout << " - Verification at depth " << verificationDepth << " with a threshold of " << startingEvalLimit << endl;
-	cout << " - Playing with a soft node limit of " << softNodeLimit << '\n' << endl;
-	//cout << " - Adjudication if mate is reported for 2 plies, or if eval<20  for 20 plies\n" << endl;
-
+	cout << " - Playing with a soft node limit of " << softNodeLimit << endl;
+	cout << " - Adjudication if mate is reported for 2 plies, or if halfmove counter > 85\n" << endl;
 
 	EngineSettings settings = EngineSettings();
 	SearchParams params = SearchParams();
@@ -43,13 +41,12 @@ void Datagen::Start() {
 	StartTime = Clock::now();
 
 	std::vector<std::thread> threads = std::vector<std::thread>();
-	for (int i = 1; i <= threadCount; i++) {
+	for (int i = 1; i <= ThreadCount; i++) {
 		std::string filenameForThread = filename + "_" + std::to_string(i);
 		threads.emplace_back(&Datagen::SelfPlay, this, filenameForThread, std::ref(params), std::ref(verificationParams),
 			std::ref(settings), randomPlyBase, startingEvalLimit, i - 1);
 	}
 	for (std::thread& t : threads) t.join();
-
 
 }
 
@@ -162,14 +159,15 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		}
 
 		// 6. Update display
-		if (Games % 10 == 0) {
+		if (Games % 20 == 0) {
 			const auto endTime = Clock::now();
 			const int seconds = static_cast<int>((endTime - StartTime).count() / 1e9);
-			const int speed = PositionsAccepted * 3600 / std::max(seconds, 1);
+			const int speed1 = PositionsAccepted * 3600 / std::max(seconds, 1);
+			const int speed2 = speed1 / 3600 / ThreadCount;
 
 			std::string display = "";
-			display = "Games: " + std::to_string(Games) + "  /   Positions accepted: " + std::to_string(PositionsAccepted) + "  /   Runtime: "
-				+ std::to_string(seconds) + "s  /  " + std::to_string(speed) + " per hour   ";
+			display = "Games: " + std::to_string(Games) + "  |  Positions accepted: " + std::to_string(PositionsAccepted) + "  |  Runtime: "
+				+ std::to_string(seconds) + "s  |  " + std::to_string(speed1) + " per hour  (" + std::to_string(speed2) + "/s/th)";
 			cout << display << '\r';
 		}
 
@@ -200,7 +198,7 @@ std::string Datagen::ToMarlinformat(const std::pair<std::string, int>& position,
 	return position.first + " | " + std::to_string(position.second) + " | " + outcomeStr;
 }
 
-void Datagen::ShuffleEntries() {
+void Datagen::ShuffleEntries() const {
 	cout << "\nRenegade's data shuffling utility for datagen\n";
 
 	// Ask for filename
@@ -232,7 +230,7 @@ void Datagen::ShuffleEntries() {
 	
 }
 
-void Datagen::MergeFiles() {
+void Datagen::MergeFiles() const {
 	cout << "\nRenegade's file merging utility for datagen\n";
 
 	std::filesystem::path path = std::filesystem::current_path();
