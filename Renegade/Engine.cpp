@@ -3,7 +3,6 @@
 Engine::Engine(int argc, char* argv[]) {
 	Settings = EngineSettings();
 	Settings.Hash = 64;
-	Settings.UseBook = false;
 	Settings.ExtendedOutput = false;
 	Settings.Colorful = true;
 	Settings.UciOutput = !PrettySupport;
@@ -39,7 +38,6 @@ void Engine::Start() {
 			cout << "id author Krisztian Peocz" << '\n';
 			cout << "option name Clear Hash type button" << '\n';
 			cout << "option name Hash type spin default 64 min 1 max 4096" << '\n';
-			cout << "option name OwnBook type check default false" << '\n';
 			cout << "option name Threads type spin default 1 min 1 max 1" << '\n';
 			cout << "uciok" << endl;
 			Settings.UciOutput = true;
@@ -90,14 +88,7 @@ void Engine::Start() {
 			ConvertToLowercase(parts[2]);
 			bool valid = false;
 
-			if (parts[2] == "ownbook") {
-				ConvertToLowercase(parts[4]);
-				if (parts[4] == "true") Settings.UseBook = true;
-				else if (parts[4] == "false") Settings.UseBook = false;
-				else cout << "Unknown value: '" << parts[4] << "'" << endl;
-				valid = true;
-			}
-			else if (parts[2] == "extendedoutput") {
+			if (parts[2] == "extendedoutput") {
 				ConvertToLowercase(parts[4]);
 				if (parts[4] == "true") Settings.ExtendedOutput = true;
 				else if (parts[4] == "false") Settings.ExtendedOutput = false;
@@ -142,32 +133,8 @@ void Engine::Start() {
 			if (parts[1] == "hash") {
 				cout << "Hash (polyglot): " << std::hex << board.Hash() << endl;
 			}
-			if (parts[1] == "book") {
-				if (parts[2] == "count") {
-					cout << "Book entries: " << Search.GetBookSize() << endl;
-					// "from: " << std::filesystem::current_path().string()
-				}
-				else if (parts[2] == "entry") {
-					int n = stoi(parts[3]);
-					if (n < Search.GetBookSize()) {
-						BookEntry entry = Search.GetBookEntry(n);
-						cout << "Entry " << n << ": " << std::hex << entry.hash << std::dec << PolyglotMoveToString(entry.from, entry.to, entry.promotion)
-							<< " (weight = " << entry.weight << ")" << endl;
-					}
-					else {
-						cout << "Entry index is out of range!" << endl;
-					}
-				}
-				else {
-					std::string s = Search.GetBookMove(board.Hash());
-					if (s != "") cout << "Book move: " << s << endl;
-					else cout << "No book move found" << endl;
-				}
-				
-			}
 			if (parts[1] == "settings") {
 				cout << "Hash: " << Settings.Hash << endl;
-				cout << "OwnBook: " << Settings.UseBook << endl;
 				cout << "ExtendedOutput: " << Settings.ExtendedOutput << endl;
 			}
 			if (parts[1] == "sizeof") {
@@ -365,7 +332,6 @@ void Engine::Start() {
 			EngineSettings settings;
 			settings.Hash = 16;
 			settings.ExtendedOutput = false;
-			settings.UseBook = false;
 			Search.Heuristics.ClearTranspositionTable();
 			std::vector<std::tuple<Move, int>> scores;
 			for (Move& m : moves) {
@@ -450,7 +416,6 @@ void Engine::HandleBench() {
 	const int oldHashSize = Settings.Hash;
 	Search.Heuristics.SetHashSize(16);
 	settings.ExtendedOutput = false;
-	settings.UseBook = false;
 	auto startTime = Clock::now();
 	for (const std::string& fen : BenchmarkFENs) {
 		Search.ResetState(false);

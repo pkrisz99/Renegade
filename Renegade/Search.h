@@ -40,12 +40,6 @@ public:
 	bool StaticExchangeEval(const Board& board, const Move& move, const int threshold);
 	int DrawEvaluation();
 
-	// Opening book
-	void InitOpeningBook();
-	const std::string GetBookMove(const uint64_t hash);
-	const BookEntry GetBookEntry(const int item);
-	int GetBookSize();
-
 	// Communication
 	void PrintInfo(const Results& e, const EngineSettings& settings);
 	void PrintPretty(const Results& e, const EngineSettings& settings);

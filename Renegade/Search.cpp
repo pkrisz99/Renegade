@@ -14,7 +14,6 @@ Search::Search() {
 void Search::Reset() {
 	Depth = 0;
 	ResetStatistics();
-	InitOpeningBook();
 }
 
 void Search::ResetStatistics() {
@@ -153,16 +152,6 @@ const Results Search::SearchMoves(Board &board, const SearchParams params, const
 	if (settings.ExtendedOutput) {
 		cout << "info string Renegade searching for time: (" << Constraints.SearchTimeMin << ".." << Constraints.SearchTimeMax
 			<< ") depth: " << Constraints.MaxDepth << " nodes: " << Constraints.MaxNodes << endl;
-	}
-
-	// Check for book moves
-	if (settings.UseBook) {
-		std::string bookMove = GetBookMove(board.Hash());
-		if (bookMove != "") {
-			Results e;
-			if (display) cout << "bestmove " << bookMove << endl;
-			return e;
-		}
 	}
 
 	// Iterative deepening
@@ -672,77 +661,6 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 	// If after the exchange it's our opponent's turn, that means we won
 	return turn != board.Turn;
 }
-
-// Opening book -----------------------------------------------------------------------------------
-
-void Search::InitOpeningBook() {
-	std::ifstream ifs("book.bin", std::ios::in | std::ios::binary);
-
-	if (!ifs) return;
-
-	uint64_t buffer[2];
-
-	while (ifs.read(reinterpret_cast<char*>(&buffer), 16)) {
-		BookEntry entry;
-#if defined(__GNUC__) || defined(__GNUG__)
-		int a = __builtin_bswap16(0x0000FFFF & buffer[1]);
-		int b = __builtin_bswap16((0xFFFF0000 & buffer[1]) >> 16);
-		entry.hash = __builtin_bswap32(buffer[0]);
-#else
-		int a = _byteswap_ushort(0x0000FFFF & buffer[1]);
-		int b = _byteswap_ushort((0xFFFF0000 & buffer[1]) >> 16);
-		entry.hash = _byteswap_uint64(buffer[0]);
-#endif
-		entry.to = (0b000000000111111 & a) >> 0;
-		entry.from = (0b000111111000000 & a) >> 6;
-		entry.promotion = (0b111000000000000 & a) >> 12;
-		entry.weight = b;
-		entry.learn = 0;
-		BookEntries.push_back(entry);
-	}
-	ifs.close();
-
-}
-
-const std::string Search::GetBookMove(const uint64_t hash) {
-	std::vector<std::string> matches;
-	std::vector<int> weights;
-	int totalWeights = 0;
-	for (const BookEntry& e : BookEntries) {
-		if (e.hash != hash) continue;
-
-		Move m = Move(e.from, e.to);
-		switch (e.promotion) {
-		case 1: { m.SetFlag(MoveFlag::PromotionToKnight); break; }
-		case 2: { m.SetFlag(MoveFlag::PromotionToBishop); break; }
-		case 3: { m.SetFlag(MoveFlag::PromotionToRook); break; }
-		case 4: { m.SetFlag(MoveFlag::PromotionToQueen); break; }
-		}
-		matches.push_back(m.ToString());
-		int w = std::max(e.weight, 1);
-		weights.push_back(w);
-		totalWeights += w;
-	}
-
-	if (matches.size() == 0) return "";
-
-	int randomInt = std::rand() % totalWeights + 1;
-	int sum = 0;
-	for (int i = 0; i < matches.size(); i++) {
-		sum += weights[i];
-		if (sum >= randomInt) return matches[i];
-	}
-	return "";
-}
-
-const BookEntry Search::GetBookEntry(int item) {
-	return BookEntries[item];
-}
-
-int Search::GetBookSize() {
-	return static_cast<int>(BookEntries.size());
-}
-
 
 // Communicating the search results ---------------------------------------------------------------
 

@@ -15,7 +15,7 @@ using std::endl;
 using std::get;
 typedef std::chrono::high_resolution_clock Clock;
 
-const std::string Version = "0.12.0 +";
+const std::string Version = "0.13.0 dev 3";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -187,7 +187,6 @@ struct BookEntry {
 };
 
 struct EngineSettings {
-	bool UseBook;
 	int Hash;
 	bool ExtendedOutput;
 	bool UciOutput;
