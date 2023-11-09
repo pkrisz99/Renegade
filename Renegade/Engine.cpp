@@ -270,11 +270,6 @@ void Engine::Start() {
 			cout << "Using huge hash: 4096 MB" << endl;
 			continue;
 		}
-		if (parts[0] == "nnue") {
-			cout << "Classical evaluation: " << EvaluateBoard(board) << " (for the side to come)" << endl;
-			cout << "     NNUE evaluation: " << NNEvaluate(board) << " (for the side to come)" << endl;
-			continue;
-		}
 
 		// Position command
 		if (parts[0] == "position") {

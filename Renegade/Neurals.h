@@ -11,9 +11,10 @@
 
 // Network constants
 const int FeatureSize = 768;
-const int HiddenSize = 128;
+const int HiddenSize = 256;
+const std::string NetworkName = "renegade-net-6";
 
-struct NetworkRepresentation {
+struct alignas(64) NetworkRepresentation {
 	std::array<std::array<int16_t, HiddenSize>, FeatureSize> FeatureWeights;
 	std::array<int16_t, HiddenSize> FeatureBias;
 	std::array<int16_t, HiddenSize * 2> OutputWeights;

@@ -3,8 +3,8 @@
 int NNEvaluate(const Board& board) {
 	
 	// Initialize arrays
-	std::array<int16_t, HiddenSize> hiddenWhite = std::array<int16_t, HiddenSize>();
-	std::array<int16_t, HiddenSize> hiddenBlack = std::array<int16_t, HiddenSize>();
+	alignas(64) std::array<int16_t, HiddenSize> hiddenWhite = std::array<int16_t, HiddenSize>();
+	alignas(64) std::array<int16_t, HiddenSize> hiddenBlack = std::array<int16_t, HiddenSize>();
 	for (int i = 0; i < HiddenSize; i++) hiddenWhite[i] = (Network->FeatureBias[i]);
 	for (int i = 0; i < HiddenSize; i++) hiddenBlack[i] = (Network->FeatureBias[i]);
 
@@ -42,6 +42,6 @@ int NNEvaluate(const Board& board) {
 
 void LoadNetwork() {
 	Network = new NetworkRepresentation;
-	std::ifstream file("network.bin", std::ios::binary);
+	std::ifstream file(NetworkName + ".bin", std::ios::binary);
 	file.read((char*)Network, sizeof(NetworkRepresentation));
 }

@@ -8,6 +8,7 @@ void Datagen::Start() {
 
 	const int startingEvalLimit = 500;
 	const int softNodeLimit = 5000;
+	const int hardNodeLimit = 15000;
 	const int depthLimit = 20;
 	const int verificationDepth = 10;
 	const int randomPlyBase = 14;
@@ -34,6 +35,7 @@ void Datagen::Start() {
 	EngineSettings settings = EngineSettings();
 	SearchParams params = SearchParams();
 	params.softnodes = softNodeLimit;
+	params.nodes = hardNodeLimit;
 	params.depth = depthLimit;
 	SearchParams verificationParams = SearchParams();
 	verificationParams.depth = verificationDepth;
@@ -111,14 +113,14 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 			// Adjudicate
 			if (std::abs(whiteScore) > MateThreshold) {
 				adjudicationCounter += 1;
-				if (adjudicationCounter >= 3) {
+				if (adjudicationCounter >= 2) {
 					if (whiteScore > 0) outcome = GameState::WhiteVictory;
 					else outcome = GameState::BlackVictory;
 				}
 			}
 			else adjudicationCounter = 0;
 
-			if (board.HalfmoveClock > 70) {
+			if (board.HalfmoveClock > 85) {
 				outcome = GameState::Draw;
 				//cout << "Draw adjud" << endl;
 				break;
