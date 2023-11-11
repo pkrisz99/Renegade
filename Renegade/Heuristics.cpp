@@ -8,10 +8,10 @@ Heuristics::Heuristics() {
 
 // Move ordering & clearing -----------------------------------------------------------------------
 
-int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const Move& ttMove,
-	const Move& previousMove, const bool losingCapture) {
-	const int attackingPiece = TypeOfPiece(board.GetPieceAt(m.from));
-	const int attackedPiece = TypeOfPiece(board.GetPieceAt(m.to));
+int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int level, const float phase, const Move& ttMove,
+	const Move& previousMove, const bool losingCapture) const {
+	const int attackingPieceType = TypeOfPiece(board.GetPieceAt(m.from));
+	const int capturedPieceType = TypeOfPiece(board.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
 	
 	// PV and transposition moves
@@ -19,16 +19,16 @@ int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level
 
 	// Captures
 	if (!losingCapture) {
-		if (attackedPiece != PieceType::None) return 600000 + values[attackedPiece] * 16 - values[attackingPiece];
+		if (capturedPieceType != PieceType::None) return 600000 + values[capturedPieceType] * 16 - values[attackingPieceType];
 		if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
 	}
 	else {
-		if (attackedPiece != PieceType::None) return -200000 + values[attackedPiece] * 16 - values[attackingPiece];
+		if (capturedPieceType != PieceType::None) return -200000 + values[capturedPieceType] * 16 - values[attackingPieceType];
 		if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
 	}
 
 	// Queen promotions
-	if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[attackedPiece];
+	if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[capturedPieceType];
 	
 	// Quiet killer moves
 	if (IsFirstKillerMove(m, level)) return 100100;
@@ -48,12 +48,12 @@ int Heuristics::CalculateOrderScore(Board& board, const Move& m, const int level
 		int orderScore = 0;
 		// Use PSQT change if not
 		if (turn == Turn::White) {
-			orderScore -= LinearTaper(Weights.GetPSQT(attackingPiece, m.from).early, Weights.GetPSQT(attackingPiece, m.from).late, phase);
-			orderScore += LinearTaper(Weights.GetPSQT(attackingPiece, m.to).early, Weights.GetPSQT(attackingPiece, m.to).late, phase);
+			orderScore -= LinearTaper(Weights.GetPSQT(attackingPieceType, m.from).early, Weights.GetPSQT(attackingPieceType, m.from).late, phase);
+			orderScore += LinearTaper(Weights.GetPSQT(attackingPieceType, m.to).early, Weights.GetPSQT(attackingPieceType, m.to).late, phase);
 		}
 		else {
-			orderScore -= LinearTaper(Weights.GetPSQT(attackingPiece, Mirror(m.from)).early, Weights.GetPSQT(attackingPiece, Mirror(m.from)).late, phase);
-			orderScore += LinearTaper(Weights.GetPSQT(attackingPiece, Mirror(m.to)).early, Weights.GetPSQT(attackingPiece, Mirror(m.to)).late, phase);
+			orderScore -= LinearTaper(Weights.GetPSQT(attackingPieceType, Mirror(m.from)).early, Weights.GetPSQT(attackingPieceType, Mirror(m.from)).late, phase);
+			orderScore += LinearTaper(Weights.GetPSQT(attackingPieceType, Mirror(m.to)).early, Weights.GetPSQT(attackingPieceType, Mirror(m.to)).late, phase);
 		}
 		return orderScore;
 	}
@@ -75,7 +75,7 @@ void Heuristics::UpdatePvTable(const Move& move, const int level) {
 
 void Heuristics::GeneratePvLine(std::vector<Move>& list) const {
 	for (int i = 0; i < PvLength[0]; i++) {
-		Move m = PvTable[0][i];
+		const Move& m = PvTable[0][i];
 		if (m.IsEmpty()) break;
 		list.push_back(m);
 	}
@@ -83,7 +83,7 @@ void Heuristics::GeneratePvLine(std::vector<Move>& list) const {
 
 void Heuristics::ResetPvTable() {
 	for (int i = 0; i < MaxDepth; i++) {
-		for (int j = 0; j < MaxDepth; j++) PvTable[i][j] = Move();
+		for (int j = 0; j < MaxDepth; j++) PvTable[i][j] = EmptyMove;
 		PvLength[i] = 0; // ?
 	}
 }
@@ -102,23 +102,23 @@ void Heuristics::AddKillerMove(const Move& move, const int level) {
 	KillerMoves[level][0] = move;
 }
 
-bool Heuristics::IsKillerMove(const Move& move, const int level) {
+bool Heuristics::IsKillerMove(const Move& move, const int level) const {
 	if (KillerMoves[level][0] == move) return true;
 	if (KillerMoves[level][1] == move) return true;
 	return false;
 }
 
-bool Heuristics::IsFirstKillerMove(const Move& move, const int level) {
+bool Heuristics::IsFirstKillerMove(const Move& move, const int level) const {
 	if (KillerMoves[level][0] == move) return true;
 	return false;
 }
 
-bool Heuristics::IsSecondKillerMove(const Move& move, const int level) {
+bool Heuristics::IsSecondKillerMove(const Move& move, const int level) const {
 	if (KillerMoves[level][1] == move) return true;
 	return false;
 }
 
-bool Heuristics::IsCountermove(const Move& previousMove, const Move& thisMove) {
+bool Heuristics::IsCountermove(const Move& previousMove, const Move& thisMove) const {
 	return CounterMoves[previousMove.from][previousMove.to] == thisMove;
 }
 
@@ -128,8 +128,8 @@ void Heuristics::AddCountermove(const Move& previousMove, const Move& thisMove) 
 
 void Heuristics::ClearKillerAndCounterMoves() {
 	for (int i = 0; i < KillerMoves.size(); i++) {
-		KillerMoves[i][0] = Move();
-		KillerMoves[i][1] = Move();
+		KillerMoves[i][0] = EmptyMove;
+		KillerMoves[i][1] = EmptyMove;
 	}
 	for (int i = 0; i < CounterMoves.size(); i++) {
 		std::fill(std::begin(CounterMoves[i]), std::end(CounterMoves[i]), EmptyMove);

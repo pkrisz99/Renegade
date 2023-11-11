@@ -34,8 +34,8 @@ class Heuristics
 public:
 
 	Heuristics();
-	int CalculateOrderScore(Board& board, const Move& m, const int level, const float phase, const Move& ttMove, 
-		const Move& previousMove, const bool losingCapture);
+	[[nodiscard]] int CalculateOrderScore(const Board& board, const Move& m, const int level, const float phase, const Move& ttMove,
+		const Move& previousMove, const bool losingCapture) const;
 	
 	// PV table
 	void UpdatePvTable(const Move& move, const int level);
@@ -45,10 +45,10 @@ public:
 
 	// Killer and countermoves
 	void AddKillerMove(const Move& m, const int level);
-	bool IsCountermove(const Move& previousMove, const Move& thisMove);
-	bool IsKillerMove(const Move& move, const int level);
-	bool IsFirstKillerMove(const Move& move, const int level);
-	bool IsSecondKillerMove(const Move& move, const int level);
+	[[nodiscard]] bool IsCountermove(const Move& previousMove, const Move& thisMove) const;
+	[[nodiscard]] bool IsKillerMove(const Move& move, const int level) const;
+	[[nodiscard]] bool IsFirstKillerMove(const Move& move, const int level) const;
+	[[nodiscard]] bool IsSecondKillerMove(const Move& move, const int level) const;
 	void ClearKillerAndCounterMoves();
 	void AddCountermove(const Move& previousMove, const Move& thisMove);
 
@@ -62,7 +62,7 @@ public:
 	void AddTranspositionEntry(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move& bestMove, const int level);
 	bool RetrieveTranspositionEntry(const uint64_t& hash, TranspositionEntry& entry, const int level);
 	void SetHashSize(const int megabytes);
-	int GetHashfull();
+	[[nodiscard]] int GetHashfull();
 	void GetTranspositionInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits, uint64_t& ttUsed);
 	void ClearTranspositionTable();
 

@@ -181,11 +181,11 @@ struct SearchParams {
 };
 
 struct SearchConstraints {
-	int64_t MaxNodes;
-	int MaxDepth;
-	int SearchTimeMin;
-	int SearchTimeMax;
-	int64_t SoftNodes;
+	int64_t MaxNodes = -1;
+	int MaxDepth = -1;
+	int SearchTimeMin = -1;
+	int SearchTimeMax = -1;
+	int64_t SoftNodes = -1;
 };
 
 struct BookEntry {

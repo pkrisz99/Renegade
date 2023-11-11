@@ -72,12 +72,7 @@ uint64_t Search::PerftRecursive(Board& board, const int depth, const int origina
 // Time management --------------------------------------------------------------------------------
 
 const SearchConstraints Search::CalculateConstraints(const SearchParams params, const bool turn) {
-	SearchConstraints constraints = SearchConstraints();
-	constraints.MaxNodes = -1;
-	constraints.SoftNodes = -1; // soft node limit (mainly for datagen)
-	constraints.MaxDepth = -1;
-	constraints.SearchTimeMin = -1;
-	constraints.SearchTimeMax = -1;
+	SearchConstraints constraints;
 
 	// Nodes && depth && movetime 
 	if (params.nodes != 0) constraints.MaxNodes = params.nodes;
