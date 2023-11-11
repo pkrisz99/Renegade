@@ -31,22 +31,22 @@ void Search::ResetStatistics() {
 
 // Perft methods ----------------------------------------------------------------------------------
 
-void Search::Perft(Board& board, const int depth, const PerftType type) {
+void Search::Perft(Board& board, const int depth, const PerftType type) const {
 	Board b = board.Copy();
 	const bool startingPosition = b.Hash() == 0x463b96181691fc9c;
 	const uint64_t startingPerfts[] = { 1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860 };
 
-	auto t0 = Clock::now();
+	const auto startTime = Clock::now();
 	const uint64_t r = PerftRecursive(b, depth, depth, type);
-	auto t1 = Clock::now();
+	const auto endTime = Clock::now();
 
-	const float seconds = static_cast<float>((t1 - t0).count() / 1e9);
+	const float seconds = static_cast<float>((endTime - startTime).count() / 1e9);
 	const float speed = r / seconds / 1000000;
 	cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps | No bulk counting" << endl;
 	if (startingPosition && (depth <= 6) && (startingPerfts[depth] != r)) cout << "Uh-oh. (expected: " << startingPerfts[depth] << ")" << endl;
 }
 
-uint64_t Search::PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) {
+uint64_t Search::PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) const {
 	std::vector<Move> moves;
 	board.GenerateMoves(moves, MoveGen::All, Legality::Pseudolegal);
 	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << moves.size() << "): " << endl;
@@ -71,10 +71,10 @@ uint64_t Search::PerftRecursive(Board& board, const int depth, const int origina
 
 // Time management --------------------------------------------------------------------------------
 
-const SearchConstraints Search::CalculateConstraints(const SearchParams params, const bool turn) {
+const SearchConstraints Search::CalculateConstraints(const SearchParams params, const bool turn) const {
 	SearchConstraints constraints;
 
-	// Nodes && depth && movetime 
+	// Handle nodes, depth, movetime 
 	if (params.nodes != 0) constraints.MaxNodes = params.nodes;
 	if (params.softnodes != 0) constraints.SoftNodes = params.softnodes;
 	if (params.depth != 0) constraints.MaxDepth = params.depth;
@@ -114,17 +114,15 @@ const SearchConstraints Search::CalculateConstraints(const SearchParams params, 
 	return constraints;
 }
 
-inline bool Search::ShouldAbort() {
+inline bool Search::ShouldAbort() const {
 	if (Aborting) return true;
 	if ((Constraints.MaxNodes != -1) && (Statistics.Nodes >= Constraints.MaxNodes) && (Depth > 1)) {
 		return true;
 	}
 	if ((Statistics.Nodes % 1024 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
-		auto now = Clock::now();
+		const auto now = Clock::now();
 		const int elapsedMs = static_cast<int>((now - StartSearchTime).count() / 1e6);
-		if (elapsedMs >= Constraints.SearchTimeMax) {
-			return true;
-		}
+		if (elapsedMs >= Constraints.SearchTimeMax) return true;
 	}
 	return false;
 }

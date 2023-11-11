@@ -27,12 +27,12 @@ public:
 	void ResetStatistics();
 
 	// Perft methods
-	void Perft(Board& board, const int depth, const PerftType type);
-	uint64_t PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type);
+	void Perft(Board& board, const int depth, const PerftType type) const;
+	uint64_t PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) const;
 
 	// Move search
-	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn);
-	inline bool ShouldAbort();
+	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
+	inline bool ShouldAbort() const;
 	const Results SearchMoves(Board& board, const SearchParams params, const EngineSettings settings, const bool display);
 	int SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove);
 	int SearchQuiescence(Board& board, const int level, int alpha, int beta);
@@ -50,7 +50,6 @@ public:
 	int Depth;
 	SearchStatistics Statistics;
 
-	std::vector<BookEntry> BookEntries;
 	Heuristics Heuristics;
 	SearchConstraints Constraints;
 	bool Aborting = false;

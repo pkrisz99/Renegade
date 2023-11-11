@@ -6,7 +6,6 @@
 #include "Heuristics.h"
 #include "Results.h"
 #include "Search.h"
-//#include "Tuning.h"
 #include <fstream>
 #include <iomanip>
 #include <random>
@@ -14,8 +13,6 @@
 #include <tuple>
 
 extern void GenerateMagicTables();
-//extern void LoadNetwork();
-//extern int NNEvaluate(const Board& board);
 
 class Engine
 {

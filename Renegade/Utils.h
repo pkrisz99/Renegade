@@ -188,15 +188,6 @@ struct SearchConstraints {
 	int64_t SoftNodes = -1;
 };
 
-struct BookEntry {
-	uint8_t from;
-	uint8_t to;
-	uint8_t promotion;
-	uint64_t hash;
-	int weight;
-	int learn;
-};
-
 struct EngineSettings {
 	int Hash;
 	bool ExtendedOutput;
@@ -343,13 +334,12 @@ void PrintBitboard(const uint64_t bits);
 
 // String handling --------------------------------------------------------------------------------
 
-std::string PolyglotMoveToString(const uint8_t from, const uint8_t to, const uint8_t promotion);
 std::string StateString(GameState s);
 void ConvertToLowercase(std::string& str);
 std::string Trim(const std::string& str);
-bool StartsWith(const std::string big, const std::string small);
-std::vector<std::string> Split(const std::string cmd);
-void ClearScreen(bool endline, bool fancy);
+bool StartsWith(const std::string& big, const std::string& small);
+std::vector<std::string> Split(const std::string& cmd);
+void ClearScreen(const bool endline, const bool fancy);
 
 // Precomputed arrays -----------------------------------------------------------------------------
 
@@ -511,7 +501,7 @@ const std::array<std::string, 15> BenchmarkFENs = {
 };
 
 // Polyglot hashing numbers, taken from python-chess
-const uint64_t Zobrist[] = {
+const std::array<uint64_t, 781> Zobrist = {
 	0x9D39247E33776D41, 0x2AF7398005AAA5C7, 0x44DB015024623547, 0x9C15F73E62A76AE2, 0x75834465489C0C89, 0x3290AC3A203001BF, 0x0FBBAD1F61042279, 0xE83A908FF2FB60CA,
 	0x0D7E765D58755C10, 0x1A083822CEAFE02D, 0x9605D5F0E25EC3B0, 0xD021FF5CD13A2ED5, 0x40BDF15D4A672E32, 0x011355146FD56395, 0x5DB4832046F3D9E5, 0x239F8B2D7FF719CC,
 	0x05D1A1AE85B49AA1, 0x679F848F6E8FC971, 0x7449BBFF801FED0B, 0x7D11CDB1C3B7ADF0, 0x82C7709E781EB7CC, 0xF3218F1C9510786C, 0x331478F3AF51BBE6, 0x4BB38DE5E7219443,
