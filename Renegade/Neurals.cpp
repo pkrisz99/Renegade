@@ -1,6 +1,6 @@
 #include "Neurals.h"
 
-int NNEvaluate(const Board& board) {
+int NeuralEvaluate(const Board& board) {
 	
 	// Initialize arrays
 	alignas(64) std::array<int16_t, HiddenSize> hiddenWhite = std::array<int16_t, HiddenSize>();

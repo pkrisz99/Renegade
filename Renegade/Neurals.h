@@ -25,7 +25,7 @@ struct alignas(64) NetworkRepresentation {
 static NetworkRepresentation* Network;
 
 void LoadNetwork();
-int NNEvaluate(const Board &board);
+int NeuralEvaluate(const Board &board);
 
 inline int32_t CReLU(const int16_t value) {
 	return std::clamp<int32_t>(value, 0, 255);

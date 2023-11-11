@@ -770,7 +770,7 @@ void Board::GenerateCastlingMoves(std::vector<Move>& moves) const {
 		const bool empty_b8 = GetPieceAt(Squares::B8) == 0;
 		const bool empty_c8 = GetPieceAt(Squares::C8) == 0;
 		const bool empty_d8 = GetPieceAt(Squares::D8) == 0;
-		if (empty_b8 & empty_c8 & empty_d8) {
+		if (empty_b8 && empty_c8 && empty_d8) {
 			const bool safe_c8 = !IsSquareAttacked<Turn::White>(Squares::C8);
 			const bool safe_d8 = !IsSquareAttacked<Turn::White>(Squares::D8);
 			const bool safe_e8 = !IsSquareAttacked<Turn::White>(Squares::E8);

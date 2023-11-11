@@ -216,6 +216,11 @@ inline int LinearTaper(const int earlyValue, const int lateValue, const float ph
 	return static_cast<int>((1.f - phase) * earlyValue + phase * lateValue);
 }
 
+inline int LinearTaper(const TaperedScore& tapered, const float phase) {
+	return static_cast<int>((1.f - phase) * tapered.early + phase * tapered.late);
+}
+
+
 inline float CalculateGamePhase(const Board& board) {
 	const int remainingPawns = Popcount(board.WhitePawnBits | board.BlackPawnBits);
 	const int remainingKnights = Popcount(board.WhiteKnightBits | board.BlackKnightBits);
@@ -230,9 +235,10 @@ inline float CalculateGamePhase(const Board& board) {
 
 inline bool IsDrawishEndgame(const Board& board, const uint64_t whitePieces, const uint64_t blackPieces);
 
-int EvaluateBoard(const Board& board, const EvaluationFeatures& weights);
+int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights);
+
 int KingTropismEvaluate(const Board& board, const EvaluationFeatures& weights);
 
-inline int EvaluateBoard(const Board& board) {
-	return EvaluateBoard(board, Weights);
+inline int ClassicalEvaluate(const Board& board) {
+	return ClassicalEvaluate(board, Weights);
 }

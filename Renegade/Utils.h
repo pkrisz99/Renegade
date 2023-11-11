@@ -210,8 +210,8 @@ struct SearchStatistics {
 };
 
 struct TaperedScore {
-	int early;
-	int late;
+	int early = 0;
+	int late = 0;
 	inline TaperedScore operator+ (const TaperedScore& s) const {
 		return { early + s.early, late + s.late };
 	}
@@ -334,7 +334,6 @@ void PrintBitboard(const uint64_t bits);
 
 // String handling --------------------------------------------------------------------------------
 
-std::string StateString(GameState s);
 void ConvertToLowercase(std::string& str);
 std::string Trim(const std::string& str);
 bool StartsWith(const std::string& big, const std::string& small);

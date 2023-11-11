@@ -551,7 +551,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 
 int Search::Evaluate(const Board &board) {
 	Statistics.Evaluations += 1;
-	return NNEvaluate(board);
+	return NeuralEvaluate(board);
 }
 
 int Search::DrawEvaluation() {
