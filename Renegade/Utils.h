@@ -19,27 +19,28 @@ const std::string Version = "0.13.0 dev 3";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
-static const int MateEval = 100000;
-static const int MateThreshold = MateEval - 10000;
-static const int NoEval = -666666666;
-static const int NegativeInfinity = -333333333; // Inventing a new kind of math here
-static const int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
+// Score values:
+constexpr int MateEval = 100000;
+constexpr int MateThreshold = MateEval - 10000;
+constexpr int NoEval = -666666666;
+constexpr int NegativeInfinity = -333333333; // Inventing a new kind of math here
+constexpr int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
-static const int MaxDepth = 128;
+constexpr int MaxDepth = 128;
 
 static inline bool IsMateScore(const int score) {
-	return (std::abs(score) > MateEval - 10000) && (std::abs(score) <= MateEval);
+	return (std::abs(score) > MateThreshold) && (std::abs(score) <= MateEval);
 }
 
 static inline bool IsWinningMateScore(const int score) {
-	return (score > MateEval - 10000) && (score <= MateEval);
+	return (score > MateThreshold) && (score <= MateEval);
 }
 
 static inline bool IsLosingMateScore(const int score) {
-	return (score < -MateEval + 10000) && (score >= -MateEval);
+	return (score < -MateThreshold && (score >= -MateEval));
 }
 
-static inline int LosingMateScore(int level) {
+static inline int LosingMateScore(const int level) {
 	return -MateEval + level;
 }
 

@@ -32,7 +32,7 @@ void Search::ResetStatistics() {
 // Perft methods ----------------------------------------------------------------------------------
 
 void Search::Perft(Board& board, const int depth, const PerftType type) const {
-	Board b = board.Copy();
+	Board b = board;
 	const bool startingPosition = b.Hash() == 0x463b96181691fc9c;
 	const uint64_t startingPerfts[] = { 1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860 };
 
@@ -59,7 +59,7 @@ uint64_t Search::PerftRecursive(Board& board, const int depth, const int origina
 			count += r;
 		}
 		else {
-			Board b = board.Copy();
+			Board b = board;
 			b.Push(m);
 			r = PerftRecursive(b, depth - 1, originalDepth, type);
 			count += r;
@@ -129,7 +129,7 @@ inline bool Search::ShouldAbort() const {
 
 // Negamax search routine and handling ------------------------------------------------------------
 
-const Results Search::SearchMoves(Board &board, const SearchParams params, const EngineSettings settings, const bool display) {
+const Results Search::SearchMoves(Board board, const SearchParams params, const EngineSettings settings, const bool display) {
 
 	StartSearchTime = Clock::now();
 	int elapsedMs = 0;
@@ -328,13 +328,13 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// Futility pruning (+37 elo)
 	const int futilityMargins[] = { 0, 90, 180, 270, 360, 450 };
 	bool futilityPrunable = false;
-	if ((depth <= 5) && !inCheck && !pvNode /* && (abs(beta) < MateEval - 10000)*/) {
+	if ((depth <= 5) && !inCheck && !pvNode /* && (abs(beta) < MateThreshold)*/) {
 		if ((staticEval + futilityMargins[depth] < alpha)) futilityPrunable = true;
 	}
 
 	// Reverse futility pruning (+128 elo)
 	const int rfpMarginDefault[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
-	if ((depth <= 7) && !inCheck && !pvNode /* && (abs(beta) < MateEval - 10000)*/) {
+	if ((depth <= 7) && !inCheck && !pvNode /* && (abs(beta) < MateThreshold)*/) {
 		const int rfpMargin = improving ? rfpMarginDefault[depth] / 2 : rfpMarginDefault[depth];
 		if (staticEval - rfpMargin > beta) return staticEval;
 	}
@@ -382,12 +382,12 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		LegalAndQuiet[level][pseudoLegalCount] = isQuiet;
 
 		// Performing futility pruning
-		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta) && (bestScore > -MateEval + 10000) && !DatagenMode) continue;
+		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta) && (bestScore > -MateThreshold) && !DatagenMode) continue;
 
 		// Main search SEE pruning (+20 elo)
 		const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300, -350 };
 		const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600, -700 };
-		if (!rootNode && !pvNode && (depth <= 5) && !IsLosingMateScore(alpha) && (bestScore > -MateEval + 10000) && !DatagenMode) {
+		if (!rootNode && !pvNode && (depth <= 5) && !IsLosingMateScore(alpha) && (bestScore > -MateThreshold) && !DatagenMode) {
 			if (!StaticExchangeEval(board, m, isQuiet ? seeQuietMargin[depth] : seeNoisyMargin[depth])) continue;
 		}
 

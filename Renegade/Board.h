@@ -19,11 +19,9 @@ class Board
 {
 
 public:
-	Board();
-	Board(const Board& b);
 	Board(const std::string& fen);
-	Board Copy();
-	void Setup(const std::string& fen);
+	Board() : Board(FEN::StartPos) {};
+	Board(const Board& b);
 
 	void Push(const Move& move);
 	bool PushUci(const std::string& ucistr);

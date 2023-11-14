@@ -288,6 +288,7 @@ void Engine::Start() {
 
 			SearchParams params;
 			for (int i = 1; i < parts.size(); i++) {
+				// This looks ugly, but I'll rewrite it
 				if (parts[i] == "wtime") { params.wtime = stoi(parts[i + 1LL]); i++; }
 				if (parts[i] == "btime") { params.btime = stoi(parts[i + 1LL]); i++; }
 				if (parts[i] == "movestogo") { params.movestogo = stoi(parts[i + 1LL]); i++; }

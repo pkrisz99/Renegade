@@ -2,7 +2,7 @@
 
 // Constructors and related -----------------------------------------------------------------------
 
-void Board::Setup(const std::string& fen) {
+Board::Board(const std::string& fen) {
 	WhitePawnBits = 0L;
 	WhiteKnightBits = 0L;
 	WhiteBishopBits = 0L;
@@ -77,14 +77,6 @@ void Board::Setup(const std::string& fen) {
 	GenerateOccupancy();
 }
 
-Board::Board() {
-	Setup(FEN::StartPos);
-}
-
-Board::Board(const std::string& fen) {
-	Setup(fen);
-}
-
 Board::Board(const Board& b) {
 	WhitePawnBits = b.WhitePawnBits;
 	WhiteKnightBits = b.WhiteKnightBits;
@@ -113,10 +105,6 @@ Board::Board(const Board& b) {
 	HashValue = b.HashValue;
 	PreviousHashes.reserve(b.PreviousHashes.size() + 1);
 	PreviousHashes = b.PreviousHashes;
-}
-
-Board Board::Copy() {
-	return Board(*this);
 }
 
 // Generating board hash --------------------------------------------------------------------------

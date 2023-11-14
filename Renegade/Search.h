@@ -33,7 +33,7 @@ public:
 	// Move search
 	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	inline bool ShouldAbort() const;
-	const Results SearchMoves(Board& board, const SearchParams params, const EngineSettings settings, const bool display);
+	const Results SearchMoves(Board board, const SearchParams params, const EngineSettings settings, const bool display);
 	int SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove);
 	int SearchQuiescence(Board& board, const int level, int alpha, int beta);
 	int Evaluate(const Board& board);
