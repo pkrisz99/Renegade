@@ -328,13 +328,13 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	// Futility pruning (+37 elo)
 	const int futilityMargins[] = { 0, 90, 180, 270, 360, 450 };
 	bool futilityPrunable = false;
-	if ((depth <= 5) && !inCheck && !pvNode /* && (abs(beta) < MateThreshold)*/) {
+	if ((depth <= 5) && !inCheck && !pvNode && (std::abs(beta) < MateThreshold)) {
 		if ((staticEval + futilityMargins[depth] < alpha)) futilityPrunable = true;
 	}
 
 	// Reverse futility pruning (+128 elo)
 	const int rfpMarginDefault[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
-	if ((depth <= 7) && !inCheck && !pvNode /* && (abs(beta) < MateThreshold)*/) {
+	if ((depth <= 7) && !inCheck && !pvNode && (std::abs(beta) < MateThreshold)) {
 		const int rfpMargin = improving ? rfpMarginDefault[depth] / 2 : rfpMarginDefault[depth];
 		if (staticEval - rfpMargin > beta) return staticEval;
 	}
@@ -421,7 +421,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 					if (!pvNode) reduction += 1;
 				}
 
-				reduction = std::min(reduction, depth - 1);
+				reduction = std::clamp(reduction, 0, depth - 1);
 			}
 
 			// Principal variation search
