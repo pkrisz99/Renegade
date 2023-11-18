@@ -25,10 +25,10 @@ void Datagen::Start() {
 	cout << endl;
 
 	cout << "Datagen settings: " << endl;
-	cout << " - " << randomPlyBase << " or " << randomPlyBase + 1 << " random plies, then rollout" << endl;
+	cout << " - " << randomPlyBase << " or " << randomPlyBase + 1 << " plies of random rollout, then normal playout" << endl;
 	cout << " - Verification at depth " << verificationDepth << " with a threshold of " << startingEvalLimit << endl;
 	cout << " - Playing with a soft node limit of " << softNodeLimit << endl;
-	cout << " - Adjudication if mate is reported for 2 plies, or if halfmove counter > 85\n" << endl;
+	cout << " - Adjudication if mate is reported for 2 plies\n" << endl;
 
 	EngineSettings settings = EngineSettings();
 	SearchParams params = SearchParams();

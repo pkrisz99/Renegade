@@ -350,12 +350,13 @@ int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 	// If we're interested how the score is calculated
 	/*
 	if constexpr (true) {
-		cout << "- Material:       " << LinearTaper(materialScore, phase) << "    <- " << materialScore << endl;
-		cout << "- Piece-square:   " << LinearTaper(pqstScore, phase) << "    <- " << pqstScore << endl;
-		cout << "- Pawn structure: " << LinearTaper(pawnStructureScore, phase) << "    <- " << pawnStructureScore << endl;
-		cout << "- Threats:        " << LinearTaper(threatScore, phase) << "    <- " << threatScore << endl;
-		cout << "- Mobility:       " << LinearTaper(mobilityScore, phase) << "    <- " << mobilityScore << endl;
-		cout << "- King safety:    " << LinearTaper(kingScore, phase) << "    <- " << kingScore << endl;
+		cout << "Hand-crafted evaluation components:\n";
+		cout << "- Material:       " << LinearTaper(materialScore, phase) << "    <- " << materialScore << '\n';
+		cout << "- Piece-square:   " << LinearTaper(pqstScore, phase) << "    <- " << pqstScore << '\n';
+		cout << "- Pawn structure: " << LinearTaper(pawnStructureScore, phase) << "    <- " << pawnStructureScore << '\n';
+		cout << "- Threats:        " << LinearTaper(threatScore, phase) << "    <- " << threatScore << '\n';
+		cout << "- Mobility:       " << LinearTaper(mobilityScore, phase) << "    <- " << mobilityScore << '\n';
+		cout << "- King safety:    " << LinearTaper(kingScore, phase) << "    <- " << kingScore << '\n';
 		cout << "- Tempo:          " << (board.Turn == Turn::White ? tempo : -tempo) << "    <- " << weights.GetTempoBonus() << endl;
 	}*/
 

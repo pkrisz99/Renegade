@@ -65,6 +65,7 @@ public:
 	[[nodiscard]] int GetHashfull();
 	void GetTranspositionInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits, uint64_t& ttUsed);
 	void ClearTranspositionTable();
+	void PrefetchTranspositionEntry(const uint64_t hash) const;
 
 	std::array<std::array<Move, MaxDepth + 1>, MaxDepth + 1> PvTable;
 	std::array<int, MaxDepth + 1> PvLength;

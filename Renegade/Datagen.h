@@ -1,6 +1,7 @@
 #pragma once
 #include <filesystem>
 #include <fstream>
+#include <thread>
 #include "Board.h"
 #include "Search.h"
 #include "Utils.h"
