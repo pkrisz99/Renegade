@@ -1,5 +1,13 @@
 #include "Neurals.h"
 
+// Incbin shenanigans:
+
+#include "incbin/incbin.h"
+
+INCBIN(DefaultNetwork, "renegade-net-6.bin");
+const NetworkRepresentation* Network;
+
+
 int NeuralEvaluate(const Board& board) {
 	
 	// Initialize arrays
@@ -40,8 +48,14 @@ int NeuralEvaluate(const Board& board) {
 
 }
 
-void LoadNetwork() {
+void LoadExternalNetwork() {
+	/*
 	Network = new NetworkRepresentation;
 	std::ifstream file(NetworkName + ".bin", std::ios::binary);
 	file.read((char*)Network, sizeof(NetworkRepresentation));
+	*/
+}
+
+void LoadDefaultNetwork() {
+	Network = reinterpret_cast<const NetworkRepresentation*>(gDefaultNetworkData); // Incbin magic
 }

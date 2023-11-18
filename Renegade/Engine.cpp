@@ -8,7 +8,7 @@ Engine::Engine(int argc, char* argv[]) {
 	Settings.UciOutput = !PrettySupport;
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
-	LoadNetwork();
+	LoadDefaultNetwork();
 	Search.Heuristics.SetHashSize(Settings.Hash);
 	Search.Heuristics.ClearTranspositionTable();
 

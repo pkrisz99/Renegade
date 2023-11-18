@@ -21,10 +21,10 @@ struct alignas(64) NetworkRepresentation {
 	int16_t OutputBias;
 };
 
+extern const NetworkRepresentation* Network;
 
-static NetworkRepresentation* Network;
-
-void LoadNetwork();
+void LoadDefaultNetwork();
+void LoadExternalNetwork();
 int NeuralEvaluate(const Board &board);
 
 inline int32_t CReLU(const int16_t value) {
