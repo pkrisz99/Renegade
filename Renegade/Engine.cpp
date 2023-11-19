@@ -321,6 +321,16 @@ void Engine::Start() {
 			continue;
 		}
 
+		if (parts[0] == "nnue") {
+			cout << "Arch: 768->" << HiddenSize << "x2" << "->1 (CReLu)" << endl;
+			continue;
+		}
+
+		if (parts[0] == "loadnnue") {
+			LoadExternalNetwork(parts[1]);
+			continue;
+		}
+
 		if (parts[0] == "goall") {
 			std::vector<Move> moves;
 			board.GenerateMoves(moves, MoveGen::All, Legality::Legal);
