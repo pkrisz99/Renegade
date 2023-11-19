@@ -10,9 +10,8 @@
 // Not meant to be as a permanent solution in its current form.
 
 // Network constants
-const int FeatureSize = 768;
-const int HiddenSize = 256;
-const std::string NetworkName = "renegade-net-6";
+constexpr int FeatureSize = 768;
+constexpr int HiddenSize = 256;
 
 struct alignas(64) NetworkRepresentation {
 	std::array<std::array<int16_t, HiddenSize>, FeatureSize> FeatureWeights;
@@ -21,10 +20,10 @@ struct alignas(64) NetworkRepresentation {
 	int16_t OutputBias;
 };
 
+extern const NetworkRepresentation* Network;
 
-static NetworkRepresentation* Network;
-
-void LoadNetwork();
+void LoadDefaultNetwork();
+void LoadExternalNetwork(const std::string& filename);
 int NeuralEvaluate(const Board &board);
 
 inline int32_t CReLU(const int16_t value) {

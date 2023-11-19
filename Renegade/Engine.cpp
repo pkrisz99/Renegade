@@ -8,7 +8,7 @@ Engine::Engine(int argc, char* argv[]) {
 	Settings.UciOutput = !PrettySupport;
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
-	LoadNetwork();
+	LoadDefaultNetwork();
 	Search.Heuristics.SetHashSize(Settings.Hash);
 	Search.Heuristics.ClearTranspositionTable();
 
@@ -318,6 +318,16 @@ void Engine::Start() {
 		if (parts[0] == "flip") {
 			cout << "Turn flipped." << endl;
 			board.Turn = !board.Turn;
+			continue;
+		}
+
+		if (parts[0] == "nnue") {
+			cout << "Arch: 768->" << HiddenSize << "x2" << "->1 (CReLu)" << endl;
+			continue;
+		}
+
+		if (parts[0] == "loadnnue") {
+			LoadExternalNetwork(parts[1]);
 			continue;
 		}
 
