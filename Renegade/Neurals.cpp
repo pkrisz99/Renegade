@@ -50,10 +50,13 @@ int NeuralEvaluate(const Board& board) {
 	int32_t output = 0;
 
 	// Calculate output
-	for (int i = 0; i < HiddenSize; i++) output += CReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
-	for (int i = 0; i < HiddenSize; i++) output += CReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
+	for (int i = 0; i < HiddenSize; i++) output += ClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
+	for (int i = 0; i < HiddenSize; i++) output += ClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
 	const int scale = 400;
-	const int q = 255 * 64;
+	const int qa = 255;
+	const int qb = 64;
+	const int q = qa * qb;
+	//output = (output / qa + Network->OutputBias) * scale / q; // Square clipped relu
 	output = (output + Network->OutputBias) * scale / q;
 
 	return output;

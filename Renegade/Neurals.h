@@ -26,8 +26,12 @@ void LoadDefaultNetwork();
 void LoadExternalNetwork(const std::string& filename);
 int NeuralEvaluate(const Board &board);
 
-inline int32_t CReLU(const int16_t value) {
+inline int32_t ClippedReLU(const int16_t value) {
 	return std::clamp<int32_t>(value, 0, 255);
 }
 
+inline int32_t SquareClippedReLU(const int16_t value) {
+	const int32_t x = std::clamp<int32_t>(value, 0, 255);
+	return x * x;
+}
 

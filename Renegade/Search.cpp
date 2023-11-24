@@ -277,7 +277,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 	// Check extensions
 	const bool inCheck = board.IsInCheck();
-	if (!rootNode || !DatagenMode) {
+	if (!rootNode) {
 		if (inCheck) depth += 1;
 	}
 
@@ -285,35 +285,35 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	//if (rootNode && board.IsDraw(true)) return 0;
 	if (!rootNode && board.IsDraw(false)) return DrawEvaluation();
 
-	// Return result for terminal nodes
+	// Drop into quiescence search at depth 0
 	if (depth <= 0) {
 		return SearchQuiescence(board, level, alpha, beta);
 	}
 
 	// Probe the transposition table
 	const uint64_t hash = board.Hash();
-	TranspositionEntry entry;
+	TranspositionEntry ttEntry;
 	int ttEval = NoEval;
-	const bool found = Heuristics.RetrieveTranspositionEntry(hash, entry, level);
+	const bool found = Heuristics.RetrieveTranspositionEntry(hash, ttEntry, level);
 	Move ttMove = EmptyMove;
 	Statistics.TranspositionQueries += 1;
 	if (found) {
 		if (!pvNode) {
 			// The branch was already analysed to the same or greater depth, so we can return the result if the score is alright
-			if (entry.IsCutoffPermitted(depth, alpha, beta)) return entry.score;
+			if (ttEntry.IsCutoffPermitted(depth, alpha, beta)) return ttEntry.score;
 		}
-		if (pvNode || (entry.depth < depth)) ttEval = entry.score; // Do these conditions make sense? No.
-		ttMove = Move(entry.moveFrom, entry.moveTo, entry.moveFlag);
+		if (pvNode || (ttEntry.depth < depth)) ttEval = ttEntry.score; // Do these conditions make sense? No.
+		ttMove = Move(ttEntry.moveFrom, ttEntry.moveTo, ttEntry.moveFlag);
 		Statistics.TranspositionHits += 1;
 	}
 	
 	// Obtain the evaluation of the position
 	int staticEval = NoEval;
-	if ((ttEval == NoEval) || (entry.scoreType != ScoreType::Exact)) staticEval = Evaluate(board);
+	if ((ttEval == NoEval) || (ttEntry.scoreType != ScoreType::Exact)) staticEval = Evaluate(board);
 	if (ttEval != NoEval) {
-		if ((entry.scoreType == ScoreType::Exact)
-			|| ((entry.scoreType == ScoreType::LowerBound) && (staticEval < ttEval))
-			|| ((entry.scoreType == ScoreType::UpperBound) && (staticEval > ttEval))) staticEval = ttEval;
+		if ((ttEntry.scoreType == ScoreType::Exact)
+			|| ((ttEntry.scoreType == ScoreType::LowerBound) && (staticEval < ttEval))
+			|| ((ttEntry.scoreType == ScoreType::UpperBound) && (staticEval > ttEval))) staticEval = ttEval;
 	}
 	EvalStack[level] = staticEval;
 	const bool improving = (level >= 2) && (EvalStack[level] > EvalStack[level - 2]) && !inCheck;
@@ -477,7 +477,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	return bestScore;
 }
 
-// Quiescence search: for noisy moves only (captures, queen promotions, pawn pushes threatening promotion)
+// Quiescence search: for noisy moves only (captures, queen promotions)
 int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta) {
 
 	// Check search limits
@@ -497,11 +497,11 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 
 	// Probe the transposition table
 	const uint64_t hash = board.Hash();
-	TranspositionEntry entry;
-	const bool found = Heuristics.RetrieveTranspositionEntry(hash, entry, level);
+	TranspositionEntry ttEntry;
+	const bool found = Heuristics.RetrieveTranspositionEntry(hash, ttEntry, level);
 	Statistics.TranspositionQueries += 1;
 	if (found) {
-		if (entry.IsCutoffPermitted(0, alpha, beta)) return entry.score;
+		if (ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
 		Statistics.TranspositionHits += 1;
 	}
 
