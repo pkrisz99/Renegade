@@ -47,6 +47,11 @@ public:
 
 	void ResetState(const bool clearTT);
 
+	void SetupAccumulators(const Board& board);
+
+	template <bool push>
+	void UpdateAccumulators(const uint64_t whitePawns, const uint64_t blackPawns, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
+
 	int Depth;
 	SearchStatistics Statistics;
 
@@ -61,11 +66,16 @@ public:
 	std::vector<Move> MoveList;
 	std::array<std::vector<std::tuple<Move, int>>, MaxDepth> MoveOrder;
 	std::array<Board, MaxDepth> Boards;
-	std::array<Move, MaxDepth> MoveStack;
 	std::array<std::array<bool, 256>, MaxDepth> LegalAndQuiet;
 	std::array<int, MaxDepth> EvalStack;
 
+	std::array<Move, MaxDepth> MoveStack;
+	std::array<uint8_t, MaxDepth> MovedPieceStack;
+	std::array<uint8_t, MaxDepth> CapturedPieceStack;
+
 	std::array<std::array<int, 32>, 32> LMRTable;
+
+	AccumulatorRepresentation Accumulator;
 
 };
 

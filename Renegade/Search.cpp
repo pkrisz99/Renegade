@@ -147,6 +147,8 @@ const Results Search::SearchMoves(Board board, const SearchParams params, const 
 			<< ") depth: " << Constraints.MaxDepth << " nodes: " << Constraints.MaxNodes << endl;
 	}
 
+	SetupAccumulators(board);
+
 	// Iterative deepening
 	Results e = Results();
 	int result = NoEval;
@@ -196,7 +198,9 @@ const Results Search::SearchMoves(Board board, const SearchParams params, const 
 						e.pv.clear();
 						Heuristics.GeneratePvLine(e.pv);
 					}*/
-					//if (!IsMateScore(result) && (searchDepth > 1)) searchDepth -= 1;
+					
+					// Reduce depth on fail-high
+					// if (!IsMateScore(result) && (searchDepth > 1)) searchDepth -= 1;
 				}
 				else {
 					// Success!
@@ -373,6 +377,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	int legalMoveCount = 0, pseudoLegalCount = 0;
 	Move bestMove = EmptyMove;
 	int bestScore = NegativeInfinity;
+
 	for (const auto& [m, order] : MoveOrder[level]) {
 		pseudoLegalCount += 1;
 		LegalAndQuiet[level][pseudoLegalCount] = false;
@@ -394,14 +399,23 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		// Push move
 		Boards[level] = board;
 		Board& b = Boards[level];
-		b.Push(m);
 		MoveStack[level] = m;
+		const uint8_t movedPiece = b.GetPieceAt(m.from);
+		const uint8_t capturedPiece = b.GetPieceAt(m.to);
+		MovedPieceStack[level] = movedPiece;
+		CapturedPieceStack[level] = capturedPiece;
+		const uint64_t whitePawns = b.WhitePawnBits; // <--- temp
+		const uint64_t blackPawns = b.BlackPawnBits; // <--- temp
+
+		b.Push(m);
 		Statistics.Nodes += 1;
 		int score = NoEval;
 		const bool givingCheck = b.IsInCheck();
 
 		if (legalMoveCount == 1) {
+			UpdateAccumulators<true>(whitePawns, blackPawns, m, movedPiece, capturedPiece);
 			score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
+			UpdateAccumulators<false>(whitePawns, blackPawns, m, movedPiece, capturedPiece);
 		}
 		else {
 			int reduction = 0;
@@ -425,9 +439,11 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			}
 
 			// Principal variation search
+			UpdateAccumulators<true>(whitePawns, blackPawns, m, movedPiece, capturedPiece);
 			score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha - 1, -alpha, true);
 			if ((score > alpha) && (reduction > 0)) score = -SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
 			if ((score > alpha) && (score < beta)) score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
+			UpdateAccumulators<false>(whitePawns, blackPawns, m, movedPiece, capturedPiece);
 		}
 
 		if (score > bestScore) {
@@ -462,7 +478,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				alpha = score;
 			}
 		}
-
 	}
 
 	// There was no legal move --> game over 
@@ -474,6 +489,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 	// Return the best score (fail-soft)
 	if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, scoreType, bestMove, level);
+
 	return bestScore;
 }
 
@@ -531,8 +547,15 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 
 		Boards[level] = board;
 		Board& b = Boards[level];
+		const uint8_t movedPiece = board.GetPieceAt(m.from);
+		const uint8_t capturedPiece = board.GetPieceAt(m.to);
+		const uint64_t whitePawns = b.WhitePawnBits; // <--- temp
+		const uint64_t blackPawns = b.BlackPawnBits; // <--- temp
 		b.Push(m);
+		UpdateAccumulators<true>(whitePawns, blackPawns, m, movedPiece, capturedPiece);
 		const int score = -SearchQuiescence(b, level + 1, -beta, -alpha);
+		UpdateAccumulators<false>(whitePawns, blackPawns, m, movedPiece, capturedPiece);
+
 		if (score > bestScore) {
 			bestScore = score;
 			if (bestScore >= beta) {
@@ -551,7 +574,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 
 int Search::Evaluate(const Board &board) {
 	Statistics.Evaluations += 1;
-	return NeuralEvaluate(board);
+	return NeuralEvaluate2(Accumulator, board.Turn);
 }
 
 int Search::DrawEvaluation() {
@@ -653,6 +676,127 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 
 	// If after the exchange it's our opponent's turn, that means we won
 	return turn != board.Turn;
+}
+
+// Accumulators for neural networks ---------------------------------------------------------------
+
+void Search::SetupAccumulators(const Board& board) {
+	Accumulator.Reset();
+	uint64_t bits = board.GetOccupancy();
+
+	while (bits) {
+		const uint8_t sq = Popsquare(bits);
+		const int piece = board.GetPieceAt(sq);
+		const int pieceType = TypeOfPiece(piece);
+		const int pieceColor = ColorOfPiece(piece);
+		const int colorOffset = 64 * 6;
+
+		// Turn on the right inputs
+		const int whiteActivationIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + sq;
+		const int blackActivationIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq);
+		for (int i = 0; i < HiddenSize; i++) Accumulator.White[i] += Network->FeatureWeights[whiteActivationIndex][i];
+		for (int i = 0; i < HiddenSize; i++) Accumulator.Black[i] += Network->FeatureWeights[blackActivationIndex][i];
+	}
+}
+
+template <bool push>
+void Search::UpdateAccumulators(const uint64_t whitePawns, const uint64_t blackPawns, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
+
+	//cout << "\n" << m.ToString() << " " << int(movedPiece) << " " << int(capturedPiece) << " f:" << int(m.flag) << endl;
+
+	std::pair<int, int> f;
+
+	// Remove old feature of the moved piece
+	f = FeatureIndexes(movedPiece, m.from);
+	Accumulator.UpdateFeature<!push>(f.first, f.second);
+
+	// Remove old feature of the captured piece
+	if (capturedPiece != Piece::None) {
+		f = FeatureIndexes(capturedPiece, m.to);
+		Accumulator.UpdateFeature<!push>(f.first, f.second);
+	}
+
+	// Add new feature of the moved piece
+	if (!m.IsPromotion()) {
+		f = FeatureIndexes(movedPiece, m.to);
+		Accumulator.UpdateFeature<push>(f.first, f.second);
+	}
+	else {
+		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
+		f = FeatureIndexes(promotionPiece, m.to);
+		Accumulator.UpdateFeature<push>(f.first, f.second);
+	}
+
+	switch (m.flag) {
+		case MoveFlag::None: break;
+
+		case MoveFlag::ShortCastle:
+
+			if (ColorOfPiece(movedPiece) == PieceColor::White) {
+				// Manually move the rook from H1 to F1
+				f = FeatureIndexes(Piece::WhiteRook, Squares::H1);
+				Accumulator.UpdateFeature<!push>(f.first, f.second);
+				f = FeatureIndexes(Piece::WhiteRook, Squares::F1);
+				Accumulator.UpdateFeature<push>(f.first, f.second);
+			}
+			else {
+				f = FeatureIndexes(Piece::BlackRook, Squares::H8);
+				Accumulator.UpdateFeature<!push>(f.first, f.second);
+				f = FeatureIndexes(Piece::BlackRook, Squares::F8);
+				Accumulator.UpdateFeature<push>(f.first, f.second);
+			}
+
+			break;
+
+		case MoveFlag::LongCastle:
+
+			if (ColorOfPiece(movedPiece) == PieceColor::White) {
+				// Manually move the rook from A1 to D1
+				f = FeatureIndexes(Piece::WhiteRook, Squares::A1);
+				Accumulator.UpdateFeature<!push>(f.first, f.second);
+				f = FeatureIndexes(Piece::WhiteRook, Squares::D1);
+				Accumulator.UpdateFeature<push>(f.first, f.second);
+			}
+			else {
+				f = FeatureIndexes(Piece::BlackRook, Squares::A8);
+				Accumulator.UpdateFeature<!push>(f.first, f.second);
+				f = FeatureIndexes(Piece::BlackRook, Squares::D8);
+				Accumulator.UpdateFeature<push>(f.first, f.second);
+			}
+
+			break;
+		case MoveFlag::EnPassantPerformed:
+
+			// THIS IS TERRIBLE
+			// DURING NMP YOU CAN CAPTURE YOUR OWN PAWN
+			// (I'll fix this, but I don't want to change the bench now)
+
+			if (movedPiece == Piece::WhitePawn) {
+				uint8_t epdPiece = Piece::None;
+				if (CheckBit(whitePawns, m.to - 8)) epdPiece = Piece::WhitePawn;
+				else if (CheckBit(blackPawns, m.to - 8)) epdPiece = Piece::BlackPawn;
+
+
+				if (epdPiece != Piece::None) { // <--- terrible
+					f = FeatureIndexes(epdPiece, m.to - 8);
+					Accumulator.UpdateFeature<!push>(f.first, f.second);
+				}
+			}
+			else {
+				uint8_t epdPiece = Piece::None;
+				if (CheckBit(whitePawns, m.to + 8)) epdPiece = Piece::WhitePawn;
+				else if (CheckBit(blackPawns, m.to + 8)) epdPiece = Piece::BlackPawn;
+
+
+				if (epdPiece != Piece::None) { // <--- terrible
+					f = FeatureIndexes(epdPiece, m.to + 8);
+					Accumulator.UpdateFeature<!push>(f.first, f.second);
+				}
+			}
+
+			break;
+	}
+
 }
 
 // Communicating the search results ---------------------------------------------------------------

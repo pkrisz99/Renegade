@@ -19,14 +19,31 @@ INCBIN(DefaultNetwork, "renegade-net-7.bin");
 const NetworkRepresentation* Network;
 std::unique_ptr<NetworkRepresentation> ExternalNetwork;
 
+int NeuralEvaluate2(const AccumulatorRepresentation& acc, const bool turn) {
+	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Turn::White) ? acc.White : acc.Black;
+	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Turn::White) ? acc.Black : acc.White;
+	int32_t output = 0;
+
+	// Calculate output
+	for (int i = 0; i < HiddenSize; i++) output += ClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
+	for (int i = 0; i < HiddenSize; i++) output += ClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
+	const int scale = 400;
+	const int qa = 255;
+	const int qb = 64;
+	const int q = qa * qb;
+	//output = (output / qa + Network->OutputBias) * scale / q; // Square clipped relu
+	output = (output + Network->OutputBias) * scale / q;
+
+	return std::clamp(output, -MateThreshold + 1, MateThreshold - 1);
+}
 
 int NeuralEvaluate(const Board& board) {
 	
 	// Initialize arrays
 	alignas(64) std::array<int16_t, HiddenSize> hiddenWhite = std::array<int16_t, HiddenSize>();
 	alignas(64) std::array<int16_t, HiddenSize> hiddenBlack = std::array<int16_t, HiddenSize>();
-	for (int i = 0; i < HiddenSize; i++) hiddenWhite[i] = (Network->FeatureBias[i]);
-	for (int i = 0; i < HiddenSize; i++) hiddenBlack[i] = (Network->FeatureBias[i]);
+	for (int i = 0; i < HiddenSize; i++) hiddenWhite[i] = Network->FeatureBias[i];
+	for (int i = 0; i < HiddenSize; i++) hiddenBlack[i] = Network->FeatureBias[i];
 
 	// Iterate through inputs
 	uint64_t occupancy = board.GetOccupancy();
@@ -58,7 +75,7 @@ int NeuralEvaluate(const Board& board) {
 	const int q = qa * qb;
 	//output = (output / qa + Network->OutputBias) * scale / q; // Square clipped relu
 	output = (output + Network->OutputBias) * scale / q;
-
+	// clamp here if eval too large
 	return output;
 
 }
