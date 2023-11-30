@@ -190,10 +190,10 @@ struct SearchConstraints {
 };
 
 struct EngineSettings {
-	int Hash;
-	bool ExtendedOutput;
-	bool UciOutput;
-	bool Colorful;
+	int Hash = 16;
+	bool ExtendedOutput = false;
+	bool UciOutput = false;
+	bool Colorful = true;
 };
 
 struct SearchStatistics {

@@ -333,7 +333,7 @@ int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 	}
 
 	// Get untapered score
-	TaperedScore taperedScore = materialScore + pqstScore + pawnStructureScore + threatScore + mobilityScore + kingScore;
+	const TaperedScore taperedScore = materialScore + pqstScore + pawnStructureScore + threatScore + mobilityScore + kingScore;
 	int score = LinearTaper(taperedScore.early, taperedScore.late, phase);
 
 	// Convert to the correct perspective
@@ -363,7 +363,7 @@ int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 	return score;
 }
 
-int KingTropismEvaluate(const Board& board, const EvaluationFeatures& weights) {
+int KingTropismEvaluate(const Board& board) {
 	const int whiteKingSquare = LsbSquare(board.WhiteKingBits);
 	const int blackKingSquare = LsbSquare(board.BlackKingBits);
 	const int whiteKingRank = GetSquareRank(whiteKingSquare);

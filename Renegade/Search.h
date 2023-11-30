@@ -23,44 +23,43 @@ class Search
 {
 public:
 	Search();
-	void Reset();
-	void ResetStatistics();
+	void ResetState(const bool clearTT);
 
-	// Perft methods
 	void Perft(Board& board, const int depth, const PerftType type) const;
-	uint64_t PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) const;
-
-	// Move search
-	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
-	inline bool ShouldAbort() const;
 	const Results SearchMoves(Board board, const SearchParams params, const EngineSettings settings, const bool display);
+	bool StaticExchangeEval(const Board& board, const Move& move, const int threshold) const;
+
+	bool Aborting = false;
+	bool DatagenMode = false;
+	Heuristics Heuristics;
+
+private:
 	int SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove);
 	int SearchQuiescence(Board& board, const int level, int alpha, int beta);
 	int Evaluate(const Board& board);
-	bool StaticExchangeEval(const Board& board, const Move& move, const int threshold);
+	uint64_t PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) const;
+	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
+	inline bool ShouldAbort() const;
 	int DrawEvaluation();
+	void ResetStatistics();
+
+	// NNUE
+	void SetupAccumulators(const Board& board);
+	template <bool push> void UpdateAccumulators(const uint64_t whitePawns, const uint64_t blackPawns, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
 
 	// Communication
-	void PrintInfo(const Results& e, const EngineSettings& settings);
-	void PrintPretty(const Results& e, const EngineSettings& settings);
-	void PrintBestmove(const Move& move);
+	void PrintInfo(const Results& e, const EngineSettings& settings) const;
+	void PrintPretty(const Results& e, const EngineSettings& settings) const;
+	void PrintBestmove(const Move& move) const;
 
-	void ResetState(const bool clearTT);
+	AccumulatorRepresentation Accumulator;
 
-	void SetupAccumulators(const Board& board);
-
-	template <bool push>
-	void UpdateAccumulators(const uint64_t whitePawns, const uint64_t blackPawns, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
+	std::chrono::high_resolution_clock::time_point StartSearchTime;
+	uint16_t Age = 0;
 
 	int Depth;
 	SearchStatistics Statistics;
-
-	Heuristics Heuristics;
 	SearchConstraints Constraints;
-	bool Aborting = false;
-	std::chrono::high_resolution_clock::time_point StartSearchTime;
-	uint16_t Age = 0;
-	bool DatagenMode = false;
 
 	// Reused variables / stack
 	std::vector<Move> MoveList;
@@ -74,8 +73,6 @@ public:
 	std::array<uint8_t, MaxDepth> CapturedPieceStack;
 
 	std::array<std::array<int, 32>, 32> LMRTable;
-
-	AccumulatorRepresentation Accumulator;
 
 };
 

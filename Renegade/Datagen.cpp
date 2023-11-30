@@ -77,7 +77,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		bool failed = false;
 
 		// 2. Generate random moves from the start
-		int randomPlies = (Games % 2 == 0) ? randomPlyBase : (randomPlyBase + 1);
+		const int randomPlies = (Games % 2 == 0) ? randomPlyBase : (randomPlyBase + 1);
 		for (int i = 0; i < randomPlies; i++) {
 			std::vector<Move> moves = std::vector<Move>();
 			board.GenerateMoves(moves, MoveGen::All, Legality::Legal);

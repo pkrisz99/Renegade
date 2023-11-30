@@ -8,11 +8,6 @@ Search::Search() {
 			LMRTable[i][j] = static_cast<int>(lmrMultiplier * log(i) * log(j) + lmrBase);
 		}
 	}
-	Reset();
-}
-
-void Search::Reset() {
-	Depth = 0;
 	ResetStatistics();
 }
 
@@ -27,6 +22,17 @@ void Search::ResetStatistics() {
 	Statistics.TranspositionQueries = 0;
 	Statistics.TranspositionHits = 0;
 	Statistics.AlphaBetaCalls = 0;
+}
+
+
+void Search::ResetState(const bool clearTT) {
+	Heuristics.ClearHistoryTable();
+	Heuristics.ClearKillerAndCounterMoves();
+	Heuristics.ResetPvTable();
+	if (clearTT) {
+		Heuristics.ClearTranspositionTable();
+		Age = 0;
+	}
 }
 
 // Perft methods ----------------------------------------------------------------------------------
@@ -200,6 +206,7 @@ const Results Search::SearchMoves(Board board, const SearchParams params, const 
 					}*/
 					
 					// Reduce depth on fail-high
+					// Elo difference : 2.4 + / -5.3,
 					// if (!IsMateScore(result) && (searchDepth > 1)) searchDepth -= 1;
 				}
 				else {
@@ -212,12 +219,6 @@ const Results Search::SearchMoves(Board board, const SearchParams params, const 
 			}
 
 		}
-		
-		// Reduce allocated time if found mate (impatience in action)
-		/* if (IsMateScore(result)) {
-			if (Constraints.SearchTimeMin != -1) Constraints.SearchTimeMin = static_cast<int>(Constraints.SearchTimeMin * 0.9);
-			if (Constraints.SearchTimeMax != -1) Constraints.SearchTimeMax = static_cast<int>(Constraints.SearchTimeMax * 0.9);
-		} */
 
 		// Check search limits
 		auto currentTime = Clock::now();
@@ -586,7 +587,7 @@ int Search::DrawEvaluation() {
 
 const int seeValues[] = { 0, 100, 300, 300, 500, 1000, 999999 };
 
-bool Search::StaticExchangeEval(const Board& board, const Move& move, const int threshold) {
+bool Search::StaticExchangeEval(const Board& board, const Move& move, const int threshold) const {
 	// This is more or less the standard way of doing this
 	// The implementation follows Ethereal's method
 
@@ -801,7 +802,7 @@ void Search::UpdateAccumulators(const uint64_t whitePawns, const uint64_t blackP
 
 // Communicating the search results ---------------------------------------------------------------
 
-void Search::PrintInfo(const Results& e, const EngineSettings& settings) {
+void Search::PrintInfo(const Results& e, const EngineSettings& settings) const {
 	if (!settings.UciOutput) {
 		PrintPretty(e, settings);
 		return;
@@ -845,7 +846,7 @@ void Search::PrintInfo(const Results& e, const EngineSettings& settings) {
 	cout << output << endl;
 }
 
-void Search::PrintPretty(const Results& e, const EngineSettings& settings) {
+void Search::PrintPretty(const Results& e, const EngineSettings& settings) const {
 #if defined(_MSC_VER)
 	const std::string green = settings.Colorful ? "\x1b[92m" : "";
 	const std::string blue = settings.Colorful ? "\x1b[96m": "";
@@ -913,16 +914,6 @@ void Search::PrintPretty(const Results& e, const EngineSettings& settings) {
 #endif
 }
 
-void Search::PrintBestmove(const Move& move) {
+void Search::PrintBestmove(const Move& move) const {
 	cout << "bestmove " << move.ToString() << endl;
-}
-
-void Search::ResetState(const bool clearTT) {
-	Heuristics.ClearHistoryTable();
-	Heuristics.ClearKillerAndCounterMoves();
-	Heuristics.ResetPvTable();
-	if (clearTT) {
-		Heuristics.ClearTranspositionTable();
-		Age = 0;
-	}
 }

@@ -23,7 +23,7 @@ void Engine::PrintHeader() {
 // Start UCI protocol
 void Engine::Start() {
 	Board board = Board(FEN::StartPos);
-	std::string cmd = "";
+	std::string cmd;
 
 	while (getline(cin, cmd)) {
 

@@ -42,14 +42,8 @@ struct alignas(64) AccumulatorRepresentation {
 	}
 
 	template<bool add> void UpdateFeature(const int whiteFeature, const int blackFeature) {
-		if constexpr (add) {
-			//cout << "add " << whiteFeature << " " << blackFeature << endl;
-			AddFeature(whiteFeature, blackFeature);
-		}
-		else {
-			//cout << "rem " << whiteFeature << " " << blackFeature << endl;
-			RemoveFeature(whiteFeature, blackFeature);
-		}
+		if constexpr (add) AddFeature(whiteFeature, blackFeature);
+		else RemoveFeature(whiteFeature, blackFeature);
 	}
 };
 
