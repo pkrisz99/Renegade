@@ -45,7 +45,7 @@ private:
 
 	// NNUE
 	void SetupAccumulators(const Board& board);
-	template <bool push> void UpdateAccumulators(const uint64_t whitePawns, const uint64_t blackPawns, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
+	template <bool push> void UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
 
 	// Communication
 	void PrintInfo(const Results& e, const EngineSettings& settings) const;

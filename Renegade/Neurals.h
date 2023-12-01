@@ -45,6 +45,11 @@ struct alignas(64) AccumulatorRepresentation {
 		if constexpr (add) AddFeature(whiteFeature, blackFeature);
 		else RemoveFeature(whiteFeature, blackFeature);
 	}
+
+	template<bool add> void UpdateFeature(const std::pair<int, int>& features) {
+		if constexpr (add) AddFeature(features.first, features.second);
+		else RemoveFeature(features.first, features.second);
+	}
 };
 
 void LoadDefaultNetwork();
