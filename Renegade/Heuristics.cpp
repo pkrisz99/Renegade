@@ -159,15 +159,12 @@ void Heuristics::DecrementHistory(const bool side, const int from, const int to,
 }
 
 void Heuristics::AgeHistory() {
-	// Aging didn't gain, but will be tried again later
-	ClearHistoryTable();
-	/*
 	for (int i = 0; i < 64; i++) {
 		for (int j = 0; j < 64; j++) {
 			HistoryTables[0][i][j] /= 2;
 			HistoryTables[1][i][j] /= 2;
 		}
-	}*/
+	}
 }
 
 void Heuristics::ClearHistoryTable() {
