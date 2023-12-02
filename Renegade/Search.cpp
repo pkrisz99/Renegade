@@ -146,14 +146,27 @@ const Results Search::SearchMoves(Board board, const SearchParams params, const 
 	bool finished = false;
 	if (Age < 32000) Age += 1;
 
+	SetupAccumulators(board);
+
+	// Early exit for only one legal move (no legal moves are handled separately)
+	if (!DatagenMode && ((params.wtime != 0) || (params.btime != 0))) {
+		std::vector<Move> rootLegalMoves;
+		board.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
+		if (rootLegalMoves.size() == 1) {
+			const int eval = Evaluate(board);
+			cout << "info depth 1 score cp " << eval << " nodes 0" << endl;
+			cout << "info string Only one legal move!" << endl;
+			PrintBestmove(rootLegalMoves.front());
+			return Results(eval, rootLegalMoves, 1, Statistics, 0, 0, 0); // hack: rootLegalMoves is a vector already
+		}
+	}
+
 	Constraints = CalculateConstraints(params, board.Turn);
 
 	if (settings.ExtendedOutput) {
 		cout << "info string Renegade searching for time: (" << Constraints.SearchTimeMin << ".." << Constraints.SearchTimeMax
 			<< ") depth: " << Constraints.MaxDepth << " nodes: " << Constraints.MaxNodes << endl;
 	}
-
-	SetupAccumulators(board);
 
 	// Iterative deepening
 	Results e = Results();
