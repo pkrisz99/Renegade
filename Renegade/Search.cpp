@@ -420,6 +420,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		CapturedPieceStack[level] = capturedPiece;
 
 		b.Push(m);
+		Heuristics.PrefetchTranspositionEntry(b.Hash());
 		Statistics.Nodes += 1;
 		int score = NoEval;
 		const bool givingCheck = b.IsInCheck();
@@ -492,7 +493,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		}
 	}
 
-	// There was no legal move --> game over 
+	// There was no legal move --> return mate or stalemate score
 	if (legalMoveCount == 0) {
 		const int e = inCheck ? LosingMateScore(level) : 0;
 		//if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, depth, e, ScoreType::Exact, EmptyMove, level);
@@ -562,6 +563,7 @@ int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta)
 		const uint8_t movedPiece = board.GetPieceAt(m.from);
 		const uint8_t capturedPiece = board.GetPieceAt(m.to);
 		b.Push(m);
+		Heuristics.PrefetchTranspositionEntry(b.Hash());
 		UpdateAccumulators<true>(m, movedPiece, capturedPiece);
 		const int score = -SearchQuiescence(b, level + 1, -beta, -alpha);
 		UpdateAccumulators<false>(m, movedPiece, capturedPiece);
