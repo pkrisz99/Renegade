@@ -392,13 +392,15 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	Move bestMove = EmptyMove;
 	int bestScore = NegativeInfinity;
 
+	std::vector<Move> quietsTried;
+	quietsTried.reserve(30); // <-- ???
+
 	for (const auto& [m, order] : MoveOrder[level]) {
 		pseudoLegalCount += 1;
-		LegalAndQuiet[level][pseudoLegalCount] = false;
 		if (!board.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
 		const bool isQuiet = board.IsMoveQuiet(m);
-		LegalAndQuiet[level][pseudoLegalCount] = isQuiet;
+		if (isQuiet) quietsTried.push_back(m);
 
 		// Performing futility pruning
 		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta) && (bestScore > -MateThreshold) && !DatagenMode) continue;
@@ -476,11 +478,9 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
 
 				// Decrement history scores for all previously tried quiet moves
-				for (int i = 1; i < pseudoLegalCount; i++) {
-					if (LegalAndQuiet[level][i]) {
-						const Move& previouslyTriedMove = get<0>(MoveOrder[level][i]);
-						Heuristics.DecrementHistory(board.Turn, previouslyTriedMove.from, previouslyTriedMove.to, depth);
-					}
+				if (isQuiet) quietsTried.pop_back(); // don't decrement for the current quiet move
+				for (const Move& previouslyTriedMove : quietsTried) {
+					Heuristics.DecrementHistory(board.Turn, previouslyTriedMove.from, previouslyTriedMove.to, depth);
 				}
 
 				return bestScore;
@@ -495,9 +495,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 
 	// There was no legal move --> return mate or stalemate score
 	if (legalMoveCount == 0) {
-		const int e = inCheck ? LosingMateScore(level) : 0;
-		//if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, depth, e, ScoreType::Exact, EmptyMove, level);
-		return e;
+		return inCheck ? LosingMateScore(level) : 0;
 	}
 
 	// Return the best score (fail-soft)

@@ -65,7 +65,7 @@ private:
 	std::vector<Move> MoveList;
 	std::array<std::vector<std::tuple<Move, int>>, MaxDepth> MoveOrder;
 	std::array<Board, MaxDepth> Boards;
-	std::array<std::array<bool, 256>, MaxDepth> LegalAndQuiet;
+	//std::array<std::array<bool, 256>, MaxDepth> LegalAndQuiet;
 	std::array<int, MaxDepth> EvalStack;
 
 	std::array<Move, MaxDepth> MoveStack;
