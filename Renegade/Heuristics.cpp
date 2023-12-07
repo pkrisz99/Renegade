@@ -9,7 +9,7 @@ Heuristics::Heuristics() {
 // Move ordering & clearing -----------------------------------------------------------------------
 
 int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int level, const float phase, const Move& ttMove,
-	const Move& previousMove, const bool losingCapture) const {
+	const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack) const {
 	const int attackingPieceType = TypeOfPiece(board.GetPieceAt(m.from));
 	const int capturedPieceType = TypeOfPiece(board.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
@@ -35,7 +35,7 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 	if (IsSecondKillerMove(m, level)) return 100000;
 
 	// Countermove heuristic
-	if (IsCountermove(previousMove, m)) return 99000;
+	if (level > 0 && useMoveStack && IsCountermove(moveStack[level - 1].move, m)) return 99000;
 
 	// Quiet moves
 	const bool turn = board.Turn;

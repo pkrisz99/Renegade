@@ -32,3 +32,8 @@ public:
 
 static const Move NullMove { 0, 0, MoveFlag::NullMove };
 static const Move EmptyMove { 0, 0, MoveFlag::None };
+
+struct MoveAndPiece {
+	Move move;
+	uint8_t piece;
+};

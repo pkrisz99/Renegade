@@ -65,12 +65,8 @@ private:
 	std::vector<Move> MoveList;
 	std::array<std::vector<std::tuple<Move, int>>, MaxDepth> MoveOrder;
 	std::array<Board, MaxDepth> Boards;
-	//std::array<std::array<bool, 256>, MaxDepth> LegalAndQuiet;
 	std::array<int, MaxDepth> EvalStack;
-
-	std::array<Move, MaxDepth> MoveStack;
-	std::array<uint8_t, MaxDepth> MovedPieceStack;
-	std::array<uint8_t, MaxDepth> CapturedPieceStack;
+	std::array<MoveAndPiece, MaxDepth> MoveStack;
 
 	std::array<std::array<int, 32>, 32> LMRTable;
 
