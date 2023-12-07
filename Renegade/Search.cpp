@@ -468,19 +468,24 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			// Checking alpha-beta bounds
 			if (score >= beta) {
 				bestMove = m;
-				if (isQuiet) {
-					Heuristics.AddKillerMove(m, level);
-					if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1], m);
-					Heuristics.IncrementHistory(board.Turn, m.from, m.to, depth);
-				}
+
+				//cout << endl;
 				if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, ScoreType::LowerBound, m, level);
 				Statistics.BetaCutoffs += 1;
 				if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
 
+				if (isQuiet) {
+					Heuristics.AddKillerMove(m, level);
+					if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1], m);
+					if (depth > 1) Heuristics.IncrementHistory(board.Turn, m.from, m.to, depth);
+				}
+
 				// Decrement history scores for all previously tried quiet moves
-				if (isQuiet) quietsTried.pop_back(); // don't decrement for the current quiet move
-				for (const Move& previouslyTriedMove : quietsTried) {
-					Heuristics.DecrementHistory(board.Turn, previouslyTriedMove.from, previouslyTriedMove.to, depth);
+				if (depth > 1) {
+					if (isQuiet) quietsTried.pop_back(); // don't decrement for the current quiet move
+					for (const Move& previouslyTriedMove : quietsTried) {
+						Heuristics.DecrementHistory(board.Turn, previouslyTriedMove.from, previouslyTriedMove.to, depth);
+					}
 				}
 
 				return bestScore;

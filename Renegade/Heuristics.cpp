@@ -139,23 +139,19 @@ void Heuristics::ClearKillerAndCounterMoves() {
 // History heuristic ------------------------------------------------------------------------------
 
 void Heuristics::IncrementHistory(const bool side, const int from, const int to, const int depth) {
-	const int bonus = std::min(depth * depth * 4, 400);
-	const int gravity = HistoryTables[side][from][to] / 64;
-	HistoryTables[side][from][to] += std::max(bonus - gravity, 0);
-	if (HistoryTables[side][from][to] > 32767) {
-		//cout << HistoryTables[side][from][to] << " " << endl;
-		HistoryTables[side][from][to] = 32767;
-	}
+	const int bonus = std::min(300 * (depth - 1), 2250);
+	int& value = HistoryTables[side][from][to];
+	const int gravity = value * std::abs(bonus) / 16384;
+	value += bonus - gravity;
+	//cout << "+ : " << value << " <- b:" << bonus << " g:" << gravity << endl;
 }
 
 void Heuristics::DecrementHistory(const bool side, const int from, const int to, const int depth) {
-	const int bonus = -1 * std::min(depth * depth * 2, 200);
-	const int gravity = HistoryTables[side][from][to] / 64;
-	HistoryTables[side][from][to] += std::min(bonus - gravity, 0);
-	if (HistoryTables[side][from][to] < -32768) {
-		//cout << HistoryTables[side][from][to] << " " << endl;
-		HistoryTables[side][from][to] = -32768;
-	}
+	const int bonus = -1 * std::min(300 * (depth - 1), 2250);
+	int& value = HistoryTables[side][from][to];
+	const int gravity = value * std::abs(bonus) / 16384;
+	value += bonus - gravity;
+	//cout << "- : " << value << " <- b:" << bonus << " g:" << gravity << endl;
 }
 
 void Heuristics::AgeHistory() {
