@@ -412,7 +412,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		if (isQuiet) quietsTried.push_back(m);
 
 		// Performing futility pruning
-		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta) && (bestScore > -MateThreshold) && !DatagenMode) continue;
+		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta) && (bestScore > -MateThreshold) && !DatagenMode) break;
 
 		// Main search SEE pruning (+20 elo)
 		const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300, -350 };
@@ -446,7 +446,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			// Late-move pruning (+9 elo)
 			const int lmpCount[] = { 0, 9, 13, 17, 22 };
 			if ((depth < 5) && !pvNode && !inCheck && isQuiet && !DatagenMode) {
-				if (legalMoveCount >= lmpCount[depth]) continue;
+				if (legalMoveCount >= lmpCount[depth]) break;
 			}
 
 			// Late-move reductions (+119 elo)
