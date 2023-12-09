@@ -70,6 +70,8 @@ public:
 	std::array<std::array<Move, MaxDepth + 1>, MaxDepth + 1> PvTable;
 	std::array<int, MaxDepth + 1> PvLength;
 
+	std::array<std::array<Move, 2>, MaxDepth> KillerMoves;
+
 
 private:
 	std::vector<TranspositionEntry> TranspositionTable;
@@ -78,7 +80,6 @@ private:
 	uint64_t TranspositionEntryCount;
 	uint64_t TheoreticalTranspositionEntires;
 
-	std::array<std::array<Move, 2>, MaxDepth> KillerMoves;
 	std::array<std::array<std::array<int, 64>, 64>, 2> HistoryTables;
 	std::array<std::array<Move, 64>, 64> CounterMoves;
 

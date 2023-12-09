@@ -389,6 +389,12 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		return get<1>(t1) > get<1>(t2);
 	});
 
+	// Resetting killers for ply+2
+	if (level + 2 <= MaxDepth) {
+		Heuristics.KillerMoves[level + 2][0] = EmptyMove;
+		Heuristics.KillerMoves[level + 2][1] = EmptyMove;
+	}
+
 	// Iterate through legal moves
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0, pseudoLegalCount = 0;
