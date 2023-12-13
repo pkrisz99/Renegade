@@ -34,6 +34,7 @@ class Heuristics
 public:
 
 	Heuristics();
+	~Heuristics();
 	[[nodiscard]] int CalculateOrderScore(const Board& board, const Move& m, const int level, const float phase, const Move& ttMove,
 		const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack) const;
 	
@@ -53,8 +54,8 @@ public:
 	void AddCountermove(const Move& previousMove, const Move& thisMove);
 
 	// History heuristic
-	void IncrementHistory(const bool side, const int from, const int to, const int depth);
-	void DecrementHistory(const bool side, const int from, const int to, const int depth);
+	void IncrementHistory(const Move& m, const uint8_t piece, const int depth, const std::array<MoveAndPiece, MaxDepth>& moveStack, const int level);
+	void DecrementHistory(const Move& m, const uint8_t piece, const int depth, const std::array<MoveAndPiece, MaxDepth>& moveStack, const int level);
 	void AgeHistory();
 	void ClearHistoryTable();
 
@@ -74,14 +75,20 @@ public:
 
 
 private:
+	void UpdateHistoryValue(int16_t& value, const int amount);
+	void UpdateContinuationHistory(int16_t& value, const int amount);
+
 	std::vector<TranspositionEntry> TranspositionTable;
 	uint64_t HashFilter;
 	int HashBits;
 	uint64_t TranspositionEntryCount;
 	uint64_t TheoreticalTranspositionEntires;
 
-	std::array<std::array<std::array<int, 64>, 64>, 2> HistoryTables;
+	std::array<std::array<std::array<int16_t, 64>, 64>, 2> HistoryTables;
 	std::array<std::array<Move, 64>, 64> CounterMoves;
 
+	//using ContinuationsInner = std::array<std::array<int16_t, 64>, 14>;
+	using Continuations = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
+	Continuations* ContinuationHistory;
 };
 

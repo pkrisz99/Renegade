@@ -367,6 +367,8 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		nmpReduction = std::min(nmpReduction, depth);
 		Boards[level] = board;
 		Boards[level].Push(NullMove);
+		MoveStack[level].move = NullMove;
+		MoveStack[level].piece = Piece::None;
 		const int nullMoveEval = -SearchRecursive(Boards[level], depth - nmpReduction, level + 1, -beta, -beta + 1, false);
 		if (nullMoveEval >= beta) {
 			return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
@@ -485,14 +487,15 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				if (isQuiet) {
 					Heuristics.AddKillerMove(m, level);
 					if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1].move, m);
-					if (depth > 1) Heuristics.IncrementHistory(board.Turn, m.from, m.to, depth);
+					if (depth > 1) Heuristics.IncrementHistory(m, movedPiece, depth, MoveStack, level);
 				}
 
 				// Decrement history scores for all previously tried quiet moves
 				if (depth > 1) {
 					if (isQuiet) quietsTried.pop_back(); // don't decrement for the current quiet move
 					for (const Move& previouslyTriedMove : quietsTried) {
-						Heuristics.DecrementHistory(board.Turn, previouslyTriedMove.from, previouslyTriedMove.to, depth);
+						const uint8_t previouslyTriedPiece = board.GetPieceAt(previouslyTriedMove.from);
+						Heuristics.DecrementHistory(previouslyTriedMove, previouslyTriedPiece, depth, MoveStack, level);
 					}
 				}
 
