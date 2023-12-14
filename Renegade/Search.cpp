@@ -452,13 +452,16 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			}
 
 			// Late-move reductions (+119 elo)
-			if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && !inCheck && (depth >= 3)) {
-				//const bool badCheck = givingCheck && !StaticExchangeEval(board, m, 0);
+			if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && (depth >= 3)) {
+				
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
-				if (givingCheck) reduction /= 2;
-				else {
-					if (!pvNode) reduction += 1;
-				}
+				//const bool badCheck = givingCheck && !StaticExchangeEval(board, m, 0);
+
+				// Less reduction if there are checks involved
+				if (inCheck || givingCheck) reduction -= 1;
+
+				// More reduction for non-PV nodes
+				if (!pvNode) reduction += 1;
 
 				reduction = std::clamp(reduction, 0, depth - 1);
 			}
@@ -479,7 +482,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			if (score >= beta) {
 				bestMove = m;
 
-				//cout << endl;
 				if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, ScoreType::LowerBound, m, level);
 				Statistics.BetaCutoffs += 1;
 				if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;

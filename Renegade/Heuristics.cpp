@@ -47,31 +47,27 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 	// Quiet moves
 	const bool turn = board.Turn;
 
-	//cout << '\n';
 	int historyScore = HistoryTables[turn][m.from][m.to];
-	//cout << historyScore << " ";
 	if (level >= 1) historyScore += (*ContinuationHistory)[moveStack[level - 1].piece][moveStack[level - 1].move.to][movedPiece][m.to];
-	//cout << (*ContinuationHistory)[moveStack[level - 1].piece][moveStack[level - 1].move.to][movedPiece][m.to] << " ";
 	if (level >= 2) historyScore += (*ContinuationHistory)[moveStack[level - 2].piece][moveStack[level - 2].move.to][movedPiece][m.to];
-	//cout << (*ContinuationHistory)[moveStack[level - 2].piece][moveStack[level - 2].move.to][movedPiece][m.to] << endl;
 
 	if (historyScore != 0) {
 		// When at least we have some history scores
-		return historyScore > 0 ? (historyScore + 100) : (historyScore - 100);
+		return historyScore;
+	}
+
+	int orderScore = 0;
+	// Use PSQT change if not
+	if (turn == Turn::White) {
+		orderScore -= LinearTaper(Weights.GetPSQT(attackingPieceType, m.from).early, Weights.GetPSQT(attackingPieceType, m.from).late, phase);
+		orderScore += LinearTaper(Weights.GetPSQT(attackingPieceType, m.to).early, Weights.GetPSQT(attackingPieceType, m.to).late, phase);
 	}
 	else {
-		int orderScore = 0;
-		// Use PSQT change if not
-		if (turn == Turn::White) {
-			orderScore -= LinearTaper(Weights.GetPSQT(attackingPieceType, m.from).early, Weights.GetPSQT(attackingPieceType, m.from).late, phase);
-			orderScore += LinearTaper(Weights.GetPSQT(attackingPieceType, m.to).early, Weights.GetPSQT(attackingPieceType, m.to).late, phase);
-		}
-		else {
-			orderScore -= LinearTaper(Weights.GetPSQT(attackingPieceType, Mirror(m.from)).early, Weights.GetPSQT(attackingPieceType, Mirror(m.from)).late, phase);
-			orderScore += LinearTaper(Weights.GetPSQT(attackingPieceType, Mirror(m.to)).early, Weights.GetPSQT(attackingPieceType, Mirror(m.to)).late, phase);
-		}
-		return orderScore;
+		orderScore -= LinearTaper(Weights.GetPSQT(attackingPieceType, Mirror(m.from)).early, Weights.GetPSQT(attackingPieceType, Mirror(m.from)).late, phase);
+		orderScore += LinearTaper(Weights.GetPSQT(attackingPieceType, Mirror(m.to)).early, Weights.GetPSQT(attackingPieceType, Mirror(m.to)).late, phase);
 	}
+	return orderScore;
+
 }
 
 // PV table ---------------------------------------------------------------------------------------
