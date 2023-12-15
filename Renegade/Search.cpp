@@ -341,12 +341,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	const bool improving = (level >= 2) && (EvalStack[level] > EvalStack[level - 2]) && !inCheck;
 	// ^ add nullmove condition? (!inCheck is cosmetic for now)
 
-	// Internal iterative deepening
-	if (pvNode && (depth > 3) && ttMove.IsEmpty()) {
-		SearchRecursive(board, depth - 2, level + 1, -beta, -alpha, true);
-		ttMove = Heuristics.PvTable[level + 1][level + 1];
-	}
-
 	// Futility pruning (+37 elo)
 	const int futilityMargins[] = { 0, 130, 230, 330, 430, 530 };
 	bool futilityPrunable = false;
@@ -373,6 +367,11 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		if (nullMoveEval >= beta) {
 			return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
 		}
+	}
+
+	// Internal iterative reductions
+	if ((depth > 4) && ttMove.IsEmpty() && !inCheck) {
+		depth -= 1;
 	}
 
 	// Initalize variables and generate moves
