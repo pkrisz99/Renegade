@@ -324,7 +324,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			// The branch was already analysed to the same or greater depth, so we can return the result if the score is alright
 			if (ttEntry.IsCutoffPermitted(depth, alpha, beta)) return ttEntry.score;
 		}
-		if (pvNode || (ttEntry.depth < depth)) ttEval = ttEntry.score; // Do these conditions make sense? No.
+		ttEval = ttEntry.score;
 		ttMove = Move(ttEntry.moveFrom, ttEntry.moveTo, ttEntry.moveFlag);
 		Statistics.TranspositionHits += 1;
 	}
