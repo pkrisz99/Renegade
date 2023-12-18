@@ -370,7 +370,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	}
 
 	// Internal iterative reductions
-	if ((depth > 4) && ttMove.IsEmpty() && !inCheck) {
+	if ((depth > 4) && ttMove.IsEmpty()) {
 		depth -= 1;
 	}
 
