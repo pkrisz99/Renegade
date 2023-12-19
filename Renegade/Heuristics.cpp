@@ -24,6 +24,9 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 	// Transposition move
 	if (m == ttMove) return 900000;
 
+	// Queen promotions
+	if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[capturedPieceType];
+
 	// Captures
 	if (!losingCapture) {
 		if (capturedPieceType != PieceType::None) return 600000 + values[capturedPieceType] * 16 - values[attackingPieceType];
@@ -33,9 +36,6 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 		if (capturedPieceType != PieceType::None) return -200000 + values[capturedPieceType] * 16 - values[attackingPieceType];
 		if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
 	}
-
-	// Queen promotions
-	if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[capturedPieceType];
 	
 	// Quiet killer moves
 	if (IsFirstKillerMove(m, level)) return 100100;
