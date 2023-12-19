@@ -948,47 +948,9 @@ bool Board::IsSquareAttacked(const uint8_t square) const {
 	}
 }
 
-uint64_t Board::GetAttackersOfSquare(const uint8_t square) const {
-	uint64_t occupancy = GetOccupancy();
-	uint64_t attackers = 0;
+uint64_t Board::GetAttackersOfSquare(const uint8_t square, const uint64_t occupied) const {
+	// if not being used for SEE: occupied = GetOccupancy();
 
-	// Pawns
-	if (SquareBits[square] & ((WhitePawnBits & ~Bitboards::FileA) << 7)) SetBitTrue(attackers, square - 7);
-	if (SquareBits[square] & ((WhitePawnBits & ~Bitboards::FileH) << 9)) SetBitTrue(attackers, square - 9);
-	if (SquareBits[square] & ((BlackPawnBits & ~Bitboards::FileA) >> 9)) SetBitTrue(attackers, square + 9);
-	if (SquareBits[square] & ((BlackPawnBits & ~Bitboards::FileH) >> 7)) SetBitTrue(attackers, square + 7);
-
-	// Knights
-	uint64_t bits = WhiteKnightBits | BlackKnightBits;
-	while (bits) {
-		const uint8_t sq = Popsquare(bits);
-		if (KnightMoveBits[sq] & SquareBits[square]) SetBitTrue(attackers, sq);
-	}
-
-	// Bishops & queens
-	bits = WhiteBishopBits | WhiteQueenBits | BlackBishopBits | BlackQueenBits;
-	while (bits) {
-		const uint8_t sq = Popsquare(bits);
-		if (GetBishopAttacks(sq, occupancy) & SquareBits[square]) SetBitTrue(attackers, sq);
-	}
-
-	// Rooks & queens
-	bits = WhiteRookBits | WhiteQueenBits | BlackRookBits | BlackQueenBits;
-	while (bits) {
-		const uint8_t sq = Popsquare(bits);
-		if (GetRookAttacks(sq, occupancy) & SquareBits[square]) SetBitTrue(attackers, sq);
-	}
-
-	// Kings
-	uint8_t sq = GetKingSquare<Turn::White>();
-	if (KingMoveBits[sq] & SquareBits[square]) SetBitTrue(attackers, sq);
-	sq = GetKingSquare<Turn::Black>();
-	if (KingMoveBits[sq] & SquareBits[square]) SetBitTrue(attackers, sq);
-
-	return attackers;
-}
-
-uint64_t Board::GetAttackersOfSquare2(const uint8_t square, const uint64_t occupied) const {
 	uint64_t attackers = 0;
 
 	// Pawns

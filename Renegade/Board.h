@@ -46,8 +46,7 @@ public:
 	bool IsInCheck() const;
 
 	template <bool side> uint8_t GetKingSquare() const;
-	uint64_t GetAttackersOfSquare(const uint8_t square) const;
-	uint64_t GetAttackersOfSquare2(const uint8_t square, const uint64_t occupied) const;
+	uint64_t GetAttackersOfSquare(const uint8_t square, const uint64_t occupied) const;
 
 	template <bool side>
 	inline uint64_t GetPawnAttacks() const {
