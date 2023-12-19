@@ -648,7 +648,7 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 		else SetBitFalse(occupancy, move.to + 8);
 	};
 	turn = !turn;
-	uint64_t attackers = board.GetAttackersOfSquare(move.to) & occupancy;
+	uint64_t attackers = board.GetAttackersOfSquare2(move.to, occupancy) & occupancy;
 
 	// Pseudo-generating steps
 	while (true) {
