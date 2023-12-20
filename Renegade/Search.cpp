@@ -445,9 +445,9 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			int reduction = 0;
 
 			// Late-move pruning (+9 elo)
-			const int lmpCount[] = { 0, 9, 13, 17, 22 };
+			const int lmpCount[] = { 0, 4, 7, 12, 19 };
 			if ((depth < 5) && !pvNode && !inCheck && isQuiet && !DatagenMode) {
-				if (legalMoveCount >= lmpCount[depth]) break;
+				if (legalMoveCount > lmpCount[depth]) break;
 			}
 
 			// Late-move reductions (+119 elo)
