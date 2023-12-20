@@ -462,6 +462,9 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 				// More reduction for non-PV nodes
 				if (!pvNode) reduction += 1;
 
+				// Adjust based on history
+				if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
+
 				reduction = std::clamp(reduction, 0, depth - 1);
 			}
 
