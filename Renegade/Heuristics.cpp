@@ -50,6 +50,7 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 	int historyScore = HistoryTables[turn][m.from][m.to];
 	if (level >= 1) historyScore += (*ContinuationHistory)[moveStack[level - 1].piece][moveStack[level - 1].move.to][movedPiece][m.to];
 	if (level >= 2) historyScore += (*ContinuationHistory)[moveStack[level - 2].piece][moveStack[level - 2].move.to][movedPiece][m.to];
+	if (level >= 4) historyScore += (*ContinuationHistory)[moveStack[level - 4].piece][moveStack[level - 4].move.to][movedPiece][m.to];
 
 	if (historyScore != 0) {
 		// When at least we have some history scores
@@ -157,7 +158,7 @@ void Heuristics::IncrementHistory(const Move& m, const uint8_t piece, const int 
 	UpdateHistoryValue(HistoryTables[side][m.from][m.to], bonus);
 	
 	// Continuation history
-	for (const int ply : { 1, 2 }) {
+	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
 		uint8_t prevPiece = moveStack[level - ply].piece;
 		uint8_t prevTo = moveStack[level - ply].move.to;
@@ -177,7 +178,7 @@ void Heuristics::DecrementHistory(const Move& m, const uint8_t piece, const int 
 	UpdateHistoryValue(HistoryTables[side][m.from][m.to], bonus);
 
 	// Continuation history
-	for (const int ply : { 1, 2 }) {
+	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
 		uint8_t prevPiece = moveStack[level - ply].piece;
 		uint8_t prevTo = moveStack[level - ply].move.to;
