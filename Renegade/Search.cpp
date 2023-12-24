@@ -304,7 +304,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	}
 
 	// Check for draws
-	//if (rootNode && board.IsDraw(true)) return 0;
 	if (!rootNode && board.IsDraw(false)) return DrawEvaluation();
 
 	// Drop into quiescence search at depth 0
@@ -341,31 +340,36 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	const bool improving = (level >= 2) && (EvalStack[level] > EvalStack[level - 2]) && !inCheck;
 	// ^ add nullmove condition? (!inCheck is cosmetic for now)
 
-	// Futility pruning (+37 elo)
-	const int futilityMargins[] = { 0, 130, 230, 330, 430, 530 };
 	bool futilityPrunable = false;
-	if ((depth <= 5) && !inCheck && !pvNode && (std::abs(beta) < MateThreshold)) {
-		if ((staticEval + futilityMargins[depth] < alpha)) futilityPrunable = true;
-	}
 
-	// Reverse futility pruning (+128 elo)
-	const int rfpMarginDefault[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
-	if ((depth <= 7) && !inCheck && !pvNode && (std::abs(beta) < MateThreshold)) {
-		const int rfpMargin = improving ? rfpMarginDefault[depth] / 2 : rfpMarginDefault[depth];
-		if (staticEval - rfpMargin > beta) return staticEval;
-	}
+	// Whole-node pruning techniques
+	if (!pvNode && !inCheck) {
 
-	// Null-move pruning (+33 elo)
-	if ((depth >= 3) && !inCheck && !pvNode && canNullMove && (staticEval >= beta) && board.ShouldNullMovePrune()) {
-		int nmpReduction = 3 + depth / 3 + std::min((staticEval - beta) / 200, 3); // Thanks Discord
-		nmpReduction = std::min(nmpReduction, depth);
-		Boards[level] = board;
-		Boards[level].Push(NullMove);
-		MoveStack[level].move = NullMove;
-		MoveStack[level].piece = Piece::None;
-		const int nullMoveEval = -SearchRecursive(Boards[level], depth - nmpReduction, level + 1, -beta, -beta + 1, false);
-		if (nullMoveEval >= beta) {
-			return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
+		// Reverse futility pruning (+128 elo)
+		const int rfpMarginDefault[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
+		if ((depth <= 7) && (std::abs(beta) < MateThreshold)) {
+			const int rfpMargin = improving ? rfpMarginDefault[depth] / 2 : rfpMarginDefault[depth];
+			if (staticEval - rfpMargin > beta) return staticEval;
+		}
+
+		// Null-move pruning (+33 elo)
+		if ((depth >= 3) && canNullMove && (staticEval >= beta) && board.ShouldNullMovePrune()) {
+			int nmpReduction = 3 + depth / 3 + std::min((staticEval - beta) / 200, 3);
+			nmpReduction = std::min(nmpReduction, depth);
+			Boards[level] = board;
+			Boards[level].Push(NullMove);
+			MoveStack[level].move = NullMove;
+			MoveStack[level].piece = Piece::None;
+			const int nullMoveEval = -SearchRecursive(Boards[level], depth - nmpReduction, level + 1, -beta, -beta + 1, false);
+			if (nullMoveEval >= beta) {
+				return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
+			}
+		}
+
+		// Futility pruning (+37 elo)
+		const int futilityMargins[] = { 0, 130, 230, 330, 430, 530 };
+		if ((depth <= 5) && (std::abs(beta) < MateThreshold)) {
+			futilityPrunable = (staticEval + futilityMargins[depth] < alpha);
 		}
 	}
 
@@ -412,14 +416,25 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		const bool isQuiet = board.IsMoveQuiet(m);
 		if (isQuiet) quietsTried.push_back(m);
 
-		// Performing futility pruning
-		if (isQuiet && futilityPrunable && !IsMateScore(alpha) && !IsMateScore(beta) && (bestScore > -MateThreshold) && !DatagenMode) break;
+		// Moves loop pruning techniques
+		if (!pvNode && (bestScore > -MateThreshold) && !DatagenMode) {
 
-		// Main search SEE pruning (+20 elo)
-		const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300, -350 };
-		const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600, -700 };
-		if (!rootNode && !pvNode && (depth <= 5) && !IsLosingMateScore(alpha) && (bestScore > -MateThreshold) && !DatagenMode) {
-			if (!StaticExchangeEval(board, m, isQuiet ? seeQuietMargin[depth] : seeNoisyMargin[depth])) continue;
+			// Late-move pruning (+9 elo)
+			const int lmpCount[] = { 0, 4, 7, 12, 19 };
+			if (isQuiet && !inCheck && (depth < 5)) {
+				if (legalMoveCount > lmpCount[depth]) break;
+			}
+
+			// Performing futility pruning
+			if (isQuiet && (alpha < MateThreshold) && futilityPrunable) break;
+
+			// Main search SEE pruning (+20 elo)
+			const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300, -350 };
+			const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600, -700 };
+			if (depth <= 5 && (order < 150000)) {
+				const int seeMargin = isQuiet ? seeQuietMargin[depth] : seeNoisyMargin[depth];
+				if (!StaticExchangeEval(board, m, seeMargin)) continue;
+			}
 		}
 
 		// Push move
@@ -443,12 +458,6 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		}
 		else {
 			int reduction = 0;
-
-			// Late-move pruning (+9 elo)
-			const int lmpCount[] = { 0, 4, 7, 12, 19 };
-			if ((depth < 5) && !pvNode && !inCheck && isQuiet && !DatagenMode) {
-				if (legalMoveCount > lmpCount[depth]) break;
-			}
 
 			// Late-move reductions (+119 elo)
 			if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && (depth >= 3)) {

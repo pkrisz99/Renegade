@@ -13,9 +13,9 @@ using std::cout;
 using std::cin;
 using std::endl;
 using std::get;
-typedef std::chrono::high_resolution_clock Clock;
+using Clock = std::chrono::high_resolution_clock;
 
-const std::string Version = "0.13.0 dev 25";
+const std::string Version = "0.13.0 dev 26";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
