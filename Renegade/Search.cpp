@@ -11,6 +11,34 @@ Search::Search() {
 	ResetStatistics();
 }
 
+void Search::SetTunableSettings(std::unordered_map<std::string, int>& params) {
+	lmr_depth = params["lmr_depth"];
+	lmr_multip = params["lmr_multip"] / 100.0;
+	lmr_base = params["lmr_base"] / 100.0;
+	for (int i = 1; i < 32; i++) {
+		for (int j = 1; j < 32; j++) {
+			LMRTable[i][j] = static_cast<int>(lmr_multip * log(i) * log(j) + lmr_base);
+		}
+	}
+	lmr_moves_pv = params["lmr_moves_pv"];
+	lmr_moves_nonpv = params["lmr_moves_nonpv"];
+	iir_depth = params["iir_depth"];
+	rfp_depth = params["rfp_depth"];
+	rfp_margin_1 = params["rfp_margin_1"];
+	rfp_margin_after = params["rfp_margin_after"];
+	fp_depth = params["fp_depth"];
+	fp_margin_1 = params["fp_margin_1"];
+	fp_margin_after = params["fp_margin_after"];
+	lmp_depth = params["lmp_depth"];
+	lmp_base = params["lmp_base"];
+	nmp_depth = params["nmp_depth"];
+	nmp_base = params["nmp_base"];
+	nmp_scale_eval = params["nmp_scale_eval"];
+	nmp_scale_depth = params["nmp_scale_depth"];
+	nmp_scale_eval_cap = params["nmp_scale_eval_cap"];
+	see_depth = params["see_depth"];
+}
+
 void Search::ResetStatistics() {
 	Depth = 0;
 	Statistics.SelDepth = 0;
@@ -346,15 +374,16 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 	if (!pvNode && !inCheck) {
 
 		// Reverse futility pruning (+128 elo)
-		const int rfpMarginDefault[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
-		if ((depth <= 7) && (std::abs(beta) < MateThreshold)) {
-			const int rfpMargin = improving ? rfpMarginDefault[depth] / 2 : rfpMarginDefault[depth];
+		//const int rfpMarginDefault[] = { 0, 70, 150, 240, 340, 450, 580, 720 };
+		if ((depth <= rfp_depth) && (std::abs(beta) < MateThreshold)) {
+			const int rfpBasic = rfp_margin_1 + rfp_margin_after * (depth - 1);
+			const int rfpMargin = improving ? rfpBasic / 2 : rfpBasic;
 			if (staticEval - rfpMargin > beta) return staticEval;
 		}
 
 		// Null-move pruning (+33 elo)
-		if ((depth >= 3) && canNullMove && (staticEval >= beta) && board.ShouldNullMovePrune()) {
-			int nmpReduction = 3 + depth / 3 + std::min((staticEval - beta) / 200, 3);
+		if ((depth >= nmp_depth) && canNullMove && (staticEval >= beta) && board.ShouldNullMovePrune()) {
+			int nmpReduction = nmp_base + depth / nmp_scale_depth + std::min((staticEval - beta) / nmp_scale_eval, nmp_scale_eval_cap);
 			nmpReduction = std::min(nmpReduction, depth);
 			Boards[level] = board;
 			Boards[level].Push(NullMove);
@@ -367,14 +396,15 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		}
 
 		// Futility pruning (+37 elo)
-		const int futilityMargins[] = { 0, 130, 230, 330, 430, 530 };
-		if ((depth <= 5) && (std::abs(beta) < MateThreshold)) {
-			futilityPrunable = (staticEval + futilityMargins[depth] < alpha);
+		//const int futilityMargins[] = { 0, 130, 230, 330, 430, 530 };
+		const int futilityMargin = fp_margin_1 + fp_margin_after * (depth - 1);
+		if ((depth <= fp_depth) && (std::abs(beta) < MateThreshold)) {
+			futilityPrunable = (staticEval + futilityMargin < alpha);
 		}
 	}
 
 	// Internal iterative reductions
-	if ((depth > 4) && ttMove.IsEmpty()) {
+	if ((depth > iir_depth) && ttMove.IsEmpty()) {
 		depth -= 1;
 	}
 
@@ -420,19 +450,20 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		if (!pvNode && (bestScore > -MateThreshold) && !DatagenMode) {
 
 			// Late-move pruning (+9 elo)
-			const int lmpCount[] = { 0, 4, 7, 12, 19 };
-			if (isQuiet && !inCheck && (depth < 5)) {
-				if (legalMoveCount > lmpCount[depth]) break;
+			//const int lmpCount[] = { 0, 4, 7, 12, 19 };
+			const int lmpCount = lmp_base + depth * depth;
+			if (isQuiet && !inCheck && (depth < lmp_depth)) {
+				if (legalMoveCount > lmpCount) break;
 			}
 
 			// Performing futility pruning
 			if (isQuiet && (alpha < MateThreshold) && futilityPrunable) break;
 
 			// Main search SEE pruning (+20 elo)
-			const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300, -350 };
-			const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600, -700 };
-			if (depth <= 5 && (order < 150000)) {
-				const int seeMargin = isQuiet ? seeQuietMargin[depth] : seeNoisyMargin[depth];
+			//const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300, -350 };
+			//const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600, -700 };
+			if (depth <= see_depth && (order < 150000)) {
+				const int seeMargin = isQuiet ? (depth * (-50)) : (depth * (-100));
 				if (!StaticExchangeEval(board, m, seeMargin)) continue;
 			}
 		}
@@ -460,7 +491,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 			int reduction = 0;
 
 			// Late-move reductions (+119 elo)
-			if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && (depth >= 3)) {
+			if ((legalMoveCount >= (pvNode ? lmr_moves_pv : lmr_moves_nonpv)) && isQuiet && (depth >= lmr_depth)) {
 				
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 				//const bool badCheck = givingCheck && !StaticExchangeEval(board, m, 0);

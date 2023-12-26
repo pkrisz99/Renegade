@@ -12,6 +12,7 @@
 #include <fstream>
 //#include <format>
 #include <random>
+#include <unordered_map>
 
 /*
 * This is the code responsible for performing move selection.
@@ -24,6 +25,7 @@ class Search
 public:
 	Search();
 	void ResetState(const bool clearTT);
+	void SetTunableSettings(std::unordered_map<std::string, int>& params);
 
 	void Perft(Board& board, const int depth, const PerftType type) const;
 	const Results SearchMoves(Board board, const SearchParams params, const EngineSettings settings, const bool display);
@@ -67,6 +69,29 @@ private:
 	std::array<Board, MaxDepth> Boards;
 	std::array<int, MaxDepth> EvalStack;
 	std::array<MoveAndPiece, MaxDepth> MoveStack;
+
+	// Tuning
+	int lmr_depth;
+	double lmr_multip;
+	double lmr_base;
+	int lmr_moves_pv;
+	int lmr_moves_nonpv;
+	int iir_depth;
+	int rfp_depth;
+	int rfp_margin_1;
+	int rfp_margin_after;
+	int fp_depth;
+	int fp_margin_1;
+	int fp_margin_after;
+	int lmp_depth;
+	int lmp_base;
+	int nmp_depth;
+	int nmp_base;
+	int nmp_scale_eval;
+	int nmp_scale_depth;
+	int nmp_scale_eval_cap;
+	int see_depth;
+
 
 	std::array<std::array<int, 32>, 32> LMRTable;
 

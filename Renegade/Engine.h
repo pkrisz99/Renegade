@@ -11,6 +11,7 @@
 #include <random>
 #include <thread>
 #include <tuple>
+#include <unordered_map>
 
 extern void GenerateMagicTables();
 

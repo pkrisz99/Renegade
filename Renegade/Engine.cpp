@@ -25,6 +25,29 @@ void Engine::Start() {
 	Board board = Board(FEN::StartPos);
 	std::string cmd;
 
+	std::unordered_map<std::string, int> searchTunableParams;
+	searchTunableParams["lmr_base"] = 70;
+	searchTunableParams["lmr_multip"] = 40;
+	searchTunableParams["lmr_depth"] = 3;
+	searchTunableParams["lmr_moves_pv"] = 6;
+	searchTunableParams["lmr_moves_nonpv"] = 4;
+	searchTunableParams["iir_depth"] = 4;
+	searchTunableParams["rfp_depth"] = 7;
+	searchTunableParams["rfp_margin_1"] = 70;
+	searchTunableParams["rfp_margin_after"] = 90;
+	searchTunableParams["fp_depth"] = 5;
+	searchTunableParams["fp_margin_1"] = 130;
+	searchTunableParams["fp_margin_after"] = 100;
+	searchTunableParams["lmp_depth"] = 5;
+	searchTunableParams["lmp_base"] = 3;
+	searchTunableParams["nmp_depth"] = 3;
+	searchTunableParams["nmp_base"] = 3;
+	searchTunableParams["nmp_scale_eval"] = 200;
+	searchTunableParams["nmp_scale_depth"] = 3;
+	searchTunableParams["nmp_scale_eval_cap"] = 3;
+	searchTunableParams["see_depth"] = 5;
+	Search.SetTunableSettings(searchTunableParams);
+
 	while (getline(cin, cmd)) {
 
 		cmd = Trim(cmd);
@@ -39,6 +62,11 @@ void Engine::Start() {
 			cout << "option name Clear Hash type button" << '\n';
 			cout << "option name Hash type spin default 64 min 1 max 4096" << '\n';
 			cout << "option name Threads type spin default 1 min 1 max 1" << '\n';
+
+			for (auto& opt : searchTunableParams) {
+				cout << "option name " << opt.first << " type spin default " << opt.second << " min 1 max 1000" << '\n';
+			}
+
 			cout << "uciok" << endl;
 			Settings.UciOutput = true;
 			continue;
@@ -109,6 +137,14 @@ void Engine::Start() {
 			}
 			else if (parts[2] == "threads") {
 				valid = true;
+			}
+			else {
+				if (searchTunableParams.find(parts[2]) != searchTunableParams.end()) {
+					valid = true;
+					searchTunableParams[parts[2]] = stoi(parts[4]);
+					Search.SetTunableSettings(searchTunableParams);
+					cout << "info string Set " << parts[2] << " to " << searchTunableParams[parts[2]] << endl;
+				}
 			}
 			
 			if (!valid) cout << "Invalid option: '" << parts[2] << "'" << endl;
