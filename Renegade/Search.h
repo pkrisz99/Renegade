@@ -26,7 +26,7 @@ public:
 	void ResetState(const bool clearTT);
 
 	void Perft(Board& board, const int depth, const PerftType type) const;
-	const Results SearchMoves(Board board, const SearchParams params, const EngineSettings settings, const bool display);
+	Results SearchMoves(Board board, const SearchParams params, const EngineSettings settings, const bool display);
 	bool StaticExchangeEval(const Board& board, const Move& move, const int threshold) const;
 
 	bool Aborting = false;
@@ -38,7 +38,7 @@ private:
 	int SearchQuiescence(Board& board, const int level, int alpha, int beta);
 	int Evaluate(const Board& board);
 	uint64_t PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) const;
-	const SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
+	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	inline bool ShouldAbort() const;
 	int DrawEvaluation();
 	void ResetStatistics();

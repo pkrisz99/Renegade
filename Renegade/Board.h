@@ -51,8 +51,8 @@ public:
 	template <bool side>
 	inline uint64_t GetPawnAttacks() const {
 		// For whatever reason there's some trouble with using templates
-		if constexpr (side == Turn::White) return ((WhitePawnBits & ~Bitboards::FileA) << 7) | ((WhitePawnBits & ~Bitboards::FileH) << 9);
-		else if (side == Turn::Black) return ((BlackPawnBits & ~Bitboards::FileA) >> 9) | ((BlackPawnBits & ~Bitboards::FileH) >> 7);
+		if constexpr (side == Turn::White) return ((WhitePawnBits & ~FileA) << 7) | ((WhitePawnBits & ~FileH) << 9);
+		else if (side == Turn::Black) return ((BlackPawnBits & ~FileA) >> 9) | ((BlackPawnBits & ~FileH) >> 7);
 	}
 
 	inline uint64_t GetWhitePawnAttacks() const {

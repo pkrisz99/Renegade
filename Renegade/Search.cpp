@@ -77,7 +77,7 @@ uint64_t Search::PerftRecursive(Board& board, const int depth, const int origina
 
 // Time management --------------------------------------------------------------------------------
 
-const SearchConstraints Search::CalculateConstraints(const SearchParams params, const bool turn) const {
+SearchConstraints Search::CalculateConstraints(const SearchParams params, const bool turn) const {
 	SearchConstraints constraints;
 
 	// Handle nodes, depth, movetime 
@@ -135,7 +135,7 @@ inline bool Search::ShouldAbort() const {
 
 // Negamax search routine and handling ------------------------------------------------------------
 
-const Results Search::SearchMoves(Board board, const SearchParams params, const EngineSettings settings, const bool display) {
+Results Search::SearchMoves(Board board, const SearchParams params, const EngineSettings settings, const bool display) {
 
 	StartSearchTime = Clock::now();
 	int elapsedMs = 0;
@@ -278,7 +278,7 @@ const Results Search::SearchMoves(Board board, const SearchParams params, const 
 }
 
 // Recursively called during the negamax search
-int Search::SearchRecursive(Board &board, int depth, const int level, int alpha, int beta, const bool canNullMove) {
+int Search::SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove) {
 
 	// Check search limits
 	Aborting = ShouldAbort();
@@ -297,14 +297,14 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 		if (alpha >= beta) return alpha;
 	}
 
+	// Check for draws
+	if (!rootNode && board.IsDraw(false)) return DrawEvaluation();
+
 	// Check extensions
 	const bool inCheck = board.IsInCheck();
 	if (!rootNode) {
 		if (inCheck) depth += 1;
 	}
-
-	// Check for draws
-	if (!rootNode && board.IsDraw(false)) return DrawEvaluation();
 
 	// Drop into quiescence search at depth 0
 	if (depth <= 0) {
@@ -534,7 +534,7 @@ int Search::SearchRecursive(Board &board, int depth, const int level, int alpha,
 }
 
 // Quiescence search: for noisy moves only (captures, queen promotions)
-int Search::SearchQuiescence(Board &board, const int level, int alpha, int beta) {
+int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta) {
 
 	// Check search limits
 	Aborting = ShouldAbort();

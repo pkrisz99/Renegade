@@ -882,24 +882,24 @@ uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) const {
 
 	// Pawn attack map generation
 	if (colorOfPieces == PieceColor::White) {
-		squares |= (WhitePawnBits & ~Bitboards::FileA) << 7;
-		squares |= (WhitePawnBits & ~Bitboards::FileH) << 9;
+		squares |= (WhitePawnBits & ~FileA) << 7;
+		squares |= (WhitePawnBits & ~FileH) << 9;
 		if (EnPassantSquare != -1) {
 			uint64_t encodedEP = 0;
 			SetBitTrue(encodedEP, EnPassantSquare);
-			squares |= ((WhitePawnBits & ~Bitboards::FileA) >> 1) & encodedEP;
-			squares |= ((WhitePawnBits & ~Bitboards::FileH) << 1) & encodedEP;
+			squares |= ((WhitePawnBits & ~FileA) >> 1) & encodedEP;
+			squares |= ((WhitePawnBits & ~FileH) << 1) & encodedEP;
 		}
 
 	}
 	else {
-		squares |= (BlackPawnBits & ~Bitboards::FileA) >> 9;
-		squares |= (BlackPawnBits & ~Bitboards::FileH) >> 7;
+		squares |= (BlackPawnBits & ~FileA) >> 9;
+		squares |= (BlackPawnBits & ~FileH) >> 7;
 		if (EnPassantSquare != -1) {
 			uint64_t encodedEP = 0;
 			SetBitTrue(encodedEP, EnPassantSquare);
-			squares |= ((BlackPawnBits & ~Bitboards::FileA) >> 1) & encodedEP;
-			squares |= ((BlackPawnBits & ~Bitboards::FileH) << 1) & encodedEP;
+			squares |= ((BlackPawnBits & ~FileA) >> 1) & encodedEP;
+			squares |= ((BlackPawnBits & ~FileH) << 1) & encodedEP;
 		}
 	}
 
@@ -924,8 +924,8 @@ bool Board::IsSquareAttacked(const uint8_t square) const {
 		// Attacked by a king?
 		if (KingMoveBits[square] & WhiteKingBits) return true;
 		// Attacked by a pawn?
-		if (SquareBits[square] & ((WhitePawnBits & ~Bitboards::FileA) << 7)) return true;
-		if (SquareBits[square] & ((WhitePawnBits & ~Bitboards::FileH) << 9)) return true;
+		if (SquareBit(square) & ((WhitePawnBits & ~FileA) << 7)) return true;
+		if (SquareBit(square) & ((WhitePawnBits & ~FileH) << 9)) return true;
 		// Attacked by a sliding piece?
 		if (GetRookAttacks(square, occupancy) & (WhiteRookBits | WhiteQueenBits)) return true;
 		if (GetBishopAttacks(square, occupancy) & (WhiteBishopBits | WhiteQueenBits)) return true;
@@ -938,8 +938,8 @@ bool Board::IsSquareAttacked(const uint8_t square) const {
 		// Attacked by a king?
 		if (KingMoveBits[square] & BlackKingBits) return true;
 		// Attacked by a pawn?
-		if (SquareBits[square] & ((BlackPawnBits & ~Bitboards::FileA) >> 9)) return true;
-		if (SquareBits[square] & ((BlackPawnBits & ~Bitboards::FileH) >> 7)) return true;
+		if (SquareBit(square) & ((BlackPawnBits & ~FileA) >> 9)) return true;
+		if (SquareBit(square) & ((BlackPawnBits & ~FileH) >> 7)) return true;
 		// Attacked by a sliding piece?
 		if (GetRookAttacks(square, occupancy) & (BlackRookBits | BlackQueenBits)) return true;
 		if (GetBishopAttacks(square, occupancy) & (BlackBishopBits | BlackQueenBits)) return true;
@@ -954,37 +954,37 @@ uint64_t Board::GetAttackersOfSquare(const uint8_t square, const uint64_t occupi
 	uint64_t attackers = 0;
 
 	// Pawns
-	if (SquareBits[square] & ((WhitePawnBits & ~Bitboards::FileA) << 7)) SetBitTrue(attackers, square - 7);
-	if (SquareBits[square] & ((WhitePawnBits & ~Bitboards::FileH) << 9)) SetBitTrue(attackers, square - 9);
-	if (SquareBits[square] & ((BlackPawnBits & ~Bitboards::FileA) >> 9)) SetBitTrue(attackers, square + 9);
-	if (SquareBits[square] & ((BlackPawnBits & ~Bitboards::FileH) >> 7)) SetBitTrue(attackers, square + 7);
+	if (SquareBit(square) & ((WhitePawnBits & ~FileA) << 7)) SetBitTrue(attackers, square - 7);
+	if (SquareBit(square) & ((WhitePawnBits & ~FileH) << 9)) SetBitTrue(attackers, square - 9);
+	if (SquareBit(square) & ((BlackPawnBits & ~FileA) >> 9)) SetBitTrue(attackers, square + 9);
+	if (SquareBit(square) & ((BlackPawnBits & ~FileH) >> 7)) SetBitTrue(attackers, square + 7);
 
 	// Knights
 	uint64_t bits = WhiteKnightBits | BlackKnightBits;
 	while (bits) {
 		const uint8_t sq = Popsquare(bits);
-		if (KnightMoveBits[sq] & SquareBits[square]) SetBitTrue(attackers, sq);
+		if (KnightMoveBits[sq] & SquareBit(square)) SetBitTrue(attackers, sq);
 	}
 
 	// Bishops & queens
 	bits = WhiteBishopBits | WhiteQueenBits | BlackBishopBits | BlackQueenBits;
 	while (bits) {
 		const uint8_t sq = Popsquare(bits);
-		if (GetBishopAttacks(sq, occupied) & SquareBits[square]) SetBitTrue(attackers, sq);
+		if (GetBishopAttacks(sq, occupied) & SquareBit(square)) SetBitTrue(attackers, sq);
 	}
 
 	// Rooks & queens
 	bits = WhiteRookBits | WhiteQueenBits | BlackRookBits | BlackQueenBits;
 	while (bits) {
 		const uint8_t sq = Popsquare(bits);
-		if (GetRookAttacks(sq, occupied) & SquareBits[square]) SetBitTrue(attackers, sq);
+		if (GetRookAttacks(sq, occupied) & SquareBit(square)) SetBitTrue(attackers, sq);
 	}
 
 	// Kings
 	uint8_t sq = GetKingSquare<Turn::White>();
-	if (KingMoveBits[sq] & SquareBits[square]) SetBitTrue(attackers, sq);
+	if (KingMoveBits[sq] & SquareBit(square)) SetBitTrue(attackers, sq);
 	sq = GetKingSquare<Turn::Black>();
-	if (KingMoveBits[sq] & SquareBits[square]) SetBitTrue(attackers, sq);
+	if (KingMoveBits[sq] & SquareBit(square)) SetBitTrue(attackers, sq);
 
 	return attackers;
 }
@@ -1042,45 +1042,24 @@ bool Board::AreThereLegalMoves() {
 }
 
 bool Board::IsDraw(const bool threefold) const {
+	// 1. Fifty moves without progress
+	if (HalfmoveClock >= 100) return true;
 
-	// Threefold repetitions
+	// 2. Threefold repetitions
 	const int64_t stateCount = std::count(PreviousHashes.begin(), PreviousHashes.end(), HashValue);
 	if (stateCount >= (threefold ? 3 : 2)) return true;
 
-	// Insufficient material check
-	// I think this neglects some cases when pawns can't move
+	// 3. Insufficient material check
+	// - has pawns or major pieces -> sufficient
+	if (WhitePawnBits | BlackPawnBits) return false;
+	if (WhiteRookBits | BlackRookBits | WhiteQueenBits | BlackQueenBits) return false;
+	// - less than 4 with minor pieces is a draw, more than 4 is not
 	const int pieceCount = Popcount(GetOccupancy());
-	if (pieceCount <= 4) {
-		const int whitePawnCount = Popcount(WhitePawnBits);
-		const int whiteKnightCount = Popcount(WhiteKnightBits);
-		const int whiteBishopCount = Popcount(WhiteBishopBits);
-		const int whiteRookCount = Popcount(WhiteRookBits);
-		const int whiteQueenCount = Popcount(WhiteQueenBits);
-		const int blackPawnCount = Popcount(BlackPawnBits);
-		const int blackKnightCount = Popcount(BlackKnightBits);
-		const int blackBishopCount = Popcount(BlackBishopBits);
-		const int blackRookCount = Popcount(BlackRookBits);
-		const int blackQueenCount = Popcount(BlackQueenBits);
-		const int whitePieceCount = whitePawnCount + whiteKnightCount + whiteBishopCount + whiteRookCount + whiteQueenCount;
-		const int blackPieceCount = blackPawnCount + blackKnightCount + blackBishopCount + blackRookCount + blackQueenCount;
-		const int whiteLightBishopCount = Popcount(WhiteBishopBits & Bitboards::LightSquares);
-		const int whiteDarkBishopCount = Popcount(WhiteBishopBits & Bitboards::DarkSquares);
-		const int blackLightBishopCount = Popcount(BlackBishopBits & Bitboards::LightSquares);
-		const int blackDarkBishopCount = Popcount(BlackBishopBits & Bitboards::DarkSquares);
-
-		if (whitePieceCount == 0 && blackPieceCount == 0) return true;
-		if (whitePieceCount == 1 && whiteKnightCount == 1 && blackPieceCount == 0) return true;
-		if (blackPieceCount == 1 && blackKnightCount == 1 && whitePieceCount == 0) return true;
-		if (whitePieceCount == 1 && whiteBishopCount == 1 && blackPieceCount == 0) return true;
-		if (blackPieceCount == 1 && blackBishopCount == 1 && whitePieceCount == 0) return true;
-		if (whitePieceCount == 1 && whiteLightBishopCount == 1 && blackPieceCount == 1 && blackLightBishopCount == 1) return true;
-		if (whitePieceCount == 1 && whiteDarkBishopCount == 1 && blackPieceCount == 1 && blackDarkBishopCount == 1) return true;
-	}
-
-	// Fifty moves without progress
-	if (HalfmoveClock >= 100) return true;
-
-	// Return false otherwise
+	if (pieceCount > 4) return false;
+	if (pieceCount < 4) return true;
+	// - for exactly 4 pieces, check for same-color KBvKB
+	if (Popcount(WhiteBishopBits & LightSquares) == 1 && Popcount(BlackBishopBits & LightSquares) == 1) return true;
+	if (Popcount(WhiteBishopBits & DarkSquares) == 1 && Popcount(BlackBishopBits & DarkSquares) == 1) return true;
 	return false;
 }
 
@@ -1134,13 +1113,13 @@ const std::string Board::GetFEN() const {
 
 	bool enPassantPossible = false;
 	if ((EnPassantSquare != -1) && (Turn == Turn::White)) {
-		const bool fromRight = (((WhitePawnBits & ~Bitboards::FileA) << 7) & SquareBits[EnPassantSquare]);
-		const bool fromLeft = (((WhitePawnBits & ~Bitboards::FileH) << 9) & SquareBits[EnPassantSquare]);
+		const bool fromRight = (((WhitePawnBits & ~FileA) << 7) & SquareBit(EnPassantSquare));
+		const bool fromLeft = (((WhitePawnBits & ~FileH) << 9) & SquareBit(EnPassantSquare));
 		if (fromLeft || fromRight) enPassantPossible = true;
 	}
 	if ((EnPassantSquare != -1) && (Turn == Turn::Black)) {
-		const bool fromRight = (((BlackPawnBits & ~Bitboards::FileA) >> 9) & SquareBits[EnPassantSquare]);
-		const bool fromLeft = (((BlackPawnBits & ~Bitboards::FileH) >> 7) & SquareBits[EnPassantSquare]);
+		const bool fromRight = (((BlackPawnBits & ~FileA) >> 9) & SquareBit(EnPassantSquare));
+		const bool fromLeft = (((BlackPawnBits & ~FileH) >> 7) & SquareBit(EnPassantSquare));
 		if (fromLeft || fromRight) enPassantPossible = true;
 	}
 	if (enPassantPossible) result += SquareStrings[EnPassantSquare];

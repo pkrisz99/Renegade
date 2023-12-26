@@ -64,7 +64,7 @@ int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 			// Passed pawn evaluation
 			if (((WhitePassedPawnMask[sq] & board.BlackPawnBits) == 0) && ((WhitePassedPawnFilter[sq] & board.WhitePawnBits) == 0)) {
 				pawnStructureScore += weights.GetPassedPawnEval(sq);
-				if (SquareBits[sq + 8] & blackPieces) pawnStructureScore += weights.GetBlockedPasserEval(rank);
+				if (SquareBit(sq + 8) & blackPieces) pawnStructureScore += weights.GetBlockedPasserEval(rank);
 			}
 			// Threats
 			if (attacks & board.BlackKnightBits) threatScore += weights.GetPawnThreat(PieceType::Knight) * Popcount(attacks & board.BlackKnightBits);
@@ -72,7 +72,7 @@ int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 			if (attacks & board.BlackRookBits) threatScore += weights.GetPawnThreat(PieceType::Rook) * Popcount(attacks & board.BlackRookBits);
 			if (attacks & board.BlackQueenBits) threatScore += weights.GetPawnThreat(PieceType::Queen) * Popcount(attacks & board.BlackQueenBits);
 			// Pawn is supported?
-			if (whitePawnAttacks & SquareBits[sq]) pawnStructureScore += weights.GetPawnSupportingPawn(rank);
+			if (whitePawnAttacks & SquareBit(sq)) pawnStructureScore += weights.GetPawnSupportingPawn(rank);
 			// Pawn phalanx
 			if ((file != 7) && (board.GetPieceAt(sq + 1) == Piece::WhitePawn)) pawnStructureScore += weights.GetPawnPhalanx(rank);
 			break;
@@ -92,7 +92,7 @@ int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 			// Passed pawn evaluation
 			if (((BlackPassedPawnMask[sq] & board.WhitePawnBits) == 0) && ((BlackPassedPawnFilter[sq] & board.BlackPawnBits) == 0)) {
 				pawnStructureScore -= weights.GetPassedPawnEval(Mirror(sq));
-				if (SquareBits[sq - 8] & whitePieces) pawnStructureScore -= weights.GetBlockedPasserEval(7 - rank);
+				if (SquareBit(sq - 8) & whitePieces) pawnStructureScore -= weights.GetBlockedPasserEval(7 - rank);
 			}
 			// Threats
 			if (attacks & board.WhiteKnightBits) threatScore -= weights.GetPawnThreat(PieceType::Knight) * Popcount(attacks & board.WhiteKnightBits);
@@ -100,7 +100,7 @@ int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 			if (attacks & board.WhiteRookBits) threatScore -= weights.GetPawnThreat(PieceType::Rook) * Popcount(attacks & board.WhiteRookBits);
 			if (attacks & board.WhiteQueenBits) threatScore -= weights.GetPawnThreat(PieceType::Queen) * Popcount(attacks & board.WhiteQueenBits);
 			// Pawn is supported?
-			if (blackPawnAttacks & SquareBits[sq]) pawnStructureScore -= weights.GetPawnSupportingPawn(7 - rank);
+			if (blackPawnAttacks & SquareBit(sq)) pawnStructureScore -= weights.GetPawnSupportingPawn(7 - rank);
 			// Pawn phalanx
 			if ((file != 7) && (board.GetPieceAt(sq + 1) == Piece::BlackPawn)) pawnStructureScore -= weights.GetPawnPhalanx(7 - rank);
 			break;
