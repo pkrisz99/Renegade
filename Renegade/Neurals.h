@@ -11,7 +11,7 @@
 
 // Network constants
 constexpr int FeatureSize = 768;
-constexpr int HiddenSize = 256;
+constexpr int HiddenSize = 384;
 
 struct alignas(64) NetworkRepresentation {
 	std::array<std::array<int16_t, HiddenSize>, FeatureSize> FeatureWeights;
