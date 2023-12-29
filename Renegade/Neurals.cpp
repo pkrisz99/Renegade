@@ -15,7 +15,7 @@
 #undef RENEGADE_MSVC
 #endif
 
-INCBIN(DefaultNetwork, "renegade-net-8.bin");
+INCBIN(DefaultNetwork, "renegade-net-9.bin");
 const NetworkRepresentation* Network;
 std::unique_ptr<NetworkRepresentation> ExternalNetwork;
 
@@ -25,14 +25,14 @@ int NeuralEvaluate2(const AccumulatorRepresentation& acc, const bool turn) {
 	int32_t output = 0;
 
 	// Calculate output
-	for (int i = 0; i < HiddenSize; i++) output += ClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
-	for (int i = 0; i < HiddenSize; i++) output += ClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
+	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
+	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
 	const int scale = 400;
 	const int qa = 255;
 	const int qb = 64;
 	const int q = qa * qb;
-	//output = (output / qa + Network->OutputBias) * scale / q; // Square clipped relu
-	output = (output + Network->OutputBias) * scale / q;
+	output = (output / qa + Network->OutputBias) * scale / q; // Square clipped relu
+	//output = (output + Network->OutputBias) * scale / q;
 
 	return std::clamp(output, -MateThreshold + 1, MateThreshold - 1);
 }
@@ -67,14 +67,14 @@ int NeuralEvaluate(const Board& board) {
 	int32_t output = 0;
 
 	// Calculate output
-	for (int i = 0; i < HiddenSize; i++) output += ClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
-	for (int i = 0; i < HiddenSize; i++) output += ClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
+	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
+	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
 	const int scale = 400;
 	const int qa = 255;
 	const int qb = 64;
 	const int q = qa * qb;
-	//output = (output / qa + Network->OutputBias) * scale / q; // Square clipped relu
-	output = (output + Network->OutputBias) * scale / q;
+	output = (output / qa + Network->OutputBias) * scale / q; // Square clipped relu
+	//output = (output + Network->OutputBias) * scale / q;
 	// clamp here if eval too large
 	return output;
 
