@@ -24,13 +24,16 @@ int NeuralEvaluate2(const AccumulatorRepresentation& acc, const bool turn) {
 	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Turn::White) ? acc.Black : acc.White;
 	int32_t output = 0;
 
+	// Constants
+	constexpr int scale = 400;
+	constexpr int qa = 255;
+	constexpr int qb = 64;
+	constexpr int q = qa * qb;	
+
 	// Calculate output
 	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
 	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
-	const int scale = 400;
-	const int qa = 255;
-	const int qb = 64;
-	const int q = qa * qb;
+
 	output = (output / qa + Network->OutputBias) * scale / q; // Square clipped relu
 	//output = (output + Network->OutputBias) * scale / q;
 
@@ -45,39 +48,17 @@ int NeuralEvaluate(const Board& board) {
 	for (int i = 0; i < HiddenSize; i++) hiddenWhite[i] = Network->FeatureBias[i];
 	for (int i = 0; i < HiddenSize; i++) hiddenBlack[i] = Network->FeatureBias[i];
 
-	// Iterate through inputs
-	uint64_t occupancy = board.GetOccupancy();
-	while (occupancy) {
-		const int sq = Popsquare(occupancy);
+	AccumulatorRepresentation acc{};
+	acc.Reset();
+
+	uint64_t bits = board.GetOccupancy();
+	while (bits) {
+		const uint8_t sq = Popsquare(bits);
 		const int piece = board.GetPieceAt(sq);
-		const int pieceType = TypeOfPiece(piece);
-		const int pieceColor = ColorOfPiece(piece);
-		const int colorOffset = 64 * 6;
-
-		// Turn on the right inputs
-		const int whiteActivationIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + sq;
-		const int blackActivationIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq);
-		for (int i = 0; i < HiddenSize; i++) hiddenWhite[i] += Network->FeatureWeights[whiteActivationIndex][i];
-		for (int i = 0; i < HiddenSize; i++) hiddenBlack[i] += Network->FeatureWeights[blackActivationIndex][i];
+		acc.UpdateFeature<true>(FeatureIndexes(piece, sq));
 	}
-	
-	// Flip
-	std::array<int16_t, HiddenSize>& hiddenFriendly = ((board.Turn == Turn::White) ? hiddenWhite : hiddenBlack);
-	std::array<int16_t, HiddenSize>& hiddenOpponent = ((board.Turn == Turn::White) ? hiddenBlack : hiddenWhite);
-	int32_t output = 0;
 
-	// Calculate output
-	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
-	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
-	const int scale = 400;
-	const int qa = 255;
-	const int qb = 64;
-	const int q = qa * qb;
-	output = (output / qa + Network->OutputBias) * scale / q; // Square clipped relu
-	//output = (output + Network->OutputBias) * scale / q;
-	// clamp here if eval too large
-	return output;
-
+	return NeuralEvaluate2(acc, board.Turn);
 }
 
 void LoadExternalNetwork(const std::string& filename) {
@@ -100,5 +81,6 @@ void LoadExternalNetwork(const std::string& filename) {
 
 void LoadDefaultNetwork() {
 	ExternalNetwork.reset();
+	//LoadExternalNetwork(...);
 	Network = reinterpret_cast<const NetworkRepresentation*>(gDefaultNetworkData); // Incbin magic
 }

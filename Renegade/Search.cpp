@@ -614,6 +614,7 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 int Search::Evaluate(const Board &board) {
 	Statistics.Evaluations += 1;
 	//if (NeuralEvaluate2(Accumulator, board.Turn) != NeuralEvaluate(board)) cout << "!" << endl;
+	//return NeuralEvaluate(board);
 	return NeuralEvaluate2(Accumulator, board.Turn);
 }
 
@@ -724,18 +725,11 @@ void Search::SetupAccumulators(const Board& board) {
 	Accumulator.Reset();
 	uint64_t bits = board.GetOccupancy();
 
+	// Turning on the right inputs
 	while (bits) {
 		const uint8_t sq = Popsquare(bits);
 		const int piece = board.GetPieceAt(sq);
-		const int pieceType = TypeOfPiece(piece);
-		const int pieceColor = ColorOfPiece(piece);
-		const int colorOffset = 64 * 6;
-
-		// Turn on the right inputs
-		const int whiteActivationIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + sq;
-		const int blackActivationIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq);
-		for (int i = 0; i < HiddenSize; i++) Accumulator.White[i] += Network->FeatureWeights[whiteActivationIndex][i];
-		for (int i = 0; i < HiddenSize; i++) Accumulator.Black[i] += Network->FeatureWeights[blackActivationIndex][i];
+		Accumulator.UpdateFeature<true>(FeatureIndexes(piece, sq));
 	}
 }
 
