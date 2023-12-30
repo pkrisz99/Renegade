@@ -15,7 +15,7 @@
 #undef RENEGADE_MSVC
 #endif
 
-INCBIN(DefaultNetwork, "renegade-net-9.bin");
+INCBIN(DefaultNetwork, "renegade-net-10.bin");
 const NetworkRepresentation* Network;
 std::unique_ptr<NetworkRepresentation> ExternalNetwork;
 
@@ -26,16 +26,41 @@ int NeuralEvaluate2(const AccumulatorRepresentation& acc, const bool turn) {
 
 	// Constants
 	constexpr int scale = 400;
-	constexpr int qa = 255;
+	constexpr int qa = 181;
 	constexpr int qb = 64;
-	constexpr int q = qa * qb;	
+	constexpr int q = qa * qb;
+	constexpr int chunkSize = 16;
 
+	
 	// Calculate output
-	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
-	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
+
+	// This uses qa=181, a trick to make SIMD more efficient
+	// Idea by JW (akimbo)
+
+	auto sum = _mm256_setzero_si256();
+	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
+		const auto v = SquareClippedReLU(_mm256_load_si256((__m256i*) &hiddenFriendly[chunkSize * i]));
+		const auto w = _mm256_load_si256((__m256i*) &Network->OutputWeights[chunkSize * i]);
+		const auto p = _mm256_madd_epi16(v, w);
+		sum = _mm256_add_epi32(sum, p);
+	}
+	output = ExtractInteger(sum);
+
+	sum = _mm256_setzero_si256();
+	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
+		const auto v = SquareClippedReLU(_mm256_load_si256((__m256i*) &hiddenOpponent[chunkSize * i]));
+		const auto w = _mm256_load_si256((__m256i*) &Network->OutputWeights[chunkSize * i + HiddenSize]);
+		const auto p = _mm256_madd_epi16(v, w);
+		sum = _mm256_add_epi32(sum, p);
+	}
+	output += ExtractInteger(sum);
+
+
+	//for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
+	//for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
 
 	output = (output / qa + Network->OutputBias) * scale / q; // Square clipped relu
-	//output = (output + Network->OutputBias) * scale / q;
+	//output = (output + Network->OutputBias) * scale / q; // Clipped relu
 
 	return std::clamp(output, -MateThreshold + 1, MateThreshold - 1);
 }

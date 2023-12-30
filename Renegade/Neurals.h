@@ -4,6 +4,7 @@
 #include <array>
 #include <fstream>
 #include <iterator>
+#include <immintrin.h>
 #include <memory>
 
 // An early attempt at supporting NNUE evaluation.
@@ -12,6 +13,8 @@
 // Network constants
 constexpr int FeatureSize = 768;
 constexpr int HiddenSize = 384;
+
+using Vec256 = __m256i;
 
 struct alignas(64) NetworkRepresentation {
 	std::array<std::array<int16_t, HiddenSize>, FeatureSize> FeatureWeights;
@@ -61,9 +64,27 @@ inline int32_t ClippedReLU(const int16_t value) {
 	return std::clamp<int32_t>(value, 0, 255);
 }
 
-inline int32_t SquareClippedReLU(const int16_t value) {
-	const int32_t x = std::clamp<int32_t>(value, 0, 255);
+inline Vec256 SquareClippedReLU(Vec256 value) {
+	const auto min = _mm256_setzero_si256();
+	const auto max = _mm256_set1_epi16(static_cast<int16_t>(181));
+	value = _mm256_min_epi16(_mm256_max_epi16(value, min), max);
+	return _mm256_mullo_epi16(value, value);
+}
+
+inline int16_t SquareClippedReLU(const int16_t value) {
+	const int32_t x = std::clamp<int32_t>(value, 0, 181);
 	return x * x;
+}
+
+inline int32_t ExtractInteger(const __m256i sum) {
+	const auto upper_128 = _mm256_extracti128_si256(sum, 1);
+	const auto lower_128 = _mm256_castsi256_si128(sum);
+	const auto sum_128 = _mm_add_epi32(upper_128, lower_128);
+	const auto upper_64 = _mm_unpackhi_epi64(sum_128, sum_128);
+	const auto sum_64 = _mm_add_epi32(upper_64, sum_128);
+	const auto upper_32 = _mm_shuffle_epi32(sum_64, 0b00'00'00'01);
+	const auto sum_32 = _mm_add_epi32(upper_32, sum_64);
+	return _mm_cvtsi128_si32(sum_32);
 }
 
 inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq) {
