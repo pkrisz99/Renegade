@@ -15,7 +15,7 @@
 #undef RENEGADE_MSVC
 #endif
 
-INCBIN(DefaultNetwork, "renegade-net-10.bin");
+INCBIN(DefaultNetwork, "renegade-net-11.bin");
 const NetworkRepresentation* Network;
 std::unique_ptr<NetworkRepresentation> ExternalNetwork;
 

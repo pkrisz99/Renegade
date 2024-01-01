@@ -12,7 +12,7 @@
 
 // Network constants
 constexpr int FeatureSize = 768;
-constexpr int HiddenSize = 384;
+constexpr int HiddenSize = 512;
 
 using Vec256 = __m256i;
 
