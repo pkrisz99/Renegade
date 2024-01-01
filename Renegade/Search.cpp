@@ -417,7 +417,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		if (isQuiet) quietsTried.push_back(m);
 
 		// Moves loop pruning techniques
-		if (!pvNode && (bestScore > -MateThreshold) && !DatagenMode) {
+		if (!pvNode && (bestScore > -MateThreshold) && (order < 90000) && !DatagenMode) {
 
 			// Late-move pruning (+9 elo)
 			const int lmpCount[] = { 0, 4, 7, 12, 19 };
