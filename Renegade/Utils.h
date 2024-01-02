@@ -26,6 +26,18 @@ constexpr int NoEval = -666666666;
 constexpr int NegativeInfinity = -333333333; // Inventing a new kind of math here
 constexpr int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
+// For pawn value normalization and WDL reporting
+// calculated with https://github.com/official-stockfish/WDL_model
+constexpr int PawnNormalizationConstant = 268;
+constexpr double as[] = { -0.15152194, -11.28969167, 113.56524308, 166.24668446 };
+constexpr double bs[] = { -0.04615536, 11.53980135, -59.09322584, 159.62627689 };
+
+static inline int ToCentipawns(const int score) {
+	// Converts internal units into centipawns
+	// De facto standard is at 100 centipawns having 50% chance of winning at move 32
+	return score * 100 / PawnNormalizationConstant;
+}
+
 constexpr int MaxDepth = 128;
 
 static inline bool IsMateScore(const int score) {

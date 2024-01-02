@@ -198,8 +198,9 @@ void Engine::Start() {
 		}
 		if (parts[0] == "eval") {
 			const int hce = ClassicalEvaluate(board);
-			cout << "Hand-crafted evaluation:   " << hce << " cp" << endl;
-			cout << "Neural network evaluation: " << NeuralEvaluate(board) << " cp\n" << endl;
+			const int nnue = NeuralEvaluate(board);
+			cout << "Hand-crafted evaluation:   " << ToCentipawns(hce) << " cp  (internal units: " << hce << ")" << endl;
+			cout << "Neural network evaluation: " << ToCentipawns(nnue) << " cp  (internal units: " << nnue << ")\n" << endl;
 			continue;
 		}
 		if (parts[0] == "fen") {

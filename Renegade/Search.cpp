@@ -154,7 +154,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 		board.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
 		if (rootLegalMoves.size() == 1) {
 			const int eval = Evaluate(board);
-			cout << "info depth 1 score cp " << eval << " nodes 0" << endl;
+			cout << "info depth 1 score cp " << ToCentipawns(eval) << " nodes 0" << endl;
 			cout << "info string Only one legal move!" << endl;
 			PrintBestmove(rootLegalMoves.front());
 			return Results(eval, rootLegalMoves, 1, Statistics, 0, 0, 0); // hack: rootLegalMoves is a vector already
@@ -395,7 +395,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	});
 
 	// Resetting killers for ply+2
-	if (level + 2 <= MaxDepth) {
+	if (level + 2 < MaxDepth) {
 		Heuristics.KillerMoves[level + 2][0] = EmptyMove;
 		Heuristics.KillerMoves[level + 2][1] = EmptyMove;
 	}
@@ -805,7 +805,7 @@ void Search::PrintInfo(const Results& e, const EngineSettings& settings) const {
 		else score = "mate -" + std::to_string(movesToMate);
 	}
 	else {
-		score = "cp " + std::to_string(e.score);
+		score = "cp " + std::to_string(ToCentipawns(e.score));
 	}
 
 	/*
@@ -845,6 +845,8 @@ void Search::PrintPretty(const Results& e, const EngineSettings& settings) const
 	const std::string gray = settings.Colorful ? "\x1b[90m": "";
 	const std::string yellow = settings.Colorful ? "\x1b[93m" : "";
 
+	const int normalizedScore = std::abs(e.score) < MateThreshold ? ToCentipawns(e.score) : e.score;
+
 	std::string output1 = std::format("{} {:2d}/{:2d}", 
 		white, e.depth, e.stats.SelDepth);
 
@@ -870,21 +872,21 @@ void Search::PrintPretty(const Results& e, const EngineSettings& settings) const
 
 	const int neutralMargin = 50;
 	std::string scoreColor = blue;
-	if (!IsMateScore(e.score)) {
-		if (e.score > neutralMargin) scoreColor = green;
-		else if (e.score < -neutralMargin) scoreColor = red;
+	if (!IsMateScore(normalizedScore)) {
+		if (normalizedScore > neutralMargin) scoreColor = green;
+		else if (normalizedScore < -neutralMargin) scoreColor = red;
 	}
 	else {
 		scoreColor = yellow;
 	}
 
 	std::string output2;
-	if (!IsMateScore(e.score))
-		output2 = std::format("{} {:+5.2f}  {}", scoreColor, e.score / 100.0, white);
+	if (!IsMateScore(normalizedScore))
+		output2 = std::format("{} {:+5.2f}  {}", scoreColor, normalizedScore / 100.0, white);
 	else {
 		std::string output2mate;
-		int movesToMate = (MateEval - abs(e.score) + 1) / 2;
-		if (e.score > 0) output2mate = "#+" + std::to_string(movesToMate);
+		int movesToMate = (MateEval - std::abs(normalizedScore) + 1) / 2;
+		if (normalizedScore > 0) output2mate = "#+" + std::to_string(movesToMate);
 		else output2mate = "#-" + std::to_string(movesToMate);
 		output2 = std::format("{} {:5}  {}", scoreColor, output2mate, white);
 	}
