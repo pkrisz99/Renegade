@@ -14,7 +14,7 @@ Heuristics::~Heuristics() {
 // Move ordering & clearing -----------------------------------------------------------------------
 
 int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int level, const float phase, const Move& ttMove,
-	const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack) const {
+	const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const {
 
 	const uint8_t movedPiece = board.GetPieceAt(m.from);
 	const int attackingPieceType = TypeOfPiece(movedPiece);
@@ -47,7 +47,7 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 	// Quiet moves
 	const bool turn = board.Turn;
 
-	int historyScore = HistoryTables[turn][m.from][m.to];
+	int historyScore = HistoryTables[CheckBit(opponentAttacks, m.from)][CheckBit(opponentAttacks, m.to)][movedPiece][m.to];
 	if (level >= 1) historyScore += (*ContinuationHistory)[moveStack[level - 1].piece][moveStack[level - 1].move.to][movedPiece][m.to];
 	if (level >= 2) historyScore += (*ContinuationHistory)[moveStack[level - 2].piece][moveStack[level - 2].move.to][movedPiece][m.to];
 	if (level >= 4) historyScore += (*ContinuationHistory)[moveStack[level - 4].piece][moveStack[level - 4].move.to][movedPiece][m.to];
@@ -150,12 +150,13 @@ void Heuristics::ClearKillerAndCounterMoves() {
 
 // History heuristic ------------------------------------------------------------------------------
 
-void Heuristics::IncrementHistory(const Move& m, const uint8_t piece, const int depth, const std::array<MoveAndPiece, MaxDepth>& moveStack, const int level) {
+void Heuristics::IncrementHistory(const Move& m, const uint8_t piece, const int depth, const std::array<MoveAndPiece, MaxDepth>& moveStack, const int level,
+	const bool fromSquareAttacked, const bool toSquareAttacked) {
 	const int bonus = std::min(300 * (depth - 1), 2250);
 
 	// Main quiet history
 	const bool side = ColorOfPiece(piece) == PieceColor::White; 
-	UpdateHistoryValue(HistoryTables[side][m.from][m.to], bonus);
+	UpdateHistoryValue(HistoryTables[fromSquareAttacked][toSquareAttacked][piece][m.to], bonus);
 	
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
@@ -170,12 +171,13 @@ void Heuristics::IncrementHistory(const Move& m, const uint8_t piece, const int 
 
 }
 
-void Heuristics::DecrementHistory(const Move& m, const uint8_t piece, const int depth, const std::array<MoveAndPiece, MaxDepth>& moveStack, const int level) {
+void Heuristics::DecrementHistory(const Move& m, const uint8_t piece, const int depth, const std::array<MoveAndPiece, MaxDepth>& moveStack, const int level,
+	const bool fromSquareAttacked, const bool toSquareAttacked) {
 	const int bonus = -1 * std::min(300 * (depth - 1), 2250);
 
 	// Main quiet history
 	const bool side = ColorOfPiece(piece) == PieceColor::White;
-	UpdateHistoryValue(HistoryTables[side][m.from][m.to], bonus);
+	UpdateHistoryValue(HistoryTables[fromSquareAttacked][toSquareAttacked][piece][m.to], bonus);
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
@@ -195,14 +197,7 @@ inline void Heuristics::UpdateHistoryValue(int16_t& value, const int amount) {
 }
 
 void Heuristics::AgeHistory() {
-	// Main quiet history
-	for (int i = 0; i < 64; i++) {
-		for (int j = 0; j < 64; j++) {
-			HistoryTables[0][i][j] /= 2;
-			HistoryTables[1][i][j] /= 2;
-		}
-	}
-	// No aging for continuation history
+	// Nah.
 }
 
 void Heuristics::ClearHistoryTable() {
