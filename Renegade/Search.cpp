@@ -154,10 +154,10 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 		board.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
 		if (rootLegalMoves.size() == 1) {
 			const int eval = Evaluate(board);
-			cout << "info depth 1 score cp " << ToCentipawns(eval) << " nodes 0" << endl;
+			cout << "info depth 1 score cp " << ToCentipawns(eval, board.GetPlys()) << " nodes 0" << endl;
 			cout << "info string Only one legal move!" << endl;
 			PrintBestmove(rootLegalMoves.front());
-			return Results(eval, rootLegalMoves, 1, Statistics, 0, 0, 0); // hack: rootLegalMoves is a vector already
+			return Results(eval, rootLegalMoves, 1, Statistics, 0, 0, 0, board.GetPlys()); // hack: rootLegalMoves is a vector already
 		}
 	}
 
@@ -170,6 +170,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 
 	// Iterative deepening
 	Results e = Results();
+	e.ply = board.GetPlys();
 	int result = NoEval;
 	while (!finished) {
 		Heuristics.ResetPvTable();
@@ -804,14 +805,16 @@ void Search::PrintInfo(const Results& e, const EngineSettings& settings) const {
 		return;
 	}
 
+	const int normalizedScore = ToCentipawns(e.score, e.ply);
+
 	std::string score;
 	if (IsMateScore(e.score)) {
-		int movesToMate = (MateEval - abs(e.score) + 1) / 2;
+		int movesToMate = (MateEval - std::abs(e.score) + 1) / 2;
 		if (e.score > 0) score = "mate " + std::to_string(movesToMate);
 		else score = "mate -" + std::to_string(movesToMate);
 	}
 	else {
-		score = "cp " + std::to_string(ToCentipawns(e.score));
+		score = "cp " + std::to_string(normalizedScore);
 	}
 
 	/*
@@ -830,13 +833,24 @@ void Search::PrintInfo(const Results& e, const EngineSettings& settings) const {
 	for (const Move& move : e.pv)
 		pvString += " " + move.ToString();
 
+	std::string output{};
+	std::string wdlOutput{};
+
+	if (settings.ShowWDL) {
+		const auto [w, l] = GetWDL(e.score, e.ply);
+		const int d = 1000 - w - l;
+		wdlOutput = " wdl " + std::to_string(w) + " " + std::to_string(d) + " " + std::to_string(l);
+	}
+
 #if defined(_MSC_VER)
-	std::string output = std::format("info depth {} seldepth {} score {} nodes {} nps {} time {} hashfull {} pv{}",
-		e.depth, e.stats.SelDepth, score, e.stats.Nodes, e.nps, e.time, e.hashfull, pvString);
+	output = std::format("info depth {} seldepth {} score {} nodes {} nps {} time {} hashfull {}{} pv{}",
+		e.depth, e.stats.SelDepth, score, e.stats.Nodes, e.nps, e.time, e.hashfull, wdlOutput, pvString);
+
 #else
-	std::string output = "info depth " + std::to_string(e.depth) + " seldepth " + std::to_string(e.stats.SelDepth)
+	output = "info depth " + std::to_string(e.depth) + " seldepth " + std::to_string(e.stats.SelDepth)
 		+ " score " + score + " nodes " + std::to_string(e.stats.Nodes) + " nps " + std::to_string(e.nps)
-		+ " time " + std::to_string(e.time) + " hashfull " + std::to_string(e.hashfull) + " pv" + pvString;
+		+ " time " + std::to_string(e.time) + " hashfull " + std::to_string(e.hashfull)
+		+ wdlOutput + " pv" + pvString;
 #endif
 
 	cout << output << endl;
@@ -851,7 +865,7 @@ void Search::PrintPretty(const Results& e, const EngineSettings& settings) const
 	const std::string gray = settings.Colorful ? "\x1b[90m": "";
 	const std::string yellow = settings.Colorful ? "\x1b[93m" : "";
 
-	const int normalizedScore = std::abs(e.score) < MateThreshold ? ToCentipawns(e.score) : e.score;
+	const int normalizedScore = ToCentipawns(e.score, e.ply);
 
 	std::string output1 = std::format("{} {:2d}/{:2d}", 
 		white, e.depth, e.stats.SelDepth);
@@ -906,7 +920,16 @@ void Search::PrintPretty(const Results& e, const EngineSettings& settings) const
 	if (e.pv.size() > 5) pvOutput += " (+" + std::to_string(e.pv.size() - 5) + ")";
 	if (e.pv.size() != 0) pvOutput = white + "[" + pvOutput + white + "]";
 
-	std::string output = output1 + output3 + output2 + pvOutput + white;
+	// Win-draw-loss
+	const auto [modelW, modelL] = GetWDL(e.score, e.ply);
+	const int modelD = 1000 - modelW - modelL;
+	const double q = 10.0;
+	int w = static_cast<int>(std::round(modelW / q));
+	int d = static_cast<int>(std::round(modelD / q));
+	int l = static_cast<int>(std::round(modelL / q));
+	std::string wdl = gray + std::to_string(w) + "-" + std::to_string(d) + "-" + std::to_string(l) + gray;
+
+	std::string output = output1 + output3 + output2 + wdl + "  " + pvOutput + white;
 
 	cout << output << endl;
 #endif

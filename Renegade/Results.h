@@ -12,7 +12,8 @@ public:
 	int time = 0;
 	int nps = 0;
 	int hashfull = 0;
+	int ply = 0;
 	Results();
-	Results(int s, std::vector<Move> p, int d, SearchStatistics stats, int t, int speed, int h);
+	Results(int s, std::vector<Move> p, int d, SearchStatistics stats, int t, int speed, int h, int pl);
 	Move BestMove();
 };

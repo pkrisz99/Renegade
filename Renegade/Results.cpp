@@ -8,7 +8,7 @@ Results::Results() {
 	hashfull = 0;
 }
 
-Results::Results(int s, std::vector<Move> p, int d, SearchStatistics st, int t, int speed, int h) {
+Results::Results(int s, std::vector<Move> p, int d, SearchStatistics st, int t, int speed, int h, int pl) {
 	score = s;
 	pv = p;
 	depth = d;
@@ -16,6 +16,7 @@ Results::Results(int s, std::vector<Move> p, int d, SearchStatistics st, int t, 
 	time = t;
 	nps = speed;
 	hashfull = h;
+	ply = pl;
 }
 
 Move Results::BestMove() {

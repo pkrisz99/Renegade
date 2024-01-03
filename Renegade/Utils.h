@@ -26,19 +26,55 @@ constexpr int NoEval = -666666666;
 constexpr int NegativeInfinity = -333333333; // Inventing a new kind of math here
 constexpr int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
 
+constexpr int MaxDepth = 128;
+
 // For pawn value normalization and WDL reporting
 // calculated with https://github.com/official-stockfish/WDL_model
-constexpr int PawnNormalizationConstant = 268;
-constexpr double as[] = { -0.15152194, -11.28969167, 113.56524308, 166.24668446 };
-constexpr double bs[] = { -0.04615536, 11.53980135, -59.09322584, 159.62627689 };
+constexpr int PawnNormalizationForMove32 = 268;
 
-static inline int ToCentipawns(const int score) {
+/*
+static inline int ToCentipawnsMove32(const int score) {
 	// Converts internal units into centipawns
-	// De facto standard is at 100 centipawns having 50% chance of winning at move 32
-	return score * 100 / PawnNormalizationConstant;
+	// De facto standard is at 100 centipawns having 50% chance of winning
+	return (std::abs(score) < MateThreshold) ? score * 100 / PawnNormalizationForMove32 : score;
+}*/
+
+static inline std::pair<double, double> ModelWDLForPly(const int ply) {
+
+	// Coefficients for the third-order polynomial fit
+	// (obtained from Renegade's self-play, and calculated with Stockfish's WDL tool)
+	constexpr std::array<double, 4> as = { -0.15152194, -11.28969167, 113.56524308, 166.24668446 };
+	constexpr std::array<double, 4> bs = { -0.04615536, 11.53980135, -59.09322584, 159.62627689 };
+
+	// Convert ply for the model
+	const double m = std::min(240.0, static_cast<double>(ply)) / 64.0;
+
+	return {
+		(((as[0] * m + as[1]) * m + as[2]) * m) + as[3],
+		(((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3]
+	};
 }
 
-constexpr int MaxDepth = 128;
+// Returns win and loss respectively
+static inline std::pair<int, int> GetWDL(const int score, const int ply) {
+	const auto [a, b] = ModelWDLForPly(ply);
+	const double x = std::clamp(static_cast<double>(score), -4000.0, 4000.0);
+
+	return {
+		static_cast<int32_t>(std::round(1000.0 / (1.0 + std::exp((a - x) / b)))),
+		static_cast<int32_t>(std::round(1000.0 / (1.0 + std::exp((a + x) / b))))
+	};
+}
+
+static inline int ToCentipawns(const int score, const int ply) {
+	// Converts internal units into centipawns
+	// De facto standard is at 100 centipawns having 50% chance of winning
+
+	if ((std::abs(score) >= MateThreshold) || (score == 0)) return score;
+
+	const auto [a, b] = ModelWDLForPly(ply);
+	return static_cast<int>(std::round(100.0 * static_cast<double>(score) / a));
+}
 
 static inline bool IsMateScore(const int score) {
 	return (std::abs(score) > MateThreshold) && (std::abs(score) <= MateEval);
@@ -205,6 +241,7 @@ struct EngineSettings {
 	bool ExtendedOutput = false;
 	bool UciOutput = false;
 	bool Colorful = true;
+	bool ShowWDL = true;
 };
 
 struct SearchStatistics {

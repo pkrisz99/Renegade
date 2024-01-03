@@ -6,6 +6,7 @@ Engine::Engine(int argc, char* argv[]) {
 	Settings.ExtendedOutput = false;
 	Settings.Colorful = true;
 	Settings.UciOutput = !PrettySupport;
+	Settings.ShowWDL = true;
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
 	LoadDefaultNetwork();
@@ -39,6 +40,7 @@ void Engine::Start() {
 			cout << "option name Clear Hash type button" << '\n';
 			cout << "option name Hash type spin default 64 min 1 max 4096" << '\n';
 			cout << "option name Threads type spin default 1 min 1 max 1" << '\n';
+			cout << "option name UCI_ShowWDL type check default true" << '\n';
 			cout << "uciok" << endl;
 			Settings.UciOutput = true;
 			continue;
@@ -104,6 +106,16 @@ void Engine::Start() {
 				ConvertToLowercase(parts[3]);
 				if (parts[3] == "hash") {
 					Search.ResetState(true);
+					valid = true;
+				}
+			} else if (parts[2] == "uci_showwdl") {
+				ConvertToLowercase(parts[4]);
+				if (parts[4] == "true") {
+					Settings.ShowWDL = true;
+					valid = true;
+				}
+				else if (parts[4] == "false") {
+					Settings.ShowWDL = false;
 					valid = true;
 				}
 			}
@@ -199,8 +211,8 @@ void Engine::Start() {
 		if (parts[0] == "eval") {
 			const int hce = ClassicalEvaluate(board);
 			const int nnue = NeuralEvaluate(board);
-			cout << "Hand-crafted evaluation:   " << ToCentipawns(hce) << " cp  (internal units: " << hce << ")" << endl;
-			cout << "Neural network evaluation: " << ToCentipawns(nnue) << " cp  (internal units: " << nnue << ")\n" << endl;
+			cout << "Hand-crafted evaluation:   " << ToCentipawns(hce, board.GetPlys()) << " cp  (internal units: " << hce << ")" << endl;
+			cout << "Neural network evaluation: " << ToCentipawns(nnue, board.GetPlys()) << " cp  (internal units: " << nnue << ")\n" << endl;
 			continue;
 		}
 		if (parts[0] == "fen") {
