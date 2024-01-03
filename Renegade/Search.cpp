@@ -329,12 +329,13 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	}
 	
 	// Obtain the evaluation of the position
-	int staticEval = NoEval;
-	if ((ttEval == NoEval) || (ttEntry.scoreType != ScoreType::Exact)) staticEval = Evaluate(board);
+	int staticEval = inCheck ? NoEval : Evaluate(board);
+	int eval = staticEval;
+
 	if (ttEval != NoEval) {
 		if ((ttEntry.scoreType == ScoreType::Exact)
 			|| ((ttEntry.scoreType == ScoreType::LowerBound) && (staticEval < ttEval))
-			|| ((ttEntry.scoreType == ScoreType::UpperBound) && (staticEval > ttEval))) staticEval = ttEval;
+			|| ((ttEntry.scoreType == ScoreType::UpperBound) && (staticEval > ttEval))) eval = ttEval;
 	}
 	EvalStack[level] = staticEval;
 	const bool improving = (level >= 2) && (EvalStack[level] > EvalStack[level - 2]) && !inCheck;
@@ -349,12 +350,12 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		const int rfpMarginDefault[] = { 0, 80, 180, 280, 380, 480, 580, 680 };
 		if ((depth <= 7) && (std::abs(beta) < MateThreshold)) {
 			const int rfpMargin = improving ? rfpMarginDefault[depth] / 2 : rfpMarginDefault[depth];
-			if (staticEval - rfpMargin > beta) return staticEval;
+			if (eval - rfpMargin > beta) return eval;
 		}
 
 		// Null-move pruning (+33 elo)
-		if ((depth >= 3) && canNullMove && (staticEval >= beta) && board.ShouldNullMovePrune()) {
-			int nmpReduction = 3 + depth / 3 + std::min((staticEval - beta) / 200, 3);
+		if ((depth >= 3) && canNullMove && (eval >= beta) && board.ShouldNullMovePrune()) {
+			int nmpReduction = 3 + depth / 3 + std::min((eval - beta) / 200, 3);
 			nmpReduction = std::min(nmpReduction, depth);
 			Boards[level] = board;
 			Boards[level].Push(NullMove);
@@ -369,7 +370,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		// Futility pruning (+37 elo)
 		const int futilityMargins[] = { 0, 130, 230, 330, 430, 530 };
 		if ((depth <= 5) && (std::abs(beta) < MateThreshold)) {
-			futilityPrunable = (staticEval + futilityMargins[depth] < alpha);
+			futilityPrunable = (eval + futilityMargins[depth] < alpha);
 		}
 	}
 
