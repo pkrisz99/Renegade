@@ -147,6 +147,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 	if (Age < 32000) Age += 1;
 
 	SetupAccumulators(board);
+	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
 
 	// Early exit for only one legal move (no legal moves are handled separately)
 	if (!DatagenMode && ((params.wtime != 0) || (params.btime != 0))) {
@@ -312,40 +313,59 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		return SearchQuiescence(board, level, alpha, beta);
 	}
 
+	const Move excludedMove = ExcludedMoves[level];
+	const bool singularSearch = !excludedMove.IsEmpty();
+
 	// Probe the transposition table
-	const uint64_t hash = board.Hash();
 	TranspositionEntry ttEntry;
 	int ttEval = NoEval;
-	const bool found = Heuristics.RetrieveTranspositionEntry(hash, ttEntry, level);
 	Move ttMove = EmptyMove;
-	Statistics.TranspositionQueries += 1;
-	if (found) {
-		if (!pvNode) {
-			// The branch was already analysed to the same or greater depth, so we can return the result if the score is alright
-			if (ttEntry.IsCutoffPermitted(depth, alpha, beta)) return ttEntry.score;
+	bool found = false;
+	const uint64_t hash = board.Hash();
+
+	if (!singularSearch) {
+		found = Heuristics.RetrieveTranspositionEntry(hash, ttEntry, level);
+		Statistics.TranspositionQueries += 1;
+		if (found) {
+			if (!pvNode) {
+				// The branch was already analysed to the same or greater depth, so we can return the result if the score is alright
+				if (ttEntry.IsCutoffPermitted(depth, alpha, beta)) return ttEntry.score;
+			}
+			ttEval = ttEntry.score;
+			ttMove = Move(ttEntry.moveFrom, ttEntry.moveTo, ttEntry.moveFlag);
+			Statistics.TranspositionHits += 1;
 		}
-		ttEval = ttEntry.score;
-		ttMove = Move(ttEntry.moveFrom, ttEntry.moveTo, ttEntry.moveFlag);
-		Statistics.TranspositionHits += 1;
 	}
+
+	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 8)
+		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && (std::abs(ttEval) < MateThreshold);
 	
 	// Obtain the evaluation of the position
-	int staticEval = inCheck ? NoEval : Evaluate(board);
-	int eval = staticEval;
+	int staticEval = NoEval;
+	int eval = NoEval;
 
-	if (ttEval != NoEval) {
-		if ((ttEntry.scoreType == ScoreType::Exact)
-			|| ((ttEntry.scoreType == ScoreType::LowerBound) && (staticEval < ttEval))
-			|| ((ttEntry.scoreType == ScoreType::UpperBound) && (staticEval > ttEval))) eval = ttEval;
+	if (!singularSearch) {
+		staticEval = inCheck ? NoEval : Evaluate(board);
+		eval = staticEval;
+
+		if ((ttEval != NoEval) && !inCheck) {  // inCheck is cosmetic
+			if ((ttEntry.scoreType == ScoreType::Exact)
+				|| ((ttEntry.scoreType == ScoreType::LowerBound) && (staticEval < ttEval))
+				|| ((ttEntry.scoreType == ScoreType::UpperBound) && (staticEval > ttEval))) eval = ttEval;
+		}
+		StaticEvalStack[level] = staticEval;
+		EvalStack[level] = eval;
 	}
-	EvalStack[level] = staticEval;
-	const bool improving = (level >= 2) && (EvalStack[level] > EvalStack[level - 2]) && !inCheck;
-	// ^ add nullmove condition? (!inCheck is cosmetic for now)
+	else {
+		staticEval = StaticEvalStack[level];
+		eval = EvalStack[level];
+	}
 
+	const bool improving = (level >= 2) && !inCheck && (StaticEvalStack[level] > StaticEvalStack[level - 2]); // <- add nullmove condition?
 	bool futilityPrunable = false;
 
 	// Whole-node pruning techniques
-	if (!pvNode && !inCheck) {
+	if (!pvNode && !inCheck && !singularSearch) {
 
 		// Reverse futility pruning (+128 elo)
 		const int rfpMarginDefault[] = { 0, 80, 180, 280, 380, 480, 580, 680 };
@@ -376,36 +396,39 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	}
 
 	// Internal iterative reductions
-	if ((depth > 4) && ttMove.IsEmpty()) {
+	if ((depth > 4) && ttMove.IsEmpty() && !singularSearch) {
 		depth -= 1;
 	}
 
 	// Initalize variables and generate moves
-	MoveList.clear();
-	board.GenerateMoves(MoveList, MoveGen::All, Legality::Pseudolegal);
+	// (if we are in singular search, we already have the moves)
+	const uint64_t opponentAttacks = board.CalculateAttackedSquares(TurnToPieceColor(!board.Turn));  // to do: make a stack variable for it
+	if (!singularSearch) {
+		MoveList.clear();
+		board.GenerateMoves(MoveList, MoveGen::All, Legality::Pseudolegal);
 
-	// Move ordering
-	const float phase = CalculateGamePhase(board);
-	const uint64_t opponentAttacks = board.CalculateAttackedSquares(TurnToPieceColor(!board.Turn));
-	MoveOrder[level].clear();
-	for (const Move& m : MoveList) {
-		const bool losingCapture = board.IsMoveQuiet(m) ? false : !StaticExchangeEval(board, m, 0);
-		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, ttMove, MoveStack, losingCapture, true, opponentAttacks);
-		MoveOrder[level].push_back({ m, orderScore });
-	}
-	std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
-		return get<1>(t1) > get<1>(t2);
-	});
+		// Move ordering
+		const float phase = CalculateGamePhase(board);
+		MoveOrder[level].clear();
+		for (const Move& m : MoveList) {
+			const bool losingCapture = board.IsMoveQuiet(m) ? false : !StaticExchangeEval(board, m, 0);
+			const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, ttMove, MoveStack, losingCapture, true, opponentAttacks);
+			MoveOrder[level].push_back({ m, orderScore });
+		}
+		std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
+			return get<1>(t1) > get<1>(t2);
+			});
 
-	// Resetting killers for ply+2
-	if (level + 2 < MaxDepth) {
-		Heuristics.KillerMoves[level + 2][0] = EmptyMove;
-		Heuristics.KillerMoves[level + 2][1] = EmptyMove;
+		// Resetting killers for ply+2
+		if (level + 2 < MaxDepth) {
+			Heuristics.KillerMoves[level + 2][0] = EmptyMove;
+			Heuristics.KillerMoves[level + 2][1] = EmptyMove;
+		}
 	}
 
 	// Iterate through legal moves
 	int scoreType = ScoreType::UpperBound;
-	int legalMoveCount = 0, pseudoLegalCount = 0;
+	int legalMoveCount = 0;
 	Move bestMove = EmptyMove;
 	int bestScore = NegativeInfinity;
 
@@ -413,7 +436,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	quietsTried.reserve(30); // <-- ???
 
 	for (const auto& [m, order] : MoveOrder[level]) {
-		pseudoLegalCount += 1;
+		if (m == excludedMove) continue;
 		if (!board.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
 		const bool isQuiet = board.IsMoveQuiet(m);
@@ -434,10 +457,22 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			// Main search SEE pruning (+20 elo)
 			const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300, -350 };
 			const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600, -700 };
-			if (depth <= 5 && (order < 150000)) {
+			if (depth <= 5) {
 				const int seeMargin = isQuiet ? seeQuietMargin[depth] : seeNoisyMargin[depth];
 				if (!StaticExchangeEval(board, m, seeMargin)) continue;
 			}
+		}
+
+		// Singular extensions
+		int extension = 0;
+		if (singularCandidate && (m == ttMove)) {
+			const int singularMargin = depth * 2;
+			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
+			const int singularDepth = (depth - 1) / 2;
+			ExcludedMoves[level] = m;
+			const int singularScore = SearchRecursive(board, singularDepth, level, singularBeta - 1, singularBeta, false);
+			ExcludedMoves[level] = EmptyMove;
+			if (singularScore < singularBeta) extension = 1;
 		}
 
 		// Push move
@@ -456,7 +491,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 		if (legalMoveCount == 1) {
 			UpdateAccumulators<true>(m, movedPiece, capturedPiece);
-			score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
+			score = -SearchRecursive(b, depth - 1 + extension, level + 1, -beta, -alpha, true);
 			UpdateAccumulators<false>(m, movedPiece, capturedPiece);
 		}
 		else {
@@ -490,13 +525,13 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 		if (score > bestScore) {
 			bestScore = score;
-			if (!Aborting) Heuristics.UpdatePvTable(m, level);
+			if (!Aborting && pvNode) Heuristics.UpdatePvTable(m, level);
 
 			// Checking alpha-beta bounds
 			if (score >= beta) {
 				bestMove = m;
 
-				if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, ScoreType::LowerBound, m, level);
+				if (!Aborting && !singularSearch) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, ScoreType::LowerBound, m, level);
 				Statistics.BetaCutoffs += 1;
 				if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
 
@@ -531,11 +566,12 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 	// There was no legal move --> return mate or stalemate score
 	if (legalMoveCount == 0) {
+		if (singularSearch) return alpha; // always extend if we have only one legal move
 		return inCheck ? LosingMateScore(level) : 0;
 	}
 
 	// Return the best score (fail-soft)
-	if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, scoreType, bestMove, level);
+	if (!Aborting && !singularSearch) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, scoreType, bestMove, level);
 
 	return bestScore;
 }
