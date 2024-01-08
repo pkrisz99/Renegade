@@ -9,6 +9,7 @@ Search::Search() {
 		}
 	}
 	ResetStatistics();
+	Accumulators = std::make_unique<std::array<AccumulatorRepresentation, MaxDepth + 1>>();
 }
 
 void Search::ResetStatistics() {
@@ -154,7 +155,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 		std::vector<Move> rootLegalMoves;
 		board.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
 		if (rootLegalMoves.size() == 1) {
-			const int eval = Evaluate(board);
+			const int eval = Evaluate(board, 0);
 			cout << "info depth 1 score cp " << ToCentipawns(eval, board.GetPlys()) << " nodes 0" << endl;
 			cout << "info string Only one legal move!" << endl;
 			PrintBestmove(rootLegalMoves.front());
@@ -286,7 +287,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	Aborting = ShouldAbort();
 	if (Aborting) return NoEval;
 	Heuristics.InitPvLength(level);
-	if (level >= MaxDepth) return Evaluate(board);
+	if (level >= MaxDepth) return Evaluate(board, level);
 
 	const bool rootNode = (level == 0);
 	const bool pvNode = rootNode || (beta - alpha > 1);
@@ -345,7 +346,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	int eval = NoEval;
 
 	if (!singularSearch) {
-		staticEval = inCheck ? NoEval : Evaluate(board);
+		staticEval = inCheck ? NoEval : Evaluate(board, level);
 		eval = staticEval;
 
 		if ((ttEval != NoEval) && !inCheck) {  // inCheck is cosmetic
@@ -380,6 +381,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			nmpReduction = std::min(nmpReduction, depth);
 			Boards[level] = board;
 			Boards[level].Push(NullMove);
+			UpdateAccumulators<true>(NullMove, 0, 0, level);
 			MoveStack[level].move = NullMove;
 			MoveStack[level].piece = Piece::None;
 			const int nullMoveEval = -SearchRecursive(Boards[level], depth - nmpReduction, level + 1, -beta, -beta + 1, false);
@@ -490,9 +492,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		const bool givingCheck = b.IsInCheck();
 
 		if (legalMoveCount == 1) {
-			UpdateAccumulators<true>(m, movedPiece, capturedPiece);
+			UpdateAccumulators<true>(m, movedPiece, capturedPiece, level);
 			score = -SearchRecursive(b, depth - 1 + extension, level + 1, -beta, -alpha, true);
-			UpdateAccumulators<false>(m, movedPiece, capturedPiece);
 		}
 		else {
 			int reduction = 0;
@@ -516,11 +517,10 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			}
 
 			// Principal variation search
-			UpdateAccumulators<true>(m, movedPiece, capturedPiece);
+			UpdateAccumulators<true>(m, movedPiece, capturedPiece, level);
 			score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha - 1, -alpha, true);
 			if ((score > alpha) && (reduction > 0)) score = -SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
 			if ((score > alpha) && (score < beta)) score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
-			UpdateAccumulators<false>(m, movedPiece, capturedPiece);
 		}
 
 		if (score > bestScore) {
@@ -588,7 +588,7 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 	if (level > Statistics.SelDepth) Statistics.SelDepth = level;
 
 	// Update alpha-beta bounds, return alpha if no captures left
-	const int staticEval = Evaluate(board);
+	const int staticEval = Evaluate(board, level);
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= MaxDepth) return staticEval;
@@ -634,9 +634,8 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 		const uint8_t capturedPiece = board.GetPieceAt(m.to);
 		b.Push(m);
 		Heuristics.PrefetchTranspositionEntry(b.Hash());
-		UpdateAccumulators<true>(m, movedPiece, capturedPiece);
+		UpdateAccumulators<true>(m, movedPiece, capturedPiece, level);
 		const int score = -SearchQuiescence(b, level + 1, -beta, -alpha);
-		UpdateAccumulators<false>(m, movedPiece, capturedPiece);
 
 		if (score > bestScore) {
 			bestScore = score;
@@ -654,11 +653,11 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 	return bestScore;
 }
 
-int Search::Evaluate(const Board &board) {
+int Search::Evaluate(const Board &board, const int level) {
 	Statistics.Evaluations += 1;
 	//if (NeuralEvaluate2(Accumulator, board.Turn) != NeuralEvaluate(board)) cout << "!" << endl;
 	//return NeuralEvaluate(board);
-	return NeuralEvaluate2(Accumulator, board.Turn);
+	return NeuralEvaluate2((*Accumulators)[level], board.Turn);
 }
 
 int Search::DrawEvaluation() {
@@ -765,19 +764,25 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 // Accumulators for neural networks ---------------------------------------------------------------
 
 void Search::SetupAccumulators(const Board& board) {
-	Accumulator.Reset();
+	(*Accumulators)[0].Reset();
 	uint64_t bits = board.GetOccupancy();
 
 	// Turning on the right inputs
 	while (bits) {
 		const uint8_t sq = Popsquare(bits);
 		const int piece = board.GetPieceAt(sq);
-		Accumulator.UpdateFeature<true>(FeatureIndexes(piece, sq));
+		(*Accumulators)[0].UpdateFeature<true>(FeatureIndexes(piece, sq));
 	}
 }
 
 template <bool push>
-void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
+void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
+
+	// Copy the previous state over
+	//std::memcpy(&(*Accumulators)[level + 1], &(*Accumulators)[level], sizeof(AccumulatorRepresentation));
+	(*Accumulators)[level + 1] = (*Accumulators)[level];
+	if (m.IsNull()) return; // If it's a null move, we're done
+	AccumulatorRepresentation& Accumulator = (*Accumulators)[level + 1];
 
 	// No longer activate the previous position of the moved piece
 	Accumulator.UpdateFeature<!push>( FeatureIndexes(movedPiece, m.from) );

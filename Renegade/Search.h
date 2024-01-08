@@ -36,7 +36,7 @@ public:
 private:
 	int SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove);
 	int SearchQuiescence(Board& board, const int level, int alpha, int beta);
-	int Evaluate(const Board& board);
+	int Evaluate(const Board& board, const int level);
 	uint64_t PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) const;
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	inline bool ShouldAbort() const;
@@ -45,14 +45,14 @@ private:
 
 	// NNUE
 	void SetupAccumulators(const Board& board);
-	template <bool push> void UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
+	template <bool push> void UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level);
 
 	// Communication
 	void PrintInfo(const Results& e, const EngineSettings& settings) const;
 	void PrintPretty(const Results& e, const EngineSettings& settings) const;
 	void PrintBestmove(const Move& move) const;
 
-	AccumulatorRepresentation Accumulator;
+	std::unique_ptr<std::array<AccumulatorRepresentation, MaxDepth + 1>> Accumulators;
 
 	std::chrono::high_resolution_clock::time_point StartSearchTime;
 	uint16_t Age = 0;
