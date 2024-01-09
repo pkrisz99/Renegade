@@ -101,13 +101,13 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 		int minTime;
 		if (params.movestogo > 0) {
 			// Repeating time control
-			maxTime = static_cast<int>(myTime / params.movestogo * 2.2);
+			maxTime = static_cast<int>(myTime / params.movestogo * 2.5);
 			minTime = static_cast<int>(myTime / params.movestogo * 0.5);
 			maxTime = std::min(maxTime, static_cast<int>(myTime * 0.8));
 		}
 		else {
-			// Sudden death 
-			maxTime = static_cast<int>(myTime * 0.20);
+			// Time control with increment
+			maxTime = static_cast<int>(myTime * 0.25);
 			minTime = static_cast<int>(myTime * 0.016 + myInc * 0.4);
 		}
 
@@ -164,6 +164,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 	}
 
 	Constraints = CalculateConstraints(params, board.Turn);
+	std::memset(&RootNodeCounts, 0, sizeof(RootNodeCounts));
 
 	if (settings.ExtendedOutput) {
 		cout << "info string Renegade searching for time: (" << Constraints.SearchTimeMin << ".." << Constraints.SearchTimeMax
@@ -239,7 +240,17 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 		// Check search limits
 		auto currentTime = Clock::now();
 		elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
-		if ((elapsedMs >= Constraints.SearchTimeMin) && (Constraints.SearchTimeMin != -1)) finished = true;
+
+		if (Constraints.SearchTimeMin != -1) {
+			const int originalSoftTimeLimit = Constraints.SearchTimeMin;
+			const Move& bestMove = Heuristics.PvTable[0][0];
+			const double bestMoveFraction = static_cast<double>(RootNodeCounts[bestMove.from][bestMove.to]) / static_cast<double>(Statistics.Nodes);
+			const int adjustedSoftTimeLimit = originalSoftTimeLimit * static_cast<float>(Depth >= 10 ? (1.5 - bestMoveFraction) * 1.35: 1.0);
+			//cout << RootNodeCounts[bestMove.from][bestMove.to] << " " << bestMoveFraction << " " << adjustedSoftTimeLimit << endl;
+			if (elapsedMs >= adjustedSoftTimeLimit) finished = true;
+		}
+
+
 		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
 		if (Depth >= MaxDepth) finished = true;
 		if ((Statistics.Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
@@ -484,6 +495,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		const uint8_t capturedPiece = b.GetPieceAt(m.to);
 		MoveStack[level].move = m;
 		MoveStack[level].piece = movedPiece;
+		const uint64_t nodesBefore = Statistics.Nodes;
 
 		b.Push(m);
 		Heuristics.PrefetchTranspositionEntry(b.Hash());
@@ -523,11 +535,15 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			if ((score > alpha) && (score < beta)) score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
 		}
 
+		// Update node count table for the root
+		if (rootNode) RootNodeCounts[m.from][m.to] += Statistics.Nodes - nodesBefore;
+
+		// Process search results
 		if (score > bestScore) {
 			bestScore = score;
 			if (!Aborting && pvNode) Heuristics.UpdatePvTable(m, level);
 
-			// Checking alpha-beta bounds
+			// Fail-high
 			if (score >= beta) {
 				bestMove = m;
 
@@ -556,6 +572,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 				return bestScore;
 			}
+
 			if (score > alpha) {
 				bestMove = m;
 				scoreType = ScoreType::Exact;

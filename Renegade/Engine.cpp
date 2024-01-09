@@ -335,7 +335,7 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "nnue") {
-			cout << "Arch: 768->" << HiddenSize << "x2" << "->1 (CReLu)" << endl;
+			cout << "Arch: 768->" << HiddenSize << "x2" << "->1 (SCReLu with QA=181)" << endl;
 			continue;
 		}
 
