@@ -6,6 +6,7 @@
 #include "Results.h"
 #include "Utils.h"
 #include "Neurals.h"
+#include <atomic>
 #include <tuple>
 #include <iomanip>
 #include <algorithm>
@@ -29,7 +30,7 @@ public:
 	Results SearchMoves(Board board, const SearchParams params, const EngineSettings settings, const bool display);
 	bool StaticExchangeEval(const Board& board, const Move& move, const int threshold) const;
 
-	bool Aborting = false;
+	std::atomic<bool> Aborting = true;
 	bool DatagenMode = false;
 	Heuristics Heuristics;
 
@@ -39,7 +40,7 @@ private:
 	int Evaluate(const Board& board, const int level);
 	uint64_t PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) const;
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
-	inline bool ShouldAbort() const;
+	bool ShouldAbort();
 	int DrawEvaluation();
 	void ResetStatistics();
 

@@ -121,15 +121,19 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 	return constraints;
 }
 
-inline bool Search::ShouldAbort() const {
-	if (Aborting) return true;
+bool Search::ShouldAbort() {
+	if (Aborting.load(std::memory_order_relaxed)) return true;
 	if ((Constraints.MaxNodes != -1) && (Statistics.Nodes >= Constraints.MaxNodes) && (Depth > 1)) {
+		Aborting.store(true, std::memory_order_relaxed);
 		return true;
 	}
 	if ((Statistics.Nodes % 1024 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
 		const auto now = Clock::now();
 		const int elapsedMs = static_cast<int>((now - StartSearchTime).count() / 1e6);
-		if (elapsedMs >= Constraints.SearchTimeMax) return true;
+		if (elapsedMs >= Constraints.SearchTimeMax) {
+			Aborting.store(true, std::memory_order_relaxed);
+			return true;
+		}
 	}
 	return false;
 }
@@ -139,10 +143,10 @@ inline bool Search::ShouldAbort() const {
 Results Search::SearchMoves(Board board, const SearchParams params, const EngineSettings settings, const bool display) {
 
 	StartSearchTime = Clock::now();
+	Aborting.store(false, std::memory_order_relaxed);
 	int elapsedMs = 0;
 	Depth = 0;
 	ResetStatistics();
-	Aborting = false;
 	Depth = 0;
 	bool finished = false;
 	if (Age < 32000) Age += 1;
@@ -159,6 +163,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 			cout << "info depth 1 score cp " << ToCentipawns(eval, board.GetPlys()) << " nodes 0" << endl;
 			cout << "info string Only one legal move!" << endl;
 			PrintBestmove(rootLegalMoves.front());
+			Aborting.store(true, std::memory_order_relaxed);
 			return Results(eval, rootLegalMoves, 1, Statistics, 0, 0, 0, board.GetPlys()); // hack: rootLegalMoves is a vector already
 		}
 	}
@@ -191,7 +196,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 			int searchDepth = Depth;
 
 			while (true) {
-				if (Aborting) break;
+				if (Aborting.load(std::memory_order_relaxed)) break;
 				int alpha, beta;
 				if (windowSize < 500) {
 					alpha = std::max(result - windowSize, NegativeInfinity);
@@ -255,7 +260,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 		if (Depth >= MaxDepth) finished = true;
 		if ((Statistics.Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
 		if (std::abs(result) == MateEval) finished = true; // Don't search if position is checkmate
-		if (Aborting) {
+		if (Aborting.load(std::memory_order_relaxed)) {
 			e.stats = Statistics;
 			e.time = elapsedMs;
 			e.nps = static_cast<int>(Statistics.Nodes * 1e9 / (currentTime - StartSearchTime).count());
@@ -287,7 +292,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 	Heuristics.ClearKillerAndCounterMoves();
 	Heuristics.ResetPvTable();
 	Heuristics.AgeHistory();
-	Aborting = true;
+	Aborting.store(true, std::memory_order_relaxed);
 	return e;
 }
 
@@ -295,8 +300,8 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 int Search::SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove) {
 
 	// Check search limits
-	Aborting = ShouldAbort();
-	if (Aborting) return NoEval;
+	const bool aborting = ShouldAbort();
+	if (aborting) return NoEval;
 	Heuristics.InitPvLength(level);
 	if (level >= MaxDepth) return Evaluate(board, level);
 
@@ -541,13 +546,13 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		// Process search results
 		if (score > bestScore) {
 			bestScore = score;
-			if (!Aborting && pvNode) Heuristics.UpdatePvTable(m, level);
+			if (!aborting && pvNode) Heuristics.UpdatePvTable(m, level);
 
 			// Fail-high
 			if (score >= beta) {
 				bestMove = m;
 
-				if (!Aborting && !singularSearch) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, ScoreType::LowerBound, m, level);
+				if (!aborting && !singularSearch) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, ScoreType::LowerBound, m, level);
 				Statistics.BetaCutoffs += 1;
 				if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
 
@@ -588,7 +593,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	}
 
 	// Return the best score (fail-soft)
-	if (!Aborting && !singularSearch) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, scoreType, bestMove, level);
+	if (!aborting && !singularSearch) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, scoreType, bestMove, level);
 
 	return bestScore;
 }
@@ -597,8 +602,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta) {
 
 	// Check search limits
-	Aborting = ShouldAbort();
-	if (Aborting) return NoEval;
+	const bool aborting = ShouldAbort();
+	if (aborting) return NoEval;
 
 	// Update statistics
 	Statistics.AlphaBetaCalls += 1;
@@ -666,7 +671,7 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 			}
 		}
 	}
-	if (!Aborting) Heuristics.AddTranspositionEntry(hash, Age, 0, bestScore, scoreType, EmptyMove, level);
+	if (!aborting) Heuristics.AddTranspositionEntry(hash, Age, 0, bestScore, scoreType, EmptyMove, level);
 	return bestScore;
 }
 
