@@ -332,7 +332,7 @@ void Engine::Start() {
 			// Starting the search thread
 			// old call: Search.SearchMoves(board, params, Settings, true);
 			SearchThread = std::thread([&]() {
-				Search.SearchMoves(board, std::move(params), Settings, true);
+				Search.SearchMoves(board, params, Settings, true);
 			});
 			continue;
 		}
