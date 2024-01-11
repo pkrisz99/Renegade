@@ -14,8 +14,6 @@
 constexpr int FeatureSize = 768;
 constexpr int HiddenSize = 512;
 
-using Vec256 = __m256i;
-
 struct alignas(64) NetworkRepresentation {
 	std::array<std::array<int16_t, HiddenSize>, FeatureSize> FeatureWeights;
 	std::array<int16_t, HiddenSize> FeatureBias;
@@ -64,7 +62,7 @@ inline int32_t ClippedReLU(const int16_t value) {
 	return std::clamp<int32_t>(value, 0, 255);
 }
 
-inline Vec256 SquareClippedReLU(Vec256 value) {
+inline __m256i SquareClippedReLU(__m256i value) {
 	const auto min = _mm256_setzero_si256();
 	const auto max = _mm256_set1_epi16(static_cast<int16_t>(181));
 	value = _mm256_min_epi16(_mm256_max_epi16(value, min), max);

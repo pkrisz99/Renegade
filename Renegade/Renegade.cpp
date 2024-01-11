@@ -7,7 +7,8 @@
 // - Search.cpp     : search algorithm
 // - Heuristics.cpp : collection of methods to make search more efficient (e.g. transposition table stuff)
 // - Move.cpp       : move representation
-// - Evaluation.cpp : static board evaluation
+// - Evaluation.cpp : classical board evaluation (normally isn't used)
+// - Neurals.cpp    : NNUE board evaluation (default)
 // - Tuner.cpp      : engine parameter tuner
 // - Results.cpp    : output structure used by search
 // - Magics.cpp     : magic bitboard stuff for sliding pieces

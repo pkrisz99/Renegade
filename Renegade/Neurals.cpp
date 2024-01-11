@@ -31,7 +31,8 @@ int NeuralEvaluate2(const AccumulatorRepresentation& acc, const bool turn) {
 	constexpr int q = qa * qb;
 	constexpr int chunkSize = 16;
 
-	
+#ifdef __AVX2__
+
 	// Calculate output
 
 	// This uses qa=181, a trick to make SIMD more efficient
@@ -55,12 +56,16 @@ int NeuralEvaluate2(const AccumulatorRepresentation& acc, const bool turn) {
 	}
 	output += ExtractInteger(sum);
 
+#else
+	// Slower fallback
+	// if you end up here... that's bad.
+	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
+	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
 
-	//for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
-	//for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
+#endif
 
 	output = (output / qa + Network->OutputBias) * scale / q; // Square clipped relu
-	//output = (output + Network->OutputBias) * scale / q; // Clipped relu
+	//output = (output + Network->OutputBias) * scale / q;    // Clipped relu
 
 	return std::clamp(output, -MateThreshold + 1, MateThreshold - 1);
 }

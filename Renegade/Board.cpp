@@ -28,7 +28,7 @@ Board::Board(const std::string& fen) {
 	std::vector<std::string> parts = Split(fen);
 	int place = 56;
 
-	for (char f : parts[0]) {
+	for (const char &f : parts[0]) {
 		switch (f) {
 		case '/': place -= 16; break;
 		case '1': place += 1; break;
@@ -57,7 +57,7 @@ Board::Board(const std::string& fen) {
 	if (parts[1] == "w") Turn = Turn::White;
 	else Turn = Turn::Black;
 
-	for (char f : parts[2]) {
+	for (const char &f : parts[2]) {
 		switch (f) {
 		case 'K': WhiteRightToShortCastle = true; break;
 		case 'Q': WhiteRightToLongCastle = true; break;
@@ -1008,7 +1008,7 @@ bool Board::AreThereLegalMoves() {
 		if (color != myColor) continue;
 
 		if (type == Piece::WhitePawn) GeneratePawnMoves<Turn::White, MoveGen::All>(moves, i);
-		if (type == Piece::BlackPawn) GeneratePawnMoves<Turn::Black, MoveGen::All>(moves, i);
+		else if (type == Piece::BlackPawn) GeneratePawnMoves<Turn::Black, MoveGen::All>(moves, i);
 		else if (type == Piece::WhiteKnight) GenerateKnightMoves<Turn::White, MoveGen::All>(moves, i);
 		else if (type == Piece::BlackKnight) GenerateKnightMoves<Turn::Black, MoveGen::All>(moves, i);
 		else if (type == Piece::WhiteBishop) GenerateSlidingMoves<Turn::White, PieceType::Bishop, MoveGen::All>(moves, i, whiteOccupancy, blackOccupancy);
@@ -1027,7 +1027,7 @@ bool Board::AreThereLegalMoves() {
 		}
 
 		if (moves.size() != 0) {
-			for (Move m : moves) {
+			for (const Move &m : moves) {
 				if (IsLegalMove(m)) {
 					moves.clear();
 					hasMoves = true;

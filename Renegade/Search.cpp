@@ -145,9 +145,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 	StartSearchTime = Clock::now();
 	Aborting.store(false, std::memory_order_relaxed);
 	int elapsedMs = 0;
-	Depth = 0;
 	ResetStatistics();
-	Depth = 0;
 	bool finished = false;
 	if (Age < 32000) Age += 1;
 

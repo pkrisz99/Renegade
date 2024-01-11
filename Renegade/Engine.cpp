@@ -57,7 +57,7 @@ void Engine::Start() {
 			continue;
 		}
 
-		if (cmd == "stop") {
+		if (cmd == "stop" || cmd == "s") {
 			if (!Search.Aborting.load(std::memory_order_relaxed)) {
 				Search.Aborting.store(true, std::memory_order_relaxed);
 				SearchThread.join();
@@ -147,7 +147,7 @@ void Engine::Start() {
 				cout << endl;
 			}
 			if (parts[1] == "hash") {
-				cout << "Hash (polyglot): " << std::hex << board.Hash() << endl;
+				cout << "Hash (polyglot): " << std::hex << board.Hash() << std::dec << endl;
 			}
 			if (parts[1] == "settings") {
 				cout << "Hash: " << Settings.Hash << endl;
@@ -354,46 +354,12 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "nnue") {
-			cout << "Arch: 768->" << HiddenSize << "x2" << "->1 (SCReLu with QA=181)" << endl;
+			cout << "Arch: 768->" << HiddenSize << "x2" << "->1 (SCReLU with QA=181)" << endl;
 			continue;
 		}
 
 		if (parts[0] == "loadnnue") {
 			LoadExternalNetwork(parts[1]);
-			continue;
-		}
-
-		if (parts[0] == "goall") {
-			std::vector<Move> moves;
-			board.GenerateMoves(moves, MoveGen::All, Legality::Legal);
-			cout << moves.size() << " legal moves";
-			int time = 1000;
-			if (parts.size() > 1) {
-				time = stoi(parts[1]);
-			}
-			SearchParams params;
-			params.movetime = time;
-			EngineSettings settings;
-			settings.Hash = 16;
-			settings.ExtendedOutput = false;
-			Search.Heuristics.ClearTranspositionTable();
-			std::vector<std::tuple<Move, int>> scores;
-			for (Move& m : moves) {
-				Board b = Board(board);
-				Search.ResetState(false);
-				b.Push(m);
-				Results r = Search.SearchMoves(b, params, settings, false);
-				scores.push_back(std::tuple<Move, int>(m, r.score));
-				cout << ".";
-			}
-			cout << endl;
-			std::sort(scores.begin(), scores.end(), [](auto const& t1, auto const& t2) {
-				return get<1>(t1) < get<1>(t2);
-				});
-			for (std::tuple<Move, int>& s: scores) {
-				cout << " - " << get<0>(s).ToString() << " : " << -get<1>(s) << endl;
-			}
-			cout << "Complete." << endl;
 			continue;
 		}
 
@@ -464,11 +430,11 @@ void Engine::HandleBench() {
 	for (const std::string& fen : BenchmarkFENs) {
 		Search.ResetState(false);
 		Board b = Board(fen);
-		Results r = Search.SearchMoves(b, params, settings, false);
+		const Results r = Search.SearchMoves(b, params, settings, false);
 		nodes += r.stats.Nodes;
 	}
-	auto endTime = Clock::now();
-	int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
+	const auto endTime = Clock::now();
+	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
 	cout << nodes << " nodes " << nps << " nps" << endl;
 	Search.Heuristics.SetHashSize(oldHashSize); // also clears the transposition table
 }

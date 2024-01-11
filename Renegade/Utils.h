@@ -1,13 +1,13 @@
 #pragma once
 #include <array>
 #include <bit>
+#include <chrono>
 #include <iostream>
 #include <iterator>
-#include <chrono>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <vector>
-// #include <intrin.h>
 
 using std::cout;
 using std::cin;
@@ -32,19 +32,14 @@ constexpr int MaxDepth = 128;
 // calculated with https://github.com/official-stockfish/WDL_model
 constexpr int PawnNormalizationForMove32 = 268;
 
-/*
-static inline int ToCentipawnsMove32(const int score) {
-	// Converts internal units into centipawns
-	// De facto standard is at 100 centipawns having 50% chance of winning
-	return (std::abs(score) < MateThreshold) ? score * 100 / PawnNormalizationForMove32 : score;
-}*/
-
 static inline std::pair<double, double> ModelWDLForPly(const int ply) {
 
 	// Coefficients for the third-order polynomial fit
 	// (obtained from Renegade's self-play, and calculated with Stockfish's WDL tool)
 	constexpr std::array<double, 4> as = { -0.15152194, -11.28969167, 113.56524308, 166.24668446 };
 	constexpr std::array<double, 4> bs = { -0.04615536, 11.53980135, -59.09322584, 159.62627689 };
+
+	static_assert(static_cast<int>(std::reduce(as.begin(), as.end())) == PawnNormalizationForMove32);
 
 	// Convert ply for the model
 	const double m = std::min(240.0, static_cast<double>(ply)) / 64.0;
