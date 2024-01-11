@@ -27,6 +27,7 @@ public:
 
 	Search Search;
 	EngineSettings Settings;
+	std::thread SearchThread;
 
 #if defined(_MSC_VER)
 	const bool PrettySupport = true;

@@ -25,6 +25,7 @@ void Engine::PrintHeader() {
 void Engine::Start() {
 	Board board = Board(FEN::StartPos);
 	std::string cmd;
+	SearchParams params;
 
 	while (getline(cin, cmd)) {
 
@@ -57,7 +58,10 @@ void Engine::Start() {
 		}
 
 		if (cmd == "stop") {
-			// todo: handle this
+			if (!Search.Aborting.load(std::memory_order_relaxed)) {
+				Search.Aborting.store(true, std::memory_order_relaxed);
+				SearchThread.join();
+			}
 			continue;
 		}
 
@@ -255,6 +259,11 @@ void Engine::Start() {
 		// Position command
 		if (parts[0] == "position") {
 
+			if (!Search.Aborting.load(std::memory_order_relaxed)) {
+				std::cerr << "info string Search is busy!" << endl;
+				continue;
+			}
+
 			if ((parts[1] == "startpos") || (parts[1] == "kiwipete") || (parts[1] == "lasker")) {
 				if (parts[1] == "startpos") board = Board(FEN::StartPos);
 				else if (parts[1] == "kiwipete") board = Board(FEN::Kiwipete);
@@ -290,6 +299,12 @@ void Engine::Start() {
 		// Go command
 		if (parts[0] == "go") {
 
+			if (!Search.Aborting.load(std::memory_order_relaxed)) {
+				std::cerr << "info string Search is busy!" << endl;
+				continue;
+			}
+			if (SearchThread.joinable()) SearchThread.join();
+
 			if ((parts.size() == 3) && ((parts[1] == "perft") || (parts[1] == "perftdiv"))) {
 				int depth = stoi(parts[2]);
 				PerftType type = PerftType::Normal;
@@ -298,7 +313,7 @@ void Engine::Start() {
 				continue;
 			}
 
-			SearchParams params;
+			params = SearchParams();
 			for (int i = 1; i < parts.size(); i++) {
 				// This looks ugly, but I'll rewrite it
 				if (parts[i] == "wtime") { params.wtime = stoi(parts[i + 1LL]); i++; }
@@ -314,7 +329,11 @@ void Engine::Start() {
 				if (parts[i] == "searchmoves") { cout << "info string Searchmoves parameter is not yet implemented!" << endl; }
 			}
 
-			Search.SearchMoves(board, params, Settings, true);
+			// Starting the search thread
+			// old call: Search.SearchMoves(board, params, Settings, true);
+			SearchThread = std::thread([&]() {
+				Search.SearchMoves(board, params, Settings, true);
+			});
 			continue;
 		}
 
