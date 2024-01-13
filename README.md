@@ -30,16 +30,16 @@ Scores are scaled according to the estimated outcome of the game, an evaluation 
 
 If the engine doesn't receive the `uci` command, it defaults to pretty print outputs (if the compiler supports it):
 ```
-Renegade chess engine 0.12.0 [Oct 12 2023 17:33:27]
+Renegade chess engine 1.0.0 [Jan 13 2024 20:13:23]
 go depth 7
-  1/ 1         20      0ms   320knps  h= 0.0%  ->  +0.47  [g1f3]
-  2/ 2         77      0ms   179knps  h= 0.0%  ->  +0.20  [g1f3 g8f6]
-  3/ 3        241      0ms   340knps  h= 0.0%  ->  +0.42  [g1f3 g8f6 b1c3]
-  4/ 6        617      1ms   559knps  h= 0.0%  ->  +0.20  [g1f3 g8f6 b1c3 b8c6]
-  5/ 6       1480      1ms   825knps  h= 0.0%  ->  +0.32  [g1f3 g8f6 b1c3 b8c6 e2e3]
-  6/ 9       3242      3ms   989knps  h= 0.0%  ->  +0.20  [g1f3 g8f6 b1c3 b8c6 e2e3 (+1)]
-  7/12       6473      5ms  1175knps  h= 0.0%  ->  +0.18  [g1f3 g8f6 b1c3 d7d5 e2e3 (+2)]
-bestmove g1f3
+  1/ 1         20      0ms   189knps  h= 0.0%  ->  +0.23  31-48-22  [d2d4]
+  2/ 4         74      0ms   172knps  h= 0.0%  ->  +0.34  33-47-20  [d2d4 d7d5]
+  3/ 4        167      0ms   249knps  h= 0.0%  ->  +0.22  30-48-22  [d2d4 d7d5 g1f3]
+  4/ 5        327      0ms   391knps  h= 0.0%  ->  +0.27  32-48-21  [d2d4 d7d5 g1f3 g8f6]
+  5/10       1024      1ms   800knps  h= 0.0%  ->  +0.32  33-47-20  [e2e4 e7e5 d2d4 e5d4 d1d4]
+  6/11       3200      2ms  1336knps  h= 0.0%  ->  +0.44  36-46-18  [e2e4 c7c5 g1f3 e7e6 f1e2 (+1)]
+  7/12       4756      3ms  1448knps  h= 0.0%  ->  +0.32  33-47-20  [e2e4 e7e6 d2d4 d7d5 e4d5 (+2)]
+bestmove e2e4
 ```
 
 Some useful custom commands are also implemented, such as `eval`, `draw` and `fen`. Typing `plain` will disable the colorful output, which is helpful if your terminal doesn't support it.
