@@ -108,7 +108,7 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 		else {
 			// Time control with increment
 			maxTime = static_cast<int>(myTime * 0.25);
-			minTime = static_cast<int>(myTime * 0.016 + myInc * 0.4);
+			minTime = static_cast<int>(myTime * 0.019 + myInc * 0.7);
 		}
 
 		constraints.SearchTimeMax = maxTime;
@@ -904,14 +904,14 @@ void Search::PrintInfo(const Results& e, const EngineSettings& settings) const {
 	}
 
 #if defined(_MSC_VER)
-	output = std::format("info depth {} seldepth {} score {} nodes {} nps {} time {} hashfull {}{} pv{}",
-		e.depth, e.stats.SelDepth, score, e.stats.Nodes, e.nps, e.time, e.hashfull, wdlOutput, pvString);
+	output = std::format("info depth {} seldepth {} score {}{} nodes {} nps {} time {} hashfull {} pv{}",
+		e.depth, e.stats.SelDepth, score, wdlOutput, e.stats.Nodes, e.nps, e.time, e.hashfull, pvString);
 
 #else
 	output = "info depth " + std::to_string(e.depth) + " seldepth " + std::to_string(e.stats.SelDepth)
-		+ " score " + score + " nodes " + std::to_string(e.stats.Nodes) + " nps " + std::to_string(e.nps)
+		+ " score " + score + wdlOutput + " nodes " + std::to_string(e.stats.Nodes) + " nps " + std::to_string(e.nps)
 		+ " time " + std::to_string(e.time) + " hashfull " + std::to_string(e.hashfull)
-		+ wdlOutput + " pv" + pvString;
+		+ " pv" + pvString;
 #endif
 
 	cout << output << endl;
