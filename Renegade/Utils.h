@@ -30,14 +30,14 @@ constexpr int MaxDepth = 128;
 
 // For pawn value normalization and WDL reporting
 // calculated with https://github.com/official-stockfish/WDL_model
-constexpr int PawnNormalizationForMove32 = 268;
+constexpr int PawnNormalizationForMove32 = 265;
 
 static inline std::pair<double, double> ModelWDLForPly(const int ply) {
 
 	// Coefficients for the third-order polynomial fit
 	// (obtained from Renegade's self-play, and calculated with Stockfish's WDL tool)
-	constexpr std::array<double, 4> as = { -0.15152194, -11.28969167, 113.56524308, 166.24668446 };
-	constexpr std::array<double, 4> bs = { -0.04615536, 11.53980135, -59.09322584, 159.62627689 };
+	constexpr std::array<double, 4> as = { 0.48511404, -17.19270585, 125.01967633, 157.42013693 };
+	constexpr std::array<double, 4> bs = { -0.72040281, 14.57833868, -60.76193200, 149.28009426 };
 
 	static_assert(static_cast<int>(std::reduce(as.begin(), as.end())) == PawnNormalizationForMove32);
 

@@ -2,12 +2,10 @@
 
 int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 
-	// Renegade's evaluation function
+	// Renegade's classical evaluation function
+	// This was replaced by a significantly stronger than NNUE evaluation
 
-	//TaperedScore taperedScore = S(0, 0);
 	TaperedScore materialScore, pqstScore, pawnStructureScore, threatScore, mobilityScore, kingScore;
-
-
 	const uint64_t occupancy = board.GetOccupancy();
 	const uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
 	const uint64_t blackPieces = board.GetOccupancy(PieceColor::Black);

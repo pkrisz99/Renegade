@@ -65,28 +65,16 @@ void Engine::Start() {
 			continue;
 		}
 
+		/*
 		if (cmd == "tuner") {
-			// Tuning tuner = Tuning();
+			Tuning tuner = Tuning();
 			continue;
 		}
-
 		if (cmd == "datagen") {
 			Datagen datagen = Datagen();
 			datagen.Start();
 			continue;
-		}
-
-		if (cmd == "shuffle") {
-			Datagen datagen = Datagen();
-			datagen.ShuffleEntries();
-			continue;
-		}
-
-		if (cmd == "merge") {
-			Datagen datagen = Datagen();
-			datagen.MergeFiles();
-			continue;
-		}
+		}*/
 
 		// Set option
 		if (parts[0] == "setoption") {
@@ -112,7 +100,8 @@ void Engine::Start() {
 					Search.ResetState(true);
 					valid = true;
 				}
-			} else if (parts[2] == "uci_showwdl") {
+			}
+			else if (parts[2] == "uci_showwdl") {
 				ConvertToLowercase(parts[4]);
 				if (parts[4] == "true") {
 					Settings.ShowWDL = true;

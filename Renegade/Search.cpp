@@ -158,7 +158,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 		board.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
 		if (rootLegalMoves.size() == 1) {
 			const int eval = Evaluate(board, 0);
-			cout << "info depth 1 score cp " << ToCentipawns(eval, board.GetPlys()) << " nodes 0" << endl;
+			cout << "info depth 1 nodes 0" << endl;
 			cout << "info string Only one legal move!" << endl;
 			PrintBestmove(rootLegalMoves.front());
 			Aborting.store(true, std::memory_order_relaxed);
@@ -791,7 +791,7 @@ void Search::SetupAccumulators(const Board& board) {
 	while (bits) {
 		const uint8_t sq = Popsquare(bits);
 		const int piece = board.GetPieceAt(sq);
-		(*Accumulators)[0].UpdateFeature<true>(FeatureIndexes(piece, sq));
+		(*Accumulators)[0].AddFeature(FeatureIndexes(piece, sq));
 	}
 }
 
@@ -805,20 +805,20 @@ void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const u
 	AccumulatorRepresentation& Accumulator = (*Accumulators)[level + 1];
 
 	// No longer activate the previous position of the moved piece
-	Accumulator.UpdateFeature<!push>( FeatureIndexes(movedPiece, m.from) );
+	Accumulator.RemoveFeature( FeatureIndexes(movedPiece, m.from) );
 
 	// No longer activate the position of the captured piece (if any)
 	if (capturedPiece != Piece::None) {
-		Accumulator.UpdateFeature<!push>( FeatureIndexes(capturedPiece, m.to) );
+		Accumulator.RemoveFeature( FeatureIndexes(capturedPiece, m.to) );
 	}
 
 	// Activate the new position of the moved piece
 	if (!m.IsPromotion()) {
-		Accumulator.UpdateFeature<push>( FeatureIndexes(movedPiece, m.to) );
+		Accumulator.AddFeature( FeatureIndexes(movedPiece, m.to) );
 	}
 	else {
 		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		Accumulator.UpdateFeature<push>( FeatureIndexes(promotionPiece, m.to) );
+		Accumulator.AddFeature( FeatureIndexes(promotionPiece, m.to) );
 	}
 
 	// Special cases
@@ -828,31 +828,31 @@ void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const u
 		// Short castling: move the castling rook from H1 to F1 or from H8 to F8
 		case MoveFlag::ShortCastle:
 			if (ColorOfPiece(movedPiece) == PieceColor::White) {
-				Accumulator.UpdateFeature<!push>( FeatureIndexes(Piece::WhiteRook, Squares::H1) );
-				Accumulator.UpdateFeature<push>( FeatureIndexes(Piece::WhiteRook, Squares::F1) );
+				Accumulator.RemoveFeature( FeatureIndexes(Piece::WhiteRook, Squares::H1) );
+				Accumulator.AddFeature( FeatureIndexes(Piece::WhiteRook, Squares::F1) );
 			}
 			else {
-				Accumulator.UpdateFeature<!push>( FeatureIndexes(Piece::BlackRook, Squares::H8) );
-				Accumulator.UpdateFeature<push>( FeatureIndexes(Piece::BlackRook, Squares::F8) );
+				Accumulator.RemoveFeature( FeatureIndexes(Piece::BlackRook, Squares::H8) );
+				Accumulator.AddFeature( FeatureIndexes(Piece::BlackRook, Squares::F8) );
 			}
 			break;
 
 		// Long castling: move the castling rook from A1 to D1 or from A8 to D8
 		case MoveFlag::LongCastle:
 			if (ColorOfPiece(movedPiece) == PieceColor::White) {
-				Accumulator.UpdateFeature<!push>( FeatureIndexes(Piece::WhiteRook, Squares::A1) );
-				Accumulator.UpdateFeature<push>( FeatureIndexes(Piece::WhiteRook, Squares::D1) );
+				Accumulator.RemoveFeature( FeatureIndexes(Piece::WhiteRook, Squares::A1) );
+				Accumulator.AddFeature( FeatureIndexes(Piece::WhiteRook, Squares::D1) );
 			}
 			else {
-				Accumulator.UpdateFeature<!push>( FeatureIndexes(Piece::BlackRook, Squares::A8) );
-				Accumulator.UpdateFeature<push>( FeatureIndexes(Piece::BlackRook, Squares::D8) );
+				Accumulator.RemoveFeature( FeatureIndexes(Piece::BlackRook, Squares::A8) );
+				Accumulator.AddFeature( FeatureIndexes(Piece::BlackRook, Squares::D8) );
 			}
 			break;
 
 		// Treat en passant
 		case MoveFlag::EnPassantPerformed:
-			if (movedPiece == Piece::WhitePawn) Accumulator.UpdateFeature<!push>( FeatureIndexes(Piece::BlackPawn, m.to - 8) );
-			else Accumulator.UpdateFeature<!push>( FeatureIndexes(Piece::WhitePawn, m.to + 8) );
+			if (movedPiece == Piece::WhitePawn) Accumulator.RemoveFeature( FeatureIndexes(Piece::BlackPawn, m.to - 8) );
+			else Accumulator.RemoveFeature( FeatureIndexes(Piece::WhitePawn, m.to + 8) );
 			break;
 	}
 

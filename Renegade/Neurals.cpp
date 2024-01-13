@@ -85,7 +85,7 @@ int NeuralEvaluate(const Board& board) {
 	while (bits) {
 		const uint8_t sq = Popsquare(bits);
 		const int piece = board.GetPieceAt(sq);
-		acc.UpdateFeature<true>(FeatureIndexes(piece, sq));
+		acc.AddFeature(FeatureIndexes(piece, sq));
 	}
 
 	return NeuralEvaluate2(acc, board.Turn);

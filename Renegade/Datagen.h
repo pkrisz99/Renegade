@@ -14,8 +14,6 @@ public:
 	void SelfPlay(const std::string filename, const SearchParams params, const SearchParams vParams, const EngineSettings settings,
 		const int randomPlyBase, const int startingEvalLimit, const int threadId);
 	bool Filter(const Board& board, const Move& move, const int eval) const;
-	void ShuffleEntries() const;
-	void MergeFiles() const;
 
 	std::string ToMarlinformat(const std::pair<std::string, int>& position, const GameState outcome) const;
 	// <fen> | <eval> | <wdl>

@@ -32,25 +32,16 @@ struct alignas(64) AccumulatorRepresentation {
 		for (int i = 0; i < HiddenSize; i++) Black[i] = Network->FeatureBias[i];
 	}
 
-	void AddFeature(const int whiteFeature, const int blackFeature) {
-		for (int i = 0; i < HiddenSize; i++) White[i] += Network->FeatureWeights[whiteFeature][i];
-		for (int i = 0; i < HiddenSize; i++) Black[i] += Network->FeatureWeights[blackFeature][i];
+	void AddFeature(const std::pair<int, int>& features) {
+		for (int i = 0; i < HiddenSize; i++) White[i] += Network->FeatureWeights[features.first][i];
+		for (int i = 0; i < HiddenSize; i++) Black[i] += Network->FeatureWeights[features.second][i];
 	}
 
-	void RemoveFeature(const int whiteFeature, const int blackFeature) {
-		for (int i = 0; i < HiddenSize; i++) White[i] -= Network->FeatureWeights[whiteFeature][i];
-		for (int i = 0; i < HiddenSize; i++) Black[i] -= Network->FeatureWeights[blackFeature][i];
+	void RemoveFeature(const std::pair<int, int>& features) {
+		for (int i = 0; i < HiddenSize; i++) White[i] -= Network->FeatureWeights[features.first][i];
+		for (int i = 0; i < HiddenSize; i++) Black[i] -= Network->FeatureWeights[features.second][i];
 	}
 
-	template<bool add> void UpdateFeature(const int whiteFeature, const int blackFeature) {
-		if constexpr (add) AddFeature(whiteFeature, blackFeature);
-		else RemoveFeature(whiteFeature, blackFeature);
-	}
-
-	template<bool add> void UpdateFeature(const std::pair<int, int>& features) {
-		if constexpr (add) AddFeature(features.first, features.second);
-		else RemoveFeature(features.first, features.second);
-	}
 };
 
 void LoadDefaultNetwork();
