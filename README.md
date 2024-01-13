@@ -1,10 +1,10 @@
 <div align = "center"><h1>Renegade</h1></div>
 
-**Renegade is a simple free and open source chess engine. ♞**  
+**Renegade is a free and open source chess engine. ♞**  
 
 It is written in C++ from scratch, and values readability and simplicity. As the engine communicates through the UCI protocol, it can be connected to almost all chess user interfaces.  
 
-The engine is moderately strong, and regularly competes on Lichess over at https://lichess.org/@/RenegadeEngine, as well as in tournaments organized by the engine testing community.  
+The engine is fairly strong, and regularly competes on Lichess over at https://lichess.org/@/RenegadeEngine, as well as in tournaments organized by the engine testing community.  
 
 ## Features
 ### Board representation
@@ -17,17 +17,16 @@ The engine is moderately strong, and regularly competes on Lichess over at https
 - A number of move ordering and pruning methods are implemented to make search more efficient (see `Search.cpp`)
 
 ### Evaluation
-- A hand-crafted evaluation function is used with an automated tuner setting its over 800 parameter pairs on 7 million positions
-- The evaluation weights are stored as middlegame-endgame pairs, and a linear interpolation is used to get the exact value
-- Evaluation terms include mobility, passed pawns, open files, bishop pairs, king safety, outposts, and many more
-- The engine tries to avoid trading down to drawish endgames if it has a material advantage
+- Renegade makes use of modern NNUE (efficiently updatable neural network) technology for accurate position evaluation
+- Its neural network was trained entirely on self-play data, amounting to over 640 million positions
+- The network architecture is a 768->512x2->1 perspective net with SCReLU activation 
 
 ## Usage
-Renegade - like most chess engines - is a command line application implementing the UCI protocol. It should be used alongside a graphical user interface, such as [Cute Chess](https://github.com/cutechess/cutechess).
+Renegade - like most chess engines - is a command line application implementing the UCI protocol. It should be used alongside a graphical user interface, such as [Cute Chess](https://github.com/cutechess/cutechess).  
 
-The engine is generally stable and shouldn't make invalid moves or forfeit on time. The biggest issue is the inability to listen for `stop` commands or responding to `isready` while busy. These can also cause problems in Banksia in case of longer time controls.  
+As one might expect, Renegade can also be interacted with using the terminal. Most UCI commands are supported including limiting search to a specific depth, time limit or node count.
 
-As one might expect, Renegade can also be interacted with using the terminal. Most UCI commands are supported including limiting search to a specific depth, time limit or node count. Hash size can be configured, and it automatically loads any `book.bin` opening book it finds in the same folder, but only uses it when `OwnBook` is set to `true`.  
+Scores are scaled according to the estimated outcome of the game, an evaluation of 100 centipawns represents a 50% likelihood of winning.
 
 If the engine doesn't receive the `uci` command, it defaults to pretty print outputs (if the compiler supports it):
 ```
@@ -47,13 +46,15 @@ Some useful custom commands are also implemented, such as `eval`, `draw` and `fe
 
 ## Compilation
 
-For the best performance, it is best to compile using the makefile. The recommended compiler is Clang 16.  
-
-In case of Windows, the project can also be compiled using Visual Studio 2019 with C++20 features enabled. The resulting executable should be around 10% slower.  
+The recommended compiler is Clang 16. It should be noted that the engine makes use of modern hardware instructions for the best possible performance.  
 
 Windows executables can be found for each release.
 
 ## Acknowledgments
-Getting this far would not have been possible without the contributors of the [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page) and the members of the [Engine Programming Discord](https://github.com/EngineProgramming/engine-list), and I'm deeply grateful for [Maksim Korzh](https://youtube.com/playlist?list=PLmN0neTso3Jxh8ZIylk74JpwfiWNI76Cs) and [Bluefever Software](https://youtube.com/playlist?list=PLZ1QII7yudbc-Ky058TEaOstZHVbT-2hg) for making a video series on this subject.  
+Getting this far would not have been possible without the members of the [Engine Programming Discord](https://github.com/EngineProgramming/engine-list), and the decades of prior research done into chess programming.  
+
+In particular, Renegade took many ideas from [Akimbo](https://github.com/jw1912/akimbo), [Ethereal](https://github.com/AndyGrant/Ethereal), [Stockfish](https://github.com/official-stockfish/Stockfish), [Stormphrax](https://github.com/Ciekce/Stormphrax), [Viridithas](https://github.com/cosmobobak/viridithas) and [Wahoo](https://github.com/spamdrew128/Wahoo).  
+
+The neural networks were trained with [bullet](https://github.com/jw1912/bullet), and win-draw-loss models have been calculated using [Stockfish's WDL tool](https://github.com/official-stockfish/WDL_model).  
 
 Additionally, I would also like to thank everyone who spent the time trying out and testing the engine, which provides valuable feedback for me.  
