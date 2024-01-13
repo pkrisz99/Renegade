@@ -1,7 +1,10 @@
 #pragma once
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <chrono>
+#include <cmath>
+#include <cstring>
 #include <iostream>
 #include <iterator>
 #include <numeric>
