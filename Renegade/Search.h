@@ -17,7 +17,7 @@
 /*
 * This is the code responsible for performing move selection.
 * SearchRecursive() is the main alpha-beta search, and SearchQuiescence() is called in leaf nodes.
-* It also handles opening books and communicating the interim search results.
+* It also communicates the interim search results.
 */
 
 class Search

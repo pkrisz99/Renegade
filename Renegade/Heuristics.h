@@ -29,6 +29,8 @@ struct TranspositionEntry {
 	bool IsCutoffPermitted(const int searchDepth, const int alpha, const int beta) const;
 };
 
+static_assert(sizeof(TranspositionEntry) == 16);
+
 class Heuristics
 {
 public:

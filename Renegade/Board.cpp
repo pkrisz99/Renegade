@@ -282,16 +282,18 @@ uint8_t Board::GetPieceAt(const uint8_t place) const {
 bool Board::PushUci(const std::string& ucistr) {
 	const int sq1 = SquareToNum(ucistr.substr(0, 2));
 	const int sq2 = SquareToNum(ucistr.substr(2, 2));
-	const int extra = ucistr[4];
+	const char extra = ucistr[4];
 	Move move = Move(sq1, sq2);
 	const int piece = GetPieceAt(sq1);
 	const int capturedPiece = GetPieceAt(sq2);
 
 	// Promotions
-	if (extra == 'q') move.flag = MoveFlag::PromotionToQueen;
-	else if (extra == 'r') move.flag = MoveFlag::PromotionToRook;
-	else if (extra == 'b') move.flag = MoveFlag::PromotionToBishop;
-	else if (extra == 'n') move.flag = MoveFlag::PromotionToKnight;
+	switch (extra) {
+	case 'q': move.flag = MoveFlag::PromotionToQueen; break;
+	case 'r': move.flag = MoveFlag::PromotionToRook; break;
+	case 'b': move.flag = MoveFlag::PromotionToBishop; break;
+	case 'n': move.flag = MoveFlag::PromotionToKnight; break;
+	}
 
 	// Castling
 	if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 2)) move.flag = MoveFlag::LongCastle;
@@ -301,8 +303,8 @@ bool Board::PushUci(const std::string& ucistr) {
 
 	// En passant possibility
 	if (TypeOfPiece(piece) == PieceType::Pawn) {
-		int f1 = sq1 / 8;
-		int f2 = sq2 / 8;
+		const int f1 = sq1 / 8;
+		const int f2 = sq2 / 8;
 		if (abs(f2 - f1) > 1) move.flag = MoveFlag::EnPassantPossible;
 	}
 
@@ -332,7 +334,6 @@ bool Board::PushUci(const std::string& ucistr) {
 	} else {
 		return false;
 	}
-
 }
 
 // Updating bitboard fields
@@ -578,15 +579,9 @@ void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int home, const
 	const uint64_t occupancy = whiteOccupancy | blackOccupancy;
 	uint64_t map = 0;
 
-	if constexpr (pieceType == PieceType::Rook) {
-		map = GetRookAttacks(home, occupancy) & ~friendlyOccupance;
-	}
-	if constexpr (pieceType == PieceType::Bishop) {
-		map = GetBishopAttacks(home, occupancy) & ~friendlyOccupance;
-	}
-	if constexpr (pieceType == PieceType::Queen) {
-		map = GetQueenAttacks(home, occupancy) & ~friendlyOccupance;
-	}
+	if constexpr (pieceType == PieceType::Rook) map = GetRookAttacks(home, occupancy) & ~friendlyOccupance;
+	if constexpr (pieceType == PieceType::Bishop) map = GetBishopAttacks(home, occupancy) & ~friendlyOccupance;
+	if constexpr (pieceType == PieceType::Queen) map = GetQueenAttacks(home, occupancy) & ~friendlyOccupance;
 
 	if constexpr (moveGen == MoveGen::Noisy) map &= opponentOccupance;
 	if (map == 0) return;
@@ -1100,8 +1095,7 @@ const std::string Board::GetFEN() const {
 		if (r != 0) result += '/';
 	}
 
-	if (Turn == Turn::White) result += " w ";
-	else if (Turn == Turn::Black) result += " b ";
+	result += (Turn == Turn::White) ? " w " : " b ";
 
 	bool castlingPossible = false;
 	if (WhiteRightToShortCastle) { result += 'K'; castlingPossible = true; }

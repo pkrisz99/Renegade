@@ -158,7 +158,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 		board.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
 		if (rootLegalMoves.size() == 1) {
 			const int eval = Evaluate(board, 0);
-			cout << "info depth 1 nodes 0" << endl;
+			cout << "info depth 1 score cp " << ToCentipawns(eval, board.GetPlys()) << " nodes 0" << endl;
 			cout << "info string Only one legal move!" << endl;
 			PrintBestmove(rootLegalMoves.front());
 			Aborting.store(true, std::memory_order_relaxed);

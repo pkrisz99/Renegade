@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cassert>
 #include <chrono>
 #include <cmath>
 #include <cstring>
@@ -18,16 +19,16 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "1.0.0";
+constexpr std::string_view Version = "1.0.0 (dev)";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
 // Score values:
-constexpr int MateEval = 100000;
-constexpr int MateThreshold = MateEval - 10000;
-constexpr int NoEval = -666666666;
-constexpr int NegativeInfinity = -333333333; // Inventing a new kind of math here
-constexpr int PositiveInfinity = 444444444; // These numbers are easy to recognize if something goes wrong
+constexpr int MateEval = 32000;
+constexpr int MateThreshold = MateEval - 1000;
+constexpr int NoEval = -32001;
+constexpr int NegativeInfinity = -32001;
+constexpr int PositiveInfinity = 32001;
 
 constexpr int MaxDepth = 128;
 

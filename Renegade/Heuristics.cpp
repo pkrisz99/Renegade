@@ -208,12 +208,13 @@ void Heuristics::ClearHistoryTable() {
 // Transposition table ----------------------------------------------------------------------------
 
 void Heuristics::AddTranspositionEntry(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move& bestMove, const int level) {
-	if (HashBits == 0) return;
+
+	assert(std::abs(score) > MateEval);
+	assert(HashFilter != 0);
+
 	const uint64_t key = hash & HashFilter;
 	const uint16_t quality = age * 2 + depth;
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
-
-	if (std::abs(score) > MateEval) return;
 
 	if (quality >= TranspositionTable[key].quality) { // (TranspositionTable[key].depth <= depth)
 		if (TranspositionTable[key].hash == 0) TranspositionEntryCount += 1;
@@ -233,9 +234,10 @@ void Heuristics::AddTranspositionEntry(const uint64_t hash, const uint16_t age, 
 }
 
 bool Heuristics::RetrieveTranspositionEntry(const uint64_t& hash, TranspositionEntry& entry, const int level) {
-	if (HashBits == 0) return false;
+	assert(HashFilter != 0);
 	const uint64_t key = hash & HashFilter;
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
+
 	if (TranspositionTable[key].hash == storedHash) {
 		entry.depth = TranspositionTable[key].depth;
 		entry.moveFrom = TranspositionTable[key].moveFrom;
@@ -263,14 +265,7 @@ void Heuristics::PrefetchTranspositionEntry(const uint64_t hash) const {
 
 
 void Heuristics::SetHashSize(const int megabytes) {
-	if (megabytes == 0) {
-		HashBits = 0;
-		HashFilter = 0;
-		TheoreticalTranspositionEntires = 0;
-		ClearTranspositionTable();
-		return;
-	}
-
+	assert(megabytes != 0);
 	TheoreticalTranspositionEntires = megabytes * 1024ULL * 1024ULL / sizeof(TranspositionEntry);
 	int bits = 0;
 	while ((1ULL << bits) <= TheoreticalTranspositionEntires) bits += 1;
