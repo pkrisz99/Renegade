@@ -946,42 +946,14 @@ bool Board::IsSquareAttacked(const uint8_t square) const {
 uint64_t Board::GetAttackersOfSquare(const uint8_t square, const uint64_t occupied) const {
 	// if not being used for SEE: occupied = GetOccupancy();
 
-	uint64_t attackers = 0;
-
-	// Pawns
-	if (SquareBit(square) & ((WhitePawnBits & ~FileA) << 7)) SetBitTrue(attackers, square - 7);
-	if (SquareBit(square) & ((WhitePawnBits & ~FileH) << 9)) SetBitTrue(attackers, square - 9);
-	if (SquareBit(square) & ((BlackPawnBits & ~FileA) >> 9)) SetBitTrue(attackers, square + 9);
-	if (SquareBit(square) & ((BlackPawnBits & ~FileH) >> 7)) SetBitTrue(attackers, square + 7);
-
-	// Knights
-	uint64_t bits = WhiteKnightBits | BlackKnightBits;
-	while (bits) {
-		const uint8_t sq = Popsquare(bits);
-		if (KnightMoveBits[sq] & SquareBit(square)) SetBitTrue(attackers, sq);
-	}
-
-	// Bishops & queens
-	bits = WhiteBishopBits | WhiteQueenBits | BlackBishopBits | BlackQueenBits;
-	while (bits) {
-		const uint8_t sq = Popsquare(bits);
-		if (GetBishopAttacks(sq, occupied) & SquareBit(square)) SetBitTrue(attackers, sq);
-	}
-
-	// Rooks & queens
-	bits = WhiteRookBits | WhiteQueenBits | BlackRookBits | BlackQueenBits;
-	while (bits) {
-		const uint8_t sq = Popsquare(bits);
-		if (GetRookAttacks(sq, occupied) & SquareBit(square)) SetBitTrue(attackers, sq);
-	}
-
-	// Kings
-	uint8_t sq = GetKingSquare<Turn::White>();
-	if (KingMoveBits[sq] & SquareBit(square)) SetBitTrue(attackers, sq);
-	sq = GetKingSquare<Turn::Black>();
-	if (KingMoveBits[sq] & SquareBit(square)) SetBitTrue(attackers, sq);
-
-	return attackers;
+	// Generate attackers setwise
+	// Taking advantage of the fact that for non-pawns, if X attacks Y, then Y attacks X
+	const uint64_t pawnAttackers = (WhitePawnAttacks[square] & BlackPawnBits) | (BlackPawnAttacks[square] & WhitePawnBits);
+	const uint64_t knightAttackers = KnightMoveBits[square] & (WhiteKnightBits | BlackKnightBits);
+	const uint64_t bishopAttackers = GetBishopAttacks(square, occupied) & (WhiteBishopBits | BlackBishopBits | WhiteQueenBits | BlackQueenBits);
+	const uint64_t rookAttackers = GetRookAttacks(square, occupied) & (WhiteRookBits | BlackRookBits | WhiteQueenBits | BlackQueenBits);
+	const uint64_t kingAttackers = KingMoveBits[square] & (WhiteKingBits | BlackKingBits);
+	return pawnAttackers | knightAttackers | bishopAttackers | rookAttackers | kingAttackers;
 }
 
 // Other ------------------------------------------------------------------------------------------
