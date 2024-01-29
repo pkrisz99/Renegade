@@ -69,12 +69,12 @@ void Engine::Start() {
 		if (cmd == "tuner") {
 			Tuning tuner = Tuning();
 			continue;
-		}
+		}*/
 		if (cmd == "datagen") {
 			Datagen datagen = Datagen();
 			datagen.Start();
 			continue;
-		}*/
+		}
 
 		// Set option
 		if (parts[0] == "setoption") {
@@ -133,6 +133,12 @@ void Engine::Start() {
 				std::vector<Move> pseudoMoves;
 				board.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
 				for (const Move &m : pseudoMoves) cout << m.ToString() << " ";
+				cout << endl;
+			}
+			if (parts[1] == "legal") {
+				std::vector<Move> moves;
+				board.GenerateMoves(moves, MoveGen::All, Legality::Legal);
+				for (const Move& m : moves) cout << m.ToString() << " ";
 				cout << endl;
 			}
 			if (parts[1] == "hash") {
@@ -242,6 +248,16 @@ void Engine::Start() {
 		if (parts[0] == "hugehash") {
 			Search.Heuristics.SetHashSize(4096);
 			cout << "Using huge hash: 4096 MB" << endl;
+			continue;
+		}
+		if (parts[0] == "gamestate") {
+			GameState state = board.GetGameState();
+			switch (state) {
+			case GameState::Playing: cout << "Playing." << endl; break;
+			case GameState::Draw: cout << "Drawn." << endl; break;
+			case GameState::WhiteVictory: cout << "White won." << endl; break;
+			case GameState::BlackVictory: cout << "Black won." << endl; break;
+			}
 			continue;
 		}
 

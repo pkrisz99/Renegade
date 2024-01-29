@@ -38,11 +38,10 @@ public:
 	bool IsMoveQuiet(const Move& move) const;
 	template <bool attackingSide> bool IsSquareAttacked(const uint8_t square) const;
 
-	bool AreThereLegalMoves();
 	bool IsDraw(const bool threefold) const;
 	GameState GetGameState();
 	int GetPlys() const;
-	const std::string GetFEN() const;
+	std::string GetFEN() const;
 	bool IsInCheck() const;
 
 	template <bool side> uint8_t GetKingSquare() const;

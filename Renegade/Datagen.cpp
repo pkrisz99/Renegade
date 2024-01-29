@@ -6,13 +6,6 @@ Datagen::Datagen() {
 
 void Datagen::Start() {
 
-	const int startingEvalLimit = 500;
-	const int softNodeLimit = 5000;
-	const int hardNodeLimit = 1000000;
-	const int depthLimit = 20;
-	const int verificationDepth = 10;
-	const int randomPlyBase = 14;
-
 	ClearScreen(false, true);
 	cout << "Renegade's datagen tool\n" << endl;
 
@@ -120,6 +113,12 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 
 			if (board.GetPlys() > 600) {
 				failed = true;
+				//cout << "\nGame too long: " << board.GetFEN() << endl;
+				break;
+			}
+			if (results.BestMove().IsNull()) {
+				failed = true;
+				cout << "\nGot null-move for " << board.GetFEN() << " with eval of " << results.score << endl;
 				break;
 			}
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "Board.h"
-//#include "Datagen.h"
+#include "Datagen.h"
 #include "Magics.h"
 #include "Neurals.h"
 #include "Heuristics.h"
