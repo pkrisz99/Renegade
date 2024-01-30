@@ -465,7 +465,7 @@ void Board::Push(const Move& move) {
 		// Handle null moves efficiently
 		Turn = !Turn;
 		EnPassantSquare = -1;
-		HashValue =	HashInternal();
+		HashValue = HashInternal();
 		return;
 	}
 	GenerateOccupancy();

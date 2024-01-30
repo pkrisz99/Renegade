@@ -1,7 +1,6 @@
 #pragma once
 #include "Board.h"
 #include "Evaluation.h"
-#include "Results.h"
 #include "Utils.h"
 #include <algorithm>
 #include <array>
@@ -13,9 +12,9 @@
 */
 
 namespace ScoreType {
-	static const int Exact = 0;
-	static const int UpperBound = 1; // Alpha (fail-low)
-	static const int LowerBound = 2; // Beta (fail-high)
+	constexpr int Exact = 0;
+	constexpr int UpperBound = 1; // Alpha (fail-low)
+	constexpr int LowerBound = 2; // Beta (fail-high)
 };
 
 struct TranspositionEntry {

@@ -17,3 +17,7 @@ public:
 	Results(int s, std::vector<Move> p, int d, SearchStatistics stats, int t, int speed, int h, int pl);
 	Move BestMove();
 };
+
+void PrintInfo(const Results& e, const EngineSettings& settings);
+void PrintPretty(const Results& e, const EngineSettings& settings);
+void PrintBestmove(const Move& move);

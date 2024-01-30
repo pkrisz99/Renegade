@@ -156,7 +156,7 @@
     <ClCompile Include="Heuristics.cpp" />
     <ClCompile Include="Neurals.cpp" />
     <ClCompile Include="Renegade.cpp" />
-    <ClCompile Include="Results.cpp" />
+    <ClCompile Include="Reporting.cpp" />
     <ClCompile Include="Search.cpp" />
     <ClCompile Include="Tuning.cpp" />
     <ClCompile Include="Utils.cpp" />
@@ -170,7 +170,7 @@
     <ClInclude Include="Move.h" />
     <ClInclude Include="Heuristics.h" />
     <ClInclude Include="Neurals.h" />
-    <ClInclude Include="Results.h" />
+    <ClInclude Include="Reporting.h" />
     <ClInclude Include="Search.h" />
     <ClInclude Include="Tuning.h" />
     <ClInclude Include="Utils.h" />

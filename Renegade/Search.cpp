@@ -1,8 +1,8 @@
 #include "Search.h"
 
 Search::Search() {
-	const double lmrMultiplier = 0.4;
-	const double lmrBase = 0.7;
+	constexpr double lmrMultiplier = 0.4;
+	constexpr double lmrBase = 0.7;
 	for (int i = 1; i < 32; i++) {
 		for (int j = 1; j < 32; j++) {
 			LMRTable[i][j] = static_cast<int>(lmrMultiplier * log(i) * log(j) + lmrBase);
@@ -241,7 +241,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 		}
 
 		// Check search limits
-		auto currentTime = Clock::now();
+		const auto currentTime = Clock::now();
 		elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
 
 		if (Constraints.SearchTimeMin != -1) {
@@ -294,7 +294,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 	return e;
 }
 
-// Recursively called during the negamax search
+// Recursively called during the alpha-beta search
 int Search::SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove) {
 
 	// Check search limits
@@ -395,7 +395,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			nmpReduction = std::min(nmpReduction, depth);
 			Boards[level] = board;
 			Boards[level].Push(NullMove);
-			UpdateAccumulators<true>(NullMove, 0, 0, level);
+			UpdateAccumulators(NullMove, 0, 0, level);
 			MoveStack[level].move = NullMove;
 			MoveStack[level].piece = Piece::None;
 			const int nullMoveEval = -SearchRecursive(Boards[level], depth - nmpReduction, level + 1, -beta, -beta + 1, false);
@@ -433,7 +433,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		}
 		std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
 			return get<1>(t1) > get<1>(t2);
-			});
+		});
 
 		// Resetting killers for ply+2
 		if (level + 2 < MaxDepth) {
@@ -507,7 +507,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		const bool givingCheck = b.IsInCheck();
 
 		if (legalMoveCount == 1) {
-			UpdateAccumulators<true>(m, movedPiece, capturedPiece, level);
+			UpdateAccumulators(m, movedPiece, capturedPiece, level);
 			score = -SearchRecursive(b, depth - 1 + extension, level + 1, -beta, -alpha, true);
 		}
 		else {
@@ -532,7 +532,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			}
 
 			// Principal variation search
-			UpdateAccumulators<true>(m, movedPiece, capturedPiece, level);
+			UpdateAccumulators(m, movedPiece, capturedPiece, level);
 			score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha - 1, -alpha, true);
 			if ((score > alpha) && (reduction > 0)) score = -SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
 			if ((score > alpha) && (score < beta)) score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
@@ -654,7 +654,7 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 		const uint8_t capturedPiece = board.GetPieceAt(m.to);
 		b.Push(m);
 		Heuristics.PrefetchTranspositionEntry(b.Hash());
-		UpdateAccumulators<true>(m, movedPiece, capturedPiece, level);
+		UpdateAccumulators(m, movedPiece, capturedPiece, level);
 		const int score = -SearchQuiescence(b, level + 1, -beta, -alpha);
 
 		if (score > bestScore) {
@@ -675,9 +675,9 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 
 int Search::Evaluate(const Board &board, const int level) {
 	Statistics.Evaluations += 1;
-	//if (NeuralEvaluate2(Accumulator, board.Turn) != NeuralEvaluate(board)) cout << "!" << endl;
+	//if (NeuralEvaluate(Accumulator, board.Turn) != NeuralEvaluate(board)) cout << "!" << endl;
 	//return NeuralEvaluate(board);
-	return NeuralEvaluate2((*Accumulators)[level], board.Turn);
+	return NeuralEvaluate((*Accumulators)[level], board.Turn);
 }
 
 int Search::DrawEvaluation() {
@@ -749,7 +749,7 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 			else if (currentAttackers & board.BlackQueenBits) sq = LsbSquare(currentAttackers & board.BlackQueenBits);
 			else if (currentAttackers & board.BlackKingBits) sq = LsbSquare(currentAttackers & board.BlackKingBits);
 		}
-		//assert(sq != -1);
+		assert(sq != -1);
 
 		// Update fields
 		victim = TypeOfPiece(board.GetPieceAt(sq));
@@ -795,7 +795,6 @@ void Search::SetupAccumulators(const Board& board) {
 	}
 }
 
-template <bool push>
 void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
 
 	// Copy the previous state over
@@ -856,146 +855,4 @@ void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const u
 			break;
 	}
 
-}
-
-// Communicating the search results ---------------------------------------------------------------
-
-void Search::PrintInfo(const Results& e, const EngineSettings& settings) const {
-	if (!settings.UciOutput) {
-		PrintPretty(e, settings);
-		return;
-	}
-
-	const int normalizedScore = ToCentipawns(e.score, e.ply);
-
-	std::string score;
-	if (IsMateScore(e.score)) {
-		int movesToMate = (MateEval - std::abs(e.score) + 1) / 2;
-		if (e.score > 0) score = "mate " + std::to_string(movesToMate);
-		else score = "mate -" + std::to_string(movesToMate);
-	}
-	else {
-		score = "cp " + std::to_string(normalizedScore);
-	}
-
-	/*
-	std::string extended;
-	if (settings.ExtendedOutput) {
-		extended += " evals " + std::to_string(e.stats.Evaluations);
-		extended += " qnodes " + std::to_string(e.stats.QuiescenceNodes);
-		// extended += " betacutoffs " + std::to_string(e.stats.BetaCutoffs)
-		// extended += " fmbc " + std::to_string(e.stats.FirstMoveBetaCutoffs);
-		if (e.stats.BetaCutoffs != 0) extended += " fmbcrate " + std::to_string(static_cast<int>(e.stats.FirstMoveBetaCutoffs * 1000 / e.stats.BetaCutoffs));
-		extended += " tthits " + std::to_string(e.stats.TranspositionHits);
-		if (e.stats.TranspositionQueries != 0) extended += " ttrate " + std::to_string(static_cast<int>(e.stats.TranspositionHits * 1000 / e.stats.TranspositionQueries));
-	}*/
-
-	std::string pvString;
-	for (const Move& move : e.pv)
-		pvString += " " + move.ToString();
-
-	std::string output{};
-	std::string wdlOutput{};
-
-	if (settings.ShowWDL) {
-		const auto [w, l] = GetWDL(e.score, e.ply);
-		const int d = 1000 - w - l;
-		wdlOutput = " wdl " + std::to_string(w) + " " + std::to_string(d) + " " + std::to_string(l);
-	}
-
-#if defined(_MSC_VER)
-	output = std::format("info depth {} seldepth {} score {}{} nodes {} nps {} time {} hashfull {} pv{}",
-		e.depth, e.stats.SelDepth, score, wdlOutput, e.stats.Nodes, e.nps, e.time, e.hashfull, pvString);
-
-#else
-	output = "info depth " + std::to_string(e.depth) + " seldepth " + std::to_string(e.stats.SelDepth)
-		+ " score " + score + wdlOutput + " nodes " + std::to_string(e.stats.Nodes) + " nps " + std::to_string(e.nps)
-		+ " time " + std::to_string(e.time) + " hashfull " + std::to_string(e.hashfull)
-		+ " pv" + pvString;
-#endif
-
-	cout << output << endl;
-}
-
-void Search::PrintPretty(const Results& e, const EngineSettings& settings) const {
-#if defined(_MSC_VER)
-	const std::string green = settings.Colorful ? "\x1b[92m" : "";
-	const std::string blue = settings.Colorful ? "\x1b[96m": "";
-	const std::string red = settings.Colorful ? "\x1b[91m": "";
-	const std::string white = settings.Colorful ? "\x1b[0m": "";
-	const std::string gray = settings.Colorful ? "\x1b[90m": "";
-	const std::string yellow = settings.Colorful ? "\x1b[93m" : "";
-
-	const int normalizedScore = ToCentipawns(e.score, e.ply);
-
-	std::string output1 = std::format("{} {:2d}/{:2d}", 
-		white, e.depth, e.stats.SelDepth);
-
-	std::string nodeString;
-	if (e.stats.Nodes < 1e9) nodeString = std::to_string(e.stats.Nodes);
-	else nodeString = std::format("{:8.3f}", e.stats.Nodes / 1e9) + "b";
-
-	std::string timeString;
-	if (e.time < 60000) timeString = std::to_string(e.time) + "ms";
-	else {
-		int seconds = e.time / 1000;
-		int minutes = seconds / 60;
-		seconds = seconds - minutes * 60;
-		timeString = std::format("{}m{:02d}s", minutes, seconds);
-	}
-
-	std::string hashString;
-	if (e.hashfull != 1000) hashString = std::format("{:4.1f}", e.hashfull / 10.0);
-	else hashString = "100";
-
-	std::string output3 = std::format("{}  {:>9}  {:>7}  {:4d}knps  h={:>4}% {} -> ",
-		gray, nodeString, timeString, e.nps / 1000, hashString, white);
-
-	const int neutralMargin = 50;
-	std::string scoreColor = blue;
-	if (!IsMateScore(normalizedScore)) {
-		if (normalizedScore > neutralMargin) scoreColor = green;
-		else if (normalizedScore < -neutralMargin) scoreColor = red;
-	}
-	else {
-		scoreColor = yellow;
-	}
-
-	std::string output2;
-	if (!IsMateScore(normalizedScore))
-		output2 = std::format("{} {:+5.2f}  {}", scoreColor, normalizedScore / 100.0, white);
-	else {
-		std::string output2mate;
-		int movesToMate = (MateEval - std::abs(normalizedScore) + 1) / 2;
-		if (normalizedScore > 0) output2mate = "#+" + std::to_string(movesToMate);
-		else output2mate = "#-" + std::to_string(movesToMate);
-		output2 = std::format("{} {:5}  {}", scoreColor, output2mate, white);
-	}
-
-	std::string pvOutput;
-	for (int i = 0; i < 5; i++) {
-		if (i >= static_cast<int>(e.pv.size())) break;
-		pvOutput += e.pv.at(i).ToString() + " ";
-	}
-	if (pvOutput.length() != 0) pvOutput.pop_back();
-	if (e.pv.size() > 5) pvOutput += " (+" + std::to_string(e.pv.size() - 5) + ")";
-	if (e.pv.size() != 0) pvOutput = white + "[" + pvOutput + white + "]";
-
-	// Win-draw-loss
-	const auto [modelW, modelL] = GetWDL(e.score, e.ply);
-	const int modelD = 1000 - modelW - modelL;
-	const double q = 10.0;
-	int w = static_cast<int>(std::round(modelW / q));
-	int d = static_cast<int>(std::round(modelD / q));
-	int l = static_cast<int>(std::round(modelL / q));
-	std::string wdl = gray + std::to_string(w) + "-" + std::to_string(d) + "-" + std::to_string(l) + gray;
-
-	std::string output = output1 + output3 + output2 + wdl + "  " + pvOutput + white;
-
-	cout << output << endl;
-#endif
-}
-
-void Search::PrintBestmove(const Move& move) const {
-	cout << "bestmove " << move.ToString() << endl;
 }

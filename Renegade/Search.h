@@ -3,9 +3,9 @@
 #include "Board.h"
 #include "Evaluation.h"
 #include "Heuristics.h"
-#include "Results.h"
-#include "Utils.h"
 #include "Neurals.h"
+#include "Reporting.h"
+#include "Utils.h"
 #include <atomic>
 #include <tuple>
 #include <iomanip>
@@ -17,7 +17,6 @@
 /*
 * This is the code responsible for performing move selection.
 * SearchRecursive() is the main alpha-beta search, and SearchQuiescence() is called in leaf nodes.
-* It also communicates the interim search results.
 */
 
 class Search
@@ -46,12 +45,7 @@ private:
 
 	// NNUE
 	void SetupAccumulators(const Board& board);
-	template <bool push> void UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level);
-
-	// Communication
-	void PrintInfo(const Results& e, const EngineSettings& settings) const;
-	void PrintPretty(const Results& e, const EngineSettings& settings) const;
-	void PrintBestmove(const Move& move) const;
+	void UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level);
 
 	std::unique_ptr<std::array<AccumulatorRepresentation, MaxDepth + 1>> Accumulators;
 

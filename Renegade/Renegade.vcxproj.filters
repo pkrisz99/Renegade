@@ -36,7 +36,7 @@
     <ClCompile Include="Tuning.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Results.cpp">
+    <ClCompile Include="Reporting.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Magics.cpp">
@@ -74,7 +74,7 @@
     <ClInclude Include="Tuning.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Results.h">
+    <ClInclude Include="Reporting.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Magics.h">

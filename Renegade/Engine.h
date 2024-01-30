@@ -3,8 +3,7 @@
 #include "Datagen.h"
 #include "Magics.h"
 #include "Neurals.h"
-#include "Heuristics.h"
-#include "Results.h"
+#include "Reporting.h"
 #include "Search.h"
 #include <fstream>
 #include <iomanip>

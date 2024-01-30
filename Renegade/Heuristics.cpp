@@ -3,7 +3,7 @@
 Heuristics::Heuristics() {
 	ContinuationHistory = new Continuations;
 	TranspositionEntryCount = 0;
-	SetHashSize(0);
+	SetHashSize(1); // ???
 	ClearHistoryTable();
 }
 

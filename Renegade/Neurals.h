@@ -7,12 +7,16 @@
 #include <immintrin.h>
 #include <memory>
 
-// An early attempt at supporting NNUE evaluation.
-// Not meant to be as a permanent solution in its current form.
+// This is the code for the NNUE evaluation
+// Renegade uses a simple, unbucketed perspective net
 
 // Network constants
+#define NETWORK_NAME "renegade-net-11.bin"
 constexpr int FeatureSize = 768;
 constexpr int HiddenSize = 512;
+constexpr int Scale = 400;
+constexpr int QA = 181;
+constexpr int QB = 64;
 
 struct alignas(64) NetworkRepresentation {
 	std::array<std::array<int16_t, HiddenSize>, FeatureSize> FeatureWeights;
@@ -46,22 +50,23 @@ struct alignas(64) AccumulatorRepresentation {
 
 void LoadDefaultNetwork();
 void LoadExternalNetwork(const std::string& filename);
+
 int NeuralEvaluate(const Board &board);
-int NeuralEvaluate2(const AccumulatorRepresentation& acc, const bool turn);
+int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn);
 
 inline int32_t ClippedReLU(const int16_t value) {
-	return std::clamp<int32_t>(value, 0, 255);
+	return std::clamp<int32_t>(value, 0, QA);
 }
 
 inline __m256i SquareClippedReLU(__m256i value) {
 	const auto min = _mm256_setzero_si256();
-	const auto max = _mm256_set1_epi16(static_cast<int16_t>(181));
+	const auto max = _mm256_set1_epi16(static_cast<int16_t>(QA));
 	value = _mm256_min_epi16(_mm256_max_epi16(value, min), max);
 	return _mm256_mullo_epi16(value, value);
 }
 
 inline int16_t SquareClippedReLU(const int16_t value) {
-	const int32_t x = std::clamp<int32_t>(value, 0, 181);
+	const int32_t x = std::clamp<int32_t>(value, 0, QA);
 	return x * x;
 }
 
@@ -79,7 +84,7 @@ inline int32_t ExtractInteger(const __m256i sum) {
 inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq) {
 	const uint8_t pieceColor = ColorOfPiece(piece);
 	const uint8_t pieceType = TypeOfPiece(piece);
-	const int colorOffset = 64 * 6;
+	constexpr int colorOffset = 64 * 6;
 
 	const int whiteFeatureIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + sq;
 	const int blackFeatureIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq);
