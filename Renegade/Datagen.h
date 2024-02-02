@@ -18,6 +18,9 @@ public:
 	std::string ToMarlinformat(const std::pair<std::string, int>& position, const GameState outcome) const;
 	// <fen> | <eval> | <wdl>
 	// eval: white pov in cp, wdl 1.0 = white win, 0.0 = black win
+	
+	void LowPlyFilter() const;
+	void MergeFiles() const;
 
 	uint64_t PositionsAccepted = 0;
 	uint64_t PositionsTotal = 0;

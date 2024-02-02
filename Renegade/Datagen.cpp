@@ -192,3 +192,96 @@ std::string Datagen::ToMarlinformat(const std::pair<std::string, int>& position,
 	}
 	return position.first + " | " + std::to_string(position.second) + " | " + outcomeStr;
 }
+
+
+void Datagen::LowPlyFilter() const {
+	cout << "\nFiltering low ply entries\n";
+
+	// Ask for filename
+	cout << "Filename? ";
+	std::string filename;
+	cin >> filename;
+	cout << endl;
+
+	cout << "Min ply? ";
+	int minPly;
+	cin >> minPly;
+	cout << endl;
+
+	std::string outputName = filename + "_min" + std::to_string(minPly);
+
+	std::ofstream output;
+	output.open(outputName, std::ios_base::app);
+
+	// Read the file
+	std::ifstream ifs(filename);
+	std::string line;
+	
+	int counter = 0;
+
+	while (std::getline(ifs, line)) {
+		counter++;
+		if (counter % 1'000'000 == 0) cout << counter << endl;
+
+		const std::vector<std::string> parts = Split(line);
+		const int ply = (stoi(parts[5]) - 1) * 2 + (parts[1] == "w" ? 0 : 1);
+
+		if (ply < minPly) continue;
+		output << line << endl;
+	}
+	output.close();
+
+	cout << "Entry count: " << counter << endl;
+	cout << "Complete.\n" << endl;
+}
+
+void Datagen::MergeFiles() const {
+	cout << "\nRenegade's file merging utility for datagen\n";
+
+	std::filesystem::path path = std::filesystem::current_path();
+	cout << "Current folder: " << path << endl;
+
+	std::string name;
+	cout << "\nWhat is the base name of the generated files? ";
+	cin >> name;
+
+	std::vector<std::string> found;
+
+	// Iterate through files in directory
+	for (const auto& entry : std::filesystem::directory_iterator(path)) {
+		auto filename = entry.path().filename();
+		if (filename.string().starts_with(name)) {
+			found.push_back(filename.string());
+		}
+	}
+	cout << "Found " << found.size() << " files\n" << endl;
+
+
+	const std::string mergedName = name + "_merged";
+
+	// Write file
+	std::ofstream output;
+	output.open(mergedName, std::ios_base::app);
+	int counter = 0;
+
+	for (const auto& filename : found) {
+
+		std::ifstream ifs(filename);
+		std::string line;
+
+
+		while (std::getline(ifs, line)) {
+			counter += 1;
+			if (counter % 1'000'000 == 0) cout << ".";
+			output << line << endl;
+		}
+		ifs.close();
+
+		cout << filename << " -> processed: " << counter << endl;
+	}
+
+	output.close();
+
+	cout << "\nComplete.\n" << endl;
+
+}

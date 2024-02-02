@@ -76,6 +76,17 @@ void Engine::Start() {
 			continue;
 		}
 
+		if (cmd == "filter") {
+			Datagen datagen = Datagen();
+			datagen.LowPlyFilter();
+			continue;
+		}
+		if (cmd == "merge") {
+			Datagen datagen = Datagen();
+			datagen.MergeFiles();
+			continue;
+		}
+
 		// Set option
 		if (parts[0] == "setoption") {
 
