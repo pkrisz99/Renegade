@@ -549,33 +549,38 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			// Fail-high
 			if (score >= beta) {
 				bestMove = m;
+				scoreType = ScoreType::LowerBound;
 
-				if (!aborting && !singularSearch) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, ScoreType::LowerBound, m, level);
 				Statistics.BetaCutoffs += 1;
 				if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
 
-				if (isQuiet) {
-					Heuristics.AddKillerMove(m, level);
-					const bool fromSquareAttacked = CheckBit(opponentAttacks, m.from);
-					const bool toSquareAttacked = CheckBit(opponentAttacks, m.to);
-					if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1].move, m);
-					if (depth > 1) Heuristics.IncrementHistory(m, movedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
-				}
+				if (!aborting) {
 
-				// Decrement history scores for all previously tried quiet moves
-				if (depth > 1) {
-					if (isQuiet) quietsTried.pop_back(); // don't decrement for the current quiet move
-					for (const Move& previouslyTriedMove : quietsTried) {
-						const bool fromSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.from);
-						const bool toSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.to);
-						const uint8_t previouslyTriedPiece = board.GetPieceAt(previouslyTriedMove.from);
-						Heuristics.DecrementHistory(previouslyTriedMove, previouslyTriedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+					// If a quiet move causes a fail-high, update move ordering tables
+					if (isQuiet) {
+						Heuristics.AddKillerMove(m, level);
+						const bool fromSquareAttacked = CheckBit(opponentAttacks, m.from);
+						const bool toSquareAttacked = CheckBit(opponentAttacks, m.to);
+						if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1].move, m);
+						if (depth > 1) Heuristics.IncrementHistory(m, movedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+					}
+
+					// Decrement history scores for all previously tried quiet moves
+					if (depth > 1) {
+						if (isQuiet) quietsTried.pop_back(); // don't decrement for the current quiet move
+						for (const Move& previouslyTriedMove : quietsTried) {
+							const bool fromSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.from);
+							const bool toSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.to);
+							const uint8_t previouslyTriedPiece = board.GetPieceAt(previouslyTriedMove.from);
+							Heuristics.DecrementHistory(previouslyTriedMove, previouslyTriedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+						}
 					}
 				}
 
-				return bestScore;
+				break;
 			}
-
+			
+			// Raise alpha
 			if (score > alpha) {
 				bestMove = m;
 				scoreType = ScoreType::Exact;
