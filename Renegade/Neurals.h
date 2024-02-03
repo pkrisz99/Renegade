@@ -11,7 +11,7 @@
 // Renegade uses a simple, unbucketed perspective net
 
 // Network constants
-#define NETWORK_NAME "renegade-net-11.bin"
+#define NETWORK_NAME "renegade-net-12.bin"
 constexpr int FeatureSize = 768;
 constexpr int HiddenSize = 512;
 constexpr int Scale = 400;
