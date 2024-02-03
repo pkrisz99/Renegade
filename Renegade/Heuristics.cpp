@@ -211,6 +211,7 @@ void Heuristics::AddTranspositionEntry(const uint64_t hash, const uint16_t age, 
 
 	assert(std::abs(score) > MateEval);
 	assert(HashFilter != 0);
+	if (std::abs(score) > MateEval) return;
 
 	const uint64_t key = hash & HashFilter;
 	const uint16_t quality = age * 2 + depth;
