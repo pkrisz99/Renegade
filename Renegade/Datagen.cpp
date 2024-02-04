@@ -173,6 +173,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 
 bool Datagen::Filter(const Board& board, const Move& move, const int eval) const {
 	if (std::abs(eval) > MateThreshold) return true;
+	if (board.GetPlys() < minSavePly) return true;
 	if (!board.IsMoveQuiet(move)) return true;
 	if (board.IsInCheck()) return true;
 	return false;
