@@ -26,7 +26,7 @@ int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
 
 #ifdef __AVX2__
 	// Calculate output with fast handwritten SIMD
-	// The implementation relies on QA=181 and 181^2 < 32678, of course autovec has no idea about this
+	// The implementation relies on QA=181 and 181^2 < 32768, of course autovec has no idea about this
 	// Idea by JW (akimbo)
 	constexpr int chunkSize = 16; // for AVX2: 256/16=16
 

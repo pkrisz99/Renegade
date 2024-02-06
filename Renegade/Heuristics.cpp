@@ -57,8 +57,9 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 		return historyScore;
 	}
 
+	// If we have don't have history scores, we order by PSQT delta
+	// this is a very old leftover of Renegade, and probably has very little effect on strength
 	int orderScore = 0;
-	// Use PSQT change if not
 	if (turn == Turn::White) {
 		orderScore -= LinearTaper(Weights.GetPSQT(attackingPieceType, m.from).early, Weights.GetPSQT(attackingPieceType, m.from).late, phase);
 		orderScore += LinearTaper(Weights.GetPSQT(attackingPieceType, m.to).early, Weights.GetPSQT(attackingPieceType, m.to).late, phase);
@@ -67,7 +68,7 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 		orderScore -= LinearTaper(Weights.GetPSQT(attackingPieceType, Mirror(m.from)).early, Weights.GetPSQT(attackingPieceType, Mirror(m.from)).late, phase);
 		orderScore += LinearTaper(Weights.GetPSQT(attackingPieceType, Mirror(m.to)).early, Weights.GetPSQT(attackingPieceType, Mirror(m.to)).late, phase);
 	}
-	return orderScore;
+	return orderScore; // orderScore / 4 did marginally better at fixed nodes
 
 }
 
