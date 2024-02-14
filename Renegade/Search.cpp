@@ -488,6 +488,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			ExcludedMoves[level] = m;
 			const int singularScore = SearchRecursive(board, singularDepth, level, singularBeta - 1, singularBeta, false);
 			ExcludedMoves[level] = EmptyMove;
+
 			if (singularScore < singularBeta) extension = 1;
 		}
 
@@ -505,9 +506,9 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		Statistics.Nodes += 1;
 		int score = NoEval;
 		const bool givingCheck = b.IsInCheck();
+		UpdateAccumulators(m, movedPiece, capturedPiece, level);
 
 		if (legalMoveCount == 1) {
-			UpdateAccumulators(m, movedPiece, capturedPiece, level);
 			score = -SearchRecursive(b, depth - 1 + extension, level + 1, -beta, -alpha, true);
 		}
 		else {
@@ -517,10 +518,9 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && (depth >= 3)) {
 				
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
-				//const bool badCheck = givingCheck && !StaticExchangeEval(board, m, 0);
 
-				// Less reduction if there are checks involved
-				if (inCheck || givingCheck) reduction -= 1;
+				// Less reduction when in check
+				if (inCheck) reduction -= 1;
 
 				// More reduction for non-PV nodes
 				if (!pvNode) reduction += 1;
@@ -532,7 +532,6 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			}
 
 			// Principal variation search
-			UpdateAccumulators(m, movedPiece, capturedPiece, level);
 			score = -SearchRecursive(b, depth - 1 - reduction, level + 1, -alpha - 1, -alpha, true);
 			if ((score > alpha) && (reduction > 0)) score = -SearchRecursive(b, depth - 1, level + 1, -alpha - 1, -alpha, true);
 			if ((score > alpha) && (score < beta)) score = -SearchRecursive(b, depth - 1, level + 1, -beta, -alpha, true);
@@ -576,7 +575,6 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 						}
 					}
 				}
-
 				break;
 			}
 			
