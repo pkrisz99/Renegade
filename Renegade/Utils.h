@@ -29,64 +29,29 @@ constexpr int MateThreshold = MateEval - 1000;
 constexpr int NoEval = -32001;
 constexpr int NegativeInfinity = -32001;
 constexpr int PositiveInfinity = 32001;
-
 constexpr int MaxDepth = 128;
 
-// For pawn value normalization and WDL reporting
-// calculated with https://github.com/official-stockfish/WDL_model
+// Pawn value normalization and WDL reporting:
+// (calculated with https://github.com/official-stockfish/WDL_model using Renegade's own games)
 constexpr int PawnNormalizationForMove32 = 265;
+constexpr std::array<double, 4> as = { 0.48511404, -17.19270585, 125.01967633, 157.42013693 };
+constexpr std::array<double, 4> bs = { -0.72040281, 14.57833868, -60.76193200, 149.28009426 };
+static_assert(static_cast<int>(std::reduce(as.begin(), as.end())) == PawnNormalizationForMove32);
 
-static inline std::pair<double, double> ModelWDLForPly(const int ply) {
+std::pair<double, double> ModelWDLForPly(const int ply);
+std::pair<int, int> GetWDL(const int score, const int ply);
+int ToCentipawns(const int score, const int ply);
 
-	// Coefficients for the third-order polynomial fit
-	// (obtained from Renegade's self-play, and calculated with Stockfish's WDL tool)
-	constexpr std::array<double, 4> as = { 0.48511404, -17.19270585, 125.01967633, 157.42013693 };
-	constexpr std::array<double, 4> bs = { -0.72040281, 14.57833868, -60.76193200, 149.28009426 };
-
-	static_assert(static_cast<int>(std::reduce(as.begin(), as.end())) == PawnNormalizationForMove32);
-
-	// Convert ply for the model
-	const double m = std::min(240.0, static_cast<double>(ply)) / 64.0;
-
-	return {
-		(((as[0] * m + as[1]) * m + as[2]) * m) + as[3],
-		(((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3]
-	};
-}
-
-// Returns win and loss respectively
-static inline std::pair<int, int> GetWDL(const int score, const int ply) {
-	const auto [a, b] = ModelWDLForPly(ply);
-	const double x = std::clamp(static_cast<double>(score), -4000.0, 4000.0);
-
-	return {
-		static_cast<int32_t>(std::round(1000.0 / (1.0 + std::exp((a - x) / b)))),
-		static_cast<int32_t>(std::round(1000.0 / (1.0 + std::exp((a + x) / b))))
-	};
-}
-
-static inline int ToCentipawns(const int score, const int ply) {
-	// Converts internal units into centipawns
-	// De facto standard is at 100 centipawns having 50% chance of winning
-
-	if ((std::abs(score) >= MateThreshold) || (score == 0)) return score;
-
-	const auto [a, b] = ModelWDLForPly(ply);
-	return static_cast<int>(std::round(100.0 * static_cast<double>(score) / a));
-}
-
+// Score range detection:
 static inline bool IsMateScore(const int score) {
 	return (std::abs(score) > MateThreshold) && (std::abs(score) <= MateEval);
 }
-
 static inline bool IsWinningMateScore(const int score) {
 	return (score > MateThreshold) && (score <= MateEval);
 }
-
 static inline bool IsLosingMateScore(const int score) {
 	return (score < -MateThreshold && (score >= -MateEval));
 }
-
 static inline int LosingMateScore(const int level) {
 	return -MateEval + level;
 }
@@ -94,82 +59,82 @@ static inline int LosingMateScore(const int level) {
 // Board constants --------------------------------------------------------------------------------
 
 namespace MoveFlag {
-	static const uint8_t None = 0;
-	static const uint8_t ShortCastle = 1;
-	static const uint8_t LongCastle = 2;
-	static const uint8_t PromotionToKnight = 3;
-	static const uint8_t PromotionToBishop = 4;
-	static const uint8_t PromotionToRook = 5;
-	static const uint8_t PromotionToQueen = 6;
-	static const uint8_t EnPassantPossible = 7;
-	static const uint8_t NullMove = 8;
-	static const uint8_t EnPassantPerformed = 9;
+	constexpr uint8_t None = 0;
+	constexpr uint8_t ShortCastle = 1;
+	constexpr uint8_t LongCastle = 2;
+	constexpr uint8_t PromotionToKnight = 3;
+	constexpr uint8_t PromotionToBishop = 4;
+	constexpr uint8_t PromotionToRook = 5;
+	constexpr uint8_t PromotionToQueen = 6;
+	constexpr uint8_t EnPassantPossible = 7;
+	constexpr uint8_t NullMove = 8;
+	constexpr uint8_t EnPassantPerformed = 9;
 }
 
 namespace Turn {
-	static const bool White = true;
-	static const bool Black = false;
+	constexpr bool White = true;
+	constexpr bool Black = false;
 }
 
 namespace PieceColor {
-	static const uint8_t None = 0;
-	static const uint8_t White = 1;
-	static const uint8_t Black = 2;
+	constexpr uint8_t None = 0;
+	constexpr uint8_t White = 1;
+	constexpr uint8_t Black = 2;
 }
 
 namespace PieceType {
-	static const uint8_t None = 0;
-	static const uint8_t Pawn = 1;
-	static const uint8_t Knight = 2;
-	static const uint8_t Bishop = 3;
-	static const uint8_t Rook = 4;
-	static const uint8_t Queen = 5;
-	static const uint8_t King = 6;
+	constexpr uint8_t None = 0;
+	constexpr uint8_t Pawn = 1;
+	constexpr uint8_t Knight = 2;
+	constexpr uint8_t Bishop = 3;
+	constexpr uint8_t Rook = 4;
+	constexpr uint8_t Queen = 5;
+	constexpr uint8_t King = 6;
 }
 
 namespace Piece {
-	static const uint8_t WhitePieceOffset = 0;
-	static const uint8_t BlackPieceOffset = 7;
-	static const uint8_t None = 0;
-	static const uint8_t WhitePawn = WhitePieceOffset + PieceType::Pawn;
-	static const uint8_t WhiteKnight = WhitePieceOffset + PieceType::Knight;
-	static const uint8_t WhiteBishop = WhitePieceOffset + PieceType::Bishop;
-	static const uint8_t WhiteRook = WhitePieceOffset + PieceType::Rook;
-	static const uint8_t WhiteQueen = WhitePieceOffset + PieceType::Queen;
-	static const uint8_t WhiteKing = WhitePieceOffset + PieceType::King;
-	static const uint8_t BlackPawn = BlackPieceOffset + PieceType::Pawn;
-	static const uint8_t BlackKnight = BlackPieceOffset + PieceType::Knight;
-	static const uint8_t BlackBishop = BlackPieceOffset + PieceType::Bishop;
-	static const uint8_t BlackRook = BlackPieceOffset + PieceType::Rook;
-	static const uint8_t BlackQueen = BlackPieceOffset + PieceType::Queen;
-	static const uint8_t BlackKing = BlackPieceOffset + PieceType::King;
+	constexpr uint8_t WhitePieceOffset = 0;
+	constexpr uint8_t BlackPieceOffset = 7;
+	constexpr uint8_t None = 0;
+	constexpr uint8_t WhitePawn = WhitePieceOffset + PieceType::Pawn;
+	constexpr uint8_t WhiteKnight = WhitePieceOffset + PieceType::Knight;
+	constexpr uint8_t WhiteBishop = WhitePieceOffset + PieceType::Bishop;
+	constexpr uint8_t WhiteRook = WhitePieceOffset + PieceType::Rook;
+	constexpr uint8_t WhiteQueen = WhitePieceOffset + PieceType::Queen;
+	constexpr uint8_t WhiteKing = WhitePieceOffset + PieceType::King;
+	constexpr uint8_t BlackPawn = BlackPieceOffset + PieceType::Pawn;
+	constexpr uint8_t BlackKnight = BlackPieceOffset + PieceType::Knight;
+	constexpr uint8_t BlackBishop = BlackPieceOffset + PieceType::Bishop;
+	constexpr uint8_t BlackRook = BlackPieceOffset + PieceType::Rook;
+	constexpr uint8_t BlackQueen = BlackPieceOffset + PieceType::Queen;
+	constexpr uint8_t BlackKing = BlackPieceOffset + PieceType::King;
 }
 
-static const uint64_t LightSquares = 0b0101010110101010010101011010101001010101101010100101010110101010;
-static const uint64_t DarkSquares = 0b1010101001010101101010100101010110101010010101011010101001010101;
-//static const uint64_t Rank1 = 0b0000000000000000000000000000000000000000000000000000000011111111;
-//static const uint64_t Rank8 = 0b1111111100000000000000000000000000000000000000000000000000000000;
-static const uint64_t FileA = 0b0000000100000001000000010000000100000001000000010000000100000001;
-static const uint64_t FileH = 0b1000000010000000100000001000000010000000100000001000000010000000;
+constexpr uint64_t LightSquares = 0b0101010110101010010101011010101001010101101010100101010110101010;
+constexpr uint64_t DarkSquares = 0b1010101001010101101010100101010110101010010101011010101001010101;
+//constexpr uint64_t Rank1 = 0b0000000000000000000000000000000000000000000000000000000011111111;
+//constexpr uint64_t Rank8 = 0b1111111100000000000000000000000000000000000000000000000000000000;
+constexpr uint64_t FileA = 0b0000000100000001000000010000000100000001000000010000000100000001;
+constexpr uint64_t FileH = 0b1000000010000000100000001000000010000000100000001000000010000000;
 
 
 namespace Squares {
-	static const uint8_t A1 = 0;
-	static const uint8_t B1 = 1;
-	static const uint8_t C1 = 2;
-	static const uint8_t D1 = 3;
-	static const uint8_t E1 = 4;
-	static const uint8_t F1 = 5;
-	static const uint8_t G1 = 6;
-	static const uint8_t H1 = 7;
-	static const uint8_t A8 = 56;
-	static const uint8_t B8 = 57;
-	static const uint8_t C8 = 58;
-	static const uint8_t D8 = 59;
-	static const uint8_t E8 = 60;
-	static const uint8_t F8 = 61;
-	static const uint8_t G8 = 62;
-	static const uint8_t H8 = 63;
+	constexpr uint8_t A1 = 0;
+	constexpr uint8_t B1 = 1;
+	constexpr uint8_t C1 = 2;
+	constexpr uint8_t D1 = 3;
+	constexpr uint8_t E1 = 4;
+	constexpr uint8_t F1 = 5;
+	constexpr uint8_t G1 = 6;
+	constexpr uint8_t H1 = 7;
+	constexpr uint8_t A8 = 56;
+	constexpr uint8_t B8 = 57;
+	constexpr uint8_t C8 = 58;
+	constexpr uint8_t D8 = 59;
+	constexpr uint8_t E8 = 60;
+	constexpr uint8_t F8 = 61;
+	constexpr uint8_t G8 = 62;
+	constexpr uint8_t H8 = 63;
 }
 
 namespace FEN {
@@ -179,7 +144,7 @@ namespace FEN {
 	static const std::string Lasker = "rn3r2/pbppq1p1/1p2pN1k/4N3/3P4/3B4/PPP2PPP/R3K2R w KQ - 1 13"; // Lasker-Thomas, London 1912 (mate in 5 test position)
 }
 
-const char PieceChars[] = { ' ', 'P', 'N', 'B', 'R', 'Q', 'K', ' ', 'p', 'n', 'b', 'r', 'q', 'k' };
+constexpr std::array<char, 14> PieceChars = { ' ', 'P', 'N', 'B', 'R', 'Q', 'K', '?', 'p', 'n', 'b', 'r', 'q', 'k' };
 
 const std::array<std::string, 64> SquareStrings = {
 	"a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
@@ -191,17 +156,6 @@ const std::array<std::string, 64> SquareStrings = {
 	"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
 	"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
 };
-
-namespace Console {
-	// Console escape strings
-	const std::string Green = "\x1b[92m";
-	const std::string Blue = "\x1b[96m";
-	const std::string Red = "\x1b[91m";
-	const std::string White = "\x1b[0m";
-	const std::string Gray = "\x1b[90m";
-	const std::string Yellow = "\x1b[93m";
-	// std::string str = "\033[" + std::to_string(row) + ";" + std::to_string(col) + "H";
-}
 
 // Structures  ------------------------------------------------------------------------------------
 
@@ -250,8 +204,6 @@ struct SearchStatistics {
 	uint64_t Evaluations;
 	uint64_t BetaCutoffs;
 	uint64_t FirstMoveBetaCutoffs;
-	//int FutilityPruned;
-	//int RazoringPruned;
 	uint64_t TranspositionQueries;
 	uint64_t TranspositionHits;
 	int SelDepth;
@@ -285,29 +237,29 @@ std::ostream& operator<<(std::ostream& os, const TaperedScore& s);
 
 // Bitwise operations  ----------------------------------------------------------------------------
 
-static inline void SetBitTrue(uint64_t& number, const uint8_t place) {
-	number |= 1ULL << place;
+constexpr void SetBitTrue(uint64_t& number, const uint8_t place) {
+	number |= 1ull << place;
 }
 
-static inline void SetBitFalse(uint64_t& number, const uint8_t place) {
-	number &= ~(1ULL << place);
+constexpr void SetBitFalse(uint64_t& number, const uint8_t place) {
+	number &= ~(1ull << place);
 }
 
-static inline bool CheckBit(const uint64_t& number, const uint8_t place) {
-	return (number >> place) & 1ULL;
+constexpr bool CheckBit(const uint64_t& number, const uint8_t place) {
+	return (number >> place) & 1ull;
 }
 
-static inline int Popcount(const uint64_t& number) {
+constexpr int Popcount(const uint64_t& number) {
 	return std::popcount(number);
 	// return static_cast<int>(__popcnt64(number));
 }
 
-static inline int Lzcount(const uint64_t& number) {
+constexpr int Lzcount(const uint64_t& number) {
 	return std::countl_zero(number);
 	// return static_cast<int>(__lzcnt64(number));
 }
 
-static inline int Popsquare(uint64_t& number) {
+constexpr int Popsquare(uint64_t& number) {
 	const int place = std::countr_zero(number);
 	number &= (number - 1);
 	return place;
@@ -319,70 +271,64 @@ static inline int Popsquare(uint64_t& number) {
 	*/
 }
 
-
-static inline int LsbSquare(uint64_t number) {
+constexpr int LsbSquare(uint64_t number) {
 	return static_cast<int>(std::countr_zero(number));
 	// return static_cast<int>(_tzcnt_u64(number));
 }
 
 // Board helper functions -------------------------------------------------------------------------
 
-// 1st rank -> 0 ... 8th rank -> 7 
+// Renegade uses little-endian rank-file mapping
+// A1 -> 0, B1 -> 1, ..., H8 -> 63
 
-const static uint8_t GetSquareRank(const int square) {
+constexpr uint8_t GetSquareRank(const int square) {
 	return square >> 3;
 }
 
-const static uint8_t GetSquareFile(const int square) {
+constexpr uint8_t GetSquareFile(const int square) {
 	return square & 0b000111;
 }
 
-const static uint8_t PieceTypeArray[] = {
+// The engine has its quirky way of representing pieces
+// Piece = PieceColor + PieceType
+
+constexpr std::array<uint8_t, 14> PieceTypeArray = {
 	PieceType::None,
 	PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen, PieceType::King,
 	PieceType::None,
 	PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen, PieceType::King,
 };
 
-const static uint8_t PieceColorArray[] = {
+constexpr std::array<uint8_t, 14> PieceColorArray = {
 	PieceColor::None,
 	PieceColor::White, PieceColor::White, PieceColor::White, PieceColor::White, PieceColor::White, PieceColor::White,
 	PieceColor::None,
 	PieceColor::Black, PieceColor::Black, PieceColor::Black, PieceColor::Black, PieceColor::Black, PieceColor::Black
 };
 
-// 0: None, 1: White, 2: Black
-static inline uint8_t ColorOfPiece(const uint8_t piece) {
-	return PieceColorArray[piece];
+constexpr uint8_t TypeOfPiece(const uint8_t piece) {
+	return PieceTypeArray[piece];  // 0: None, 1: Pawn, 2: Knight, ...
 }
 
-static inline uint8_t TypeOfPiece(const uint8_t piece) {
-	return PieceTypeArray[piece];
+constexpr uint8_t ColorOfPiece(const uint8_t piece) {
+	return PieceColorArray[piece];  // 0: None, 1: White, 2: Black
 }
 
-static inline uint8_t TurnToPieceColor(const bool turn) {
+constexpr uint8_t TurnToPieceColor(const bool turn) {
 	return (turn == Turn::White) ? PieceColor::White : PieceColor::Black;
 }
 
-static inline uint8_t Square(const uint8_t rank, const uint8_t file) {
+constexpr uint8_t Square(const uint8_t rank, const uint8_t file) {
 	return rank * 8 + file;
 }
 
-static inline uint8_t SquareToNum(const std::string& sq) {
-	const uint8_t file = sq[0] - 'a';
-	const uint8_t rank = sq[1] - '1';
-	return Square(rank, file);
+constexpr uint8_t Mirror(const uint8_t sq) {
+	return sq ^ 0b111000;
 }
 
-static inline uint8_t Mirror(const uint8_t sq) {
-	return sq ^ 56;
+constexpr uint64_t SquareBit(const uint8_t sq) {
+	return 1ull << sq;
 }
-
-static inline uint64_t SquareBit(const uint8_t sq) {
-	return 1ULL << sq;
-}
-
-void PrintBitboard(const uint64_t bits);
 
 // String handling --------------------------------------------------------------------------------
 
@@ -391,10 +337,28 @@ std::string Trim(const std::string& str);
 bool StartsWith(const std::string& big, const std::string& small);
 std::vector<std::string> Split(const std::string& cmd);
 void ClearScreen(const bool endline, const bool fancy);
+void PrintBitboard(const uint64_t bits);
+
+namespace Console {
+	// Console escape strings
+	const std::string Green = "\x1b[92m";
+	const std::string Blue = "\x1b[96m";
+	const std::string Red = "\x1b[91m";
+	const std::string White = "\x1b[0m";
+	const std::string Gray = "\x1b[90m";
+	const std::string Yellow = "\x1b[93m";
+	// std::string str = "\033[" + std::to_string(row) + ";" + std::to_string(col) + "H";
+}
+
+static inline uint8_t SquareToNum(const std::string& sq) {
+	const uint8_t file = sq[0] - 'a';
+	const uint8_t rank = sq[1] - '1';
+	return Square(rank, file);
+}
 
 // Precomputed arrays -----------------------------------------------------------------------------
 
-const uint64_t KingMoveBits[] = {
+constexpr std::array<uint64_t, 64> KingMoveBits = {
 	0x0000000000000302, 0x0000000000000705, 0x0000000000000e0a, 0x0000000000001c14, 0x0000000000003828, 0x0000000000007050, 0x000000000000e0a0, 0x000000000000c040,
 	0x0000000000030203, 0x0000000000070507, 0x00000000000e0a0e, 0x00000000001c141c, 0x0000000000382838, 0x0000000000705070, 0x0000000000e0a0e0, 0x0000000000c040c0,
 	0x0000000003020300, 0x0000000007050700, 0x000000000e0a0e00, 0x000000001c141c00, 0x0000000038283800, 0x0000000070507000, 0x00000000e0a0e000, 0x00000000c040c000,
@@ -405,7 +369,7 @@ const uint64_t KingMoveBits[] = {
 	0x0203000000000000, 0x0507000000000000, 0x0a0e000000000000, 0x141c000000000000, 0x2838000000000000, 0x5070000000000000, 0xa0e0000000000000, 0x40c0000000000000
 };
 
-const uint64_t KnightMoveBits[] = {
+constexpr std::array<uint64_t, 64> KnightMoveBits = {
 	0x0000000000020400, 0x0000000000050800, 0x00000000000a1100, 0x0000000000142200, 0x0000000000284400, 0x0000000000508800, 0x0000000000a01000, 0x0000000000402000,
 	0x0000000002040004, 0x0000000005080008, 0x000000000a110011, 0x0000000014220022, 0x0000000028440044, 0x0000000050880088, 0x00000000a0100010, 0x0000000040200020,
 	0x0000000204000402, 0x0000000508000805, 0x0000000a1100110a, 0x0000001422002214, 0x0000002844004428, 0x0000005088008850, 0x000000a0100010a0, 0x0000004020002040,
@@ -416,7 +380,7 @@ const uint64_t KnightMoveBits[] = {
 	0x0004020000000000, 0x0008050000000000, 0x00110a0000000000, 0x0022140000000000, 0x0044280000000000, 0x0088500000000000, 0x0010a00000000000, 0x0020400000000000
 };
 
-const uint64_t WhitePawnAttacks[] = {
+constexpr std::array<uint64_t, 64> WhitePawnAttacks = {
 	0x0000000000000200, 0x0000000000000500, 0x0000000000000a00, 0x0000000000001400, 0x0000000000002800, 0x0000000000005000, 0x000000000000a000, 0x0000000000004000,
 	0x0000000000020000, 0x0000000000050000, 0x00000000000a0000, 0x0000000000140000, 0x0000000000280000, 0x0000000000500000, 0x0000000000a00000, 0x0000000000400000,
 	0x0000000002000000, 0x0000000005000000, 0x000000000a000000, 0x0000000014000000, 0x0000000028000000, 0x0000000050000000, 0x00000000a0000000, 0x0000000040000000,
@@ -427,7 +391,7 @@ const uint64_t WhitePawnAttacks[] = {
 	0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000
 };
 
-const uint64_t BlackPawnAttacks[] = {
+constexpr std::array<uint64_t, 64> BlackPawnAttacks = {
 	0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
 	0x0000000000000002, 0x0000000000000005, 0x000000000000000a, 0x0000000000000014, 0x0000000000000028, 0x0000000000000050, 0x00000000000000a0, 0x0000000000000040,
 	0x0000000000000200, 0x0000000000000500, 0x0000000000000a00, 0x0000000000001400, 0x0000000000002800, 0x0000000000005000, 0x000000000000a000, 0x0000000000004000,
@@ -439,7 +403,7 @@ const uint64_t BlackPawnAttacks[] = {
 };
 
 // Used to select passed pawn candidates
-const uint64_t WhitePassedPawnMask[] = {
+constexpr std::array<uint64_t, 64> WhitePassedPawnMask = {
 	0x0303030303030300, 0x0707070707070700, 0x0e0e0e0e0e0e0e00, 0x1c1c1c1c1c1c1c00, 0x3838383838383800, 0x7070707070707000, 0xe0e0e0e0e0e0e000, 0xc0c0c0c0c0c0c000,
 	0x0303030303030000, 0x0707070707070000, 0x0e0e0e0e0e0e0000, 0x1c1c1c1c1c1c0000, 0x3838383838380000, 0x7070707070700000, 0xe0e0e0e0e0e00000, 0xc0c0c0c0c0c00000,
 	0x0303030303000000, 0x0707070707000000, 0x0e0e0e0e0e000000, 0x1c1c1c1c1c000000, 0x3838383838000000, 0x7070707070000000, 0xe0e0e0e0e0000000, 0xc0c0c0c0c0000000,
@@ -450,7 +414,7 @@ const uint64_t WhitePassedPawnMask[] = {
 	0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000
 };
 
-const uint64_t BlackPassedPawnMask[] = {
+constexpr std::array<uint64_t, 64> BlackPassedPawnMask = {
 	0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
 	0x0000000000000003, 0x0000000000000007, 0x000000000000000e, 0x000000000000001c, 0x0000000000000038, 0x0000000000000070, 0x00000000000000e0, 0x00000000000000c0,
 	0x0000000000000303, 0x0000000000000707, 0x0000000000000e0e, 0x0000000000001c1c, 0x0000000000003838, 0x0000000000007070, 0x000000000000e0e0, 0x000000000000c0c0,
@@ -462,7 +426,7 @@ const uint64_t BlackPassedPawnMask[] = {
 };
 
 // Filters passed pawn candidates
-const uint64_t WhitePassedPawnFilter[] = {
+constexpr std::array<uint64_t, 64> WhitePassedPawnFilter = {
 	0x0101010101010100, 0x0202020202020200, 0x0404040404040400, 0x0808080808080800, 0x1010101010101000, 0x2020202020202000, 0x4040404040404000, 0x8080808080808000,
 	0x0101010101010000, 0x0202020202020000, 0x0404040404040000, 0x0808080808080000, 0x1010101010100000, 0x2020202020200000, 0x4040404040400000, 0x8080808080800000,
 	0x0101010101000000, 0x0202020202000000, 0x0404040404000000, 0x0808080808000000, 0x1010101010000000, 0x2020202020000000, 0x4040404040000000, 0x8080808080000000,
@@ -473,7 +437,7 @@ const uint64_t WhitePassedPawnFilter[] = {
 	0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000
 };
 
-const uint64_t BlackPassedPawnFilter[] = {
+constexpr std::array<uint64_t, 64> BlackPassedPawnFilter = {
 	0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
 	0x0000000000000001, 0x0000000000000002, 0x0000000000000004, 0x0000000000000008, 0x0000000000000010, 0x0000000000000020, 0x0000000000000040, 0x0000000000000080,
 	0x0000000000000101, 0x0000000000000202, 0x0000000000000404, 0x0000000000000808, 0x0000000000001010, 0x0000000000002020, 0x0000000000004040, 0x0000000000008080,
@@ -484,7 +448,7 @@ const uint64_t BlackPassedPawnFilter[] = {
 	0x0001010101010101, 0x0002020202020202, 0x0004040404040404, 0x0008080808080808, 0x0010101010101010, 0x0020202020202020, 0x0040404040404040, 0x0080808080808080
 };
 
-const uint64_t KingArea[] = {
+constexpr std::array<uint64_t, 64> KingArea = {
 	0x0000000000000303, 0x0000000000000707, 0x0000000000000e0e, 0x0000000000001c1c, 0x0000000000003838, 0x0000000000007070, 0x000000000000e0e0, 0x000000000000c0c0,
 	0x0000000000030303, 0x0000000000070707, 0x00000000000e0e0e, 0x00000000001c1c1c, 0x0000000000383838, 0x0000000000707070, 0x0000000000e0e0e0, 0x0000000000c0c0c0,
 	0x0000000003030300, 0x0000000007070700, 0x000000000e0e0e00, 0x000000001c1c1c00, 0x0000000038383800, 0x0000000070707000, 0x00000000e0e0e000, 0x00000000c0c0c000,
@@ -495,7 +459,7 @@ const uint64_t KingArea[] = {
 	0x0303000000000000, 0x0707000000000000, 0x0e0e000000000000, 0x1c1c000000000000, 0x3838000000000000, 0x7070000000000000, 0xe0e0000000000000, 0xc0c0000000000000
 };
 
-const uint64_t Files[] = {
+constexpr std::array<uint64_t, 8> Files = {
 	0b0000000100000001000000010000000100000001000000010000000100000001,
 	0b0000001000000010000000100000001000000010000000100000001000000010,
 	0b0000010000000100000001000000010000000100000001000000010000000100,
@@ -506,11 +470,11 @@ const uint64_t Files[] = {
 	0b1000000010000000100000001000000010000000100000001000000010000000
 };
 
-const uint64_t IsolatedPawnMask[] = {
+constexpr std::array<uint64_t, 8> IsolatedPawnMask = {
 	0x0202020202020202, 0x0505050505050505, 0x0a0a0a0a0a0a0a0a, 0x1414141414141414, 0x2828282828282828, 0x5050505050505050, 0xa0a0a0a0a0a0a0a0, 0x4040404040404040,
 };
 
-const bool OutpostFilter[] = {
+constexpr std::array<bool, 64> OutpostFilter = {
 	false, false, false, false, false, false, false, false,
 	false, false, false, false, false, false, false, false,
 	false, false, false, false, false, false, false, false,
@@ -541,7 +505,7 @@ const std::array<std::string, 15> BenchmarkFENs = {
 };
 
 // Polyglot hashing numbers, taken from python-chess
-const std::array<uint64_t, 781> Zobrist = {
+constexpr std::array<uint64_t, 781> Zobrist = {
 	0x9D39247E33776D41, 0x2AF7398005AAA5C7, 0x44DB015024623547, 0x9C15F73E62A76AE2, 0x75834465489C0C89, 0x3290AC3A203001BF, 0x0FBBAD1F61042279, 0xE83A908FF2FB60CA,
 	0x0D7E765D58755C10, 0x1A083822CEAFE02D, 0x9605D5F0E25EC3B0, 0xD021FF5CD13A2ED5, 0x40BDF15D4A672E32, 0x011355146FD56395, 0x5DB4832046F3D9E5, 0x239F8B2D7FF719CC,
 	0x05D1A1AE85B49AA1, 0x679F848F6E8FC971, 0x7449BBFF801FED0B, 0x7D11CDB1C3B7ADF0, 0x82C7709E781EB7CC, 0xF3218F1C9510786C, 0x331478F3AF51BBE6, 0x4BB38DE5E7219443,

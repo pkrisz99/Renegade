@@ -51,3 +51,33 @@ void PrintBitboard(const uint64_t bits) {
 std::ostream& operator<<(std::ostream& os, const TaperedScore& s) {
 	return os << "S(" << s.early << ", " << s.late << ")";
 }
+
+// WDL model and reporting ------------------------------------------------------------------------
+
+// Getting the model for a given game ply
+std::pair<double, double> ModelWDLForPly(const int ply) {
+	const double m = std::min(240.0, static_cast<double>(ply)) / 64.0;
+
+	return {
+		(((as[0] * m + as[1]) * m + as[2]) * m) + as[3],
+		(((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3]
+	};
+}
+
+// Get win and loss probabilities for a given internal score and ply
+std::pair<int, int> GetWDL(const int score, const int ply) {
+	const auto [a, b] = ModelWDLForPly(ply);
+	const double x = std::clamp(static_cast<double>(score), -4000.0, 4000.0);
+
+	return {
+		static_cast<int32_t>(std::round(1000.0 / (1.0 + std::exp((a - x) / b)))),
+		static_cast<int32_t>(std::round(1000.0 / (1.0 + std::exp((a + x) / b))))
+	};
+}
+
+// Converts internal units into centipawns, following the convention of 100 cp = 50% chance of winning
+int ToCentipawns(const int score, const int ply) {
+	if ((std::abs(score) >= MateThreshold) || (score == 0)) return score;
+	const auto [a, b] = ModelWDLForPly(ply);
+	return static_cast<int>(std::round(100.0 * static_cast<double>(score) / a));
+}
