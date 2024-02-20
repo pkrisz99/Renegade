@@ -383,7 +383,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	if (!pvNode && !inCheck && !singularSearch) {
 
 		// Reverse futility pruning (+128 elo)
-		const int rfpMarginDefault[] = { 0, 80, 180, 280, 380, 480, 580, 680 };
+		const int rfpMarginDefault[] = { 0, 90, 180, 270, 360, 450, 540, 630 };
 		if ((depth <= 7) && (std::abs(beta) < MateThreshold)) {
 			const int rfpMargin = improving ? rfpMarginDefault[depth - 1] : rfpMarginDefault[depth];
 			if (eval - rfpMargin > beta) return eval;
