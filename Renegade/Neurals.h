@@ -58,14 +58,7 @@ inline int32_t ClippedReLU(const int16_t value) {
 	return std::clamp<int32_t>(value, 0, QA);
 }
 
-inline __m256i SquareClippedReLU(__m256i value) {
-	const auto min = _mm256_setzero_si256();
-	const auto max = _mm256_set1_epi16(static_cast<int16_t>(QA));
-	value = _mm256_min_epi16(_mm256_max_epi16(value, min), max);
-	return _mm256_mullo_epi16(value, value);
-}
-
-inline int16_t SquareClippedReLU(const int16_t value) {
+inline int32_t SquareClippedReLU(const int16_t value) {
 	const int32_t x = std::clamp<int32_t>(value, 0, QA);
 	return x * x;
 }

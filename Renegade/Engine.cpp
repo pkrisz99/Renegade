@@ -370,7 +370,7 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "nnue") {
-			cout << "Arch: 768->" << HiddenSize << "x2" << "->1 (SCReLU with QA=181)" << endl;
+			cout << "Arch: 768->" << HiddenSize << "x2" << "->1 (SCReLU activation)" << endl;
 			continue;
 		}
 

@@ -25,25 +25,29 @@ int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
 	int32_t output = 0;
 
 #ifdef __AVX2__
-	// Calculate output with fast handwritten SIMD
-	// The implementation relies on QA=181 and 181^2 < 32768, of course autovec has no idea about this
-	// Idea by JW (akimbo)
+	// Calculate output with handwritten SIMD (autovec also works, but it's slower)
+	// Idea by somelizard, it makes fast QA=255 SCReLU possible (but now the net is still QA=181)
+	
 	constexpr int chunkSize = 16; // for AVX2: 256/16=16
-
+	const auto min = _mm256_setzero_si256();
+	const auto max = _mm256_set1_epi16(static_cast<int16_t>(QA));
+	
 	auto sum = _mm256_setzero_si256();
 	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
-		const auto v = SquareClippedReLU(_mm256_load_si256((__m256i*) &hiddenFriendly[chunkSize * i]));
+		auto v = _mm256_load_si256((__m256i*) &hiddenFriendly[chunkSize * i]);
+		v = _mm256_min_epi16(_mm256_max_epi16(v, min), max);
 		const auto w = _mm256_load_si256((__m256i*) &Network->OutputWeights[chunkSize * i]);
-		const auto p = _mm256_madd_epi16(v, w);
+		const auto p = _mm256_madd_epi16(v, _mm256_mullo_epi16(v, w));
 		sum = _mm256_add_epi32(sum, p);
 	}
 	output = ExtractInteger(sum);
 
 	sum = _mm256_setzero_si256();
 	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
-		const auto v = SquareClippedReLU(_mm256_load_si256((__m256i*) &hiddenOpponent[chunkSize * i]));
+		auto v = _mm256_load_si256((__m256i*) &hiddenOpponent[chunkSize * i]);
+		v = _mm256_min_epi16(_mm256_max_epi16(v, min), max);
 		const auto w = _mm256_load_si256((__m256i*) &Network->OutputWeights[chunkSize * i + HiddenSize]);
-		const auto p = _mm256_madd_epi16(v, w);
+		const auto p = _mm256_madd_epi16(v, _mm256_mullo_epi16(v, w));
 		sum = _mm256_add_epi32(sum, p);
 	}
 	output += ExtractInteger(sum);
