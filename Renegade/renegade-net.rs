@@ -6,7 +6,7 @@ use bullet::{
 
 fn main() {
     let mut trainer = TrainerBuilder::default()
-        .quantisations(&[181, 64])
+        .quantisations(&[255, 64])
         .input(inputs::Chess768)
         .output_buckets(outputs::Single)
         .feature_transformer(512)
@@ -15,7 +15,7 @@ fn main() {
         .build();  //trainer.load_from_checkpoint("checkpoints/testnet");
 
     let schedule = TrainingSchedule {
-        net_id: "renegade-net-13".to_string(),
+        net_id: "renegade-net-14".to_string(),
         batch_size: 16384,
         eval_scale: 400.0,
         start_epoch: 1,
@@ -34,7 +34,7 @@ fn main() {
 
     let settings = LocalSettings {
         threads: 4,
-        data_file_paths: vec!["net-12-bulletformat"],
+        data_file_paths: vec!["net-14-bulletformat"],
         output_directory: "checkpoints",
     };
 

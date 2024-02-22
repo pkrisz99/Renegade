@@ -11,11 +11,11 @@
 // Renegade uses a simple, unbucketed perspective net
 
 // Network constants
-#define NETWORK_NAME "renegade-net-13.bin"
+#define NETWORK_NAME "renegade-net-14.bin"
 constexpr int FeatureSize = 768;
 constexpr int HiddenSize = 512;
 constexpr int Scale = 400;
-constexpr int QA = 181;
+constexpr int QA = 255;
 constexpr int QB = 64;
 
 struct alignas(64) NetworkRepresentation {
