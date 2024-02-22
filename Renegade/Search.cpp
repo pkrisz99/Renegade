@@ -491,6 +491,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 			if (singularScore < singularBeta) extension = 1;
 			else if (!pvNode && (singularBeta >= beta)) return singularBeta; // Multicut
+			else if (ttEval >= beta) extension = -1; // Negative extensions
 		}
 
 		// Push move
