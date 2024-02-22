@@ -13,7 +13,10 @@ Engine::Engine(int argc, char* argv[]) {
 	Search.Heuristics.SetHashSize(Settings.Hash);
 	Search.Heuristics.ClearTranspositionTable();
 
-	if ((argc == 2) && (std::string(argv[1]) == "bench")) HandleBench();
+	if ((argc == 2) && (std::string(argv[1]) == "bench")) {
+		HandleBench();
+		QuitAfterBench = true;
+	}
 	else PrintHeader();
 }
 
@@ -23,6 +26,7 @@ void Engine::PrintHeader() {
 
 // Start UCI protocol
 void Engine::Start() {
+	if (QuitAfterBench) return;
 	Board board = Board(FEN::StartPos);
 	std::string cmd;
 	SearchParams params;

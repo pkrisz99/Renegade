@@ -158,8 +158,8 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 		board.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
 		if (rootLegalMoves.size() == 1) {
 			const int eval = Evaluate(board, 0);
-			cout << "info depth 1 score cp " << ToCentipawns(eval, board.GetPlys()) << " nodes 0" << endl;
 			cout << "info string Only one legal move!" << endl;
+			cout << "info depth 1 score cp " << ToCentipawns(eval, board.GetPlys()) << " nodes 0" << endl;
 			PrintBestmove(rootLegalMoves.front());
 			Aborting.store(true, std::memory_order_relaxed);
 			return Results(eval, rootLegalMoves, 1, Statistics, 0, 0, 0, board.GetPlys()); // hack: rootLegalMoves is a vector already
