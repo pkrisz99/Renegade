@@ -436,12 +436,12 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			return get<1>(t1) > get<1>(t2);
 		});
 
-		// Resetting killers and fail-high cutoff counts for ply+2
+		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) {
 			Heuristics.KillerMoves[level + 2][0] = EmptyMove;
 			Heuristics.KillerMoves[level + 2][1] = EmptyMove;
-			CutoffCount[level + 2] = 0;
 		}
+		if (level + 1 < MaxDepth) CutoffCount[level + 1] = 0;
 	}
 
 	// Iterate through legal moves
