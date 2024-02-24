@@ -151,6 +151,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 
 	SetupAccumulators(board);
 	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
+	std::fill(CutoffCount.begin(), CutoffCount.end(), 0);
 
 	// Early exit for only one legal move (no legal moves are handled separately)
 	if (!DatagenMode && ((params.wtime != 0) || (params.btime != 0))) {
@@ -435,11 +436,12 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			return get<1>(t1) > get<1>(t2);
 		});
 
-		// Resetting killers for ply+2
+		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) {
 			Heuristics.KillerMoves[level + 2][0] = EmptyMove;
 			Heuristics.KillerMoves[level + 2][1] = EmptyMove;
 		}
+		if (level + 1 < MaxDepth) CutoffCount[level + 1] = 0;
 	}
 
 	// Iterate through legal moves
@@ -526,6 +528,9 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 				// More reduction for non-PV nodes
 				if (!pvNode) reduction += 1;
 
+				// Less reduction when the next ply only had a few fail-highs
+				if (CutoffCount[level] < 4) reduction -= 1;
+
 				// Adjust based on history
 				if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
 
@@ -553,6 +558,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 				Statistics.BetaCutoffs += 1;
 				if (legalMoveCount == 1) Statistics.FirstMoveBetaCutoffs += 1;
+				if (level != 0) CutoffCount[level - 1] += 1;
 
 				if (!aborting) {
 
