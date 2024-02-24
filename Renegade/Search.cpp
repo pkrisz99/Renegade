@@ -387,7 +387,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		const int rfpMarginDefault[] = { 0, 90, 180, 270, 360, 450, 540, 630 };
 		if ((depth <= 7) && (std::abs(beta) < MateThreshold)) {
 			const int rfpMargin = improving ? rfpMarginDefault[depth - 1] : rfpMarginDefault[depth];
-			if (eval - rfpMargin > beta) return eval;
+			if (eval - rfpMargin > beta) return (eval * 3 + beta) / 4;
 		}
 
 		// Null-move pruning (+33 elo)
