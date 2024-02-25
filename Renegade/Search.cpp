@@ -152,6 +152,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 	SetupAccumulators(board);
 	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
 	std::fill(CutoffCount.begin(), CutoffCount.end(), 0);
+	std::fill(FutilityClock.begin(), FutilityClock.end(), 0);
 
 	// Early exit for only one legal move (no legal moves are handled separately)
 	if (!DatagenMode && ((params.wtime != 0) || (params.btime != 0))) {
@@ -379,6 +380,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 	const bool improving = (level >= 2) && !inCheck && (StaticEvalStack[level] > StaticEvalStack[level - 2]); // <- add nullmove condition?
 	bool futilityPrunable = false;
+	FutilityClock[level] = (level >= 2) ? FutilityClock[level - 2] : 0;
 
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
@@ -406,10 +408,15 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		}
 
 		// Futility pruning (+37 elo)
-		const int futilityMargins[] = { 0, 130, 230, 330, 430, 530 };
+		const int futilityMargin = 130 + 100 * (depth - 1);
 		if ((depth <= 5) && (std::abs(beta) < MateThreshold)) {
-			futilityPrunable = (eval + futilityMargins[depth] < alpha);
+			if (eval + futilityMargin < alpha) {
+				FutilityClock[level] += 1;
+				if ((FutilityClock[level] != 1) || (eval + (futilityMargin * 3) < alpha)) futilityPrunable = true;
+			}
+			else FutilityClock[level] = 0;
 		}
+
 	}
 
 	// Internal iterative reductions

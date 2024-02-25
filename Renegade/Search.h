@@ -65,6 +65,7 @@ private:
 	std::array<int, MaxDepth> EvalStack;
 	std::array<MoveAndPiece, MaxDepth> MoveStack;
 	std::array<int, MaxDepth> CutoffCount;
+	std::array<int, MaxDepth> FutilityClock;
 
 	std::array<Move, MaxDepth> ExcludedMoves;
 
