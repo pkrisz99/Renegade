@@ -384,9 +384,13 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	if (!pvNode && !inCheck && !singularSearch) {
 
 		// Reverse futility pruning (+128 elo)
-		const int rfpMarginDefault[] = { 0, 90, 180, 270, 360, 450, 540, 630 };
 		if ((depth <= 7) && (std::abs(beta) < MateThreshold)) {
-			const int rfpMargin = improving ? rfpMarginDefault[depth - 1] : rfpMarginDefault[depth];
+			const bool scaryThreats = [&] {
+				const uint64_t opponentAttacks = board.CalculateAttackedSquares(TurnToPieceColor(!board.Turn));
+				const uint64_t friendlyOccupancy = board.GetOccupancy(TurnToPieceColor(board.Turn)) & ~board.WhitePawnBits & ~board.BlackPawnBits;
+				return Popcount(opponentAttacks & friendlyOccupancy) > 1;
+			}();
+			const int rfpMargin = (depth - (improving && !scaryThreats)) * 90;
 			if (eval - rfpMargin > beta) return eval;
 		}
 
