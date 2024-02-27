@@ -633,6 +633,7 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 		if (ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
 		Statistics.TranspositionHits += 1;
 	}
+	const Move ttMove = found ? Move(ttEntry.moveFrom, ttEntry.moveTo, ttEntry.moveFlag) : EmptyMove;  // can only be noisy
 
 	// Generate noisy moves
 	MoveList.clear();
@@ -642,7 +643,7 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
-		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, EmptyMove, MoveStack, false, false, 0);
+		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, ttMove, MoveStack, false, false, 0);
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
@@ -651,6 +652,7 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 
 	// Search recursively
 	int bestScore = staticEval;
+	Move bestMove = EmptyMove;
 	int scoreType = ScoreType::UpperBound;
 	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;
@@ -670,16 +672,18 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 		if (score > bestScore) {
 			bestScore = score;
 			if (bestScore >= beta) {
+				bestMove = m;
 				scoreType = ScoreType::LowerBound;
 				break;
 			}
 			if (bestScore > alpha) {
+				bestMove = m;
 				alpha = bestScore;
-				scoreType = ScoreType::Exact;
+				scoreType = ScoreType::Exact; // ???
 			}
 		}
 	}
-	if (!aborting) Heuristics.AddTranspositionEntry(hash, Age, 0, bestScore, scoreType, EmptyMove, level);
+	if (!aborting) Heuristics.AddTranspositionEntry(hash, Age, 0, bestScore, scoreType, bestMove, level);
 	return bestScore;
 }
 
