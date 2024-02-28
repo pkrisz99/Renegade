@@ -50,13 +50,13 @@ public:
 
 	template <bool side>
 	inline uint64_t GetPawnAttacks() const {
-		if constexpr (side == Turn::White) return ((WhitePawnBits & ~File[0]) << 7) | ((WhitePawnBits & ~File[7]) << 9);
+		if constexpr (side == Side::White) return ((WhitePawnBits & ~File[0]) << 7) | ((WhitePawnBits & ~File[7]) << 9);
 		else return ((BlackPawnBits & ~File[0]) >> 9) | ((BlackPawnBits & ~File[7]) >> 7);
 	}
 
 	inline bool ShouldNullMovePrune() const {
 		const int friendlyPieces = Popcount(GetOccupancy(Turn));
-		const int friendlyPawns = (Turn == Turn::White) ? Popcount(WhitePawnBits) : Popcount(BlackPawnBits);
+		const int friendlyPawns = (Turn == Side::White) ? Popcount(WhitePawnBits) : Popcount(BlackPawnBits);
 		return (friendlyPieces - friendlyPawns) > 1;
 	}
 

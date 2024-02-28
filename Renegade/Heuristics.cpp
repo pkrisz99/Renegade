@@ -60,7 +60,7 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 	// If we have don't have history scores, we order by PSQT delta
 	// this is a very old leftover of Renegade, and probably has very little effect on strength
 	int orderScore = 0;
-	if (turn == Turn::White) {
+	if (turn == Side::White) {
 		orderScore -= LinearTaper(Weights.GetPSQT(attackingPieceType, m.from).early, Weights.GetPSQT(attackingPieceType, m.from).late, phase);
 		orderScore += LinearTaper(Weights.GetPSQT(attackingPieceType, m.to).early, Weights.GetPSQT(attackingPieceType, m.to).late, phase);
 	}

@@ -721,8 +721,8 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 	if (score >= 0) return true;
 
 	// Lookups (should be optimized) 
-	const uint64_t whitePieces = board.GetOccupancy(Turn::White);
-	const uint64_t blackPieces = board.GetOccupancy(Turn::Black);
+	const uint64_t whitePieces = board.GetOccupancy(Side::White);
+	const uint64_t blackPieces = board.GetOccupancy(Side::Black);
 	const uint64_t parallels = board.WhiteRookBits | board.BlackRookBits | board.WhiteQueenBits | board.BlackQueenBits; 
 	const uint64_t diagonals = board.WhiteBishopBits | board.BlackBishopBits | board.WhiteQueenBits | board.BlackQueenBits;
 	uint64_t occupancy = whitePieces | blackPieces;
@@ -730,21 +730,20 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 	SetBitTrue(occupancy, move.to);
 	bool turn = board.Turn;
 	if (move.flag == MoveFlag::EnPassantPerformed) {
-		if (turn == Turn::White) SetBitFalse(occupancy, move.to - 8);
-		else SetBitFalse(occupancy, move.to + 8);
-	};
+		SetBitFalse(occupancy, (turn == Side::White) ? move.to - 8 : move.to + 8);
+	}
 	turn = !turn;
 	uint64_t attackers = board.GetAttackersOfSquare(move.to, occupancy) & occupancy;
 
 	// Pseudo-generating steps
 	while (true) {
 
-		uint64_t currentAttackers = attackers & ((turn == Turn::White) ? whitePieces : blackPieces);
+		uint64_t currentAttackers = attackers & ((turn == Side::White) ? whitePieces : blackPieces);
 		if (!currentAttackers) break;
 
 		// Retrieve the location of the least valuable attacking piece type
 		int sq = -1;
-		if (turn == Turn::White) {
+		if (turn == Side::White) {
 			if (currentAttackers & board.WhitePawnBits) sq = LsbSquare(currentAttackers & board.WhitePawnBits);
 			else if (currentAttackers & board.WhiteKnightBits) sq = LsbSquare(currentAttackers & board.WhiteKnightBits);
 			else if (currentAttackers & board.WhiteBishopBits) sq = LsbSquare(currentAttackers & board.WhiteBishopBits);
@@ -780,7 +779,7 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 		// Break conditions
 		score = -score - seeValues[victim] - 1;
 		if (score >= 0) {
-			const uint64_t upcomingOccupnacy = (turn == Turn::White) ? whitePieces : blackPieces;
+			const uint64_t upcomingOccupnacy = (turn == Side::White) ? whitePieces : blackPieces;
 			if ((victim == PieceType::King) && (currentAttackers & upcomingOccupnacy)) {
 				turn = !turn;
 			}

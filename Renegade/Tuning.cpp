@@ -73,7 +73,7 @@ double Tuning::Sigmoid(const int score, const double K) const {
 double Tuning::SimpleCalculateMSE(const double K, std::vector<Board>& boards, std::vector<float>& results) const {
 	double totalError = 0;
 	for (int i = 0; i < boards.size(); i++) {
-		const int sign = boards[i].Turn == Turn::White ? 1 : -1;
+		const int sign = boards[i].Turn == Side::White ? 1 : -1;
 		totalError += pow((results[i] - Sigmoid(sign * ClassicalEvaluate(boards[i], TempWeights), K)), 2);
 	}
 	return totalError / boards.size();
@@ -84,7 +84,7 @@ void Tuning::PartialCalculateMSE(const double K, const std::vector<Board>& board
 	// start: inclusive, end: exclusive
 	double totalError = 0;
 	for (int i = start; i < end; i++) {
-		const int sign = boards[i].Turn == Turn::White ? 1 : -1;
+		const int sign = boards[i].Turn == Side::White ? 1 : -1;
 		totalError += pow((results[i] - Sigmoid(sign * ClassicalEvaluate(boards[i], TempWeights), K)), 2);
 	}
 	errorSum = totalError;

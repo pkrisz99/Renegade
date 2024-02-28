@@ -20,8 +20,8 @@ const NetworkRepresentation* Network;
 std::unique_ptr<NetworkRepresentation> ExternalNetwork;
 
 int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
-	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Turn::White) ? acc.White : acc.Black;
-	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Turn::White) ? acc.Black : acc.White;
+	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.White : acc.Black;
+	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.Black : acc.White;
 	int32_t output = 0;
 
 #ifdef __AVX2__

@@ -22,7 +22,7 @@ Board::Board(const std::string& fen) {
 	BlackRightToLongCastle = false;
 	HalfmoveClock = 0;
 	FullmoveClock = 0;
-	Turn = Turn::White;
+	Turn = Side::White;
 	PreviousHashes = std::vector<uint64_t>();
 
 	std::vector<std::string> parts = Split(fen);
@@ -54,8 +54,8 @@ Board::Board(const std::string& fen) {
 		}
 	}
 
-	if (parts[1] == "w") Turn = Turn::White;
-	else Turn = Turn::Black;
+	if (parts[1] == "w") Turn = Side::White;
+	else Turn = Side::Black;
 
 	for (const char &f : parts[2]) {
 		switch (f) {
@@ -179,18 +179,18 @@ uint64_t Board::HashInternal() {
 	if (EnPassantSquare != -1) {
 		bool hasPawn = false;
 		if (GetSquareFile(EnPassantSquare) != 0) {
-			if (Turn == Turn::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 7);
+			if (Turn == Side::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 7);
 			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 9);
 		}
 		if ((GetSquareFile(EnPassantSquare) != 7) && !hasPawn) {
-			if (Turn == Turn::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 9);
+			if (Turn == Side::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 9);
 			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 7);
 		}
 		if (hasPawn) hash ^= Zobrist[772 + GetSquareFile(EnPassantSquare)];
 	}
 
 	// Turn
-	if (Turn == Turn::White) hash ^= Zobrist[780];
+	if (Turn == Side::White) hash ^= Zobrist[780];
 
 	return hash;
 }
@@ -268,7 +268,7 @@ uint64_t Board::GetOccupancy() const {
 }
 
 uint64_t Board::GetOccupancy(const bool side) const {
-	if (side == Turn::White) return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
+	if (side == Side::White) return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
 	else return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 }
 
@@ -404,25 +404,25 @@ void Board::TryMove(const Move& move) {
 
 	// 2. Handle castling
 	if ((move.flag == MoveFlag::ShortCastle) || (move.flag == MoveFlag::LongCastle)) {
-		if ((Turn == Turn::White) && (move.flag == MoveFlag::ShortCastle)) {
+		if ((Turn == Side::White) && (move.flag == MoveFlag::ShortCastle)) {
 			SetBitFalse(WhiteRookBits, Squares::H1);
 			SetBitTrue(WhiteRookBits, Squares::F1);
 			WhiteRightToShortCastle = false;
 			WhiteRightToLongCastle = false;
 		}
-		else if ((Turn == Turn::White) && (move.flag == MoveFlag::LongCastle)) {
+		else if ((Turn == Side::White) && (move.flag == MoveFlag::LongCastle)) {
 			SetBitFalse(WhiteRookBits, Squares::A1);
 			SetBitTrue(WhiteRookBits, Squares::D1);
 			WhiteRightToShortCastle = false;
 			WhiteRightToLongCastle = false;
 		}
-		else if ((Turn == Turn::Black) && (move.flag == MoveFlag::ShortCastle)) {
+		else if ((Turn == Side::Black) && (move.flag == MoveFlag::ShortCastle)) {
 			SetBitFalse(BlackRookBits, Squares::H8);
 			SetBitTrue(BlackRookBits, Squares::F8);
 			BlackRightToShortCastle = false;
 			BlackRightToLongCastle = false;
 		}
-		else if ((Turn == Turn::Black) && (move.flag == MoveFlag::LongCastle)) {
+		else if ((Turn == Side::Black) && (move.flag == MoveFlag::LongCastle)) {
 			SetBitFalse(BlackRookBits, Squares::A8);
 			SetBitTrue(BlackRookBits, Squares::D8);
 			BlackRightToShortCastle = false;
@@ -446,7 +446,7 @@ void Board::TryMove(const Move& move) {
 
 	// 4. Update en passant
 	if (move.flag == MoveFlag::EnPassantPossible) {
-		if (Turn == Turn::White) EnPassantSquare = move.to - 8;
+		if (Turn == Side::White) EnPassantSquare = move.to - 8;
 		else EnPassantSquare = move.to + 8;
 	}
 	else {
@@ -472,7 +472,7 @@ void Board::Push(const Move& move) {
 
 	// Increment timers
 	Turn = !Turn;
-	if (Turn == Turn::White) FullmoveClock += 1;
+	if (Turn == Side::White) FullmoveClock += 1;
 
 	// Update threefold repetition list
 	if (HalfmoveClock == 0) PreviousHashes.clear();
@@ -550,8 +550,8 @@ bool Board::IsMoveQuiet(const Move& move) const {
 
 template <bool side, MoveGen moveGen>
 void Board::GenerateKingMoves(std::vector<Move>& moves, const int home) const {
-	constexpr uint8_t friendlyPieceColor = (side == Turn::White) ? PieceColor::White : PieceColor::Black;
-	constexpr uint8_t opponentPieceColor = (side == Turn::White) ? PieceColor::Black : PieceColor::White;
+	constexpr uint8_t friendlyPieceColor = (side == Side::White) ? PieceColor::White : PieceColor::Black;
+	constexpr uint8_t opponentPieceColor = (side == Side::White) ? PieceColor::Black : PieceColor::White;
 	uint64_t bits = KingMoveBits[home];
 	while (bits) {
 		const uint8_t l = Popsquare(bits);
@@ -562,8 +562,8 @@ void Board::GenerateKingMoves(std::vector<Move>& moves, const int home) const {
 
 template <bool side, MoveGen moveGen>
 void Board::GenerateKnightMoves(std::vector<Move>& moves, const int home) const {
-	constexpr uint8_t friendlyPieceColor = (side == Turn::White) ? PieceColor::White : PieceColor::Black;
-	constexpr uint8_t opponentPieceColor = (side == Turn::White) ? PieceColor::Black : PieceColor::White;
+	constexpr uint8_t friendlyPieceColor = (side == Side::White) ? PieceColor::White : PieceColor::Black;
+	constexpr uint8_t opponentPieceColor = (side == Side::White) ? PieceColor::Black : PieceColor::White;
 	uint64_t bits = KnightMoveBits[home];
 	while (bits) {
 		const uint8_t l = Popsquare(bits);
@@ -598,7 +598,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 	const int rank = GetSquareRank(home);
 	int target;
 
-	if constexpr (side == Turn::White) {
+	if constexpr (side == Side::White) {
 		// 1. Can move forward? + check promotions
 		target = home + 8;
 		if (GetPieceAt(target) == Piece::None) {
@@ -614,7 +614,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 
 		// 2. Can move up left (can capture?) + check promotions + check en passant
 		target = home + 7;
-		if ((file != 0) && ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare))) {
+		if ((file != 0) && ((ColorOfPiece(GetPieceAt(target)) == SideToPieceColor(!Turn)) || (target == EnPassantSquare))) {
 			if (GetSquareRank(target) != 7) {
 				const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 				moves.push_back(m);
@@ -629,7 +629,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 		// 3. Can move up right (can capture?) + check promotions + check en passant
 		target = home + 9;
 		if (file != 7) {
-			if ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare)) {
+			if ((ColorOfPiece(GetPieceAt(target)) == SideToPieceColor(!Turn)) || (target == EnPassantSquare)) {
 				if (GetSquareRank(target) != 7) {
 					const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 					moves.push_back(m);
@@ -653,7 +653,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 		}
 	}
 
-	else if constexpr (side == Turn::Black) {
+	else if constexpr (side == Side::Black) {
 		// 1. Can move forward? + check promotions
 		target = home - 8;
 		if (GetPieceAt(target) == Piece::None) {
@@ -669,7 +669,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 
 		// 2. Can move down right (can capture?) + check promotions + check en passant
 		target = home - 7;
-		if ((file != 7) && ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare))) {
+		if ((file != 7) && ((ColorOfPiece(GetPieceAt(target)) == SideToPieceColor(!Turn)) || (target == EnPassantSquare))) {
 			if (GetSquareRank(target) != 0) {
 				const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 				moves.push_back(m);
@@ -684,7 +684,7 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 		// 3. Can move down left (can capture?) + check promotions + check en passant
 		target = home - 9;
 		if (file != 0) {
-			if ((ColorOfPiece(GetPieceAt(target)) == TurnToPieceColor(!Turn)) || (target == EnPassantSquare)) {
+			if ((ColorOfPiece(GetPieceAt(target)) == SideToPieceColor(!Turn)) || (target == EnPassantSquare)) {
 				if (GetSquareRank(target) != 0) {
 					const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
 					moves.push_back(m);
@@ -711,51 +711,51 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 
 template <bool side>
 void Board::GenerateCastlingMoves(std::vector<Move>& moves) const {
-	if ((Turn == Turn::White) && (WhiteRightToShortCastle)) {
+	if ((Turn == Side::White) && (WhiteRightToShortCastle)) {
 		const bool empty_f1 = GetPieceAt(Squares::F1) == 0;
 		const bool empty_g1 = GetPieceAt(Squares::G1) == 0;
 		if (empty_f1 && empty_g1) {
-			const bool safe_e1 = !IsSquareAttacked<Turn::Black>(Squares::E1);
-			const bool safe_f1 = !IsSquareAttacked<Turn::Black>(Squares::F1);
-			const bool safe_g1 = !IsSquareAttacked<Turn::Black>(Squares::G1);
+			const bool safe_e1 = !IsSquareAttacked<Side::Black>(Squares::E1);
+			const bool safe_f1 = !IsSquareAttacked<Side::Black>(Squares::F1);
+			const bool safe_g1 = !IsSquareAttacked<Side::Black>(Squares::G1);
 			if (safe_e1 && safe_f1 && safe_g1) {
 				moves.push_back(Move(Squares::E1, Squares::G1, MoveFlag::ShortCastle));
 			}
 		}
 	}
-	if ((Turn == Turn::White) && (WhiteRightToLongCastle)) {
+	if ((Turn == Side::White) && (WhiteRightToLongCastle)) {
 		const bool empty_b1 = GetPieceAt(Squares::B1) == 0;
 		const bool empty_c1 = GetPieceAt(Squares::C1) == 0;
 		const bool empty_d1 = GetPieceAt(Squares::D1) == 0;
 		if (empty_b1 && empty_c1 && empty_d1) {
-			const bool safe_c1 = !IsSquareAttacked<Turn::Black>(Squares::C1);
-			const bool safe_d1 = !IsSquareAttacked<Turn::Black>(Squares::D1);
-			const bool safe_e1 = !IsSquareAttacked<Turn::Black>(Squares::E1);
+			const bool safe_c1 = !IsSquareAttacked<Side::Black>(Squares::C1);
+			const bool safe_d1 = !IsSquareAttacked<Side::Black>(Squares::D1);
+			const bool safe_e1 = !IsSquareAttacked<Side::Black>(Squares::E1);
 			if (safe_c1 && safe_d1 && safe_e1) {
 				moves.push_back(Move(Squares::E1, Squares::C1, MoveFlag::LongCastle));
 			}
 		}
 	}
-	if ((Turn == Turn::Black) && (BlackRightToShortCastle)) {
+	if ((Turn == Side::Black) && (BlackRightToShortCastle)) {
 		const bool empty_f8 = GetPieceAt(Squares::F8) == 0;
 		const bool empty_g8 = GetPieceAt(Squares::G8) == 0;
 		if (empty_f8 && empty_g8) {
-			const bool safe_e8 = !IsSquareAttacked<Turn::White>(Squares::E8);
-			const bool safe_f8 = !IsSquareAttacked<Turn::White>(Squares::F8);
-			const bool safe_g8 = !IsSquareAttacked<Turn::White>(Squares::G8);
+			const bool safe_e8 = !IsSquareAttacked<Side::White>(Squares::E8);
+			const bool safe_f8 = !IsSquareAttacked<Side::White>(Squares::F8);
+			const bool safe_g8 = !IsSquareAttacked<Side::White>(Squares::G8);
 			if (safe_e8 && safe_f8 && safe_g8) {
 				moves.push_back(Move(Squares::E8, Squares::G8, MoveFlag::ShortCastle));
 			}
 		}
 	}
-	if ((Turn == Turn::Black) && (BlackRightToLongCastle)) {
+	if ((Turn == Side::Black) && (BlackRightToLongCastle)) {
 		const bool empty_b8 = GetPieceAt(Squares::B8) == 0;
 		const bool empty_c8 = GetPieceAt(Squares::C8) == 0;
 		const bool empty_d8 = GetPieceAt(Squares::D8) == 0;
 		if (empty_b8 && empty_c8 && empty_d8) {
-			const bool safe_c8 = !IsSquareAttacked<Turn::White>(Squares::C8);
-			const bool safe_d8 = !IsSquareAttacked<Turn::White>(Squares::D8);
-			const bool safe_e8 = !IsSquareAttacked<Turn::White>(Squares::E8);
+			const bool safe_c8 = !IsSquareAttacked<Side::White>(Squares::C8);
+			const bool safe_d8 = !IsSquareAttacked<Side::White>(Squares::D8);
+			const bool safe_e8 = !IsSquareAttacked<Side::White>(Squares::E8);
 			if (safe_c8 && safe_d8 && safe_e8) {
 				moves.push_back(Move(Squares::E8, Squares::C8, MoveFlag::LongCastle));
 			}
@@ -767,23 +767,23 @@ void Board::GenerateMoves(std::vector<Move>& moves, const MoveGen moveGen, const
 
 	if (legality == Legality::Pseudolegal) {
 		if (moveGen == MoveGen::All) {
-			if (Turn == Turn::White) GeneratePseudolegalMoves<Turn::White, MoveGen::All>(moves);
-			else GeneratePseudolegalMoves<Turn::Black, MoveGen::All>(moves);
+			if (Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::All>(moves);
+			else GeneratePseudolegalMoves<Side::Black, MoveGen::All>(moves);
 		}
 		else if (moveGen == MoveGen::Noisy) {
-			if (Turn == Turn::White) GeneratePseudolegalMoves<Turn::White, MoveGen::Noisy>(moves);
-			else GeneratePseudolegalMoves<Turn::Black, MoveGen::Noisy>(moves);
+			if (Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(moves);
+			else GeneratePseudolegalMoves<Side::Black, MoveGen::Noisy>(moves);
 		}
 	}
 	else {
 		std::vector<Move> legalMoves;
 		if (moveGen == MoveGen::All) {
-			if (Turn == Turn::White) GeneratePseudolegalMoves<Turn::White, MoveGen::All>(legalMoves);
-			else GeneratePseudolegalMoves<Turn::Black, MoveGen::All>(legalMoves);
+			if (Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::All>(legalMoves);
+			else GeneratePseudolegalMoves<Side::Black, MoveGen::All>(legalMoves);
 		}
 		else if (moveGen == MoveGen::Noisy) {
-			if (Turn == Turn::White) GeneratePseudolegalMoves<Turn::White, MoveGen::Noisy>(legalMoves);
-			else GeneratePseudolegalMoves<Turn::Black, MoveGen::Noisy>(legalMoves);
+			if (Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(legalMoves);
+			else GeneratePseudolegalMoves<Side::Black, MoveGen::Noisy>(legalMoves);
 		}
 		for (const Move& m : legalMoves) {
 			if (IsLegalMove(m)) moves.push_back(m);
@@ -793,9 +793,9 @@ void Board::GenerateMoves(std::vector<Move>& moves, const MoveGen moveGen, const
 
 template <bool side, MoveGen moveGen>
 void Board::GeneratePseudolegalMoves(std::vector<Move>& moves) const {
-	const uint64_t whiteOccupancy = GetOccupancy(Turn::White);
-	const uint64_t blackOccupancy = GetOccupancy(Turn::Black);
-	uint64_t friendlyOccupancy = (Turn == Turn::White) ? whiteOccupancy : blackOccupancy;
+	const uint64_t whiteOccupancy = GetOccupancy(Side::White);
+	const uint64_t blackOccupancy = GetOccupancy(Side::Black);
+	uint64_t friendlyOccupancy = (Turn == Side::White) ? whiteOccupancy : blackOccupancy;
 
 	while (friendlyOccupancy != 0) {
 		const int sq = Popsquare(friendlyOccupancy);
@@ -834,9 +834,9 @@ uint64_t Board::CalculateAttackedSquaresTemplated() const {
 	uint64_t map = 0;
 
 	// Pawn attacks
-	map = (attackingSide == Turn::White) ? GetPawnAttacks<Turn::White>() : GetPawnAttacks<Turn::Black>();
+	map = (attackingSide == Side::White) ? GetPawnAttacks<Side::White>() : GetPawnAttacks<Side::Black>();
 	// En passant stuff (probably should be removed)
-	if constexpr (attackingSide == Turn::White) {
+	if constexpr (attackingSide == Side::White) {
 		if (EnPassantSquare != -1) {
 			const uint64_t encodedEP = SquareBit(EnPassantSquare);
 			map |= (((WhitePawnBits & ~File[0]) >> 1) | ((WhitePawnBits & ~File[7]) << 1)) & encodedEP;
@@ -850,21 +850,21 @@ uint64_t Board::CalculateAttackedSquaresTemplated() const {
 	}
 
 	// Knight attacks
-	uint64_t knightBits = (attackingSide == Turn::White) ? WhiteKnightBits : BlackKnightBits;
+	uint64_t knightBits = (attackingSide == Side::White) ? WhiteKnightBits : BlackKnightBits;
 	while (knightBits) {
 		const uint8_t sq = Popsquare(knightBits);
 		map |= GenerateKnightAttacks(sq);
 	}
 
 	// King attacks
-	uint8_t kingSquare = 63 - Lzcount((attackingSide == Turn::White) ? WhiteKingBits : BlackKingBits);
+	uint8_t kingSquare = 63 - Lzcount((attackingSide == Side::White) ? WhiteKingBits : BlackKingBits);
 	map |= KingMoveBits[kingSquare];
 
 	// Sliding pieces
 	// 'parallel' comes from being parallel to the axes, better name suggestions welcome
 	uint64_t occ = GetOccupancy();
-	uint64_t parallelSliders = (attackingSide == Turn::White) ? (WhiteRookBits | WhiteQueenBits) : (BlackRookBits | BlackQueenBits);
-	uint64_t diagonalSliders = (attackingSide == Turn::White) ? (WhiteBishopBits | WhiteQueenBits) : (BlackBishopBits | BlackQueenBits);
+	uint64_t parallelSliders = (attackingSide == Side::White) ? (WhiteRookBits | WhiteQueenBits) : (BlackRookBits | BlackQueenBits);
+	uint64_t diagonalSliders = (attackingSide == Side::White) ? (WhiteBishopBits | WhiteQueenBits) : (BlackBishopBits | BlackQueenBits);
 
 	while (parallelSliders) {
 		const uint8_t sq = Popsquare(parallelSliders);
@@ -879,7 +879,7 @@ uint64_t Board::CalculateAttackedSquaresTemplated() const {
 }
 
 uint64_t Board::CalculateAttackedSquares(const bool attackingSide) const {
-	return (attackingSide == Turn::White) ? CalculateAttackedSquaresTemplated<Turn::White>() : CalculateAttackedSquaresTemplated<Turn::Black>();
+	return (attackingSide == Side::White) ? CalculateAttackedSquaresTemplated<Side::White>() : CalculateAttackedSquaresTemplated<Side::Black>();
 }
 
 uint64_t Board::GenerateKnightAttacks(const int from) const {
@@ -894,7 +894,7 @@ template <bool attackingSide>
 bool Board::IsSquareAttacked(const uint8_t square) const {
 	uint64_t occupancy = GetOccupancy();
 
-	if constexpr (attackingSide == Turn::White) {
+	if constexpr (attackingSide == Side::White) {
 		// Attacked by a knight?
 		if (KnightMoveBits[square] & WhiteKnightBits) return true;
 		// Attacked by a king?
@@ -968,7 +968,7 @@ GameState Board::GetGameState() {
 	GenerateMoves(moves, MoveGen::All, Legality::Legal);
 	if (moves.size() == 0) {
 		if (IsInCheck()) {
-			if (Turn == Turn::Black) return GameState::WhiteVictory;
+			if (Turn == Side::Black) return GameState::WhiteVictory;
 			else return GameState::BlackVictory;
 		}
 		else {
@@ -1000,7 +1000,7 @@ std::string Board::GetFEN() const {
 		if (r != 0) result += '/';
 	}
 
-	result += (Turn == Turn::White) ? " w " : " b ";
+	result += (Turn == Side::White) ? " w " : " b ";
 
 	bool castlingPossible = false;
 	if (WhiteRightToShortCastle) { result += 'K'; castlingPossible = true; }
@@ -1011,12 +1011,12 @@ std::string Board::GetFEN() const {
 	result += ' ';
 
 	bool enPassantPossible = false;
-	if ((EnPassantSquare != -1) && (Turn == Turn::White)) {
+	if ((EnPassantSquare != -1) && (Turn == Side::White)) {
 		const bool fromRight = (((WhitePawnBits & ~File[0]) << 7) & SquareBit(EnPassantSquare));
 		const bool fromLeft = (((WhitePawnBits & ~File[7]) << 9) & SquareBit(EnPassantSquare));
 		if (fromLeft || fromRight) enPassantPossible = true;
 	}
-	if ((EnPassantSquare != -1) && (Turn == Turn::Black)) {
+	if ((EnPassantSquare != -1) && (Turn == Side::Black)) {
 		const bool fromRight = (((BlackPawnBits & ~File[0]) >> 9) & SquareBit(EnPassantSquare));
 		const bool fromLeft = (((BlackPawnBits & ~File[7]) >> 7) & SquareBit(EnPassantSquare));
 		if (fromLeft || fromRight) enPassantPossible = true;
@@ -1029,16 +1029,16 @@ std::string Board::GetFEN() const {
 }
 
 int Board::GetPlys() const {
-	return (FullmoveClock - 1) * 2 + (Turn == Turn::White ? 0 : 1);
+	return (FullmoveClock - 1) * 2 + (Turn == Side::White ? 0 : 1);
 }
 
 template <bool side>
 uint8_t Board::GetKingSquare() const {
-	if constexpr (side == Turn::White) return LsbSquare(WhiteKingBits);	
+	if constexpr (side == Side::White) return LsbSquare(WhiteKingBits);
 	else return LsbSquare(BlackKingBits);
 }
 
 bool Board::IsInCheck() const {
-	if (Turn == Turn::White) return IsSquareAttacked<Turn::Black>(LsbSquare(WhiteKingBits));
-	else return IsSquareAttacked<Turn::White>(LsbSquare(BlackKingBits));
+	if (Turn == Side::White) return IsSquareAttacked<Side::Black>(LsbSquare(WhiteKingBits));
+	else return IsSquareAttacked<Side::White>(LsbSquare(BlackKingBits));
 }

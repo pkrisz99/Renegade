@@ -96,9 +96,9 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		// 4. Play out the game
 		while (true) {
 			// Search
-			Search* currentSearcher = (board.Turn == Turn::White) ? Searcher1 : Searcher2;
+			Search* currentSearcher = (board.Turn == Side::White) ? Searcher1 : Searcher2;
 			results = currentSearcher->SearchMoves(board, params, settings, false);
-			const int whiteScore = results.score * (board.Turn == Turn::Black ? -1 : 1);
+			const int whiteScore = results.score * (board.Turn == Side::Black ? -1 : 1);
 
 			// Adjudicate
 			if (std::abs(whiteScore) > MateThreshold) {

@@ -7,11 +7,11 @@ int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 
 	TaperedScore materialScore, pqstScore, pawnStructureScore, threatScore, mobilityScore, kingScore;
 	const uint64_t occupancy = board.GetOccupancy();
-	const uint64_t whitePieces = board.GetOccupancy(Turn::White);
-	const uint64_t blackPieces = board.GetOccupancy(Turn::Black);
+	const uint64_t whitePieces = board.GetOccupancy(Side::White);
+	const uint64_t blackPieces = board.GetOccupancy(Side::Black);
 	const float phase = CalculateGamePhase(board);
-	const uint64_t whitePawnAttacks = board.GetPawnAttacks<Turn::White>();
-	const uint64_t blackPawnAttacks = board.GetPawnAttacks<Turn::Black>();
+	const uint64_t whitePawnAttacks = board.GetPawnAttacks<Side::White>();
+	const uint64_t blackPawnAttacks = board.GetPawnAttacks<Side::Black>();
 	uint64_t whiteAttacks = 0, blackAttacks = 0;
 
 	int whiteDangerScore = 0;

@@ -71,7 +71,7 @@ namespace MoveFlag {
 	constexpr uint8_t EnPassantPerformed = 9;
 }
 
-namespace Turn {
+namespace Side {
 	constexpr bool White = true;
 	constexpr bool Black = false;
 }
@@ -320,8 +320,8 @@ constexpr uint8_t ColorOfPiece(const uint8_t piece) {
 	return PieceColorArray[piece];  // 0: None, 1: White, 2: Black
 }
 
-constexpr uint8_t TurnToPieceColor(const bool turn) {
-	return (turn == Turn::White) ? PieceColor::White : PieceColor::Black;
+constexpr uint8_t SideToPieceColor(const bool side) {
+	return (side == Side::White) ? PieceColor::White : PieceColor::Black;
 }
 
 constexpr uint8_t Square(const uint8_t rank, const uint8_t file) {
