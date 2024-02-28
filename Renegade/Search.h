@@ -65,6 +65,7 @@ private:
 	std::array<int, MaxDepth> EvalStack;
 	std::array<MoveAndPiece, MaxDepth> MoveStack;
 	std::array<int, MaxDepth> CutoffCount;
+	std::array<std::pair<uint8_t, uint8_t>, MaxDepth> ThreatCount;
 
 	std::array<Move, MaxDepth> ExcludedMoves;
 

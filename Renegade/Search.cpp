@@ -152,6 +152,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 	SetupAccumulators(board);
 	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
 	std::fill(CutoffCount.begin(), CutoffCount.end(), 0);
+	std::memset(&ThreatCount, 0, sizeof(ThreatCount));
 
 	// Early exit for only one legal move (no legal moves are handled separately)
 	if (!DatagenMode && ((params.wtime != 0) || (params.btime != 0))) {
@@ -380,6 +381,14 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	const bool improving = (level >= 2) && !inCheck && (StaticEvalStack[level] > StaticEvalStack[level - 2]); // <- add nullmove condition?
 	bool futilityPrunable = false;
 
+	// Renegade <3 threats (to do: make a stack variable for these)
+	const uint64_t friendlyAttacks = board.CalculateAttackedSquares(TurnToPieceColor(board.Turn));
+	const int friendlyAttackCount = Popcount(friendlyAttacks & board.GetOccupancy(TurnToPieceColor(!board.Turn)));
+	const uint64_t opponentAttacks = board.CalculateAttackedSquares(TurnToPieceColor(!board.Turn));
+	const int opponentAttackCount = Popcount(opponentAttacks & board.GetOccupancy(TurnToPieceColor(board.Turn)));
+	ThreatCount[level] = { friendlyAttackCount, opponentAttackCount };
+	const bool weHaveMoreThreats = (level >= 2) && (ThreatCount[level].first > ThreatCount[level - 2].first);
+
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
 
@@ -419,7 +428,6 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 	// Initalize variables and generate moves
 	// (if we are in singular search, we already have the moves)
-	const uint64_t opponentAttacks = board.CalculateAttackedSquares(TurnToPieceColor(!board.Turn));  // to do: make a stack variable for it
 	if (!singularSearch) {
 		MoveList.clear();
 		board.GenerateMoves(MoveList, MoveGen::All, Legality::Pseudolegal);
@@ -522,8 +530,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 				
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 
-				// Less reduction when in check
-				if (inCheck) reduction -= 1;
+				// Less reduction when in check or we have more threats on the opponent
+				if (inCheck || weHaveMoreThreats) reduction -= 1;
 
 				// More reduction for non-PV nodes
 				if (!pvNode) reduction += 1;
