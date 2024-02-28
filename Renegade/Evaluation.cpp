@@ -7,11 +7,11 @@ int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 
 	TaperedScore materialScore, pqstScore, pawnStructureScore, threatScore, mobilityScore, kingScore;
 	const uint64_t occupancy = board.GetOccupancy();
-	const uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
-	const uint64_t blackPieces = board.GetOccupancy(PieceColor::Black);
+	const uint64_t whitePieces = board.GetOccupancy(Turn::White);
+	const uint64_t blackPieces = board.GetOccupancy(Turn::Black);
 	const float phase = CalculateGamePhase(board);
-	const uint64_t whitePawnAttacks = board.GetWhitePawnAttacks();
-	const uint64_t blackPawnAttacks = board.GetBlackPawnAttacks();
+	const uint64_t whitePawnAttacks = board.GetPawnAttacks<Turn::White>();
+	const uint64_t blackPawnAttacks = board.GetPawnAttacks<Turn::Black>();
 	uint64_t whiteAttacks = 0, blackAttacks = 0;
 
 	int whiteDangerScore = 0;
@@ -359,40 +359,6 @@ int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 	}*/
 
 	return score;
-}
-
-int KingTropismEvaluate(const Board& board) {
-	const int whiteKingSquare = LsbSquare(board.WhiteKingBits);
-	const int blackKingSquare = LsbSquare(board.BlackKingBits);
-	const int whiteKingRank = GetSquareRank(whiteKingSquare);
-	const int whiteKingFile = GetSquareFile(whiteKingSquare);
-	const int blackKingRank = GetSquareRank(blackKingSquare);
-	const int blackKingFile = GetSquareFile(blackKingSquare);
-
-	int score = 0;
-
-	uint64_t piecesOnBoard = board.GetOccupancy(PieceColor::White);
-	while (piecesOnBoard) {
-		const int sq = Popsquare(piecesOnBoard);
-		const int rank = GetSquareRank(sq);
-		const int file = GetSquareFile(sq);
-
-		const int manhattan = 15 - abs(rank - blackKingRank) + abs(file - blackKingFile);
-		score += manhattan;
-	}
-
-	piecesOnBoard = board.GetOccupancy(PieceColor::Black);
-	while (piecesOnBoard) {
-		const int sq = Popsquare(piecesOnBoard);
-		const int rank = GetSquareRank(sq);
-		const int file = GetSquareFile(sq);
-
-		const int manhattan = 15 - abs(rank - whiteKingRank) + abs(file - whiteKingFile);
-		score -= manhattan;
-	}
-
-	if (!board.Turn) score *= -1;
-	return score * 6;
 }
 
 inline bool IsDrawishEndgame(const Board& board, const uint64_t whitePieces, const uint64_t blackPieces) {

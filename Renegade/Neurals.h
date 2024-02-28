@@ -10,6 +10,10 @@
 // This is the code for the NNUE evaluation
 // Renegade uses a simple, unbucketed perspective net
 
+// The engine's neural network is trained purely on self-play
+// a king tropism-only evaluation was the starting point:
+// for each piece: score += (15 - (manhattan distance to opponent's king)) * 6
+
 // Network constants
 #define NETWORK_NAME "renegade-net-14.bin"
 constexpr int FeatureSize = 768;

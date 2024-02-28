@@ -317,7 +317,6 @@ inline bool IsDrawishEndgame(const Board& board, const uint64_t whitePieces, con
 
 int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights);
 
-int KingTropismEvaluate(const Board& board);
 
 inline int ClassicalEvaluate(const Board& board) {
 	return ClassicalEvaluate(board, Weights);

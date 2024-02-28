@@ -267,9 +267,9 @@ uint64_t Board::GetOccupancy() const {
 		| BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 }
 
-uint64_t Board::GetOccupancy(const uint8_t pieceColor) const {
-	if (pieceColor == PieceColor::White) return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
-	return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
+uint64_t Board::GetOccupancy(const bool side) const {
+	if (side == Turn::White) return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
+	else return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 }
 
 uint8_t Board::GetPieceAt(const uint8_t place) const {
@@ -793,8 +793,8 @@ void Board::GenerateMoves(std::vector<Move>& moves, const MoveGen moveGen, const
 
 template <bool side, MoveGen moveGen>
 void Board::GeneratePseudolegalMoves(std::vector<Move>& moves) const {
-	const uint64_t whiteOccupancy = GetOccupancy(PieceColor::White);
-	const uint64_t blackOccupancy = GetOccupancy(PieceColor::Black);
+	const uint64_t whiteOccupancy = GetOccupancy(Turn::White);
+	const uint64_t blackOccupancy = GetOccupancy(Turn::Black);
 	uint64_t friendlyOccupancy = (Turn == Turn::White) ? whiteOccupancy : blackOccupancy;
 
 	while (friendlyOccupancy != 0) {
@@ -828,77 +828,58 @@ void Board::GeneratePseudolegalMoves(std::vector<Move>& moves) const {
 
 // Generating attack maps -------------------------------------------------------------------------
 
-uint64_t Board::CalculateAttackedSquares(const uint8_t colorOfPieces) const {
-	uint64_t squares = 0ULL;
-	uint64_t parallelSliders = 0;
-	uint64_t diagonalSliders = 0;
-	uint64_t friendlyPieces = 0;
-	uint64_t opponentPieces = 0;
+template <bool attackingSide>
+uint64_t Board::CalculateAttackedSquaresTemplated() const {
 
-	if (colorOfPieces == PieceColor::White) {
-		parallelSliders = WhiteRookBits | WhiteQueenBits;
-		diagonalSliders = WhiteBishopBits | WhiteQueenBits;
-		friendlyPieces = GetOccupancy(PieceColor::White);
-		opponentPieces = GetOccupancy(PieceColor::Black);
+	uint64_t map = 0;
+
+	// Pawn attacks
+	map = (attackingSide == Turn::White) ? GetPawnAttacks<Turn::White>() : GetPawnAttacks<Turn::Black>();
+	// En passant stuff (probably should be removed)
+	if constexpr (attackingSide == Turn::White) {
+		if (EnPassantSquare != -1) {
+			const uint64_t encodedEP = SquareBit(EnPassantSquare);
+			map |= (((WhitePawnBits & ~File[0]) >> 1) | ((WhitePawnBits & ~File[7]) << 1)) & encodedEP;
+		}
 	}
 	else {
-		parallelSliders = BlackRookBits | BlackQueenBits;
-		diagonalSliders = BlackBishopBits | BlackQueenBits;
-		friendlyPieces = GetOccupancy(PieceColor::Black);
-		opponentPieces = GetOccupancy(PieceColor::White);
+		if (EnPassantSquare != -1) {
+			const uint64_t encodedEP = SquareBit(EnPassantSquare);
+			map |= (((BlackPawnBits & ~File[0]) >> 1) | ((BlackPawnBits & ~File[7]) << 1)) & encodedEP;
+		}
 	}
 
-	// Sliding piece attack generation
-	uint64_t occ = GetOccupancy();
-	uint64_t parallelBits = colorOfPieces == PieceColor::White ? WhiteRookBits | WhiteQueenBits : BlackRookBits | BlackQueenBits;
-	while (parallelBits != 0) {
-		const uint8_t sq = Popsquare(parallelBits);
-		squares |= GetRookAttacks(sq, occ);
-	}
-	uint64_t diagonalBits = colorOfPieces == PieceColor::White ? WhiteBishopBits | WhiteQueenBits : BlackBishopBits | BlackQueenBits;
-	while (diagonalBits != 0) {
-		const uint8_t sq = Popsquare(diagonalBits);
-		squares |= GetBishopAttacks(sq, occ);
-	}
-
-	// King attack gen
-	uint8_t kingSquare = 63 - Lzcount(colorOfPieces == PieceColor::White ? WhiteKingBits : BlackKingBits);
-	uint64_t fill = KingMoveBits[kingSquare];
-	squares |= fill;
-
-	// Knight attack gen
-	uint64_t knightBits = colorOfPieces == PieceColor::White ? WhiteKnightBits : BlackKnightBits;
-	fill = 0;
-	while (knightBits != 0) {
+	// Knight attacks
+	uint64_t knightBits = (attackingSide == Turn::White) ? WhiteKnightBits : BlackKnightBits;
+	while (knightBits) {
 		const uint8_t sq = Popsquare(knightBits);
-		fill |= GenerateKnightAttacks(sq);
-	}
-	squares |= fill;
-
-	// Pawn attack map generation
-	if (colorOfPieces == PieceColor::White) {
-		squares |= (WhitePawnBits & ~FileA) << 7;
-		squares |= (WhitePawnBits & ~FileH) << 9;
-		if (EnPassantSquare != -1) {
-			uint64_t encodedEP = 0;
-			SetBitTrue(encodedEP, EnPassantSquare);
-			squares |= ((WhitePawnBits & ~FileA) >> 1) & encodedEP;
-			squares |= ((WhitePawnBits & ~FileH) << 1) & encodedEP;
-		}
-
-	}
-	else {
-		squares |= (BlackPawnBits & ~FileA) >> 9;
-		squares |= (BlackPawnBits & ~FileH) >> 7;
-		if (EnPassantSquare != -1) {
-			uint64_t encodedEP = 0;
-			SetBitTrue(encodedEP, EnPassantSquare);
-			squares |= ((BlackPawnBits & ~FileA) >> 1) & encodedEP;
-			squares |= ((BlackPawnBits & ~FileH) << 1) & encodedEP;
-		}
+		map |= GenerateKnightAttacks(sq);
 	}
 
-	return squares & ~friendlyPieces; // the second part shouldn't be necessary 
+	// King attacks
+	uint8_t kingSquare = 63 - Lzcount((attackingSide == Turn::White) ? WhiteKingBits : BlackKingBits);
+	map |= KingMoveBits[kingSquare];
+
+	// Sliding pieces
+	// 'parallel' comes from being parallel to the axes, better name suggestions welcome
+	uint64_t occ = GetOccupancy();
+	uint64_t parallelSliders = (attackingSide == Turn::White) ? (WhiteRookBits | WhiteQueenBits) : (BlackRookBits | BlackQueenBits);
+	uint64_t diagonalSliders = (attackingSide == Turn::White) ? (WhiteBishopBits | WhiteQueenBits) : (BlackBishopBits | BlackQueenBits);
+
+	while (parallelSliders) {
+		const uint8_t sq = Popsquare(parallelSliders);
+		map |= GetRookAttacks(sq, occ);
+	}
+	while (diagonalSliders) {
+		const uint8_t sq = Popsquare(diagonalSliders);
+		map |= GetBishopAttacks(sq, occ);
+	}
+
+	return map; 
+}
+
+uint64_t Board::CalculateAttackedSquares(const bool attackingSide) const {
+	return (attackingSide == Turn::White) ? CalculateAttackedSquaresTemplated<Turn::White>() : CalculateAttackedSquaresTemplated<Turn::Black>();
 }
 
 uint64_t Board::GenerateKnightAttacks(const int from) const {
@@ -919,8 +900,8 @@ bool Board::IsSquareAttacked(const uint8_t square) const {
 		// Attacked by a king?
 		if (KingMoveBits[square] & WhiteKingBits) return true;
 		// Attacked by a pawn?
-		if (SquareBit(square) & ((WhitePawnBits & ~FileA) << 7)) return true;
-		if (SquareBit(square) & ((WhitePawnBits & ~FileH) << 9)) return true;
+		if (SquareBit(square) & ((WhitePawnBits & ~File[0]) << 7)) return true;
+		if (SquareBit(square) & ((WhitePawnBits & ~File[7]) << 9)) return true;
 		// Attacked by a sliding piece?
 		if (GetRookAttacks(square, occupancy) & (WhiteRookBits | WhiteQueenBits)) return true;
 		if (GetBishopAttacks(square, occupancy) & (WhiteBishopBits | WhiteQueenBits)) return true;
@@ -933,8 +914,8 @@ bool Board::IsSquareAttacked(const uint8_t square) const {
 		// Attacked by a king?
 		if (KingMoveBits[square] & BlackKingBits) return true;
 		// Attacked by a pawn?
-		if (SquareBit(square) & ((BlackPawnBits & ~FileA) >> 9)) return true;
-		if (SquareBit(square) & ((BlackPawnBits & ~FileH) >> 7)) return true;
+		if (SquareBit(square) & ((BlackPawnBits & ~File[0]) >> 9)) return true;
+		if (SquareBit(square) & ((BlackPawnBits & ~File[7]) >> 7)) return true;
 		// Attacked by a sliding piece?
 		if (GetRookAttacks(square, occupancy) & (BlackRookBits | BlackQueenBits)) return true;
 		if (GetBishopAttacks(square, occupancy) & (BlackBishopBits | BlackQueenBits)) return true;
@@ -1031,13 +1012,13 @@ std::string Board::GetFEN() const {
 
 	bool enPassantPossible = false;
 	if ((EnPassantSquare != -1) && (Turn == Turn::White)) {
-		const bool fromRight = (((WhitePawnBits & ~FileA) << 7) & SquareBit(EnPassantSquare));
-		const bool fromLeft = (((WhitePawnBits & ~FileH) << 9) & SquareBit(EnPassantSquare));
+		const bool fromRight = (((WhitePawnBits & ~File[0]) << 7) & SquareBit(EnPassantSquare));
+		const bool fromLeft = (((WhitePawnBits & ~File[7]) << 9) & SquareBit(EnPassantSquare));
 		if (fromLeft || fromRight) enPassantPossible = true;
 	}
 	if ((EnPassantSquare != -1) && (Turn == Turn::Black)) {
-		const bool fromRight = (((BlackPawnBits & ~FileA) >> 9) & SquareBit(EnPassantSquare));
-		const bool fromLeft = (((BlackPawnBits & ~FileH) >> 7) & SquareBit(EnPassantSquare));
+		const bool fromRight = (((BlackPawnBits & ~File[0]) >> 9) & SquareBit(EnPassantSquare));
+		const bool fromLeft = (((BlackPawnBits & ~File[7]) >> 7) & SquareBit(EnPassantSquare));
 		if (fromLeft || fromRight) enPassantPossible = true;
 	}
 	if (enPassantPossible) result += SquareStrings[EnPassantSquare];

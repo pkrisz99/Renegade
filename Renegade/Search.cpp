@@ -419,7 +419,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 	// Initalize variables and generate moves
 	// (if we are in singular search, we already have the moves)
-	const uint64_t opponentAttacks = board.CalculateAttackedSquares(TurnToPieceColor(!board.Turn));  // to do: make a stack variable for it
+	const uint64_t opponentAttacks = board.CalculateAttackedSquares(!board.Turn); // ^ to do: make a stack variable for it
+
 	if (!singularSearch) {
 		MoveList.clear();
 		board.GenerateMoves(MoveList, MoveGen::All, Legality::Pseudolegal);
@@ -720,8 +721,8 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 	if (score >= 0) return true;
 
 	// Lookups (should be optimized) 
-	const uint64_t whitePieces = board.GetOccupancy(PieceColor::White);
-	const uint64_t blackPieces = board.GetOccupancy(PieceColor::Black);
+	const uint64_t whitePieces = board.GetOccupancy(Turn::White);
+	const uint64_t blackPieces = board.GetOccupancy(Turn::Black);
 	const uint64_t parallels = board.WhiteRookBits | board.BlackRookBits | board.WhiteQueenBits | board.BlackQueenBits; 
 	const uint64_t diagonals = board.WhiteBishopBits | board.BlackBishopBits | board.WhiteQueenBits | board.BlackQueenBits;
 	uint64_t occupancy = whitePieces | blackPieces;

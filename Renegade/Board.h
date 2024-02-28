@@ -27,13 +27,14 @@ public:
 	bool PushUci(const std::string& ucistr);
 
 	uint64_t GetOccupancy() const;
-	uint64_t GetOccupancy(const uint8_t pieceColor) const;
+	uint64_t GetOccupancy(const bool side) const;
 	uint8_t GetPieceAt(const uint8_t place) const;
 	uint64_t Hash() const;
 	uint64_t HashInternal();
 
 	void GenerateMoves(std::vector<Move>& moves, const MoveGen moveGen, const Legality legality);
-	uint64_t CalculateAttackedSquares(const uint8_t colorOfPieces) const;
+	template <bool attackingSide> uint64_t CalculateAttackedSquaresTemplated() const;
+	uint64_t CalculateAttackedSquares(const bool attackingSide) const;
 	bool IsLegalMove(const Move& m);
 	bool IsMoveQuiet(const Move& move) const;
 	template <bool attackingSide> bool IsSquareAttacked(const uint8_t square) const;
@@ -49,21 +50,12 @@ public:
 
 	template <bool side>
 	inline uint64_t GetPawnAttacks() const {
-		// For whatever reason there's some trouble with using templates
-		if constexpr (side == Turn::White) return ((WhitePawnBits & ~FileA) << 7) | ((WhitePawnBits & ~FileH) << 9);
-		else if (side == Turn::Black) return ((BlackPawnBits & ~FileA) >> 9) | ((BlackPawnBits & ~FileH) >> 7);
-	}
-
-	inline uint64_t GetWhitePawnAttacks() const {
-		return GetPawnAttacks<Turn::White>();
-	}
-
-	inline uint64_t GetBlackPawnAttacks() const {
-		return GetPawnAttacks<Turn::Black>();
+		if constexpr (side == Turn::White) return ((WhitePawnBits & ~File[0]) << 7) | ((WhitePawnBits & ~File[7]) << 9);
+		else return ((BlackPawnBits & ~File[0]) >> 9) | ((BlackPawnBits & ~File[7]) >> 7);
 	}
 
 	inline bool ShouldNullMovePrune() const {
-		const int friendlyPieces = (Turn == Turn::White) ? Popcount(GetOccupancy(PieceColor::White)) : Popcount(GetOccupancy(PieceColor::Black));
+		const int friendlyPieces = Popcount(GetOccupancy(Turn));
 		const int friendlyPawns = (Turn == Turn::White) ? Popcount(WhitePawnBits) : Popcount(BlackPawnBits);
 		return (friendlyPieces - friendlyPawns) > 1;
 	}
