@@ -387,7 +387,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	const uint64_t opponentAttacks = board.CalculateAttackedSquares(TurnToPieceColor(!board.Turn));
 	const int opponentAttackCount = Popcount(opponentAttacks & board.GetOccupancy(TurnToPieceColor(board.Turn)));
 	ThreatCount[level] = { friendlyAttackCount, opponentAttackCount };
-	const bool weHaveMoreThreats = (level >= 2) && (ThreatCount[level].first > ThreatCount[level - 2].first);
+	const bool weHaveMoreThreats = (level >= 2) && (ThreatCount[level].first >= ThreatCount[level - 2].first + 2);
 
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
