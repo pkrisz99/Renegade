@@ -1,6 +1,5 @@
 #pragma once
 #include "Board.h"
-#include "Evaluation.h"
 #include "Utils.h"
 #include <algorithm>
 #include <array>
