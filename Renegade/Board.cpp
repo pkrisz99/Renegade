@@ -835,19 +835,6 @@ uint64_t Board::CalculateAttackedSquaresTemplated() const {
 
 	// Pawn attacks
 	map = (attackingSide == Side::White) ? GetPawnAttacks<Side::White>() : GetPawnAttacks<Side::Black>();
-	// En passant stuff (probably should be removed)
-	if constexpr (attackingSide == Side::White) {
-		if (EnPassantSquare != -1) {
-			const uint64_t encodedEP = SquareBit(EnPassantSquare);
-			map |= (((WhitePawnBits & ~File[0]) >> 1) | ((WhitePawnBits & ~File[7]) << 1)) & encodedEP;
-		}
-	}
-	else {
-		if (EnPassantSquare != -1) {
-			const uint64_t encodedEP = SquareBit(EnPassantSquare);
-			map |= (((BlackPawnBits & ~File[0]) >> 1) | ((BlackPawnBits & ~File[7]) << 1)) & encodedEP;
-		}
-	}
 
 	// Knight attacks
 	uint64_t knightBits = (attackingSide == Side::White) ? WhiteKnightBits : BlackKnightBits;
