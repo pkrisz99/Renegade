@@ -27,7 +27,7 @@ void Search::ResetStatistics() {
 
 
 void Search::ResetState(const bool clearTT) {
-	Heuristics.ClearHistoryTable();
+	Heuristics.ClearHistory();
 	Heuristics.ClearKillerAndCounterMoves();
 	Heuristics.ResetPvTable();
 	if (clearTT) {
@@ -290,7 +290,6 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 
 	Heuristics.ClearKillerAndCounterMoves();
 	Heuristics.ResetPvTable();
-	Heuristics.AgeHistory();
 	Aborting.store(true, std::memory_order_relaxed);
 	return e;
 }
@@ -426,11 +425,10 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		board.GenerateMoves(MoveList, MoveGen::All, Legality::Pseudolegal);
 
 		// Move ordering
-		const float phase = CalculateGamePhase(board);
 		MoveOrder[level].clear();
 		for (const Move& m : MoveList) {
 			const bool losingCapture = board.IsMoveQuiet(m) ? false : !StaticExchangeEval(board, m, 0);
-			const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, ttMove, MoveStack, losingCapture, true, opponentAttacks);
+			const int orderScore = Heuristics.CalculateOrderScore(board, m, level, ttMove, MoveStack, losingCapture, true, opponentAttacks);
 			MoveOrder[level].push_back({ m, orderScore });
 		}
 		std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
@@ -563,13 +561,15 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 				if (!aborting) {
 
+					const int16_t historyDelta = std::min(300 * (depth - 1), 2250);
+
 					// If a quiet move causes a fail-high, update move ordering tables
 					if (isQuiet) {
 						Heuristics.AddKillerMove(m, level);
 						const bool fromSquareAttacked = CheckBit(opponentAttacks, m.from);
 						const bool toSquareAttacked = CheckBit(opponentAttacks, m.to);
 						if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1].move, m);
-						if (depth > 1) Heuristics.IncrementHistory(m, movedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+						if (depth > 1) Heuristics.UpdateHistory(m, historyDelta, movedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
 					}
 
 					// Decrement history scores for all previously tried quiet moves
@@ -579,7 +579,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 							const bool fromSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.from);
 							const bool toSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.to);
 							const uint8_t previouslyTriedPiece = board.GetPieceAt(previouslyTriedMove.from);
-							Heuristics.DecrementHistory(previouslyTriedMove, previouslyTriedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+							Heuristics.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
 						}
 					}
 				}
@@ -640,10 +640,9 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 	board.GenerateMoves(MoveList, MoveGen::Noisy, Legality::Pseudolegal);
 
 	// Order noisy moves
-	const float phase = CalculateGamePhase(board);
 	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
-		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, phase, EmptyMove, MoveStack, false, false, 0);
+		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, EmptyMove, MoveStack, false, false, 0);
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
