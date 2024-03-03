@@ -4,7 +4,6 @@ Engine::Engine(int argc, char* argv[]) {
 	Settings = EngineSettings();
 	Settings.Hash = 64;
 	Settings.ExtendedOutput = false;
-	Settings.Colorful = true;
 	Settings.UciOutput = !PrettySupport;
 	Settings.ShowWDL = true;
 	std::srand(static_cast<unsigned int>(std::time(0)));
@@ -20,7 +19,7 @@ Engine::Engine(int argc, char* argv[]) {
 	else PrintHeader();
 }
 
-void Engine::PrintHeader() {
+void Engine::PrintHeader() const {
 	cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
 }
 
@@ -234,16 +233,8 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "clear") {
-			ClearScreen(false, Settings.Colorful);
+			ClearScreen(false, true);
 			PrintHeader();
-			continue;
-		}
-		if (parts[0] == "fancy") {
-			Settings.Colorful = true;
-			continue;
-		}
-		if (parts[0] == "plain") {
-			Settings.Colorful = false;
 			continue;
 		}
 		if (parts[0] == "ch") {
@@ -427,8 +418,7 @@ void Engine::DrawBoard(const Board &b, const uint64_t customBits) const {
 				else cellStyle = WhiteOnTarget;
 			}
 
-			if (Settings.Colorful) cout << cellStyle << ' ' << piece << ' ' << Default;
-			else cout << ' ' << piece << ' ';
+			cout << cellStyle << ' ' << piece << ' ' << Default;
 
 		}
 		cout << "|" << '\n';
@@ -483,7 +473,6 @@ void Engine::HandleHelp() const {
 		<< "Read up on the UCI protocol for more information." << endl;
 	cout << "There are some additional commands supported as well, including: "
 		<< "\n- draw: draws the current board"
-		<< "\n- fancy & plain: sets board drawing style"
 		<< "\n- eval: prints the static evaluation of the position"
 		<< "\n- fen: displays the current position's FEN string"
 		<< "\n- go perft [n] & go perftdiv [n]: retuns the number of possible positions after n plys (incl. duplicates)" << endl;

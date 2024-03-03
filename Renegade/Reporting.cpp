@@ -89,17 +89,10 @@ void PrintInfo(const Results& e, const EngineSettings& settings) {
 
 void PrintPretty(const Results& e, const EngineSettings& settings) {
 #if defined(_MSC_VER)
-	const std::string green = settings.Colorful ? "\x1b[92m" : "";
-	const std::string blue = settings.Colorful ? "\x1b[96m" : "";
-	const std::string red = settings.Colorful ? "\x1b[91m" : "";
-	const std::string white = settings.Colorful ? "\x1b[0m" : "";
-	const std::string gray = settings.Colorful ? "\x1b[90m" : "";
-	const std::string yellow = settings.Colorful ? "\x1b[93m" : "";
-
 	const int normalizedScore = ToCentipawns(e.score, e.ply);
 
 	std::string output1 = std::format("{} {:2d}/{:2d}",
-		white, e.depth, e.stats.SelDepth);
+		Console::White, e.depth, e.stats.SelDepth);
 
 	std::string nodeString;
 	if (e.stats.Nodes < 1e9) nodeString = std::to_string(e.stats.Nodes);
@@ -119,27 +112,27 @@ void PrintPretty(const Results& e, const EngineSettings& settings) {
 	else hashString = "100";
 
 	std::string output3 = std::format("{}  {:>9}  {:>7}  {:4d}knps  h={:>4}% {} -> ",
-		gray, nodeString, timeString, e.nps / 1000, hashString, white);
+		Console::Gray, nodeString, timeString, e.nps / 1000, hashString, Console::White);
 
 	const int neutralMargin = 50;
-	std::string scoreColor = blue;
+	std::string scoreColor = Console::Blue;
 	if (!IsMateScore(normalizedScore)) {
-		if (normalizedScore > neutralMargin) scoreColor = green;
-		else if (normalizedScore < -neutralMargin) scoreColor = red;
+		if (normalizedScore > neutralMargin) scoreColor = Console::Green;
+		else if (normalizedScore < -neutralMargin) scoreColor = Console::Red;
 	}
 	else {
-		scoreColor = yellow;
+		scoreColor = Console::Yellow;
 	}
 
 	std::string output2;
 	if (!IsMateScore(normalizedScore))
-		output2 = std::format("{} {:+5.2f}  {}", scoreColor, normalizedScore / 100.0, white);
+		output2 = std::format("{} {:+5.2f}  {}", scoreColor, normalizedScore / 100.0, Console::White);
 	else {
 		std::string output2mate;
 		int movesToMate = (MateEval - std::abs(normalizedScore) + 1) / 2;
 		if (normalizedScore > 0) output2mate = "#+" + std::to_string(movesToMate);
 		else output2mate = "#-" + std::to_string(movesToMate);
-		output2 = std::format("{} {:5}  {}", scoreColor, output2mate, white);
+		output2 = std::format("{} {:5}  {}", scoreColor, output2mate, Console::White);
 	}
 
 	std::string pvOutput;
@@ -149,7 +142,7 @@ void PrintPretty(const Results& e, const EngineSettings& settings) {
 	}
 	if (pvOutput.length() != 0) pvOutput.pop_back();
 	if (e.pv.size() > 5) pvOutput += " (+" + std::to_string(e.pv.size() - 5) + ")";
-	if (e.pv.size() != 0) pvOutput = white + "[" + pvOutput + white + "]";
+	if (e.pv.size() != 0) pvOutput = Console::White + "[" + pvOutput + Console::White + "]";
 
 	// Win-draw-loss
 	const auto [modelW, modelL] = GetWDL(e.score, e.ply);
@@ -158,9 +151,9 @@ void PrintPretty(const Results& e, const EngineSettings& settings) {
 	int w = static_cast<int>(std::round(modelW / q));
 	int d = static_cast<int>(std::round(modelD / q));
 	int l = static_cast<int>(std::round(modelL / q));
-	std::string wdl = gray + std::to_string(w) + "-" + std::to_string(d) + "-" + std::to_string(l) + gray;
+	std::string wdl = Console::Gray + std::to_string(w) + "-" + std::to_string(d) + "-" + std::to_string(l) + Console::Gray;
 
-	std::string output = output1 + output3 + output2 + wdl + "  " + pvOutput + white;
+	std::string output = output1 + output3 + output2 + wdl + "  " + pvOutput + Console::White;
 
 	cout << output << endl;
 #endif

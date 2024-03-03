@@ -18,7 +18,7 @@ class Engine
 public:
 	Engine(int argc, char* argv[]);
 	void Start();
-	void PrintHeader();
+	void PrintHeader() const;
 	void DrawBoard(const Board &b, const uint64_t customBits = 0) const;
 	void HandleBench();
 	void HandleHelp() const;

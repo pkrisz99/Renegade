@@ -199,7 +199,6 @@ struct EngineSettings {
 	int Hash = 16;
 	bool ExtendedOutput = false;
 	bool UciOutput = false;
-	bool Colorful = true;
 	bool ShowWDL = true;
 };
 
