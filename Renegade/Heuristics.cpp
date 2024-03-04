@@ -14,7 +14,7 @@ Heuristics::~Heuristics() {
 // Move ordering & clearing -----------------------------------------------------------------------
 
 int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int level, const Move& ttMove,
-	const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const {
+	const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks, const uint64_t friendlyAttacks) const {
 
 	const uint8_t movedPiece = board.GetPieceAt(m.from);
 	const int attackingPieceType = TypeOfPiece(movedPiece);
@@ -46,11 +46,14 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 
 	// Quiet moves
 	const bool turn = board.Turn;
+	const bool shouldGetOut = CheckBit(opponentAttacks & ~friendlyAttacks, m.from) && CheckBit(~opponentAttacks | friendlyAttacks, m.to)
+		&& (attackingPieceType != PieceType::Pawn);
 
 	int historyScore = HistoryTables[CheckBit(opponentAttacks, m.from)][CheckBit(opponentAttacks, m.to)][movedPiece][m.to];
 	if (level >= 1) historyScore += (*ContinuationHistory)[moveStack[level - 1].piece][moveStack[level - 1].move.to][movedPiece][m.to];
 	if (level >= 2) historyScore += (*ContinuationHistory)[moveStack[level - 2].piece][moveStack[level - 2].move.to][movedPiece][m.to];
 	if (level >= 4) historyScore += (*ContinuationHistory)[moveStack[level - 4].piece][moveStack[level - 4].move.to][movedPiece][m.to];
+	if (shouldGetOut) historyScore += 8192;
 
 	return historyScore;
 }

@@ -36,7 +36,7 @@ public:
 	Heuristics();
 	~Heuristics();
 	[[nodiscard]] int CalculateOrderScore(const Board& board, const Move& m, const int level, const Move& ttMove,
-		const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const;
+		const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks, const uint64_t friendlyAttacks) const;
 	
 	// PV table
 	void UpdatePvTable(const Move& move, const int level);
