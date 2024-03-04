@@ -419,6 +419,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	// Initalize variables and generate moves
 	// (if we are in singular search, we already have the moves)
 	const uint64_t opponentAttacks = board.CalculateAttackedSquares(!board.Turn); // ^ to do: make a stack variable for it
+	const uint64_t friendlyAttacks = board.CalculateAttackedSquares(board.Turn); // ^ to do: make a stack variable for it
 
 	if (!singularSearch) {
 		MoveList.clear();
@@ -428,7 +429,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		MoveOrder[level].clear();
 		for (const Move& m : MoveList) {
 			const bool losingCapture = board.IsMoveQuiet(m) ? false : !StaticExchangeEval(board, m, 0);
-			const int orderScore = Heuristics.CalculateOrderScore(board, m, level, ttMove, MoveStack, losingCapture, true, opponentAttacks);
+			const int orderScore = Heuristics.CalculateOrderScore(board, m, level, ttMove, MoveStack, losingCapture, true, opponentAttacks, friendlyAttacks);
 			MoveOrder[level].push_back({ m, orderScore });
 		}
 		std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
@@ -568,8 +569,10 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 						Heuristics.AddKillerMove(m, level);
 						const bool fromSquareAttacked = CheckBit(opponentAttacks, m.from);
 						const bool toSquareAttacked = CheckBit(opponentAttacks, m.to);
+						const bool fromSquareDefended = CheckBit(friendlyAttacks, m.from);
+						const bool toSquareDefended = CheckBit(friendlyAttacks, m.to);
 						if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1].move, m);
-						if (depth > 1) Heuristics.UpdateHistory(m, historyDelta, movedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+						if (depth > 1) Heuristics.UpdateHistory(m, historyDelta, movedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked, fromSquareDefended, toSquareDefended);
 					}
 
 					// Decrement history scores for all previously tried quiet moves
@@ -578,8 +581,10 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 						for (const Move& previouslyTriedMove : quietsTried) {
 							const bool fromSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.from);
 							const bool toSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.to);
+							const bool fromSquareDefended = CheckBit(friendlyAttacks, previouslyTriedMove.from);
+							const bool toSquareDefended = CheckBit(friendlyAttacks, previouslyTriedMove.to);
 							const uint8_t previouslyTriedPiece = board.GetPieceAt(previouslyTriedMove.from);
-							Heuristics.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+							Heuristics.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked, fromSquareDefended, toSquareDefended);
 						}
 					}
 				}
@@ -642,7 +647,7 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 	// Order noisy moves
 	MoveOrder[level].clear();
 	for (const Move& m : MoveList) {
-		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, EmptyMove, MoveStack, false, false, 0);
+		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, EmptyMove, MoveStack, false, false, 0, 0);
 		MoveOrder[level].push_back({ m, orderScore });
 	}
 	std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
