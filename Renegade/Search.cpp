@@ -147,7 +147,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 	int elapsedMs = 0;
 	ResetStatistics();
 	bool finished = false;
-	if (Age < 32000) Age += 1;
+	if (Age < 16000) Age += 1;
 
 	SetupAccumulators(board);
 	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
@@ -333,7 +333,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 	// Probe the transposition table
 	TranspositionEntry ttEntry;
-	int ttEval = NoEval;
+	int16_t ttEval = NoEval;
 	Move ttMove = EmptyMove;
 	bool found = false;
 	const uint64_t hash = board.Hash();
@@ -356,8 +356,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && (std::abs(ttEval) < MateThreshold);
 	
 	// Obtain the evaluation of the position
-	int staticEval = NoEval;
-	int eval = NoEval;
+	int16_t staticEval = NoEval;
+	int16_t eval = NoEval;
 
 	if (!singularSearch) {
 		staticEval = inCheck ? NoEval : Evaluate(board, level);
@@ -650,7 +650,7 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 	});
 
 	// Search recursively
-	int bestScore = staticEval;
+	int16_t bestScore = staticEval;
 	int scoreType = ScoreType::UpperBound;
 	for (const auto& [m, order] : MoveOrder[level]) {
 		if (!board.IsLegalMove(m)) continue;

@@ -160,14 +160,14 @@ void Heuristics::ClearHistory() {
 
 // Transposition table ----------------------------------------------------------------------------
 
-void Heuristics::AddTranspositionEntry(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move& bestMove, const int level) {
+void Heuristics::AddTranspositionEntry(const uint64_t hash, const uint16_t age, const int depth, int16_t score, const int scoreType, const Move& bestMove, const int level) {
 
 	assert(std::abs(score) > MateEval);
 	assert(HashFilter != 0);
 	if (std::abs(score) > MateEval) return;
 
 	const uint64_t key = hash & HashFilter;
-	const uint16_t quality = age * 2 + depth;
+	const uint16_t quality = age * 4 + depth;
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
 
 	if (quality >= TranspositionTable[key].quality) { // (TranspositionTable[key].depth <= depth)
