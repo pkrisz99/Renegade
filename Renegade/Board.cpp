@@ -627,41 +627,30 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 		}
 	}
 
-	// 2. Handle captures (1st direction) + check promotions + check en passant
-	target = home + capture1Delta;
-	if ((file != capture1WrongFile) && ((ColorOfPiece(GetPieceAt(target)) == opponentPieceColor) || (target == EnPassantSquare))) {
-		if (GetSquareRank(target) != promotionRank) {
-			const uint8_t moveFlag = (target == EnPassantSquare) ? MoveFlag::EnPassantPerformed : MoveFlag::None;
-			moves.push_back(Move(home, target, moveFlag));
-		}
-		else { // Promote
-			moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-			if constexpr (moveGen == MoveGen::All) {
-				moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-				moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-				moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
+	// 2. Handle captures + check promotions + check en passant
+	constexpr std::array<std::pair<int, int>, 2> captureDetails =
+		{ std::pair{capture1Delta, capture1WrongFile}, std::pair{capture2Delta, capture2WrongFile} };
+
+	for (const auto& [delta, wrongFile] : captureDetails) {
+		target = home + delta;
+
+		if ((file != wrongFile) && ((ColorOfPiece(GetPieceAt(target)) == opponentPieceColor) || (target == EnPassantSquare))) {
+			if (GetSquareRank(target) != promotionRank) {
+				const uint8_t moveFlag = (target == EnPassantSquare) ? MoveFlag::EnPassantPerformed : MoveFlag::None;
+				moves.push_back(Move(home, target, moveFlag));
+			}
+			else { // Promote
+				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
+				if constexpr (moveGen == MoveGen::All) {
+					moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
+					moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
+					moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
+				}
 			}
 		}
 	}
 
-	// 3. Handle captures (2nd direction) + check promotions + check en passant
-	target = home + capture2Delta;
-	if ((file != capture2WrongFile) && ((ColorOfPiece(GetPieceAt(target)) == opponentPieceColor) || (target == EnPassantSquare))) {
-		if (GetSquareRank(target) != promotionRank) {
-			const uint8_t moveFlag = (target == EnPassantSquare) ? MoveFlag::EnPassantPerformed : MoveFlag::None;
-			moves.push_back(Move(home, target, moveFlag));
-		}
-		else { // Promote
-			moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-			if constexpr (moveGen == MoveGen::All) {
-				moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-				moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-				moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-			}
-		}
-	}
-
-	// 4. Handle double pushes
+	// 3. Handle double pushes
 	if (rank == doublePushRank) {
 		const bool free1 = GetPieceAt(home + forwardDelta) == Piece::None;
 		const bool free2 = GetPieceAt(home + doublePushDelta) == Piece::None;
