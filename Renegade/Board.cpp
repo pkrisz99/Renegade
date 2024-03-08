@@ -594,119 +594,82 @@ void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int home, const
 
 template <bool side, MoveGen moveGen>
 void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
+
+	constexpr int promotionRank = (side == Side::White) ? 7 : 0;
+	constexpr int doublePushRank = (side == Side::White) ? 1 : 6;
+	constexpr int forwardDelta = (side == Side::White) ? 8 : -8;
+	constexpr int doublePushDelta = (side == Side::White) ? 16 : -16;
+	constexpr uint8_t opponentPieceColor = SideToPieceColor(!side);
+
+	// These are like that to avoid bench changing, will be changed to be more intuitive later
+	constexpr int capture1Delta = (side == Side::White) ? 7 : -7;
+	constexpr int capture2Delta = (side == Side::White) ? 9 : -9;
+	constexpr int capture1WrongFile = (side == Side::White) ? 0 : 7;
+	constexpr int capture2WrongFile = (side == Side::White) ? 7 : 0;
+
 	const int file = GetSquareFile(home);
 	const int rank = GetSquareRank(home);
 	int target;
 
-	if constexpr (side == Side::White) {
-		// 1. Can move forward? + check promotions
-		target = home + 8;
-		if (GetPieceAt(target) == Piece::None) {
-			if (GetSquareRank(target) != 7) {
-				if ((moveGen == MoveGen::All) /* || (GetSquareRank(target) == 6)*/) moves.push_back(Move(home, target));
-			} else { // Promote
-				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-			}
+	// 1. Handle moving forward + check promotions
+	target = home + forwardDelta;
+	if (GetPieceAt(target) == Piece::None) {
+		if (GetSquareRank(target) != promotionRank) {
+			if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target));
 		}
-
-		// 2. Can move up left (can capture?) + check promotions + check en passant
-		target = home + 7;
-		if ((file != 0) && ((ColorOfPiece(GetPieceAt(target)) == SideToPieceColor(!Turn)) || (target == EnPassantSquare))) {
-			if (GetSquareRank(target) != 7) {
-				const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
-				moves.push_back(m);
-			} else { // Promote
-				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-			}
-		}
-
-		// 3. Can move up right (can capture?) + check promotions + check en passant
-		target = home + 9;
-		if (file != 7) {
-			if ((ColorOfPiece(GetPieceAt(target)) == SideToPieceColor(!Turn)) || (target == EnPassantSquare)) {
-				if (GetSquareRank(target) != 7) {
-					const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
-					moves.push_back(m);
-				}
-				else { // Promote
-					moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-					if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-					if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-					if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-				}
-			}
-		}
-
-		// 4. Can move double (can't skip)
-		if (rank == 1) {
-			bool free1 = GetPieceAt(home + 8) == 0;
-			bool free2 = GetPieceAt(home + 16) == 0;
-			if (free1 && free2) {
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, home+16, MoveFlag::EnPassantPossible));
+		else { // Promote
+			moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
+			if constexpr (moveGen == MoveGen::All) {
+				moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
+				moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
+				moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
 			}
 		}
 	}
 
-	else if constexpr (side == Side::Black) {
-		// 1. Can move forward? + check promotions
-		target = home - 8;
-		if (GetPieceAt(target) == Piece::None) {
-			if (GetSquareRank(target) != 0) {
-				if ((moveGen == MoveGen::All) /* || (GetSquareRank(target) == 1)*/) moves.push_back(Move(home, target));
-			} else { // Promote
-				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-			}
+	// 2. Handle captures (1st direction) + check promotions + check en passant
+	target = home + capture1Delta;
+	if ((file != capture1WrongFile) && ((ColorOfPiece(GetPieceAt(target)) == opponentPieceColor) || (target == EnPassantSquare))) {
+		if (GetSquareRank(target) != promotionRank) {
+			const uint8_t moveFlag = (target == EnPassantSquare) ? MoveFlag::EnPassantPerformed : MoveFlag::None;
+			moves.push_back(Move(home, target, moveFlag));
 		}
-
-		// 2. Can move down right (can capture?) + check promotions + check en passant
-		target = home - 7;
-		if ((file != 7) && ((ColorOfPiece(GetPieceAt(target)) == SideToPieceColor(!Turn)) || (target == EnPassantSquare))) {
-			if (GetSquareRank(target) != 0) {
-				const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
-				moves.push_back(m);
-			} else { // Promote
-				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-			}
-		}
-
-		// 3. Can move down left (can capture?) + check promotions + check en passant
-		target = home - 9;
-		if (file != 0) {
-			if ((ColorOfPiece(GetPieceAt(target)) == SideToPieceColor(!Turn)) || (target == EnPassantSquare)) {
-				if (GetSquareRank(target) != 0) {
-					const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
-					moves.push_back(m);
-				}
-				else { // Promote
-					moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-					if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-					if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-					if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-				}
-			}
-		}
-
-		// 4. Can move double (can't skip)
-		if (rank == 6) {
-			bool free1 = GetPieceAt(home - 8) == 0;
-			bool free2 = GetPieceAt(home - 16) == 0;
-			if (free1 && free2) {
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, home - 16, MoveFlag::EnPassantPossible));
+		else { // Promote
+			moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
+			if constexpr (moveGen == MoveGen::All) {
+				moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
+				moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
+				moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
 			}
 		}
 	}
+
+	// 3. Handle captures (2nd direction) + check promotions + check en passant
+	target = home + capture2Delta;
+	if ((file != capture2WrongFile) && ((ColorOfPiece(GetPieceAt(target)) == opponentPieceColor) || (target == EnPassantSquare))) {
+		if (GetSquareRank(target) != promotionRank) {
+			const uint8_t moveFlag = (target == EnPassantSquare) ? MoveFlag::EnPassantPerformed : MoveFlag::None;
+			moves.push_back(Move(home, target, moveFlag));
+		}
+		else { // Promote
+			moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
+			if constexpr (moveGen == MoveGen::All) {
+				moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
+				moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
+				moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
+			}
+		}
+	}
+
+	// 4. Handle double pushes
+	if (rank == doublePushRank) {
+		const bool free1 = GetPieceAt(home + forwardDelta) == Piece::None;
+		const bool free2 = GetPieceAt(home + doublePushDelta) == Piece::None;
+		if (free1 && free2) {
+			if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, home + doublePushDelta, MoveFlag::EnPassantPossible));
+		}
+	}
+
 }
 
 template <bool side>
