@@ -3,28 +3,6 @@
 // Constructors and related -----------------------------------------------------------------------
 
 Board::Board(const std::string& fen) {
-	WhitePawnBits = 0L;
-	WhiteKnightBits = 0L;
-	WhiteBishopBits = 0L;
-	WhiteRookBits = 0L;
-	WhiteQueenBits = 0L;
-	WhiteKingBits = 0L;
-	BlackPawnBits = 0L;
-	BlackKnightBits = 0L;
-	BlackBishopBits = 0L;
-	BlackRookBits = 0L;
-	BlackQueenBits = 0L;
-	BlackKingBits = 0L;
-	EnPassantSquare = -1;
-	WhiteRightToShortCastle = false;
-	WhiteRightToLongCastle = false;
-	BlackRightToShortCastle = false;
-	BlackRightToLongCastle = false;
-	HalfmoveClock = 0;
-	FullmoveClock = 0;
-	Turn = Side::White;
-	PreviousHashes = std::vector<uint64_t>();
-
 	std::vector<std::string> parts = Split(fen);
 	int place = 56;
 
@@ -84,7 +62,6 @@ Board::Board(const Board& b) {
 	WhiteRookBits = b.WhiteRookBits;
 	WhiteQueenBits = b.WhiteQueenBits;
 	WhiteKingBits = b.WhiteKingBits;
-
 	BlackPawnBits = b.BlackPawnBits;
 	BlackKnightBits = b.BlackKnightBits;
 	BlackBishopBits = b.BlackBishopBits;
@@ -100,9 +77,9 @@ Board::Board(const Board& b) {
 	Turn = b.Turn;
 	HalfmoveClock = b.HalfmoveClock;
 	FullmoveClock = b.FullmoveClock;
-	std::copy(std::begin(b.OccupancyInts), std::end(b.OccupancyInts), std::begin(OccupancyInts));
-
 	HashValue = b.HashValue;
+
+	OccupancyInts = b.OccupancyInts;
 	PreviousHashes.reserve(b.PreviousHashes.size() + 1);
 	PreviousHashes = b.PreviousHashes;
 }
@@ -497,13 +474,13 @@ bool Board::IsLegalMove(const Move& m) {
 	const uint64_t blackRookBits = BlackRookBits;
 	const uint64_t blackQueenBits = BlackQueenBits;
 	const uint64_t blackKingBits = BlackKingBits;
-	const int enPassantSquare = EnPassantSquare;
+	const int8_t enPassantSquare = EnPassantSquare;
 	const bool whiteShortCastle = WhiteRightToShortCastle;
 	const bool whiteLongCastle = WhiteRightToLongCastle;
 	const bool blackShortCastle = BlackRightToShortCastle;
 	const bool blackLongCastle = BlackRightToLongCastle;
-	const int fullmoveClock = FullmoveClock;
-	const int halfmoveClock = HalfmoveClock;
+	const uint16_t fullmoveClock = FullmoveClock;
+	const uint8_t halfmoveClock = HalfmoveClock;
 	const bool turn = Turn;
 
 	// Push move
