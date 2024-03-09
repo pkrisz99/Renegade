@@ -663,55 +663,37 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 
 template <bool side>
 void Board::GenerateCastlingMoves(std::vector<Move>& moves) const {
-	if ((Turn == Side::White) && (WhiteRightToShortCastle)) {
-		const bool empty_f1 = GetPieceAt(Squares::F1) == 0;
-		const bool empty_g1 = GetPieceAt(Squares::G1) == 0;
-		if (empty_f1 && empty_g1) {
-			const bool safe_e1 = !IsSquareAttacked<Side::Black>(Squares::E1);
-			const bool safe_f1 = !IsSquareAttacked<Side::Black>(Squares::F1);
-			const bool safe_g1 = !IsSquareAttacked<Side::Black>(Squares::G1);
-			if (safe_e1 && safe_f1 && safe_g1) {
-				moves.push_back(Move(Squares::E1, Squares::G1, MoveFlag::ShortCastle));
-			}
-		}
+
+	using namespace Squares;
+
+	constexpr auto shortEmpty = (side == Side::White) ? std::array{ F1, G1 } : std::array{ F8, G8 };
+	constexpr auto shortSafe = (side == Side::White) ? std::array{ E1, F1, G1 } : std::array{ E8, F8, G8 };
+	constexpr auto longEmpty = (side == Side::White) ? std::array{ B1, C1, D1 } : std::array{ B8, C8, D8 };
+	constexpr auto longSafe = (side == Side::White) ? std::array{ C1, D1, E1 } : std::array{ C8, D8, E8 };
+	constexpr int from = (side == Side::White) ? E1 : E8;
+	constexpr int shortTo = (side == Side::White) ? G1 : G8;
+	constexpr int longTo = (side == Side::White) ? C1 : C8;
+
+	const bool rightToShortCastle = (side == Side::White) ? WhiteRightToShortCastle : BlackRightToShortCastle;
+	const bool rightToLongCastle = (side == Side::White) ? WhiteRightToLongCastle : BlackRightToLongCastle;
+
+	if (rightToShortCastle) {
+		const bool empty = std::all_of(shortEmpty.begin(), shortEmpty.end(), [&](const int sq) {
+			return GetPieceAt(sq) == Piece::None;
+		});
+		const bool safe = std::all_of(shortSafe.begin(), shortSafe.end(), [&](const int sq) {
+			return !IsSquareAttacked<!side>(sq);
+		});
+		if (empty && safe) moves.push_back(Move(from, shortTo, MoveFlag::ShortCastle));
 	}
-	if ((Turn == Side::White) && (WhiteRightToLongCastle)) {
-		const bool empty_b1 = GetPieceAt(Squares::B1) == 0;
-		const bool empty_c1 = GetPieceAt(Squares::C1) == 0;
-		const bool empty_d1 = GetPieceAt(Squares::D1) == 0;
-		if (empty_b1 && empty_c1 && empty_d1) {
-			const bool safe_c1 = !IsSquareAttacked<Side::Black>(Squares::C1);
-			const bool safe_d1 = !IsSquareAttacked<Side::Black>(Squares::D1);
-			const bool safe_e1 = !IsSquareAttacked<Side::Black>(Squares::E1);
-			if (safe_c1 && safe_d1 && safe_e1) {
-				moves.push_back(Move(Squares::E1, Squares::C1, MoveFlag::LongCastle));
-			}
-		}
-	}
-	if ((Turn == Side::Black) && (BlackRightToShortCastle)) {
-		const bool empty_f8 = GetPieceAt(Squares::F8) == 0;
-		const bool empty_g8 = GetPieceAt(Squares::G8) == 0;
-		if (empty_f8 && empty_g8) {
-			const bool safe_e8 = !IsSquareAttacked<Side::White>(Squares::E8);
-			const bool safe_f8 = !IsSquareAttacked<Side::White>(Squares::F8);
-			const bool safe_g8 = !IsSquareAttacked<Side::White>(Squares::G8);
-			if (safe_e8 && safe_f8 && safe_g8) {
-				moves.push_back(Move(Squares::E8, Squares::G8, MoveFlag::ShortCastle));
-			}
-		}
-	}
-	if ((Turn == Side::Black) && (BlackRightToLongCastle)) {
-		const bool empty_b8 = GetPieceAt(Squares::B8) == 0;
-		const bool empty_c8 = GetPieceAt(Squares::C8) == 0;
-		const bool empty_d8 = GetPieceAt(Squares::D8) == 0;
-		if (empty_b8 && empty_c8 && empty_d8) {
-			const bool safe_c8 = !IsSquareAttacked<Side::White>(Squares::C8);
-			const bool safe_d8 = !IsSquareAttacked<Side::White>(Squares::D8);
-			const bool safe_e8 = !IsSquareAttacked<Side::White>(Squares::E8);
-			if (safe_c8 && safe_d8 && safe_e8) {
-				moves.push_back(Move(Squares::E8, Squares::C8, MoveFlag::LongCastle));
-			}
-		}
+	if (rightToLongCastle) {
+		const bool empty = std::all_of(longEmpty.begin(), longEmpty.end(), [&](const int sq) {
+			return GetPieceAt(sq) == Piece::None;
+		});
+		const bool safe = std::all_of(longSafe.begin(), longSafe.end(), [&](const int sq) {
+			return !IsSquareAttacked<!side>(sq);
+		});
+		if (empty && safe) moves.push_back(Move(from, longTo, MoveFlag::LongCastle));
 	}
 }
 
