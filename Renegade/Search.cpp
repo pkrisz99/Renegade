@@ -191,7 +191,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 		}
 		else {
 			// Aspiration windows
-			int windowSize = 25;
+			int windowSize = 20;
 			int searchDepth = Depth;
 
 			while (true) {
@@ -235,7 +235,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 					break;
 				}
 
-				windowSize *= 2;
+				windowSize += windowSize / 2;
 
 			}
 
