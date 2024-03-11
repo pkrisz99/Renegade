@@ -62,29 +62,29 @@ public:
 
 
 	// Board variables:
-	std::vector<uint64_t> PreviousHashes;
-	uint8_t OccupancyInts[64];
-	uint64_t WhitePawnBits;
-	uint64_t WhiteKnightBits;
-	uint64_t WhiteBishopBits;
-	uint64_t WhiteRookBits;
-	uint64_t WhiteQueenBits;
-	uint64_t WhiteKingBits;
-	uint64_t BlackPawnBits;
-	uint64_t BlackKnightBits;
-	uint64_t BlackBishopBits;
-	uint64_t BlackRookBits;
-	uint64_t BlackQueenBits;
-	uint64_t BlackKingBits;
-	uint64_t HashValue;
-	uint16_t FullmoveClock;
-	int8_t EnPassantSquare;
-	uint8_t HalfmoveClock;
-	bool WhiteRightToShortCastle;
-	bool WhiteRightToLongCastle;
-	bool BlackRightToShortCastle;
-	bool BlackRightToLongCastle;
-	bool Turn;
+	std::vector<uint64_t> PreviousHashes{};
+	std::array<uint8_t, 64> OccupancyInts{};
+	uint64_t WhitePawnBits = 0;
+	uint64_t WhiteKnightBits = 0;
+	uint64_t WhiteBishopBits = 0;
+	uint64_t WhiteRookBits = 0;
+	uint64_t WhiteQueenBits = 0;
+	uint64_t WhiteKingBits = 0;
+	uint64_t BlackPawnBits = 0;
+	uint64_t BlackKnightBits = 0;
+	uint64_t BlackBishopBits = 0;
+	uint64_t BlackRookBits = 0;
+	uint64_t BlackQueenBits = 0;
+	uint64_t BlackKingBits = 0;
+	uint64_t HashValue = 0;
+	uint16_t FullmoveClock = 0;
+	int8_t EnPassantSquare = -1;
+	uint8_t HalfmoveClock = 0;
+	bool WhiteRightToShortCastle = false;
+	bool WhiteRightToLongCastle = false;
+	bool BlackRightToShortCastle = false;
+	bool BlackRightToLongCastle = false;
+	bool Turn = Side::White;
 
 private:
 	void GenerateOccupancy();
