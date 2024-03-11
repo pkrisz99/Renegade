@@ -3,28 +3,6 @@
 // Constructors and related -----------------------------------------------------------------------
 
 Board::Board(const std::string& fen) {
-	WhitePawnBits = 0L;
-	WhiteKnightBits = 0L;
-	WhiteBishopBits = 0L;
-	WhiteRookBits = 0L;
-	WhiteQueenBits = 0L;
-	WhiteKingBits = 0L;
-	BlackPawnBits = 0L;
-	BlackKnightBits = 0L;
-	BlackBishopBits = 0L;
-	BlackRookBits = 0L;
-	BlackQueenBits = 0L;
-	BlackKingBits = 0L;
-	EnPassantSquare = -1;
-	WhiteRightToShortCastle = false;
-	WhiteRightToLongCastle = false;
-	BlackRightToShortCastle = false;
-	BlackRightToLongCastle = false;
-	HalfmoveClock = 0;
-	FullmoveClock = 0;
-	Turn = Side::White;
-	PreviousHashes = std::vector<uint64_t>();
-
 	std::vector<std::string> parts = Split(fen);
 	int place = 56;
 
@@ -84,7 +62,6 @@ Board::Board(const Board& b) {
 	WhiteRookBits = b.WhiteRookBits;
 	WhiteQueenBits = b.WhiteQueenBits;
 	WhiteKingBits = b.WhiteKingBits;
-
 	BlackPawnBits = b.BlackPawnBits;
 	BlackKnightBits = b.BlackKnightBits;
 	BlackBishopBits = b.BlackBishopBits;
@@ -100,9 +77,9 @@ Board::Board(const Board& b) {
 	Turn = b.Turn;
 	HalfmoveClock = b.HalfmoveClock;
 	FullmoveClock = b.FullmoveClock;
-	std::copy(std::begin(b.OccupancyInts), std::end(b.OccupancyInts), std::begin(OccupancyInts));
-
 	HashValue = b.HashValue;
+
+	OccupancyInts = b.OccupancyInts;
 	PreviousHashes.reserve(b.PreviousHashes.size() + 1);
 	PreviousHashes = b.PreviousHashes;
 }
@@ -497,13 +474,13 @@ bool Board::IsLegalMove(const Move& m) {
 	const uint64_t blackRookBits = BlackRookBits;
 	const uint64_t blackQueenBits = BlackQueenBits;
 	const uint64_t blackKingBits = BlackKingBits;
-	const int enPassantSquare = EnPassantSquare;
+	const int8_t enPassantSquare = EnPassantSquare;
 	const bool whiteShortCastle = WhiteRightToShortCastle;
 	const bool whiteLongCastle = WhiteRightToLongCastle;
 	const bool blackShortCastle = BlackRightToShortCastle;
 	const bool blackLongCastle = BlackRightToLongCastle;
-	const int fullmoveClock = FullmoveClock;
-	const int halfmoveClock = HalfmoveClock;
+	const uint16_t fullmoveClock = FullmoveClock;
+	const uint8_t halfmoveClock = HalfmoveClock;
 	const bool turn = Turn;
 
 	// Push move
@@ -594,171 +571,109 @@ void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int home, const
 
 template <bool side, MoveGen moveGen>
 void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
+
+	constexpr int promotionRank = (side == Side::White) ? 7 : 0;
+	constexpr int doublePushRank = (side == Side::White) ? 1 : 6;
+	constexpr int forwardDelta = (side == Side::White) ? 8 : -8;
+	constexpr int doublePushDelta = (side == Side::White) ? 16 : -16;
+	constexpr uint8_t opponentPieceColor = SideToPieceColor(!side);
+
+	// These are like that to avoid bench changing, will be changed to be more intuitive later
+	constexpr int capture1Delta = (side == Side::White) ? 7 : -7;
+	constexpr int capture2Delta = (side == Side::White) ? 9 : -9;
+	constexpr int capture1WrongFile = (side == Side::White) ? 0 : 7;
+	constexpr int capture2WrongFile = (side == Side::White) ? 7 : 0;
+
 	const int file = GetSquareFile(home);
 	const int rank = GetSquareRank(home);
 	int target;
 
-	if constexpr (side == Side::White) {
-		// 1. Can move forward? + check promotions
-		target = home + 8;
-		if (GetPieceAt(target) == Piece::None) {
-			if (GetSquareRank(target) != 7) {
-				if ((moveGen == MoveGen::All) /* || (GetSquareRank(target) == 6)*/) moves.push_back(Move(home, target));
-			} else { // Promote
-				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-			}
+	// 1. Handle moving forward + check promotions
+	target = home + forwardDelta;
+	if (GetPieceAt(target) == Piece::None) {
+		if (GetSquareRank(target) != promotionRank) {
+			if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target));
 		}
-
-		// 2. Can move up left (can capture?) + check promotions + check en passant
-		target = home + 7;
-		if ((file != 0) && ((ColorOfPiece(GetPieceAt(target)) == SideToPieceColor(!Turn)) || (target == EnPassantSquare))) {
-			if (GetSquareRank(target) != 7) {
-				const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
-				moves.push_back(m);
-			} else { // Promote
-				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-			}
-		}
-
-		// 3. Can move up right (can capture?) + check promotions + check en passant
-		target = home + 9;
-		if (file != 7) {
-			if ((ColorOfPiece(GetPieceAt(target)) == SideToPieceColor(!Turn)) || (target == EnPassantSquare)) {
-				if (GetSquareRank(target) != 7) {
-					const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
-					moves.push_back(m);
-				}
-				else { // Promote
-					moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-					if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-					if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-					if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-				}
-			}
-		}
-
-		// 4. Can move double (can't skip)
-		if (rank == 1) {
-			bool free1 = GetPieceAt(home + 8) == 0;
-			bool free2 = GetPieceAt(home + 16) == 0;
-			if (free1 && free2) {
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, home+16, MoveFlag::EnPassantPossible));
+		else { // Promote
+			moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
+			if constexpr (moveGen == MoveGen::All) {
+				moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
+				moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
+				moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
 			}
 		}
 	}
 
-	else if constexpr (side == Side::Black) {
-		// 1. Can move forward? + check promotions
-		target = home - 8;
-		if (GetPieceAt(target) == Piece::None) {
-			if (GetSquareRank(target) != 0) {
-				if ((moveGen == MoveGen::All) /* || (GetSquareRank(target) == 1)*/) moves.push_back(Move(home, target));
-			} else { // Promote
+	// 2. Handle captures + check promotions + check en passant
+	constexpr std::array<std::pair<int, int>, 2> captureDetails =
+		{ std::pair{capture1Delta, capture1WrongFile}, std::pair{capture2Delta, capture2WrongFile} };
+
+	for (const auto& [delta, wrongFile] : captureDetails) {
+		target = home + delta;
+
+		if ((file != wrongFile) && ((ColorOfPiece(GetPieceAt(target)) == opponentPieceColor) || (target == EnPassantSquare))) {
+			if (GetSquareRank(target) != promotionRank) {
+				const uint8_t moveFlag = (target == EnPassantSquare) ? MoveFlag::EnPassantPerformed : MoveFlag::None;
+				moves.push_back(Move(home, target, moveFlag));
+			}
+			else { // Promote
 				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-			}
-		}
-
-		// 2. Can move down right (can capture?) + check promotions + check en passant
-		target = home - 7;
-		if ((file != 7) && ((ColorOfPiece(GetPieceAt(target)) == SideToPieceColor(!Turn)) || (target == EnPassantSquare))) {
-			if (GetSquareRank(target) != 0) {
-				const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
-				moves.push_back(m);
-			} else { // Promote
-				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-			}
-		}
-
-		// 3. Can move down left (can capture?) + check promotions + check en passant
-		target = home - 9;
-		if (file != 0) {
-			if ((ColorOfPiece(GetPieceAt(target)) == SideToPieceColor(!Turn)) || (target == EnPassantSquare)) {
-				if (GetSquareRank(target) != 0) {
-					const Move m = Move(home, target, target == EnPassantSquare ? MoveFlag::EnPassantPerformed : 0);
-					moves.push_back(m);
+				if constexpr (moveGen == MoveGen::All) {
+					moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
+					moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
+					moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
 				}
-				else { // Promote
-					moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
-					if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-					if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-					if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
-				}
-			}
-		}
-
-		// 4. Can move double (can't skip)
-		if (rank == 6) {
-			bool free1 = GetPieceAt(home - 8) == 0;
-			bool free2 = GetPieceAt(home - 16) == 0;
-			if (free1 && free2) {
-				if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, home - 16, MoveFlag::EnPassantPossible));
 			}
 		}
 	}
+
+	// 3. Handle double pushes
+	if (rank == doublePushRank) {
+		const bool free1 = GetPieceAt(home + forwardDelta) == Piece::None;
+		const bool free2 = GetPieceAt(home + doublePushDelta) == Piece::None;
+		if (free1 && free2) {
+			if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, home + doublePushDelta, MoveFlag::EnPassantPossible));
+		}
+	}
+
 }
 
 template <bool side>
 void Board::GenerateCastlingMoves(std::vector<Move>& moves) const {
-	if ((Turn == Side::White) && (WhiteRightToShortCastle)) {
-		const bool empty_f1 = GetPieceAt(Squares::F1) == 0;
-		const bool empty_g1 = GetPieceAt(Squares::G1) == 0;
-		if (empty_f1 && empty_g1) {
-			const bool safe_e1 = !IsSquareAttacked<Side::Black>(Squares::E1);
-			const bool safe_f1 = !IsSquareAttacked<Side::Black>(Squares::F1);
-			const bool safe_g1 = !IsSquareAttacked<Side::Black>(Squares::G1);
-			if (safe_e1 && safe_f1 && safe_g1) {
-				moves.push_back(Move(Squares::E1, Squares::G1, MoveFlag::ShortCastle));
-			}
+
+	using namespace Squares;
+
+	constexpr auto shortEmpty = (side == Side::White) ? std::array{ F1, G1 } : std::array{ F8, G8 };
+	constexpr auto shortSafe = (side == Side::White) ? std::array{ E1, F1, G1 } : std::array{ E8, F8, G8 };
+	constexpr auto longEmpty = (side == Side::White) ? std::array{ B1, C1, D1 } : std::array{ B8, C8, D8 };
+	constexpr auto longSafe = (side == Side::White) ? std::array{ C1, D1, E1 } : std::array{ C8, D8, E8 };
+	constexpr int from = (side == Side::White) ? E1 : E8;
+	constexpr int shortTo = (side == Side::White) ? G1 : G8;
+	constexpr int longTo = (side == Side::White) ? C1 : C8;
+
+	const bool rightToShortCastle = (side == Side::White) ? WhiteRightToShortCastle : BlackRightToShortCastle;
+	const bool rightToLongCastle = (side == Side::White) ? WhiteRightToLongCastle : BlackRightToLongCastle;
+
+	if (rightToShortCastle) {
+		const bool empty = std::all_of(shortEmpty.begin(), shortEmpty.end(), [&](const int sq) {
+			return GetPieceAt(sq) == Piece::None;
+		});
+		if (empty) {
+			const bool safe = std::all_of(shortSafe.begin(), shortSafe.end(), [&](const int sq) {
+				return !IsSquareAttacked<!side>(sq);
+			});
+			if (safe) moves.push_back(Move(from, shortTo, MoveFlag::ShortCastle));
 		}
 	}
-	if ((Turn == Side::White) && (WhiteRightToLongCastle)) {
-		const bool empty_b1 = GetPieceAt(Squares::B1) == 0;
-		const bool empty_c1 = GetPieceAt(Squares::C1) == 0;
-		const bool empty_d1 = GetPieceAt(Squares::D1) == 0;
-		if (empty_b1 && empty_c1 && empty_d1) {
-			const bool safe_c1 = !IsSquareAttacked<Side::Black>(Squares::C1);
-			const bool safe_d1 = !IsSquareAttacked<Side::Black>(Squares::D1);
-			const bool safe_e1 = !IsSquareAttacked<Side::Black>(Squares::E1);
-			if (safe_c1 && safe_d1 && safe_e1) {
-				moves.push_back(Move(Squares::E1, Squares::C1, MoveFlag::LongCastle));
-			}
-		}
-	}
-	if ((Turn == Side::Black) && (BlackRightToShortCastle)) {
-		const bool empty_f8 = GetPieceAt(Squares::F8) == 0;
-		const bool empty_g8 = GetPieceAt(Squares::G8) == 0;
-		if (empty_f8 && empty_g8) {
-			const bool safe_e8 = !IsSquareAttacked<Side::White>(Squares::E8);
-			const bool safe_f8 = !IsSquareAttacked<Side::White>(Squares::F8);
-			const bool safe_g8 = !IsSquareAttacked<Side::White>(Squares::G8);
-			if (safe_e8 && safe_f8 && safe_g8) {
-				moves.push_back(Move(Squares::E8, Squares::G8, MoveFlag::ShortCastle));
-			}
-		}
-	}
-	if ((Turn == Side::Black) && (BlackRightToLongCastle)) {
-		const bool empty_b8 = GetPieceAt(Squares::B8) == 0;
-		const bool empty_c8 = GetPieceAt(Squares::C8) == 0;
-		const bool empty_d8 = GetPieceAt(Squares::D8) == 0;
-		if (empty_b8 && empty_c8 && empty_d8) {
-			const bool safe_c8 = !IsSquareAttacked<Side::White>(Squares::C8);
-			const bool safe_d8 = !IsSquareAttacked<Side::White>(Squares::D8);
-			const bool safe_e8 = !IsSquareAttacked<Side::White>(Squares::E8);
-			if (safe_c8 && safe_d8 && safe_e8) {
-				moves.push_back(Move(Squares::E8, Squares::C8, MoveFlag::LongCastle));
-			}
+	if (rightToLongCastle) {
+		const bool empty = std::all_of(longEmpty.begin(), longEmpty.end(), [&](const int sq) {
+			return GetPieceAt(sq) == Piece::None;
+		});
+		if (empty) {
+			const bool safe = std::all_of(longSafe.begin(), longSafe.end(), [&](const int sq) {
+				return !IsSquareAttacked<!side>(sq);
+			});
+			if (safe) moves.push_back(Move(from, longTo, MoveFlag::LongCastle));
 		}
 	}
 }
