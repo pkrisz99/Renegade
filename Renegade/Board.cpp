@@ -658,19 +658,23 @@ void Board::GenerateCastlingMoves(std::vector<Move>& moves) const {
 		const bool empty = std::all_of(shortEmpty.begin(), shortEmpty.end(), [&](const int sq) {
 			return GetPieceAt(sq) == Piece::None;
 		});
-		const bool safe = std::all_of(shortSafe.begin(), shortSafe.end(), [&](const int sq) {
-			return !IsSquareAttacked<!side>(sq);
-		});
-		if (empty && safe) moves.push_back(Move(from, shortTo, MoveFlag::ShortCastle));
+		if (empty) {
+			const bool safe = std::all_of(shortSafe.begin(), shortSafe.end(), [&](const int sq) {
+				return !IsSquareAttacked<!side>(sq);
+			});
+			if (safe) moves.push_back(Move(from, shortTo, MoveFlag::ShortCastle));
+		}
 	}
 	if (rightToLongCastle) {
 		const bool empty = std::all_of(longEmpty.begin(), longEmpty.end(), [&](const int sq) {
 			return GetPieceAt(sq) == Piece::None;
 		});
-		const bool safe = std::all_of(longSafe.begin(), longSafe.end(), [&](const int sq) {
-			return !IsSquareAttacked<!side>(sq);
-		});
-		if (empty && safe) moves.push_back(Move(from, longTo, MoveFlag::LongCastle));
+		if (empty) {
+			const bool safe = std::all_of(longSafe.begin(), longSafe.end(), [&](const int sq) {
+				return !IsSquareAttacked<!side>(sq);
+			});
+			if (safe) moves.push_back(Move(from, longTo, MoveFlag::LongCastle));
+		}
 	}
 }
 
