@@ -697,7 +697,7 @@ int Search::Evaluate(const Board &board, const int level) {
 	Statistics.Evaluations += 1;
 	//if (NeuralEvaluate(Accumulator, board.Turn) != NeuralEvaluate(board)) cout << "!" << endl;
 	//return NeuralEvaluate(board);
-	return NeuralEvaluate((*Accumulators)[level], board.Turn);
+	return NeuralEvaluate((*Accumulators)[level], board.Turn, board.HalfmoveClock);
 }
 
 int Search::DrawEvaluation() {

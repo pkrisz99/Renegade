@@ -19,7 +19,7 @@ INCBIN(DefaultNetwork, NETWORK_NAME);
 const NetworkRepresentation* Network;
 std::unique_ptr<NetworkRepresentation> ExternalNetwork;
 
-int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
+int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn, const int halfmoveClock) {
 	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.White : acc.Black;
 	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.Black : acc.White;
 	int32_t output = 0;
@@ -62,6 +62,8 @@ int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
 	output = (output / QA + Network->OutputBias) * Scale / Q; // Square Clipped ReLU
 	//output = (output + Network->OutputBias) * Scale / Q;    // Clipped ReLU
 
+	output = output * (256 - halfmoveClock) / 256;
+
 	return std::clamp(output, -MateThreshold + 1, MateThreshold - 1);
 }
 
@@ -83,7 +85,7 @@ int NeuralEvaluate(const Board& board) {
 		acc.AddFeature(FeatureIndexes(piece, sq));
 	}
 
-	return NeuralEvaluate(acc, board.Turn);
+	return NeuralEvaluate(acc, board.Turn, board.HalfmoveClock);
 }
 
 void LoadExternalNetwork(const std::string& filename) {

@@ -56,7 +56,7 @@ void LoadDefaultNetwork();
 void LoadExternalNetwork(const std::string& filename);
 
 int NeuralEvaluate(const Board &board);
-int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn);
+int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn, const int halfmoveClock);
 
 inline int32_t ClippedReLU(const int16_t value) {
 	return std::clamp<int32_t>(value, 0, QA);
