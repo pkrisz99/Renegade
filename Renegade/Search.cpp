@@ -152,6 +152,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 	SetupAccumulators(board);
 	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
 	std::fill(CutoffCount.begin(), CutoffCount.end(), 0);
+	std::fill(DoubleExtensions.begin(), DoubleExtensions.end(), 0);
 
 	// Early exit for only one legal move (no legal moves are handled separately)
 	if (!DatagenMode && ((params.wtime != 0) || (params.btime != 0))) {
@@ -441,6 +442,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			Heuristics.KillerMoves[level + 2][1] = EmptyMove;
 		}
 		if (level + 1 < MaxDepth) CutoffCount[level + 1] = 0;
+		if (level > 0) DoubleExtensions[level] = DoubleExtensions[level - 1];
 	}
 
 	// Iterate through legal moves
@@ -489,8 +491,16 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			ExcludedMoves[level] = m;
 			const int singularScore = SearchRecursive(board, singularDepth, level, singularBeta - 1, singularBeta, false);
 			ExcludedMoves[level] = EmptyMove;
-
-			if (singularScore < singularBeta) extension = 1;
+				
+			if (singularScore < singularBeta) {
+				if (!pvNode && (singularScore < singularBeta - 30) && (DoubleExtensions[level] < 6)) {
+					extension = 2;
+					DoubleExtensions[level] += 1;
+				}
+				else {
+					extension = 1;
+				}
+			}
 			else if (!pvNode && (singularBeta >= beta)) return singularBeta; // Multicut
 		}
 
