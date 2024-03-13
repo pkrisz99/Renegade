@@ -10,7 +10,6 @@
 // - Evaluation.cpp : handcrafted board evaluation (normally isn't used)
 // - Neurals.cpp    : NNUE board evaluation (default)
 // - Datagen.cpp    : data generation tool for NNUE networks
-// - Tuner.cpp      : tuner for the handcrafted evaluation
 // - Reporting.cpp  : output structure used by search & displaying search results
 // - Magics.cpp     : magic bitboard stuff for sliding pieces
 // - Utils.cpp      : other misc functions, lookup tables and shared variables

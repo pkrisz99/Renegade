@@ -68,11 +68,6 @@ void Engine::Start() {
 			continue;
 		}
 
-		/*
-		if (cmd == "tuner") {
-			Tuning tuner = Tuning();
-			continue;
-		}*/
 		if (cmd == "datagen") {
 			Datagen datagen = Datagen();
 			datagen.Start();
@@ -365,12 +360,8 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "nnue") {
-			cout << "Arch: 768->" << HiddenSize << "x2" << "->1 (SCReLU activation)" << endl;
-			continue;
-		}
-
-		if (parts[0] == "loadnnue") {
-			LoadExternalNetwork(parts[1]);
+			cout << "Arch: " << FeatureSize << "->" << HiddenSize << "x2" << "->1 (SCReLU activation)" << endl;
+			cout << "Net name: " << NETWORK_NAME << endl;
 			continue;
 		}
 

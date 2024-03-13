@@ -158,7 +158,6 @@
     <ClCompile Include="Renegade.cpp" />
     <ClCompile Include="Reporting.cpp" />
     <ClCompile Include="Search.cpp" />
-    <ClCompile Include="Tuning.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -172,7 +171,6 @@
     <ClInclude Include="Neurals.h" />
     <ClInclude Include="Reporting.h" />
     <ClInclude Include="Search.h" />
-    <ClInclude Include="Tuning.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
