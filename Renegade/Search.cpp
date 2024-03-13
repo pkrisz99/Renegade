@@ -54,12 +54,12 @@ void Search::Perft(Board& board, const int depth, const PerftType type) const {
 }
 
 uint64_t Search::PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) const {
-	std::vector<Move> moves;
+	MoveList moves{};
 	board.GenerateMoves(moves, MoveGen::All, Legality::Pseudolegal);
 	if ((type == PerftType::PerftDiv) && (originalDepth == depth)) cout << "Legal moves (" << moves.size() << "): " << endl;
 	uint64_t count = 0;
-	for (const Move& m : moves) {
-		if (!board.IsLegalMove(m)) continue;
+	for (const auto& m : moves) {
+		if (!board.IsLegalMove(m.move)) continue;
 		uint64_t r;
 		if (depth == 1) {
 			r = 1;
@@ -67,11 +67,11 @@ uint64_t Search::PerftRecursive(Board& board, const int depth, const int origina
 		}
 		else {
 			Board b = board;
-			b.Push(m);
+			b.Push(m.move);
 			r = PerftRecursive(b, depth - 1, originalDepth, type);
 			count += r;
 		}
-		if ((originalDepth == depth) && (type == PerftType::PerftDiv)) cout << " - " << m.ToString() << " : " << r << endl;
+		if ((originalDepth == depth) && (type == PerftType::PerftDiv)) cout << " - " << m.move.ToString() << " : " << r << endl;
 	}
 	return count;
 }
@@ -156,15 +156,16 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 
 	// Early exit for only one legal move (no legal moves are handled separately)
 	if (!DatagenMode && ((params.wtime != 0) || (params.btime != 0))) {
-		std::vector<Move> rootLegalMoves;
+		MoveList rootLegalMoves{};
 		board.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
 		if (rootLegalMoves.size() == 1) {
 			const int eval = Evaluate(board, 0);
 			cout << "info string Only one legal move!" << endl;
 			cout << "info depth 1 score cp " << ToCentipawns(eval, board.GetPlys()) << " nodes 0" << endl;
-			PrintBestmove(rootLegalMoves.front());
+			const Move onlyMove = rootLegalMoves[0].move;
+			PrintBestmove(onlyMove);
 			Aborting.store(true, std::memory_order_relaxed);
-			return Results(eval, rootLegalMoves, 1, Statistics, 0, 0, 0, board.GetPlys()); // hack: rootLegalMoves is a vector already
+			return Results(eval, {onlyMove}, 1, Statistics, 0, 0, 0, board.GetPlys()); // hack: rootLegalMoves is a vector already
 		}
 	}
 
@@ -422,19 +423,10 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	const uint64_t opponentAttacks = board.CalculateAttackedSquares(!board.Turn); // ^ to do: make a stack variable for it
 
 	if (!singularSearch) {
-		MoveList.clear();
-		board.GenerateMoves(MoveList, MoveGen::All, Legality::Pseudolegal);
-
-		// Move ordering
-		MoveOrder[level].clear();
-		for (const Move& m : MoveList) {
-			const bool losingCapture = board.IsMoveQuiet(m) ? false : !StaticExchangeEval(board, m, 0);
-			const int orderScore = Heuristics.CalculateOrderScore(board, m, level, ttMove, MoveStack, losingCapture, true, opponentAttacks);
-			MoveOrder[level].push_back({ m, orderScore });
-		}
-		std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
-			return get<1>(t1) > get<1>(t2);
-		});
+		// Generating moves and move ordering
+		MoveListStack[level].reset();
+		board.GenerateMoves(MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
+		OrderMoves(board, MoveListStack[level], level, ttMove, opponentAttacks);
 
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) {
@@ -454,7 +446,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	std::vector<Move> quietsTried;
 	quietsTried.reserve(30); // <-- ???
 
-	for (const auto& [m, order] : MoveOrder[level]) {
+	for (const auto& [m, order] : MoveListStack[level]) {
 		if (m == excludedMove) continue;
 		if (!board.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
@@ -645,24 +637,15 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 		Statistics.TranspositionHits += 1;
 	}
 
-	// Generate noisy moves
-	MoveList.clear();
-	board.GenerateMoves(MoveList, MoveGen::Noisy, Legality::Pseudolegal);
-
-	// Order noisy moves
-	MoveOrder[level].clear();
-	for (const Move& m : MoveList) {
-		const int orderScore = Heuristics.CalculateOrderScore(board, m, level, EmptyMove, MoveStack, false, false, 0);
-		MoveOrder[level].push_back({ m, orderScore });
-	}
-	std::stable_sort(MoveOrder[level].begin(), MoveOrder[level].end(), [](auto const& t1, auto const& t2) {
-		return get<1>(t1) > get<1>(t2);
-	});
+	// Generate noisy moves and order them
+	MoveListStack[level].reset();
+	board.GenerateMoves(MoveListStack[level], MoveGen::Noisy, Legality::Pseudolegal);
+	OrderMovesQ(board, MoveListStack[level], level);
 
 	// Search recursively
 	int bestScore = staticEval;
 	int scoreType = ScoreType::UpperBound;
-	for (const auto& [m, order] : MoveOrder[level]) {
+	for (const auto& [m, order] : MoveListStack[level]) {
 		if (!board.IsLegalMove(m)) continue;
 		if (!StaticExchangeEval(board, m, 0)) continue; // Quiescence search SEE pruning (+39 elo)
 		Statistics.Nodes += 1;
@@ -798,6 +781,30 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 
 	// If after the exchange it's our opponent's turn, that means we won
 	return turn != board.Turn;
+}
+
+// Move ordering ----------------------------------------------------------------------------------
+
+void Search::OrderMoves(const Board& board, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks) {
+
+	for (ScoredMove& m : ml) {
+		const bool losingCapture = board.IsMoveQuiet(m.move) ? false : !StaticExchangeEval(board, m.move, 0);
+		m.orderScore = Heuristics.CalculateOrderScore(board, m.move, level, ttMove, MoveStack, losingCapture, true, opponentAttacks);
+	}
+	std::stable_sort(ml.begin(), ml.end(), [](auto const& t1, auto const& t2) {
+		return t1.orderScore > t2.orderScore;
+	});
+
+}
+
+void Search::OrderMovesQ(const Board& board, MoveList& ml, const int level) {
+
+	for (auto& m : ml) {
+		m.orderScore = Heuristics.CalculateOrderScore(board, m.move, level, NullMove, MoveStack, false, false, 0);
+	}
+	std::stable_sort(ml.begin(), ml.end(), [](auto const& t1, auto const& t2) {
+		return t1.orderScore > t2.orderScore;
+	});
 }
 
 // Accumulators for neural networks ---------------------------------------------------------------

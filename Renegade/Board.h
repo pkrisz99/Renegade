@@ -32,7 +32,7 @@ public:
 	uint64_t Hash() const;
 	uint64_t HashInternal();
 
-	void GenerateMoves(std::vector<Move>& moves, const MoveGen moveGen, const Legality legality);
+	void GenerateMoves(MoveList& moves, const MoveGen moveGen, const Legality legality);
 	template <bool attackingSide> uint64_t CalculateAttackedSquaresTemplated() const;
 	uint64_t CalculateAttackedSquares(const bool attackingSide) const;
 	bool IsLegalMove(const Move& m);
@@ -90,12 +90,12 @@ private:
 	void GenerateOccupancy();
 	void TryMove(const Move& move);
 
-	template <bool side, MoveGen moveGen> void GeneratePseudolegalMoves(std::vector<Move>& moves) const;
-	template <bool side, MoveGen moveGen> void GenerateKnightMoves(std::vector<Move>& moves, const int home) const;
-	template <bool side, MoveGen moveGen> void GenerateKingMoves(std::vector<Move>& moves, const int home) const;
-	template <bool side, MoveGen moveGen> void GeneratePawnMoves(std::vector<Move>& moves, const int home) const;
-	template <bool side> void GenerateCastlingMoves(std::vector<Move>& moves) const;
-	template <bool side, int pieceType, MoveGen moveGen> void GenerateSlidingMoves(std::vector<Move>& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) const;
+	template <bool side, MoveGen moveGen> void GeneratePseudolegalMoves(MoveList& moves) const;
+	template <bool side, MoveGen moveGen> void GenerateKnightMoves(MoveList& moves, const int home) const;
+	template <bool side, MoveGen moveGen> void GenerateKingMoves(MoveList& moves, const int home) const;
+	template <bool side, MoveGen moveGen> void GeneratePawnMoves(MoveList& moves, const int home) const;
+	template <bool side> void GenerateCastlingMoves(MoveList& moves) const;
+	template <bool side, int pieceType, MoveGen moveGen> void GenerateSlidingMoves(MoveList& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) const;
 
 	uint64_t GenerateKnightAttacks(const int from) const;
 	uint64_t GenerateKingAttacks(const int from) const;
