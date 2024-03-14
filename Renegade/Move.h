@@ -147,7 +147,7 @@ struct MoveList {
 	}
 
 	inline std::size_t size() const {
-		return moves.size();
+		return count;
 	}
 
 	inline void reset() {

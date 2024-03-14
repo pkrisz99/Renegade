@@ -436,6 +436,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		if (level + 1 < MaxDepth) CutoffCount[level + 1] = 0;
 		if (level > 0) DoubleExtensions[level] = DoubleExtensions[level - 1];
 	}
+	MovePicker movePicker(MoveListStack[level]);
 
 	// Iterate through legal moves
 	int scoreType = ScoreType::UpperBound;
@@ -446,7 +447,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	std::vector<Move> quietsTried;
 	quietsTried.reserve(30); // <-- ???
 
-	for (const auto& [m, order] : MoveListStack[level]) {
+	while (movePicker.hasNext()) {
+		const auto& [m, order] = movePicker.get();
 		if (m == excludedMove) continue;
 		if (!board.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
@@ -641,11 +643,13 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 	MoveListStack[level].reset();
 	board.GenerateMoves(MoveListStack[level], MoveGen::Noisy, Legality::Pseudolegal);
 	OrderMovesQ(board, MoveListStack[level], level);
+	MovePicker movePicker(MoveListStack[level]);
 
 	// Search recursively
 	int bestScore = staticEval;
 	int scoreType = ScoreType::UpperBound;
-	for (const auto& [m, order] : MoveListStack[level]) {
+	while (movePicker.hasNext()) {
+		const auto& [m, order] = movePicker.get();
 		if (!board.IsLegalMove(m)) continue;
 		if (!StaticExchangeEval(board, m, 0)) continue; // Quiescence search SEE pruning (+39 elo)
 		Statistics.Nodes += 1;
@@ -786,25 +790,16 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 // Move ordering ----------------------------------------------------------------------------------
 
 void Search::OrderMoves(const Board& board, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks) {
-
-	for (ScoredMove& m : ml) {
+	for (auto& m : ml) {
 		const bool losingCapture = board.IsMoveQuiet(m.move) ? false : !StaticExchangeEval(board, m.move, 0);
 		m.orderScore = Heuristics.CalculateOrderScore(board, m.move, level, ttMove, MoveStack, losingCapture, true, opponentAttacks);
 	}
-	std::stable_sort(ml.begin(), ml.end(), [](auto const& t1, auto const& t2) {
-		return t1.orderScore > t2.orderScore;
-	});
-
 }
 
 void Search::OrderMovesQ(const Board& board, MoveList& ml, const int level) {
-
 	for (auto& m : ml) {
 		m.orderScore = Heuristics.CalculateOrderScore(board, m.move, level, NullMove, MoveStack, false, false, 0);
 	}
-	std::stable_sort(ml.begin(), ml.end(), [](auto const& t1, auto const& t2) {
-		return t1.orderScore > t2.orderScore;
-	});
 }
 
 // Accumulators for neural networks ---------------------------------------------------------------
