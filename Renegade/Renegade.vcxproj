@@ -152,7 +152,6 @@
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Evaluation.cpp" />
     <ClCompile Include="Magics.cpp" />
-    <ClCompile Include="Move.cpp" />
     <ClCompile Include="Heuristics.cpp" />
     <ClCompile Include="Neurals.cpp" />
     <ClCompile Include="Renegade.cpp" />
