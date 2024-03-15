@@ -293,12 +293,11 @@ bool Board::PushUci(const std::string& ucistr) {
 	}
 
 	// Generate the list of valid moves
-	std::vector<Move> legalMoves;
-	legalMoves.reserve(7);
+	MoveList legalMoves{};
 	GenerateMoves(legalMoves, MoveGen::All, Legality::Legal);
 	bool valid = false;
-	for (const Move &m : legalMoves) {
-		if ((m.to == move.to) && (m.from == move.from) && (m.flag == move.flag)) {
+	for (const auto& m : legalMoves) {
+		if ((m.move.to == move.to) && (m.move.from == move.from) && (m.move.flag == move.flag)) {
 			valid = true;
 			break;
 		}
@@ -526,31 +525,31 @@ bool Board::IsMoveQuiet(const Move& move) const {
 // Generating moves -------------------------------------------------------------------------------
 
 template <bool side, MoveGen moveGen>
-void Board::GenerateKingMoves(std::vector<Move>& moves, const int home) const {
+void Board::GenerateKingMoves(MoveList& moves, const int home) const {
 	constexpr uint8_t friendlyPieceColor = (side == Side::White) ? PieceColor::White : PieceColor::Black;
 	constexpr uint8_t opponentPieceColor = (side == Side::White) ? PieceColor::Black : PieceColor::White;
 	uint64_t bits = KingMoveBits[home];
 	while (bits) {
 		const uint8_t l = Popsquare(bits);
 		if (ColorOfPiece(GetPieceAt(l)) == friendlyPieceColor) continue;
-		if ((moveGen == MoveGen::All) || (ColorOfPiece(GetPieceAt(l)) == opponentPieceColor)) moves.push_back(Move(home, l));
+		if ((moveGen == MoveGen::All) || (ColorOfPiece(GetPieceAt(l)) == opponentPieceColor)) moves.pushUnscored(Move(home, l));
 	}
 }
 
 template <bool side, MoveGen moveGen>
-void Board::GenerateKnightMoves(std::vector<Move>& moves, const int home) const {
+void Board::GenerateKnightMoves(MoveList& moves, const int home) const {
 	constexpr uint8_t friendlyPieceColor = (side == Side::White) ? PieceColor::White : PieceColor::Black;
 	constexpr uint8_t opponentPieceColor = (side == Side::White) ? PieceColor::Black : PieceColor::White;
 	uint64_t bits = KnightMoveBits[home];
 	while (bits) {
 		const uint8_t l = Popsquare(bits);
 		if (ColorOfPiece(GetPieceAt(l)) == friendlyPieceColor) continue;
-		if ((moveGen == MoveGen::All) || (ColorOfPiece(GetPieceAt(l)) == opponentPieceColor)) moves.push_back(Move(home, l));
+		if ((moveGen == MoveGen::All) || (ColorOfPiece(GetPieceAt(l)) == opponentPieceColor)) moves.pushUnscored(Move(home, l));
 	}
 }
 
 template <bool side, int pieceType, MoveGen moveGen>
-void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) const {
+void Board::GenerateSlidingMoves(MoveList& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) const {
 	const uint64_t friendlyOccupance = (side == PieceColor::White) ? whiteOccupancy : blackOccupancy;
 	const uint64_t opponentOccupance = (side == PieceColor::White) ? blackOccupancy : whiteOccupancy;
 	const uint64_t occupancy = whiteOccupancy | blackOccupancy;
@@ -565,12 +564,12 @@ void Board::GenerateSlidingMoves(std::vector<Move>& moves, const int home, const
 
 	while (map != 0) {
 		const int sq = Popsquare(map);
-		moves.push_back(Move(home, sq));
+		moves.pushUnscored(Move(home, sq));
 	}
 }
 
 template <bool side, MoveGen moveGen>
-void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
+void Board::GeneratePawnMoves(MoveList& moves, const int home) const {
 
 	constexpr int promotionRank = (side == Side::White) ? 7 : 0;
 	constexpr int doublePushRank = (side == Side::White) ? 1 : 6;
@@ -592,14 +591,14 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 	target = home + forwardDelta;
 	if (GetPieceAt(target) == Piece::None) {
 		if (GetSquareRank(target) != promotionRank) {
-			if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, target));
+			if constexpr (moveGen == MoveGen::All) moves.pushUnscored(Move(home, target));
 		}
 		else { // Promote
-			moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
+			moves.pushUnscored(Move(home, target, MoveFlag::PromotionToQueen));
 			if constexpr (moveGen == MoveGen::All) {
-				moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-				moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-				moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
+				moves.pushUnscored(Move(home, target, MoveFlag::PromotionToRook));
+				moves.pushUnscored(Move(home, target, MoveFlag::PromotionToBishop));
+				moves.pushUnscored(Move(home, target, MoveFlag::PromotionToKnight));
 			}
 		}
 	}
@@ -614,14 +613,14 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 		if ((file != wrongFile) && ((ColorOfPiece(GetPieceAt(target)) == opponentPieceColor) || (target == EnPassantSquare))) {
 			if (GetSquareRank(target) != promotionRank) {
 				const uint8_t moveFlag = (target == EnPassantSquare) ? MoveFlag::EnPassantPerformed : MoveFlag::None;
-				moves.push_back(Move(home, target, moveFlag));
+				moves.pushUnscored(Move(home, target, moveFlag));
 			}
 			else { // Promote
-				moves.push_back(Move(home, target, MoveFlag::PromotionToQueen));
+				moves.pushUnscored(Move(home, target, MoveFlag::PromotionToQueen));
 				if constexpr (moveGen == MoveGen::All) {
-					moves.push_back(Move(home, target, MoveFlag::PromotionToRook));
-					moves.push_back(Move(home, target, MoveFlag::PromotionToBishop));
-					moves.push_back(Move(home, target, MoveFlag::PromotionToKnight));
+					moves.pushUnscored(Move(home, target, MoveFlag::PromotionToRook));
+					moves.pushUnscored(Move(home, target, MoveFlag::PromotionToBishop));
+					moves.pushUnscored(Move(home, target, MoveFlag::PromotionToKnight));
 				}
 			}
 		}
@@ -632,14 +631,14 @@ void Board::GeneratePawnMoves(std::vector<Move>& moves, const int home) const {
 		const bool free1 = GetPieceAt(home + forwardDelta) == Piece::None;
 		const bool free2 = GetPieceAt(home + doublePushDelta) == Piece::None;
 		if (free1 && free2) {
-			if constexpr (moveGen == MoveGen::All) moves.push_back(Move(home, home + doublePushDelta, MoveFlag::EnPassantPossible));
+			if constexpr (moveGen == MoveGen::All) moves.pushUnscored(Move(home, home + doublePushDelta, MoveFlag::EnPassantPossible));
 		}
 	}
 
 }
 
 template <bool side>
-void Board::GenerateCastlingMoves(std::vector<Move>& moves) const {
+void Board::GenerateCastlingMoves(MoveList& moves) const {
 
 	using namespace Squares;
 
@@ -662,7 +661,7 @@ void Board::GenerateCastlingMoves(std::vector<Move>& moves) const {
 			const bool safe = std::all_of(shortSafe.begin(), shortSafe.end(), [&](const int sq) {
 				return !IsSquareAttacked<!side>(sq);
 			});
-			if (safe) moves.push_back(Move(from, shortTo, MoveFlag::ShortCastle));
+			if (safe) moves.pushUnscored(Move(from, shortTo, MoveFlag::ShortCastle));
 		}
 	}
 	if (rightToLongCastle) {
@@ -673,12 +672,12 @@ void Board::GenerateCastlingMoves(std::vector<Move>& moves) const {
 			const bool safe = std::all_of(longSafe.begin(), longSafe.end(), [&](const int sq) {
 				return !IsSquareAttacked<!side>(sq);
 			});
-			if (safe) moves.push_back(Move(from, longTo, MoveFlag::LongCastle));
+			if (safe) moves.pushUnscored(Move(from, longTo, MoveFlag::LongCastle));
 		}
 	}
 }
 
-void Board::GenerateMoves(std::vector<Move>& moves, const MoveGen moveGen, const Legality legality) {
+void Board::GenerateMoves(MoveList& moves, const MoveGen moveGen, const Legality legality) {
 
 	if (legality == Legality::Pseudolegal) {
 		if (moveGen == MoveGen::All) {
@@ -691,7 +690,7 @@ void Board::GenerateMoves(std::vector<Move>& moves, const MoveGen moveGen, const
 		}
 	}
 	else {
-		std::vector<Move> legalMoves;
+		MoveList legalMoves{};
 		if (moveGen == MoveGen::All) {
 			if (Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::All>(legalMoves);
 			else GeneratePseudolegalMoves<Side::Black, MoveGen::All>(legalMoves);
@@ -700,14 +699,14 @@ void Board::GenerateMoves(std::vector<Move>& moves, const MoveGen moveGen, const
 			if (Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(legalMoves);
 			else GeneratePseudolegalMoves<Side::Black, MoveGen::Noisy>(legalMoves);
 		}
-		for (const Move& m : legalMoves) {
-			if (IsLegalMove(m)) moves.push_back(m);
+		for (const auto& m : legalMoves) {
+			if (IsLegalMove(m.move)) moves.pushUnscored(m.move);
 		}
 	}
 }
 
 template <bool side, MoveGen moveGen>
-void Board::GeneratePseudolegalMoves(std::vector<Move>& moves) const {
+void Board::GeneratePseudolegalMoves(MoveList& moves) const {
 	const uint64_t whiteOccupancy = GetOccupancy(Side::White);
 	const uint64_t blackOccupancy = GetOccupancy(Side::Black);
 	uint64_t friendlyOccupancy = (Turn == Side::White) ? whiteOccupancy : blackOccupancy;
@@ -866,7 +865,7 @@ bool Board::IsDraw(const bool threefold) const {
 GameState Board::GetGameState() {
 
 	// Check checkmates & stalemates
-	std::vector<Move> moves{};
+	MoveList moves{};
 	GenerateMoves(moves, MoveGen::All, Legality::Legal);
 	if (moves.size() == 0) {
 		if (IsInCheck()) {

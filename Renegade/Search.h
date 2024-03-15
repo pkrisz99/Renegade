@@ -43,6 +43,9 @@ private:
 	int DrawEvaluation();
 	void ResetStatistics();
 
+	void OrderMoves(const Board& board, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks);
+	void OrderMovesQ(const Board& board, MoveList& ml, const int level);
+
 	// NNUE
 	void SetupAccumulators(const Board& board);
 	void UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level);
@@ -58,8 +61,7 @@ private:
 	SearchConstraints Constraints;
 
 	// Reused variables / stack
-	std::vector<Move> MoveList;
-	std::array<std::vector<std::tuple<Move, int>>, MaxDepth> MoveOrder;
+	std::array<MoveList, MaxDepth> MoveListStack{};
 	std::array<Board, MaxDepth> Boards;
 	std::array<int, MaxDepth> StaticEvalStack;
 	std::array<int, MaxDepth> EvalStack;

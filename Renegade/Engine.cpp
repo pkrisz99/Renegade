@@ -139,15 +139,15 @@ void Engine::Start() {
 			if (parts[1] == "fullmovecounter") cout << "Full move counter: " << board.FullmoveClock << endl;
 			if (parts[1] == "plys") cout << "Game plys: " << board.GetPlys() << endl;
 			if (parts[1] == "pseudolegal") {
-				std::vector<Move> pseudoMoves;
+				MoveList pseudoMoves{};
 				board.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
-				for (const Move &m : pseudoMoves) cout << m.ToString() << " ";
+				for (const auto& m : pseudoMoves) cout << m.move.ToString() << " ";
 				cout << endl;
 			}
 			if (parts[1] == "legal") {
-				std::vector<Move> moves;
+				MoveList moves{};
 				board.GenerateMoves(moves, MoveGen::All, Legality::Legal);
-				for (const Move& m : moves) cout << m.ToString() << " ";
+				for (const auto& m : moves) cout << m.move.ToString() << " ";
 				cout << endl;
 			}
 			if (parts[1] == "hash") {
