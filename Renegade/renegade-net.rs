@@ -9,20 +9,20 @@ fn main() {
         .quantisations(&[255, 64])
         .input(inputs::Chess768)
         .output_buckets(outputs::Single)
-        .feature_transformer(512)
+        .feature_transformer(768)
         .activate(Activation::SCReLU)
         .add_layer(1)
         .build();  //trainer.load_from_checkpoint("checkpoints/testnet");
 
     let schedule = TrainingSchedule {
-        net_id: "renegade-net-14".to_string(),
+        net_id: "renegade-net-15".to_string(),
         batch_size: 16384,
         eval_scale: 400.0,
         start_epoch: 1,
         end_epoch: 25,
         wdl_scheduler: WdlScheduler::Linear {
-            start: 0.2,
-            end: 0.5,
+            start: 0.3,
+            end: 0.6,
         },
         lr_scheduler: LrScheduler::Step {
             start: 0.001,
