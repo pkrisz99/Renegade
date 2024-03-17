@@ -385,9 +385,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	if (!pvNode && !inCheck && !singularSearch) {
 
 		// Reverse futility pruning (+128 elo)
-		const int rfpMarginDefault[] = { 0, 90, 180, 270, 360, 450, 540, 630 };
+		const int rfpMargin = depth * 90 - improving * 90;
 		if ((depth <= 7) && (std::abs(beta) < MateThreshold)) {
-			const int rfpMargin = improving ? rfpMarginDefault[depth - 1] : rfpMarginDefault[depth];
 			if (eval - rfpMargin > beta) return eval;
 		}
 
@@ -407,9 +406,9 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		}
 
 		// Futility pruning (+37 elo)
-		const int futilityMargins[] = { 0, 130, 230, 330, 430, 530 };
+		const int futilityMargin = 30 + depth * 100;
 		if ((depth <= 5) && (std::abs(beta) < MateThreshold)) {
-			futilityPrunable = (eval + futilityMargins[depth] < alpha);
+			futilityPrunable = (eval + futilityMargin < alpha);
 		}
 	}
 
@@ -459,19 +458,19 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		if (!pvNode && (bestScore > -MateThreshold) && (order < 90000) && !DatagenMode) {
 
 			// Late-move pruning (+9 elo)
-			const int lmpCount[] = { 0, 4, 7, 12, 19 };
+			const int lmpCount = 3 + depth * depth;
 			if (isQuiet && !inCheck && (depth < 5)) {
-				if (legalMoveCount > lmpCount[depth]) break;
+				if (legalMoveCount > lmpCount) break;
 			}
 
 			// Performing futility pruning
 			if (isQuiet && (alpha < MateThreshold) && futilityPrunable) break;
 
 			// Main search SEE pruning (+20 elo)
-			const int seeQuietMargin[] = { 0, -50, -100, -150, -200, -250, -300, -350 };
-			const int seeNoisyMargin[] = { 0, -100, -200, -300, -400, -500, -600, -700 };
+			const int seeQuietMargin = -50 * depth;
+			const int seeNoisyMargin = -100 * depth;
 			if (depth <= 5) {
-				const int seeMargin = isQuiet ? seeQuietMargin[depth] : seeNoisyMargin[depth];
+				const int seeMargin = isQuiet ? seeQuietMargin : seeNoisyMargin;
 				if (!StaticExchangeEval(board, m, seeMargin)) continue;
 			}
 		}
