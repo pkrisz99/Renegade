@@ -68,6 +68,7 @@ private:
 	std::array<MoveAndPiece, MaxDepth> MoveStack;
 	std::array<int, MaxDepth> CutoffCount;
 	std::array<int, MaxDepth> DoubleExtensions;
+	std::array<int, MaxDepth> FunnyExtensions;
 	std::array<Move, MaxDepth> ExcludedMoves;
 
 	std::array<std::array<int, 32>, 32> LMRTable;

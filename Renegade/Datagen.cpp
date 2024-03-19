@@ -286,3 +286,93 @@ void Datagen::MergeFiles() const {
 	cout << "\nComplete.\n" << endl;
 
 }
+
+void Datagen::CollectData() const {
+	cout << "\nCollecting data...\n";
+
+	// Ask for filename
+	cout << "Filename? ";
+	std::string filename;
+	cin >> filename;
+	cout << endl;
+
+	// Read the file
+	std::ifstream ifs(filename);
+	std::string line;
+
+	int counter = 0;
+	double errorSum = 0;
+
+	std::array<int, 1000> sums{};
+	std::array<int, 1000> counts{};
+
+	while (std::getline(ifs, line)) {
+		const std::vector<std::string> parts = Split(line);
+		const int ply = (stoi(parts[5]) - 1) * 2 + (parts[1] == "w" ? 0 : 1);
+
+		std::string fen = parts[0] + " " + parts[1] + " " + parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5];
+		Board board(fen);
+
+
+		
+		int threats = [&]{
+			const uint64_t whiteAttacks = board.CalculateAttackedSquaresTemplated<Side::White>();
+			const uint64_t whiteThreats = whiteAttacks & board.GetOccupancy(Side::Black);
+			const uint64_t blackAttacks = board.CalculateAttackedSquaresTemplated<Side::Black>();
+			const uint64_t blackThreats = blackAttacks & board.GetOccupancy(Side::White);
+			
+			int whiteThreatScore = 0;
+			whiteThreatScore += Popcount(whiteThreats & board.BlackPawnBits) * 1;
+			whiteThreatScore += Popcount(whiteThreats & board.BlackKnightBits) * 4;
+			whiteThreatScore += Popcount(whiteThreats & board.BlackBishopBits) * 4;
+			whiteThreatScore += Popcount(whiteThreats & board.BlackRookBits) * 6;
+			whiteThreatScore += Popcount(whiteThreats & board.BlackQueenBits) * 11;
+			whiteThreatScore += Popcount(whiteThreats & board.BlackKingBits) * 11;
+
+			int blackThreatScore = 0;
+			blackThreatScore += Popcount(blackThreats & board.WhitePawnBits) * 1;
+			blackThreatScore += Popcount(blackThreats & board.WhiteKnightBits) * 4;
+			blackThreatScore += Popcount(blackThreats & board.WhiteBishopBits) * 4;
+			blackThreatScore += Popcount(blackThreats & board.WhiteRookBits) * 6;
+			blackThreatScore += Popcount(blackThreats & board.WhiteQueenBits) * 11;
+			blackThreatScore += Popcount(blackThreats & board.WhiteKingBits) * 11;
+
+			int x = (whiteThreatScore * 2);
+			int y = (blackThreatScore * 2);
+
+			return std::sqrt(x + y);
+		}();
+		
+		//const double norm = 260.0;
+		//const double wdl = std::stod(parts[9]);
+		//const double error = 1 / (1 + std::exp(-eval / norm)) - wdl;
+		//cout << wdl << " " << eval << " -> " << error << endl;
+
+		const int searchEval = std::stoi(parts[7]);
+		const int staticEval = NeuralEvaluate(board) * (board.Turn ? 1 : -1);
+		const int diff = std::abs(searchEval - staticEval);
+		errorSum += std::abs(diff);
+		//cout << searchEval << " " << staticEval << endl;
+	
+		sums[threats] += diff;
+		counts[threats] += 1;
+
+
+		counter++;
+		if (counter % 1'000'000 == 0) {
+			const double error = errorSum / counter;
+			cout << counter << ": " << error << endl;
+		}
+
+	}
+
+	cout << "Entry count: " << counter << endl;
+	cout << "Complete.\n" << endl;
+
+
+	for (int i = 0; i < 20; i++) {
+		if (counts[i] != 0) cout << i << ": " << int(sums[i] / counts[i]) << " (" << counts[i] << ")" << endl;
+	}
+
+
+}

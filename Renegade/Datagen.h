@@ -21,6 +21,7 @@ public:
 	
 	void LowPlyFilter() const;
 	void MergeFiles() const;
+	void CollectData() const;
 
 	uint64_t PositionsAccepted = 0;
 	uint64_t PositionsTotal = 0;
