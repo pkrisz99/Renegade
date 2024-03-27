@@ -440,8 +440,13 @@ void Board::Push(const Move& move) {
 	else {
 		// Handle null moves efficiently
 		Turn = !Turn;
-		EnPassantSquare = -1;
-		HashValue = HashInternal();
+		if (EnPassantSquare == -1) {
+			HashValue ^= Zobrist[780];
+		}
+		else {
+			EnPassantSquare = -1;
+			HashValue = HashInternal();
+		}
 		return;
 	}
 	GenerateOccupancy();
