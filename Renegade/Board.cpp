@@ -440,6 +440,7 @@ void Board::Push(const Move& move) {
 	else {
 		// Handle null moves efficiently
 		Turn = !Turn;
+		HalfmoveClock += 1;
 		if (EnPassantSquare == -1) {
 			HashValue ^= Zobrist[780];
 		}

@@ -391,17 +391,27 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		}
 
 		// Null-move pruning (+33 elo)
-		if ((depth >= 3) && canNullMove && (eval >= beta) && board.ShouldNullMovePrune()) {
+		if ((depth >= 3) && canNullMove && (level >= MinLevelForNMP) && (eval >= beta) && board.ShouldNullMovePrune()) {
 			int nmpReduction = 3 + depth / 3 + std::min((eval - beta) / 200, 3);
 			nmpReduction = std::min(nmpReduction, depth);
+
 			Boards[level] = board;
 			Boards[level].Push(NullMove);
+			Heuristics.PrefetchTranspositionEntry(Boards[level].Hash());
 			UpdateAccumulators(NullMove, 0, 0, level);
-			MoveStack[level].move = NullMove;
-			MoveStack[level].piece = Piece::None;
-			const int nullMoveEval = -SearchRecursive(Boards[level], depth - nmpReduction, level + 1, -beta, -beta + 1, false);
-			if (nullMoveEval >= beta) {
-				return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
+			MoveStack[level] = { NullMove, Piece::None };
+
+			const int nmpScore = -SearchRecursive(Boards[level], depth - nmpReduction, level + 1, -beta, -beta + 1, false);
+
+			if (nmpScore >= beta) {
+				const bool alreadyVerifying = MinLevelForNMP != 0;
+				if (depth < 12 || alreadyVerifying) return IsMateScore(nmpScore) ? beta : nmpScore;
+
+				// Verification search to prevent zugzwang blindness
+				MinLevelForNMP = level + (depth - nmpReduction) * 3 / 4;
+				const int nmpVerifScore = -SearchRecursive(board, depth - nmpReduction, level, beta - 1, beta, false);
+				MinLevelForNMP = 0;
+				if (nmpVerifScore >= beta) return nmpVerifScore;
 			}
 		}
 
