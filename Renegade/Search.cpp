@@ -487,8 +487,10 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 				
 			if (singularScore < singularBeta) {
 				if (!pvNode && (singularScore < singularBeta - 30) && (DoubleExtensions[level] < 6)) {
-					extension = 2;
-					DoubleExtensions[level] += 1;
+					const int tripleMargin = 200 + (std::abs(singularBeta) / 8);
+					const bool triple = (singularScore < singularBeta - tripleMargin) && board.IsMoveQuiet(m);
+					extension = 2 + triple;
+					DoubleExtensions[level] += 1 + triple;
 				}
 				else {
 					extension = 1;
