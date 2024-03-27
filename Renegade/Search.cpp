@@ -458,7 +458,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		if (!pvNode && (bestScore > -MateThreshold) && (order < 90000) && !DatagenMode) {
 
 			// Late-move pruning (+9 elo)
-			const int lmpCount = 3 + depth * depth;
+			const int lmpDepth = depth - !improving;
+			const int lmpCount = 3 + lmpDepth * lmpDepth;
 			if (isQuiet && !inCheck && (depth < 5)) {
 				if (legalMoveCount > lmpCount) break;
 			}
