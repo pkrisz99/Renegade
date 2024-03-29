@@ -22,8 +22,8 @@ struct TranspositionEntry {
 	uint16_t quality = 0;
 	uint8_t depth = 0;
 	uint8_t scoreType = 0;
-	uint8_t moveFrom = 0, moveTo = 0, moveFlag = 0;
-
+	uint16_t packedMove = 0;
+	
 	bool IsCutoffPermitted(const int searchDepth, const int alpha, const int beta) const;
 };
 

@@ -349,7 +349,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 				if (ttEntry.IsCutoffPermitted(depth, alpha, beta)) return ttEntry.score;
 			}
 			ttEval = ttEntry.score;
-			ttMove = Move(ttEntry.moveFrom, ttEntry.moveTo, ttEntry.moveFlag);
+			ttMove = Move(ttEntry.packedMove);
 			Statistics.TranspositionHits += 1;
 		}
 	}

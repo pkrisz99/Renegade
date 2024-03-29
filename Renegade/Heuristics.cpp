@@ -174,9 +174,7 @@ void Heuristics::AddTranspositionEntry(const uint64_t hash, const uint16_t age, 
 		if (TranspositionTable[key].hash == 0) TranspositionEntryCount += 1;
 		TranspositionTable[key].depth = depth;
 		if ((TranspositionTable[key].hash != storedHash) || (bestMove.IsNotNull())) {
-			TranspositionTable[key].moveFrom = bestMove.from;
-			TranspositionTable[key].moveTo = bestMove.to;
-			TranspositionTable[key].moveFlag = bestMove.flag;
+			TranspositionTable[key].packedMove = bestMove.Pack();
 		}
 		TranspositionTable[key].scoreType = scoreType;
 		TranspositionTable[key].hash = storedHash;
@@ -194,9 +192,7 @@ bool Heuristics::RetrieveTranspositionEntry(const uint64_t& hash, TranspositionE
 
 	if (TranspositionTable[key].hash == storedHash) {
 		entry.depth = TranspositionTable[key].depth;
-		entry.moveFrom = TranspositionTable[key].moveFrom;
-		entry.moveTo = TranspositionTable[key].moveTo;
-		entry.moveFlag = TranspositionTable[key].moveFlag;
+		entry.packedMove = TranspositionTable[key].packedMove;
 		entry.scoreType = TranspositionTable[key].scoreType;
 		entry.quality = TranspositionTable[key].quality; // not needed
 		entry.hash = storedHash;

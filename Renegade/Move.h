@@ -18,12 +18,18 @@ public:
 
 	Move() : Move(0, 0, 0) {}
 
-	Move(uint8_t from, uint8_t to) : Move(from, to, 0) {}
+	Move(const uint8_t from, const uint8_t to) : Move(from, to, 0) {}
 
-	Move(uint8_t from, uint8_t to, uint8_t flag) {
+	Move(const uint8_t from, const uint8_t to, const uint8_t flag) {
 		this->from = from;
 		this->to = to;
 		this->flag = flag;
+	}
+
+	Move(const uint16_t packedMove) {
+		from = (packedMove & 0xFC00) >> 10;
+		to = (packedMove & 0x03F0) >> 4;
+		flag = packedMove & 0x000F;
 	}
 
 	std::string ToString() const {
@@ -80,6 +86,11 @@ public:
 		case MoveFlag::PromotionToBishop: return PieceType::Bishop;
 		default: return PieceType::None;
 		}
+	}
+
+	inline uint16_t Pack() const {
+		// from: 15..10, to: 9..4, flag: 3..0
+		return (from << 10) | (to << 4) | flag;
 	}
 
 	inline bool operator== (const Move& m) const {
