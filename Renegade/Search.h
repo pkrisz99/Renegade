@@ -42,6 +42,7 @@ private:
 	bool ShouldAbort();
 	int DrawEvaluation();
 	void ResetStatistics();
+	bool IsScaryPosition(const Board& board) const;
 
 	void OrderMoves(const Board& board, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks);
 	void OrderMovesQ(const Board& board, MoveList& ml, const int level);

@@ -458,8 +458,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		if (!pvNode && (bestScore > -MateThreshold) && (order < 90000) && !DatagenMode) {
 
 			// Late-move pruning (+9 elo)
-			const int lmpCount = 3 + depth * depth;
 			if (isQuiet && !inCheck && (depth < 5)) {
+				const int lmpCount = 3 + depth * depth + (IsScaryPosition(board) * 3);
 				if (legalMoveCount > lmpCount) break;
 			}
 
@@ -689,6 +689,36 @@ int Search::Evaluate(const Board &board, const int level) {
 int Search::DrawEvaluation() {
 	// Returns a small randomized score to avoid search getting stuck in threefold lines
 	return Statistics.Nodes % 4 - 2;
+}
+
+bool Search::IsScaryPosition(const Board& board) const {
+
+	// lol
+	const uint64_t whiteAttacks = board.CalculateAttackedSquaresTemplated<Side::White>();
+	const uint64_t whiteThreats = whiteAttacks & board.GetOccupancy(Side::Black);
+	const uint64_t blackAttacks = board.CalculateAttackedSquaresTemplated<Side::Black>();
+	const uint64_t blackThreats = blackAttacks & board.GetOccupancy(Side::White);
+
+	int whiteThreatScore = 0;
+	whiteThreatScore += Popcount(whiteThreats & board.BlackPawnBits) * 1;
+	whiteThreatScore += Popcount(whiteThreats & board.BlackKnightBits) * 4;
+	whiteThreatScore += Popcount(whiteThreats & board.BlackBishopBits) * 4;
+	whiteThreatScore += Popcount(whiteThreats & board.BlackRookBits) * 6;
+	whiteThreatScore += Popcount(whiteThreats & board.BlackQueenBits) * 11;
+	whiteThreatScore += Popcount(whiteThreats & board.BlackKingBits) * 11;
+
+	int blackThreatScore = 0;
+	blackThreatScore += Popcount(blackThreats & board.WhitePawnBits) * 1;
+	blackThreatScore += Popcount(blackThreats & board.WhiteKnightBits) * 4;
+	blackThreatScore += Popcount(blackThreats & board.WhiteBishopBits) * 4;
+	blackThreatScore += Popcount(blackThreats & board.WhiteRookBits) * 6;
+	blackThreatScore += Popcount(blackThreats & board.WhiteQueenBits) * 11;
+	blackThreatScore += Popcount(blackThreats & board.WhiteKingBits) * 11;
+
+	const int x = (whiteThreatScore * 2);
+	const int y = (blackThreatScore * 2);
+
+	return (x + y >= 36);
 }
 
 // Static exchange evaluation (SEE) ---------------------------------------------------------------
