@@ -153,6 +153,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
 	std::fill(CutoffCount.begin(), CutoffCount.end(), 0);
 	std::fill(DoubleExtensions.begin(), DoubleExtensions.end(), 0);
+	std::fill(FunnyExtensions.begin(), FunnyExtensions.end(), 0);
 
 	// Early exit for only one legal move (no legal moves are handled separately)
 	if (!DatagenMode && ((params.wtime != 0) || (params.btime != 0))) {
@@ -319,10 +320,53 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	// Check for draws
 	if (!rootNode && board.IsDraw(false)) return DrawEvaluation();
 
+	FunnyExtensions[level] = FunnyExtensions[level - 1];
+
 	// Check extensions
 	const bool inCheck = board.IsInCheck();
 	if (!rootNode) {
-		if (inCheck) depth += 1;
+		const bool extend = [&] {
+			if (inCheck) return true;
+
+			if (FunnyExtensions[level] != 0) return false;
+
+			if (depth == 0) {
+				// lol
+				const uint64_t whiteAttacks = board.CalculateAttackedSquaresTemplated<Side::White>();
+				const uint64_t whiteThreats = whiteAttacks & board.GetOccupancy(Side::Black);
+				const uint64_t blackAttacks = board.CalculateAttackedSquaresTemplated<Side::Black>();
+				const uint64_t blackThreats = blackAttacks & board.GetOccupancy(Side::White);
+
+				int whiteThreatScore = 0;
+				whiteThreatScore += Popcount(whiteThreats & board.BlackPawnBits) * 1;
+				whiteThreatScore += Popcount(whiteThreats & board.BlackKnightBits) * 4;
+				whiteThreatScore += Popcount(whiteThreats & board.BlackBishopBits) * 4;
+				whiteThreatScore += Popcount(whiteThreats & board.BlackRookBits) * 6;
+				whiteThreatScore += Popcount(whiteThreats & board.BlackQueenBits) * 11;
+				whiteThreatScore += Popcount(whiteThreats & board.BlackKingBits) * 11;
+
+				int blackThreatScore = 0;
+				blackThreatScore += Popcount(blackThreats & board.WhitePawnBits) * 1;
+				blackThreatScore += Popcount(blackThreats & board.WhiteKnightBits) * 4;
+				blackThreatScore += Popcount(blackThreats & board.WhiteBishopBits) * 4;
+				blackThreatScore += Popcount(blackThreats & board.WhiteRookBits) * 6;
+				blackThreatScore += Popcount(blackThreats & board.WhiteQueenBits) * 11;
+				blackThreatScore += Popcount(blackThreats & board.WhiteKingBits) * 11;
+
+				int x = (whiteThreatScore * 2);
+				int y = (blackThreatScore * 2);
+
+				if (std::sqrt(x + y) >= 6) {
+					FunnyExtensions[level] += 1;
+					return true;
+				}
+				else
+					return false;
+
+			}
+			return false;
+		}();
+		if (extend) depth += 1;
 	}
 
 	// Drop into quiescence search at depth 0
