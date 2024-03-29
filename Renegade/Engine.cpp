@@ -228,7 +228,7 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "clear") {
-			ClearScreen(false, true);
+			Console::ClearScreen();
 			PrintHeader();
 			continue;
 		}

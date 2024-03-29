@@ -25,17 +25,6 @@ void ConvertToLowercase(std::string& str) {
 	for (int x = 0; x < str.length(); x++) str[x] = tolower(str[x]);
 }
 
-void ClearScreen(const bool endline, const bool fancy) {
-	if (fancy) {
-		cout << "\033[2J\033[1;1H";
-		if (endline) cout << endl;
-	}
-	else {
-		for (int i = 0; i < 6; i++) cout << '\n';
-		cout << endl;
-	}
-}
-
 void PrintBitboard(const uint64_t bits) {
 	cout << "\n" << bits << '\n';
 	for (int r = 7; r >= 0; r--) {

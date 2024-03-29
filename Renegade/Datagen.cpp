@@ -6,7 +6,7 @@ Datagen::Datagen() {
 
 void Datagen::Start() {
 
-	ClearScreen(false, true);
+	Console::ClearScreen();
 	cout << "Renegade's datagen tool\n" << endl;
 
 	std::string filename;

@@ -341,7 +341,6 @@ void ConvertToLowercase(std::string& str);
 std::string Trim(const std::string& str);
 bool StartsWith(const std::string& big, const std::string& small);
 std::vector<std::string> Split(const std::string& cmd);
-void ClearScreen(const bool endline, const bool fancy);
 void PrintBitboard(const uint64_t bits);
 
 namespace Console {
@@ -353,6 +352,10 @@ namespace Console {
 	const std::string Gray = "\x1b[90m";
 	const std::string Yellow = "\x1b[93m";
 	// std::string str = "\033[" + std::to_string(row) + ";" + std::to_string(col) + "H";
+
+	static void ClearScreen() {
+		cout << "\033[2J\033[1;1H" << std::flush;
+	};
 }
 
 static inline uint8_t SquareToNum(const std::string& sq) {
