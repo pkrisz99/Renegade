@@ -89,73 +89,89 @@ void PrintInfo(const Results& e, const EngineSettings& settings) {
 
 void PrintPretty(const Results& e, const EngineSettings& settings) {
 #if defined(_MSC_VER)
-	const int normalizedScore = ToCentipawns(e.score, e.ply);
 
-	std::string output1 = std::format("{} {:2d}/{:2d}",
-		Console::White, e.depth, e.stats.SelDepth);
+	// Basic search information:
 
-	std::string nodeString;
-	if (e.stats.Nodes < 1e9) nodeString = std::to_string(e.stats.Nodes);
-	else nodeString = std::format("{:8.3f}", e.stats.Nodes / 1e9) + "b";
+	const std::string outputDepth = std::format("{:2d}/{:2d}", e.depth, e.stats.SelDepth);
 
-	std::string timeString;
-	if (e.time < 60000) timeString = std::to_string(e.time) + "ms";
-	else {
+	const std::string outputNodes = [&] {
+		if (e.stats.Nodes < 1e9) return std::to_string(e.stats.Nodes);
+		return std::format("{:8.3f}", e.stats.Nodes / 1e9) + "b";
+	}();
+
+	const std::string outputTime = [&] {
+		if (e.time < 60000) return std::to_string(e.time) + "ms";
+
 		int seconds = e.time / 1000;
 		int minutes = seconds / 60;
 		seconds = seconds - minutes * 60;
-		timeString = std::format("{}m{:02d}s", minutes, seconds);
-	}
+		return std::format("{}m{:02d}s", minutes, seconds);
+	}();
 
-	std::string hashString;
-	if (e.hashfull != 1000) hashString = std::format("{:4.1f}", e.hashfull / 10.0);
-	else hashString = "100";
+	const std::string outputHash = [&] {
+		if (e.hashfull != 1000) return std::format("{:4.1f}", e.hashfull / 10.0);
+		else return std::string("100");
+	}();
 
-	std::string output3 = std::format("{}  {:>9}  {:>7}  {:4d}knps  h={:>4}% {} -> ",
-		Console::Gray, nodeString, timeString, e.nps / 1000, hashString, Console::White);
 
-	const int neutralMargin = 50;
-	std::string scoreColor = Console::Blue;
-	if (!IsMateScore(normalizedScore)) {
-		if (normalizedScore > neutralMargin) scoreColor = Console::Green;
-		else if (normalizedScore < -neutralMargin) scoreColor = Console::Red;
-	}
-	else {
-		scoreColor = Console::Yellow;
-	}
+	const std::string outputSearch = std::format(" {}{}  {}{:>9}  {:>7}  {:4d}knps  h={:>4}%  {}->",
+		Console::White, outputDepth, Console::Gray, outputNodes, outputTime, e.nps / 1000, outputHash, Console::White);
 
-	std::string output2;
-	if (!IsMateScore(normalizedScore))
-		output2 = std::format("{} {:+5.2f}  {}", scoreColor, normalizedScore / 100.0, Console::White);
-	else {
-		std::string output2mate;
-		int movesToMate = (MateEval - std::abs(normalizedScore) + 1) / 2;
-		if (normalizedScore > 0) output2mate = "#+" + std::to_string(movesToMate);
-		else output2mate = "#-" + std::to_string(movesToMate);
-		output2 = std::format("{} {:5}  {}", scoreColor, output2mate, Console::White);
-	}
+	// Evaluation and win-draw-loss:
 
-	std::string pvOutput;
-	for (int i = 0; i < 5; i++) {
-		if (i >= static_cast<int>(e.pv.size())) break;
-		pvOutput += e.pv.at(i).ToString() + " ";
-	}
-	if (pvOutput.length() != 0) pvOutput.pop_back();
-	if (e.pv.size() > 5) pvOutput += " (+" + std::to_string(e.pv.size() - 5) + ")";
-	if (e.pv.size() != 0) pvOutput = Console::White + "[" + pvOutput + Console::White + "]";
+	constexpr int neutralMargin = 50;
+	const int normalizedScore = ToCentipawns(e.score, e.ply);
 
-	// Win-draw-loss
+	const std::string scoreColor = [&] {
+		if (IsMateScore(normalizedScore)) return Console::Yellow;
+		else if (normalizedScore > neutralMargin) return Console::Green;
+		else if (normalizedScore < -neutralMargin) return Console::Red;
+		else return Console::Blue;
+	}();
+
+	const std::string outputScore = [&] {
+		if (!IsMateScore(normalizedScore)) {
+			return std::format("  {}{:>+5.2f}", scoreColor, normalizedScore / 100.0);
+		}
+		else {
+			const int movesToMate = (MateEval - std::abs(normalizedScore) + 1) / 2;
+			const std::string outputMate = (normalizedScore > 0 ? "#+" : "#-") + std::to_string(movesToMate);
+			return std::format("  {}{:>5}", scoreColor, outputMate);
+		}
+	}();
+
 	const auto [modelW, modelL] = GetWDL(e.score, e.ply);
 	const int modelD = 1000 - modelW - modelL;
-	const double q = 10.0;
+	constexpr double q = 10.0;
 	int w = static_cast<int>(std::round(modelW / q));
 	int d = static_cast<int>(std::round(modelD / q));
 	int l = static_cast<int>(std::round(modelL / q));
-	std::string wdl = Console::Gray + std::to_string(w) + "-" + std::to_string(d) + "-" + std::to_string(l) + Console::Gray;
+	const std::string outputWdl = std::format("  {}{:<8}", 
+		Console::Gray, std::to_string(w) + "-" + std::to_string(d) + "-" + std::to_string(l));
 
-	std::string output = output1 + output3 + output2 + wdl + "  " + pvOutput + Console::White;
+	// Principal variation:
 
+	constexpr int movesShown = 5;
+	const int pvMoveCount = e.pv.size();
+
+	const std::string outputPv = [&] {
+		if (pvMoveCount == 0) return "  " + Console::White;
+
+		std::string list{};
+		for (int i = 0; i < movesShown; i++) {
+			if (i >= pvMoveCount) break;
+			list += e.pv[i].ToString() + " ";
+		}
+		list.pop_back();
+		if (pvMoveCount > movesShown) list += " (+" + std::to_string(pvMoveCount - movesShown) + ")";
+		return "  " + Console::White + "[" + list + "]";
+	}();
+
+	// Putting it together, and printing to standard output:
+
+	const std::string output = outputSearch + outputScore + outputWdl + outputPv;
 	cout << output << endl;
+
 #endif
 }
 
