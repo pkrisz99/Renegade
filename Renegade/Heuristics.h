@@ -60,6 +60,9 @@ struct MovePicker {
 	}
 };
 
+
+constexpr int CoordKeySize = 4096;
+
 class Heuristics
 {
 public:
@@ -86,7 +89,7 @@ public:
 
 	// History heuristic
 	void UpdateHistory(const Move& m, const int16_t delta, const uint8_t piece, const int depth, const std::array<MoveAndPiece, MaxDepth>& moveStack,
-		const int level, const bool fromSquareAttacked, const bool toSquareAttacked);
+		const int level, const bool fromSquareAttacked, const bool toSquareAttacked, const Board& board); // old board!
 	void ClearHistory();
 
 	// Transposition table
@@ -103,7 +106,6 @@ public:
 
 	std::array<std::array<Move, 2>, MaxDepth> KillerMoves;
 
-
 private:
 	void UpdateHistoryValue(int16_t& value, const int amount);
 
@@ -115,6 +117,9 @@ private:
 
 	std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 2>, 2> HistoryTables;
 	std::array<std::array<Move, 64>, 64> CounterMoves;
+
+	using PieceCoordinations = std::array<std::array<std::array<std::array<int16_t, 64>, CoordKeySize>, 6>, 2>;
+	PieceCoordinations* PieceCoordinationHistory; // what is wrong with me ([side][piece][key][to])
 
 	using Continuations = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
 	Continuations* ContinuationHistory;

@@ -61,6 +61,75 @@ public:
 	}
 
 
+	inline uint64_t KnightKey() const {
+		uint64_t hash = 0;
+		uint64_t bits = 0;
+
+		bits = WhiteKnightBits;
+		while (bits != 0) {
+			const int sq = Popsquare(bits);
+			hash ^= Zobrist[64 * 3 + sq];
+		}
+		bits = BlackKnightBits;
+		while (bits != 0) {
+			const int sq = Popsquare(bits);
+			hash ^= Zobrist[64 * 2 + sq];
+		}
+		return hash;
+	}
+
+	inline uint64_t BishopKey() const {
+		uint64_t hash = 0;
+		uint64_t bits = 0;
+
+		bits = WhiteBishopBits;
+		while (bits != 0) {
+			const int sq = Popsquare(bits);
+			hash ^= Zobrist[64 * 5 + sq];
+		}
+		bits = BlackBishopBits;
+		while (bits != 0) {
+			const int sq = Popsquare(bits);
+			hash ^= Zobrist[64 * 4 + sq];
+		}
+		return hash;
+	}
+
+	inline uint64_t RookKey() const {
+		uint64_t hash = 0;
+		uint64_t bits = 0;
+
+		bits = WhiteRookBits;
+		while (bits != 0) {
+			const int sq = Popsquare(bits);
+			hash ^= Zobrist[64 * 7 + sq];
+		}
+		bits = BlackRookBits;
+		while (bits != 0) {
+			const int sq = Popsquare(bits);
+			hash ^= Zobrist[64 * 6 + sq];
+		}
+		return hash;
+	}
+
+	inline uint64_t QueenKey() const {
+		uint64_t hash = 0;
+		uint64_t bits = 0;
+
+		bits = WhiteQueenBits;
+		while (bits != 0) {
+			const int sq = Popsquare(bits);
+			hash ^= Zobrist[64 * 9 + sq];
+		}
+		bits = BlackQueenBits;
+		while (bits != 0) {
+			const int sq = Popsquare(bits);
+			hash ^= Zobrist[64 * 8 + sq];
+		}
+		return hash;
+	}
+
+
 	// Board variables:
 	std::vector<uint64_t> PreviousHashes{};
 	std::array<uint8_t, 64> OccupancyInts{};

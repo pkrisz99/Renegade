@@ -572,7 +572,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 						const bool fromSquareAttacked = CheckBit(opponentAttacks, m.from);
 						const bool toSquareAttacked = CheckBit(opponentAttacks, m.to);
 						if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1].move, m);
-						if (depth > 1) Heuristics.UpdateHistory(m, historyDelta, movedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+						if (depth > 1) Heuristics.UpdateHistory(m, historyDelta, movedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked, board);
 					}
 
 					// Decrement history scores for all previously tried quiet moves
@@ -582,7 +582,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 							const bool fromSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.from);
 							const bool toSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.to);
 							const uint8_t previouslyTriedPiece = board.GetPieceAt(previouslyTriedMove.from);
-							Heuristics.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+							Heuristics.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked, board);
 						}
 					}
 				}

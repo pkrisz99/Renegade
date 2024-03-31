@@ -2,6 +2,7 @@
 
 Heuristics::Heuristics() {
 	ContinuationHistory = new Continuations;
+	PieceCoordinationHistory = new PieceCoordinations;
 	TranspositionEntryCount = 0;
 	SetHashSize(1); // ???
 	ClearHistory();
@@ -9,6 +10,7 @@ Heuristics::Heuristics() {
 
 Heuristics::~Heuristics() {
 	delete ContinuationHistory;
+	delete PieceCoordinationHistory;
 }
 
 // Move ordering & clearing -----------------------------------------------------------------------
@@ -51,6 +53,27 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 	if (level >= 1) historyScore += (*ContinuationHistory)[moveStack[level - 1].piece][moveStack[level - 1].move.to][movedPiece][m.to];
 	if (level >= 2) historyScore += (*ContinuationHistory)[moveStack[level - 2].piece][moveStack[level - 2].move.to][movedPiece][m.to];
 	if (level >= 4) historyScore += (*ContinuationHistory)[moveStack[level - 4].piece][moveStack[level - 4].move.to][movedPiece][m.to];
+
+	constexpr int key = CoordKeySize - 1;
+
+	switch (attackingPieceType) {
+	case PieceType::Pawn:
+		break;
+	case PieceType::King:
+		break;
+	case PieceType::Knight:
+		historyScore += (*PieceCoordinationHistory)[turn][PieceType::Knight][board.KnightKey() & key][m.to];
+		break;
+	case PieceType::Bishop:
+		historyScore += (*PieceCoordinationHistory)[turn][PieceType::Bishop][board.BishopKey() & key][m.to];
+		break;
+	case PieceType::Rook:
+		historyScore += (*PieceCoordinationHistory)[turn][PieceType::Rook][board.RookKey() & key][m.to];
+		break;
+	case PieceType::Queen:
+		historyScore += (*PieceCoordinationHistory)[turn][PieceType::Queen][board.QueenKey() & key][m.to];
+		break;
+	}
 
 	return historyScore;
 }
@@ -130,7 +153,7 @@ void Heuristics::ClearKillerAndCounterMoves() {
 // History heuristic ------------------------------------------------------------------------------
 
 void Heuristics::UpdateHistory(const Move& m, const int16_t delta, const uint8_t piece, const int depth, const std::array<MoveAndPiece, MaxDepth>& moveStack,
-	const int level, const bool fromSquareAttacked, const bool toSquareAttacked) {
+	const int level, const bool fromSquareAttacked, const bool toSquareAttacked, const Board& board) {
 
 	// Main quiet history
 	const bool side = ColorOfPiece(piece) == PieceColor::White; 
@@ -146,6 +169,27 @@ void Heuristics::UpdateHistory(const Move& m, const int16_t delta, const uint8_t
 			UpdateHistoryValue(value, delta);
 		}
 	}
+
+	// Piece coordination weird idea
+	switch (TypeOfPiece(piece)) {
+	case PieceType::Pawn:
+		break;
+	case PieceType::King:
+		break;
+	case PieceType::Knight:
+		UpdateHistoryValue((*PieceCoordinationHistory)[side][PieceType::Knight][board.KnightKey() & (CoordKeySize - 1)][m.to], delta);
+		break;
+	case PieceType::Bishop:
+		UpdateHistoryValue((*PieceCoordinationHistory)[side][PieceType::Bishop][board.BishopKey() & (CoordKeySize - 1)][m.to], delta);
+		break;
+	case PieceType::Rook:
+		UpdateHistoryValue((*PieceCoordinationHistory)[side][PieceType::Rook][board.RookKey() & (CoordKeySize - 1)][m.to], delta);
+		break;
+	case PieceType::Queen:
+		UpdateHistoryValue((*PieceCoordinationHistory)[side][PieceType::Queen][board.QueenKey() & (CoordKeySize - 1)][m.to], delta);
+		break;
+	}
+
 }
 
 inline void Heuristics::UpdateHistoryValue(int16_t& value, const int amount) {
