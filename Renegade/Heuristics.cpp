@@ -14,7 +14,7 @@ Heuristics::~Heuristics() {
 // Move ordering & clearing -----------------------------------------------------------------------
 
 int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int level, const Move& ttMove,
-	const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const {
+	const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks, const bool improving) const {
 
 	const uint8_t movedPiece = board.GetPieceAt(m.from);
 	const int attackingPieceType = TypeOfPiece(movedPiece);
@@ -47,7 +47,7 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 	// Quiet moves
 	const bool turn = board.Turn;
 
-	int historyScore = HistoryTables[CheckBit(opponentAttacks, m.from)][CheckBit(opponentAttacks, m.to)][movedPiece][m.to];
+	int historyScore = HistoryTables[improving][CheckBit(opponentAttacks, m.from)][CheckBit(opponentAttacks, m.to)][movedPiece][m.to];
 	if (level >= 1) historyScore += (*ContinuationHistory)[moveStack[level - 1].piece][moveStack[level - 1].move.to][movedPiece][m.to];
 	if (level >= 2) historyScore += (*ContinuationHistory)[moveStack[level - 2].piece][moveStack[level - 2].move.to][movedPiece][m.to];
 	if (level >= 4) historyScore += (*ContinuationHistory)[moveStack[level - 4].piece][moveStack[level - 4].move.to][movedPiece][m.to];
@@ -130,11 +130,11 @@ void Heuristics::ClearKillerAndCounterMoves() {
 // History heuristic ------------------------------------------------------------------------------
 
 void Heuristics::UpdateHistory(const Move& m, const int16_t delta, const uint8_t piece, const int depth, const std::array<MoveAndPiece, MaxDepth>& moveStack,
-	const int level, const bool fromSquareAttacked, const bool toSquareAttacked) {
+	const int level, const bool fromSquareAttacked, const bool toSquareAttacked, const bool improving) {
 
 	// Main quiet history
 	const bool side = ColorOfPiece(piece) == PieceColor::White; 
-	UpdateHistoryValue(HistoryTables[fromSquareAttacked][toSquareAttacked][piece][m.to], delta);
+	UpdateHistoryValue(HistoryTables[improving][fromSquareAttacked][toSquareAttacked][piece][m.to], delta);
 	
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {

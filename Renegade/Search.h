@@ -43,7 +43,7 @@ private:
 	int DrawEvaluation();
 	void ResetStatistics();
 
-	void OrderMoves(const Board& board, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks);
+	void OrderMoves(const Board& board, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks, const bool improving);
 	void OrderMovesQ(const Board& board, MoveList& ml, const int level);
 
 	// NNUE

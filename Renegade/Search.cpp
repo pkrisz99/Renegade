@@ -425,7 +425,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		// Generating moves and move ordering
 		MoveListStack[level].reset();
 		board.GenerateMoves(MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
-		OrderMoves(board, MoveListStack[level], level, ttMove, opponentAttacks);
+		OrderMoves(board, MoveListStack[level], level, ttMove, opponentAttacks, improving);
 
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) {
@@ -572,7 +572,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 						const bool fromSquareAttacked = CheckBit(opponentAttacks, m.from);
 						const bool toSquareAttacked = CheckBit(opponentAttacks, m.to);
 						if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1].move, m);
-						if (depth > 1) Heuristics.UpdateHistory(m, historyDelta, movedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+						if (depth > 1) Heuristics.UpdateHistory(m, historyDelta, movedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked, improving);
 					}
 
 					// Decrement history scores for all previously tried quiet moves
@@ -582,7 +582,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 							const bool fromSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.from);
 							const bool toSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.to);
 							const uint8_t previouslyTriedPiece = board.GetPieceAt(previouslyTriedMove.from);
-							Heuristics.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+							Heuristics.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked, improving);
 						}
 					}
 				}
@@ -788,16 +788,16 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 
 // Move ordering ----------------------------------------------------------------------------------
 
-void Search::OrderMoves(const Board& board, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks) {
+void Search::OrderMoves(const Board& board, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks, const bool improving) {
 	for (auto& m : ml) {
 		const bool losingCapture = board.IsMoveQuiet(m.move) ? false : !StaticExchangeEval(board, m.move, 0);
-		m.orderScore = Heuristics.CalculateOrderScore(board, m.move, level, ttMove, MoveStack, losingCapture, true, opponentAttacks);
+		m.orderScore = Heuristics.CalculateOrderScore(board, m.move, level, ttMove, MoveStack, losingCapture, true, opponentAttacks, improving);
 	}
 }
 
 void Search::OrderMovesQ(const Board& board, MoveList& ml, const int level) {
 	for (auto& m : ml) {
-		m.orderScore = Heuristics.CalculateOrderScore(board, m.move, level, NullMove, MoveStack, false, false, 0);
+		m.orderScore = Heuristics.CalculateOrderScore(board, m.move, level, NullMove, MoveStack, false, false, 0, false);
 	}
 }
 
