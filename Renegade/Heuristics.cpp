@@ -200,6 +200,7 @@ inline void Heuristics::UpdateHistoryValue(int16_t& value, const int amount) {
 void Heuristics::ClearHistory() {
 	std::memset(&HistoryTables, 0, sizeof(HistoryTables));
 	std::memset(ContinuationHistory, 0, sizeof(Continuations));
+	std::memset(PieceCoordinationHistory, 0, sizeof(PieceCoordinations));
 }
 
 // Transposition table ----------------------------------------------------------------------------
