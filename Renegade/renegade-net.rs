@@ -9,13 +9,13 @@ fn main() {
         .quantisations(&[255, 64])
         .input(inputs::Chess768)
         .output_buckets(outputs::Single)
-        .feature_transformer(768)
+        .feature_transformer(1024)
         .activate(Activation::SCReLU)
         .add_layer(1)
         .build();  //trainer.load_from_checkpoint("checkpoints/testnet");
 
     let schedule = TrainingSchedule {
-        net_id: "renegade-net-16".to_string(),
+        net_id: "renegade-net-17".to_string(),
         batch_size: 16384,
         eval_scale: 400.0,
         start_epoch: 1,
