@@ -153,6 +153,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
 	std::fill(CutoffCount.begin(), CutoffCount.end(), 0);
 	std::fill(DoubleExtensions.begin(), DoubleExtensions.end(), 0);
+	std::fill(NoisyStack.begin(), NoisyStack.end(), false);
 
 	// Early exit for only one legal move (no legal moves are handled separately)
 	if (!DatagenMode && ((params.wtime != 0) || (params.btime != 0))) {
@@ -381,6 +382,10 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	const bool improving = (level >= 2) && !inCheck && (StaticEvalStack[level] > StaticEvalStack[level - 2]); // <- add nullmove condition?
 	bool futilityPrunable = false;
 
+	// random 1 am idea
+	const bool volatilePosition = (level >= 2) && (depth < 8) && (std::abs(StaticEvalStack[level] - StaticEvalStack[level - 2]) > 100)
+		&& (ttMove.IsNull() || board.IsMoveQuiet(ttMove)) && !NoisyStack[level - 1] && !NoisyStack[level - 2];
+
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
 
@@ -399,6 +404,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			UpdateAccumulators(NullMove, 0, 0, level);
 			MoveStack[level].move = NullMove;
 			MoveStack[level].piece = Piece::None;
+			NoisyStack[level] = false;
 			const int nullMoveEval = -SearchRecursive(Boards[level], depth - nmpReduction, level + 1, -beta, -beta + 1, false);
 			if (nullMoveEval >= beta) {
 				return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
@@ -453,6 +459,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		legalMoveCount += 1;
 		const bool isQuiet = board.IsMoveQuiet(m);
 		if (isQuiet) quietsTried.push_back(m);
+		NoisyStack[level] = !isQuiet;
 
 		// Moves loop pruning techniques
 		if (!pvNode && (bestScore > -MateThreshold) && (order < 90000) && !DatagenMode) {
@@ -524,8 +531,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 				
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 
-				// Less reduction when in check
-				if (inCheck) reduction -= 1;
+				// Less reduction when in check or when eval is funny
+				if (inCheck || volatilePosition) reduction -= 1;
 
 				// More reduction for non-PV nodes
 				if (!pvNode) reduction += 1;
