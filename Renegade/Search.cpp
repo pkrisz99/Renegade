@@ -466,7 +466,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 			// Late-move pruning (+9 elo)
 			if (isQuiet && !inCheck && (depth < 5)) {
-				const int lmpCount = 3 + depth * (depth - !improving);
+				const int lmpCount = 3 + depth * (depth - !improving + volatilePosition);
 				if (legalMoveCount > lmpCount) break;
 			}
 
@@ -531,8 +531,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 				
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 
-				// Less reduction when in check or when eval is funny
-				if (inCheck || volatilePosition) reduction -= 1;
+				// Less reduction when in check
+				if (inCheck) reduction -= 1;
 
 				// More reduction for non-PV nodes
 				if (!pvNode) reduction += 1;
