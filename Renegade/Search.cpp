@@ -466,7 +466,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 
 			// Late-move pruning (+9 elo)
 			if (isQuiet && !inCheck && (depth < 5)) {
-				const int lmpCount = 3 + depth * (depth - !improving + volatilePosition);
+				const bool aggressive = !improving && !volatilePosition;
+				const int lmpCount = 3 + depth * (depth - aggressive);
 				if (legalMoveCount > lmpCount) break;
 			}
 
