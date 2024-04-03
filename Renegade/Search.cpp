@@ -153,6 +153,8 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
 	std::fill(CutoffCount.begin(), CutoffCount.end(), 0);
 	std::fill(DoubleExtensions.begin(), DoubleExtensions.end(), 0);
+	std::fill(VolatileQuietExtensions.begin(), VolatileQuietExtensions.end(), 0);
+	std::fill(NoisyStack.begin(), NoisyStack.end(), false);
 
 	// Early exit for only one legal move (no legal moves are handled separately)
 	if (!DatagenMode && ((params.wtime != 0) || (params.btime != 0))) {
@@ -319,11 +321,42 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 	// Check for draws
 	if (!rootNode && board.IsDraw(false)) return DrawEvaluation();
 
+	if (!rootNode) VolatileQuietExtensions[level] = VolatileQuietExtensions[level - 1];
+
 	// Check extensions
 	const bool inCheck = board.IsInCheck();
 	if (!rootNode) {
 		if (inCheck) depth += 1;
 	}
+
+	// If we're still at depth 0
+	if (depth < 0) depth = 0;
+
+	if (depth == 0) {
+		x += 1;
+		
+		const bool volatileExtend = [&] {
+			if (level < 2) return false;
+			if (VolatileQuietExtensions[level] != 0) return false;
+			if (!NoisyStack[level - 1] || !NoisyStack[level - 2]) return false;
+			if (std::abs(alpha) >= MateThreshold) return false;
+			const uint64_t friendlyPiecesThreatened = board.CalculateAttackedSquares(!board.Turn) & board.GetOccupancy(board.Turn);
+			if (friendlyPiecesThreatened) return false;
+
+			const int staticEval = Evaluate(board, level);
+			const int diff = std::abs(staticEval - (-StaticEvalStack[level - 1]));
+			return (diff > 100) && (diff < 10000);
+		}();
+
+		if (volatileExtend) {
+			// approx 1%
+			depth += 1;
+			y += 1;
+			VolatileQuietExtensions[level] += 1;
+		}
+		//cout << x << " " << y << endl;
+	}
+	
 
 	// Drop into quiescence search at depth 0
 	if (depth <= 0) {
@@ -399,6 +432,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			UpdateAccumulators(NullMove, 0, 0, level);
 			MoveStack[level].move = NullMove;
 			MoveStack[level].piece = Piece::None;
+			NoisyStack[level] = true; // make this intuitive
 			const int nullMoveEval = -SearchRecursive(Boards[level], depth - nmpReduction, level + 1, -beta, -beta + 1, false);
 			if (nullMoveEval >= beta) {
 				return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
@@ -453,6 +487,7 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		legalMoveCount += 1;
 		const bool isQuiet = board.IsMoveQuiet(m);
 		if (isQuiet) quietsTried.push_back(m);
+		NoisyStack[level] = !isQuiet;
 
 		// Moves loop pruning techniques
 		if (!pvNode && (bestScore > -MateThreshold) && (order < 90000) && !DatagenMode) {

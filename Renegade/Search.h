@@ -69,8 +69,12 @@ private:
 	std::array<int, MaxDepth> CutoffCount;
 	std::array<int, MaxDepth> DoubleExtensions;
 	std::array<Move, MaxDepth> ExcludedMoves;
+	std::array<bool, MaxDepth> NoisyStack;
+	std::array<int, MaxDepth> VolatileQuietExtensions;
 
 	std::array<std::array<int, 32>, 32> LMRTable;
-
+	
+	int x = 0;
+	int y = 0;
 };
 
