@@ -229,8 +229,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 					}*/
 					
 					// Reduce depth on fail-high
-					// Elo difference : 2.4 + / -5.3,
-					// if (!IsMateScore(result) && (searchDepth > 1)) searchDepth -= 1;
+					if (!IsMateScore(result) && (searchDepth > 1)) searchDepth -= 1;
 				}
 				else {
 					// Success!
