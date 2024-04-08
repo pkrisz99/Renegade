@@ -509,7 +509,6 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 		Heuristics.PrefetchTranspositionEntry(b.Hash());
 		Statistics.Nodes += 1;
 		int score = NoEval;
-		const bool givingCheck = b.IsInCheck();
 		UpdateAccumulators(m, movedPiece, capturedPiece, level);
 
 		if (legalMoveCount == 1) {

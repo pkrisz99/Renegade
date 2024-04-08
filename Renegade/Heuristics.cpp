@@ -139,8 +139,8 @@ void Heuristics::UpdateHistory(const Move& m, const int16_t delta, const uint8_t
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
-		uint8_t prevPiece = moveStack[level - ply].piece;
-		uint8_t prevTo = moveStack[level - ply].move.to;
+		const uint8_t prevPiece = moveStack[level - ply].piece;
+		const uint8_t prevTo = moveStack[level - ply].move.to;
 		if (prevPiece != Piece::None) {
 			int16_t& value = (*ContinuationHistory)[prevPiece][prevTo][piece][m.to];
 			UpdateHistoryValue(value, delta);
@@ -207,7 +207,7 @@ bool Heuristics::RetrieveTranspositionEntry(const uint64_t& hash, TranspositionE
 
 
 void Heuristics::PrefetchTranspositionEntry(const uint64_t hash) const {
-#if defined(__clang__)
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
 	const uint64_t key = hash & HashFilter;
 	__builtin_prefetch(&TranspositionTable[key]);
 #endif
@@ -216,17 +216,17 @@ void Heuristics::PrefetchTranspositionEntry(const uint64_t hash) const {
 
 void Heuristics::SetHashSize(const int megabytes) {
 	assert(megabytes != 0);
-	TheoreticalTranspositionEntires = megabytes * 1024ULL * 1024ULL / sizeof(TranspositionEntry);
+	TheoreticalTranspositionEntires = static_cast<uint64_t>(megabytes) * 1024 * 1024 / sizeof(TranspositionEntry);
 	int bits = 0;
-	while ((1ULL << bits) <= TheoreticalTranspositionEntires) bits += 1;
+	while ((1ull << bits) <= TheoreticalTranspositionEntires) bits += 1;
 	bits -= 1;
-	HashFilter = (1ULL << bits) - 1;
+	HashFilter = (1ull << bits) - 1;
 	HashBits = bits;
 	ClearTranspositionTable();
 }
 
 int Heuristics::GetHashfull() {
-	return static_cast<int>(TranspositionEntryCount * 1000LL / (HashFilter + 1LL));
+	return static_cast<int>(TranspositionEntryCount * 1000 / (HashFilter + 1));
 }
 
 void Heuristics::ClearTranspositionTable() {

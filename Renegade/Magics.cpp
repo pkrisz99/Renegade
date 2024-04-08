@@ -5,19 +5,19 @@
 
 // Retrieving attack bitboards --------------------------------------------------------------------
 
-uint64_t GetRookAttacks(const int square, const uint64_t occupancy) {
-	int index = static_cast<int>(((occupancy & RookMasks[square]) * RookMagicNumbers[square]) >> (64 - RookRelevantBits[square]));
+uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy) {
+	const int index = static_cast<int>(((occupancy & RookMasks[square]) * RookMagicNumbers[square]) >> (64 - RookRelevantBits[square]));
 	return RookAttacks[square][index];
 }
 
-uint64_t GetBishopAttacks(const int square, const uint64_t occupancy) {
-	int index = static_cast<int>(((occupancy & BishopMasks[square]) * BishopMagicNumbers[square]) >> (64 - BishopRelevantBits[square]));
+uint64_t GetBishopAttacks(const uint8_t square, const uint64_t occupancy) {
+	const int index = static_cast<int>(((occupancy & BishopMasks[square]) * BishopMagicNumbers[square]) >> (64 - BishopRelevantBits[square]));
 	return BishopAttacks[square][index];
 }
 
-uint64_t GetQueenAttacks(const int square, const uint64_t occupancy) {
-	int rookIndex = static_cast<int>(((occupancy & RookMasks[square]) * RookMagicNumbers[square]) >> (64 - RookRelevantBits[square]));
-	int bishopIndex = static_cast<int>(((occupancy & BishopMasks[square]) * BishopMagicNumbers[square]) >> (64 - BishopRelevantBits[square]));
+uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy) {
+	const int rookIndex = static_cast<int>(((occupancy & RookMasks[square]) * RookMagicNumbers[square]) >> (64 - RookRelevantBits[square]));
+	const int bishopIndex = static_cast<int>(((occupancy & BishopMasks[square]) * BishopMagicNumbers[square]) >> (64 - BishopRelevantBits[square]));
 	return BishopAttacks[square][bishopIndex] | RookAttacks[square][rookIndex];
 }
 
@@ -26,10 +26,10 @@ uint64_t GetQueenAttacks(const int square, const uint64_t occupancy) {
 // Generate an occupancy bitboard where the encoded bits represent occupied bits in the mask
 uint64_t GenerateMagicOccupancy(const int encoded, uint64_t mask) {
 	uint64_t map = 0;
-	int popcount = Popcount(mask);
+	const int popcount = Popcount(mask);
 	int i = popcount - 1;
 	while (Popcount(mask) != 0) {
-		uint8_t sq = 63 - Lzcount(mask);
+		const uint8_t sq = 63 - Lzcount(mask);
 		if (CheckBit(static_cast<uint64_t>(encoded), i)) SetBitTrue(map, sq);
 		SetBitFalse(mask, sq);
 		i -= 1;
@@ -40,8 +40,8 @@ uint64_t GenerateMagicOccupancy(const int encoded, uint64_t mask) {
 // Dynamically generate rook attacks
 uint64_t DynamicRookAttacks(const int square, const uint64_t blockers) {
 	uint64_t mask = 0;
-	int file = GetSquareFile(square);
-	int rank = GetSquareRank(square);
+	const int file = GetSquareFile(square);
+	const int rank = GetSquareRank(square);
 
 	for (int r = rank + 1; r < 8; r++) {
 		SetBitTrue(mask, Square(r, file));
@@ -66,8 +66,8 @@ uint64_t DynamicRookAttacks(const int square, const uint64_t blockers) {
 // Dynamically generate bishop attacks
 uint64_t DynamicBishopAttacks(const int square, const uint64_t blockers) {
 	uint64_t mask = 0;
-	int file = GetSquareFile(square);
-	int rank = GetSquareRank(square);
+	const int file = GetSquareFile(square);
+	const int rank = GetSquareRank(square);
 
 	// Ray towards bottom left
 	int r = rank - 1; int f = file - 1;
@@ -106,8 +106,8 @@ void GenerateMagicTables() {
 	// 1. Populate rook magic results
 	for (int sq = 0; sq < 64; sq++) {
 		for (int i = 0; i < 4096; i++) {
-			uint64_t occ = GenerateMagicOccupancy(i, RookMasks[sq]);
-			int index = static_cast<int>((occ * RookMagicNumbers[sq]) >> (64 - RookRelevantBits[sq]));
+			const uint64_t occ = GenerateMagicOccupancy(i, RookMasks[sq]);
+			const int index = static_cast<int>((occ * RookMagicNumbers[sq]) >> (64 - RookRelevantBits[sq]));
 			RookAttacks[sq][index] = DynamicRookAttacks(sq, occ);
 		}
 	}
@@ -115,8 +115,8 @@ void GenerateMagicTables() {
 	// 2. Populate bishop magic results
 	for (int sq = 0; sq < 64; sq++) {
 		for (int i = 0; i < 512; i++) {
-			uint64_t occ = GenerateMagicOccupancy(i, BishopMasks[sq]);
-			int index = static_cast<int>((occ * BishopMagicNumbers[sq]) >> (64 - BishopRelevantBits[sq]));
+			const uint64_t occ = GenerateMagicOccupancy(i, BishopMasks[sq]);
+			const int index = static_cast<int>((occ * BishopMagicNumbers[sq]) >> (64 - BishopRelevantBits[sq]));
 			BishopAttacks[sq][index] = DynamicBishopAttacks(sq, occ);
 		}
 	}
