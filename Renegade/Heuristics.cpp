@@ -2,6 +2,7 @@
 
 Heuristics::Heuristics() {
 	ContinuationHistory = new Continuations;
+	ThreatContinuationHistory = new ThreatContinuations;
 	TranspositionEntryCount = 0;
 	SetHashSize(1); // ???
 	ClearHistory();
@@ -9,6 +10,7 @@ Heuristics::Heuristics() {
 
 Heuristics::~Heuristics() {
 	delete ContinuationHistory;
+	delete ThreatContinuationHistory;
 }
 
 // Move ordering & clearing -----------------------------------------------------------------------
@@ -47,10 +49,16 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 	// Quiet moves
 	const bool turn = board.Turn;
 
-	int historyScore = HistoryTables[CheckBit(opponentAttacks, m.from)][CheckBit(opponentAttacks, m.to)][movedPiece][m.to];
-	if (level >= 1) historyScore += (*ContinuationHistory)[moveStack[level - 1].piece][moveStack[level - 1].move.to][movedPiece][m.to];
-	if (level >= 2) historyScore += (*ContinuationHistory)[moveStack[level - 2].piece][moveStack[level - 2].move.to][movedPiece][m.to];
-	if (level >= 4) historyScore += (*ContinuationHistory)[moveStack[level - 4].piece][moveStack[level - 4].move.to][movedPiece][m.to];
+	const bool toSquareAttacked = CheckBit(opponentAttacks, m.to);
+
+	int historyScore = HistoryTables[CheckBit(opponentAttacks, m.from)][CheckBit(opponentAttacks, m.to)][movedPiece][m.to] / 2;
+	if (level >= 1) historyScore += (*ContinuationHistory)[moveStack[level - 1].piece][moveStack[level - 1].move.to][movedPiece][m.to] / 2;
+	if (level >= 2) historyScore += (*ContinuationHistory)[moveStack[level - 2].piece][moveStack[level - 2].move.to][movedPiece][m.to] / 2;
+	if (level >= 4) historyScore += (*ContinuationHistory)[moveStack[level - 4].piece][moveStack[level - 4].move.to][movedPiece][m.to] / 2;
+
+	if (level >= 1) historyScore += (*ThreatContinuationHistory)[toSquareAttacked][moveStack[level - 1].piece][moveStack[level - 1].move.to][movedPiece][m.to] / 2;
+	if (level >= 2) historyScore += (*ThreatContinuationHistory)[toSquareAttacked][moveStack[level - 2].piece][moveStack[level - 2].move.to][movedPiece][m.to] / 2;
+	if (level >= 4) historyScore += (*ThreatContinuationHistory)[toSquareAttacked][moveStack[level - 4].piece][moveStack[level - 4].move.to][movedPiece][m.to] / 2;
 
 	return historyScore;
 }
@@ -142,8 +150,11 @@ void Heuristics::UpdateHistory(const Move& m, const int16_t delta, const uint8_t
 		const uint8_t prevPiece = moveStack[level - ply].piece;
 		const uint8_t prevTo = moveStack[level - ply].move.to;
 		if (prevPiece != Piece::None) {
-			int16_t& value = (*ContinuationHistory)[prevPiece][prevTo][piece][m.to];
-			UpdateHistoryValue(value, delta);
+			int16_t& value1 = (*ContinuationHistory)[prevPiece][prevTo][piece][m.to];
+			UpdateHistoryValue(value1, delta);
+
+			int16_t& value2 = (*ThreatContinuationHistory)[toSquareAttacked][prevPiece][prevTo][piece][m.to];
+			UpdateHistoryValue(value2, delta);
 		}
 	}
 }
@@ -156,6 +167,7 @@ inline void Heuristics::UpdateHistoryValue(int16_t& value, const int amount) {
 void Heuristics::ClearHistory() {
 	std::memset(&HistoryTables, 0, sizeof(HistoryTables));
 	std::memset(ContinuationHistory, 0, sizeof(Continuations));
+	std::memset(ThreatContinuationHistory, 0, sizeof(ThreatContinuations));
 }
 
 // Transposition table ----------------------------------------------------------------------------

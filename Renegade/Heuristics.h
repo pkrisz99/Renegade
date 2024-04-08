@@ -118,5 +118,8 @@ private:
 
 	using Continuations = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
 	Continuations* ContinuationHistory;
+
+	using ThreatContinuations = std::array<std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>, 2>;
+	ThreatContinuations* ThreatContinuationHistory;
 };
 
