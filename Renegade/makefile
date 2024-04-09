@@ -9,6 +9,11 @@ CXXFLAGS  :=  -Wall -Wcast-qual -fno-exceptions -std=c++20 -pedantic -Wextra -Wd
 NATIVE     = -march=native
 # added -fpermissive for the time being
 
+NETFLAGS :=
+ifdef EVALFILE
+	NETFLAGS = -DNETWORK_NAME=\"$(EVALFILE)\"
+endif
+
 $(warning Compiling via makefile is experimental and may have bugs)
 
 
@@ -100,9 +105,9 @@ clean:
 	rm -rf *.o $(DEPENDS)
 
 $(TARGET): $(OBJECTS)
-	$(CXX) -o $(EXE) $^ $(CXXFLAGS) $(NATIVE) $(INSTRUCTIONS) $(FLAGS) -flto
+	$(CXX) -o $(EXE) $^ $(CXXFLAGS) ${NETFLAGS} $(NATIVE) $(INSTRUCTIONS) $(FLAGS) -flto
 
 -include $(DEPENDS)
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(NATIVE) $(INSTRUCTIONS) -funroll-loops -O3 -flto -MMD -MP -c -o $@ $< $(FLAGS) -w
+	$(CXX) $(CXXFLAGS) ${NETFLAGS} $(NATIVE) $(INSTRUCTIONS) -funroll-loops -O3 -flto -MMD -MP -c -o $@ $< $(FLAGS) -w
