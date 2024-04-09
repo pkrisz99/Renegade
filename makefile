@@ -11,7 +11,7 @@ NATIVE     = -march=native
 
 NETFLAGS :=
 ifdef EVALFILE
-	NETFLAGS = -DNETWORK_NAME=\"Renegade/$(EVALFILE)\"
+	NETFLAGS = -DNETWORK_NAME=\"$(EVALFILE)\"
 endif
 
 $(warning Compiling via makefile is experimental and may have bugs)
