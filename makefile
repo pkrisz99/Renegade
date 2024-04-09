@@ -11,7 +11,7 @@ NATIVE     = -march=native
 
 NETFLAGS :=
 ifdef EVALFILE
-	NETFLAGS = -DNETWORK_NAME=\"$(EVALFILE)\"
+	NETFLAGS = -DNETWORK_NAME=\"Renegade/$(EVALFILE)\"
 endif
 
 $(warning Compiling via makefile is experimental and may have bugs)
@@ -94,7 +94,7 @@ endif
 
 # Commands ------------------------------------------------
 
-SOURCES := $(wildcard *.cpp)
+SOURCES := $(wildcard Renegade/*.cpp)
 OBJECTS := $(patsubst %.cpp,%.o,$(SOURCES))
 DEPENDS := $(patsubst %.cpp,%.d,$(SOURCES))
 EXE     := $(TARGET)$(SUFFIX)
