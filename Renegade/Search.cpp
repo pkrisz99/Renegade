@@ -461,8 +461,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			if (isQuiet && (alpha < MateThreshold) && futilityPrunable) break;
 
 			// Main search SEE pruning (+20 elo)
-			const int seeQuietMargin = -50 * depth;
-			const int seeNoisyMargin = -100 * depth;
+			const int seeQuietMargin = -Tune::see_quiet.value * depth;
+			const int seeNoisyMargin = -Tune::see_noisy.value * depth;
 			if (depth <= 5) {
 				const int seeMargin = isQuiet ? seeQuietMargin : seeNoisyMargin;
 				if (!StaticExchangeEval(board, m, seeMargin)) continue;
@@ -686,11 +686,12 @@ int Search::DrawEvaluation() {
 
 // Static exchange evaluation (SEE) ---------------------------------------------------------------
 
-const int seeValues[] = { 0, 100, 300, 300, 500, 1000, 999999 };
-
 bool Search::StaticExchangeEval(const Board& board, const Move& move, const int threshold) const {
 	// This is more or less the standard way of doing this
 	// The implementation follows Ethereal's method
+
+	const int seeValues[] = { 0, Tune::see_pawn.value, Tune::see_knight.value, Tune::see_bishop.value,
+		Tune::see_rook.value, Tune::see_queen.value, 999999 };
 
 	// Get the initial piece
 	uint8_t victim = TypeOfPiece(board.GetPieceAt(move.from));
