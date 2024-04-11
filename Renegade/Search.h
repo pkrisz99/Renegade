@@ -26,7 +26,7 @@ public:
 	void ResetState(const bool clearTT);
 
 	void Perft(Board& board, const int depth, const PerftType type) const;
-	Results SearchMoves(Board board, const SearchParams params, const EngineSettings settings, const bool display);
+	Results SearchMoves(Board board, const SearchParams params, const bool display);
 	bool StaticExchangeEval(const Board& board, const Move& move, const int threshold) const;
 
 	std::atomic<bool> Aborting = true;

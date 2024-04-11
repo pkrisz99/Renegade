@@ -5,6 +5,7 @@
 #include "Neurals.h"
 #include "Reporting.h"
 #include "Search.h"
+#include "Settings.h"
 #include <fstream>
 #include <iomanip>
 #include <random>
@@ -25,7 +26,6 @@ public:
 	void HandleCompiler() const;
 
 	Search Search;
-	EngineSettings Settings;
 	std::thread SearchThread;
 	bool QuitAfterBench = false;
 

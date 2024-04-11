@@ -23,34 +23,34 @@ void Datagen::Start() {
 	cout << " - Playing with a soft node limit of " << softNodeLimit << endl;
 	cout << " - Adjudication if mate is reported for 2 plies\n" << endl;
 
-	EngineSettings settings = EngineSettings();
+
 	SearchParams params = SearchParams();
 	params.softnodes = softNodeLimit;
 	params.nodes = hardNodeLimit;
 	params.depth = depthLimit;
 	SearchParams verificationParams = SearchParams();
 	verificationParams.depth = verificationDepth;
+	Settings::Hash = 1;
 
 	StartTime = Clock::now();
 
 	std::vector<std::thread> threads = std::vector<std::thread>();
 	for (int i = 1; i <= ThreadCount; i++) {
 		std::string filenameForThread = filename + "_" + std::to_string(i);
-		threads.emplace_back(&Datagen::SelfPlay, this, filenameForThread, std::ref(params), std::ref(verificationParams),
-			std::ref(settings), randomPlyBase, startingEvalLimit, i - 1);
+		threads.emplace_back(&Datagen::SelfPlay, this, filenameForThread, std::ref(params), std::ref(verificationParams), randomPlyBase, startingEvalLimit, i - 1);
 	}
 	for (std::thread& t : threads) t.join();
 
 }
 
-void Datagen::SelfPlay(const std::string filename, const SearchParams params, const SearchParams vParams, const EngineSettings settings,
+void Datagen::SelfPlay(const std::string filename, const SearchParams params, const SearchParams vParams,
 	const int randomPlyBase, const int startingEvalLimit, const int threadId) {
 
 	Search* Searcher1 = new Search;
 	Search* Searcher2 = new Search;
 
-	Searcher1->Heuristics.SetHashSize(1);
-	Searcher2->Heuristics.SetHashSize(1);
+	Searcher1->Heuristics.SetHashSize(Settings::Hash);
+	Searcher2->Heuristics.SetHashSize(Settings::Hash);
 	
 	Results results;
 	int gamesOnThread = 0;
@@ -84,7 +84,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		if (failed) continue;
 
 		// 3. Verify evaluation if acceptable
-		results = Searcher1->SearchMoves(board, vParams, settings, false);
+		results = Searcher1->SearchMoves(board, vParams, false);
 		if (std::abs(results.score) > startingEvalLimit) failed = true;
 		if (failed) continue;
 		Searcher1->ResetState(true);
@@ -97,7 +97,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		while (true) {
 			// Search
 			Search* currentSearcher = (board.Turn == Side::White) ? Searcher1 : Searcher2;
-			results = currentSearcher->SearchMoves(board, params, settings, false);
+			results = currentSearcher->SearchMoves(board, params, false);
 			const int whiteScore = results.score * (board.Turn == Side::Black ? -1 : 1);
 
 			// Adjudicate

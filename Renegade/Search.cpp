@@ -140,7 +140,7 @@ bool Search::ShouldAbort() {
 
 // Negamax search routine and handling ------------------------------------------------------------
 
-Results Search::SearchMoves(Board board, const SearchParams params, const EngineSettings settings, const bool display) {
+Results Search::SearchMoves(Board board, const SearchParams params, const bool display) {
 
 	StartSearchTime = Clock::now();
 	Aborting.store(false, std::memory_order_relaxed);
@@ -171,11 +171,6 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 
 	Constraints = CalculateConstraints(params, board.Turn);
 	std::memset(&RootNodeCounts, 0, sizeof(RootNodeCounts));
-
-	if (settings.ExtendedOutput) {
-		cout << "info string Renegade searching for time: (" << Constraints.SearchTimeMin << ".." << Constraints.SearchTimeMax
-			<< ") depth: " << Constraints.MaxDepth << " nodes: " << Constraints.MaxNodes << endl;
-	}
 
 	// Iterative deepening
 	Results e = Results();
@@ -250,7 +245,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 			const int originalSoftTimeLimit = Constraints.SearchTimeMin;
 			const Move& bestMove = Heuristics.PvTable[0][0];
 			const double bestMoveFraction = static_cast<double>(RootNodeCounts[bestMove.from][bestMove.to]) / static_cast<double>(Statistics.Nodes);
-			const int adjustedSoftTimeLimit = originalSoftTimeLimit * static_cast<float>(Depth >= 10 ? (1.5 - bestMoveFraction) * 1.35: 1.0);
+			const int adjustedSoftTimeLimit = originalSoftTimeLimit * static_cast<float>(Depth >= 10 ? (1.5 - bestMoveFraction) * 1.35 : 1.0);
 			//cout << RootNodeCounts[bestMove.from][bestMove.to] << " " << bestMoveFraction << " " << adjustedSoftTimeLimit << endl;
 			if (elapsedMs >= adjustedSoftTimeLimit) finished = true;
 		}
@@ -265,7 +260,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 			e.time = elapsedMs;
 			e.nps = static_cast<int>(Statistics.Nodes * 1e9 / (currentTime - StartSearchTime).count());
 			e.hashfull = Heuristics.GetHashfull();
-			if (display) PrintInfo(e, settings);
+			if (display) PrintInfo(e);
 			break;
 		}
 
@@ -280,7 +275,7 @@ Results Search::SearchMoves(Board board, const SearchParams params, const Engine
 		// Obtaining PV line
 		e.pv.clear();
 		Heuristics.GeneratePvLine(e.pv);
-		if (display) PrintInfo(e, settings);
+		if (display) PrintInfo(e);
 	}
 	if (display) PrintBestmove(e.BestMove());
 

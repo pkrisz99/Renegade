@@ -2,6 +2,7 @@
 
 #include "Board.h"
 #include "Move.h"
+#include "Settings.h"
 
 class Results {
 public:
@@ -18,6 +19,6 @@ public:
 	Move BestMove();
 };
 
-void PrintInfo(const Results& e, const EngineSettings& settings);
-void PrintPretty(const Results& e, const EngineSettings& settings);
+void PrintInfo(const Results& e);
+void PrintPretty(const Results& e);
 void PrintBestmove(const Move& move);

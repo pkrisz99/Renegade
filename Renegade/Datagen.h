@@ -4,6 +4,7 @@
 #include <thread>
 #include "Board.h"
 #include "Search.h"
+#include "Settings.h"
 #include "Utils.h"
 
 class Datagen
@@ -11,7 +12,7 @@ class Datagen
 public:
 	Datagen();
 	void Start();
-	void SelfPlay(const std::string filename, const SearchParams params, const SearchParams vParams, const EngineSettings settings,
+	void SelfPlay(const std::string filename, const SearchParams params, const SearchParams vParams,
 		const int randomPlyBase, const int startingEvalLimit, const int threadId);
 	bool Filter(const Board& board, const Move& move, const int eval) const;
 

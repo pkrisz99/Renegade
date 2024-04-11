@@ -28,9 +28,9 @@ Move Results::BestMove() {
 
 // Communicating the search results ---------------------------------------------------------------
 
-void PrintInfo(const Results& e, const EngineSettings& settings) {
-	if (!settings.UciOutput) {
-		PrintPretty(e, settings);
+void PrintInfo(const Results& e) {
+	if (!Settings::UseUCI) {
+		PrintPretty(e);
 		return;
 	}
 
@@ -65,7 +65,7 @@ void PrintInfo(const Results& e, const EngineSettings& settings) {
 	std::string output{};
 	std::string wdlOutput{};
 
-	if (settings.ShowWDL) {
+	if (Settings::ShowWDL) {
 		const auto [w, l] = GetWDL(e.score, e.ply);
 		const int d = 1000 - w - l;
 		wdlOutput = " wdl " + std::to_string(w) + " " + std::to_string(d) + " " + std::to_string(l);
@@ -87,7 +87,7 @@ void PrintInfo(const Results& e, const EngineSettings& settings) {
 
 // Printing current search results ----------------------------------------------------------------
 
-void PrintPretty(const Results& e, const EngineSettings& settings) {
+void PrintPretty(const Results& e) {
 #if defined(_MSC_VER)
 
 	// Basic search information:

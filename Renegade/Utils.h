@@ -195,13 +195,6 @@ struct SearchConstraints {
 	int64_t SoftNodes = -1;
 };
 
-struct EngineSettings {
-	int Hash = 16;
-	bool ExtendedOutput = false;
-	bool UciOutput = false;
-	bool ShowWDL = true;
-};
-
 struct SearchStatistics {
 	int64_t Nodes;
 	uint64_t QuiescenceNodes;

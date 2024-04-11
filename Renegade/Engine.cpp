@@ -1,16 +1,11 @@
 #include "Engine.h"
 
 Engine::Engine(int argc, char* argv[]) {
-	Settings = EngineSettings();
-	Settings.Hash = 64;
-	Settings.ExtendedOutput = false;
-	Settings.UciOutput = !PrettySupport;
-	Settings.ShowWDL = true;
+	Settings::UseUCI = !PrettySupport;
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
 	LoadDefaultNetwork();
-	Search.Heuristics.SetHashSize(Settings.Hash);
-	Search.Heuristics.ClearTranspositionTable();
+	Search.Heuristics.SetHashSize(Settings::Hash);
 
 	if ((argc == 2) && (std::string(argv[1]) == "bench")) {
 		HandleBench();
@@ -42,11 +37,11 @@ void Engine::Start() {
 			cout << "id name Renegade " << Version << '\n';
 			cout << "id author Krisztian Peocz" << '\n';
 			cout << "option name Clear Hash type button" << '\n';
-			cout << "option name Hash type spin default 64 min 1 max 4096" << '\n';
+			cout << "option name Hash type spin default " << HashDefault << " min " << HashMin << " max " << HashMax << '\n';
 			cout << "option name Threads type spin default 1 min 1 max 1" << '\n';
-			cout << "option name UCI_ShowWDL type check default true" << '\n';
+			cout << "option name UCI_ShowWDL type check default " << (ShowWDLDefault ? "true" : "false") << '\n';
 			cout << "uciok" << endl;
-			Settings.UciOutput = true;
+			Settings::UseUCI = true;
 			continue;
 		}
 
@@ -91,16 +86,9 @@ void Engine::Start() {
 			ConvertToLowercase(parts[2]);
 			bool valid = false;
 
-			if (parts[2] == "extendedoutput") {
-				ConvertToLowercase(parts[4]);
-				if (parts[4] == "true") Settings.ExtendedOutput = true;
-				else if (parts[4] == "false") Settings.ExtendedOutput = false;
-				else cout << "Unknown value: '" << parts[4] << "'" << endl;
-				valid = true;
-			}
-			else if (parts[2] == "hash") {
-				Settings.Hash = stoi(parts[4]);
-				Search.Heuristics.SetHashSize(Settings.Hash);
+			if (parts[2] == "hash") {
+				Settings::Hash = stoi(parts[4]);
+				Search.Heuristics.SetHashSize(Settings::Hash);
 				valid = true;
 			}
 			else if (parts[2] == "clear") {
@@ -113,11 +101,11 @@ void Engine::Start() {
 			else if (parts[2] == "uci_showwdl") {
 				ConvertToLowercase(parts[4]);
 				if (parts[4] == "true") {
-					Settings.ShowWDL = true;
+					Settings::ShowWDL = true;
 					valid = true;
 				}
 				else if (parts[4] == "false") {
-					Settings.ShowWDL = false;
+					Settings::ShowWDL = false;
 					valid = true;
 				}
 			}
@@ -154,8 +142,9 @@ void Engine::Start() {
 				cout << "Hash (polyglot): " << std::hex << board.Hash() << std::dec << endl;
 			}
 			if (parts[1] == "settings") {
-				cout << "Hash: " << Settings.Hash << endl;
-				cout << "ExtendedOutput: " << Settings.ExtendedOutput << endl;
+				cout << "Hash:      " << Settings::Hash << endl;
+				cout << "Show WDL:  " << Settings::ShowWDL << endl;
+				cout << "Using UCI: " << Settings::UseUCI << endl;
 			}
 			if (parts[1] == "sizeof") {
 				cout << "sizeof TranspositionEntry: " << sizeof(TranspositionEntry) << endl;
@@ -336,9 +325,9 @@ void Engine::Start() {
 			}
 
 			// Starting the search thread
-			// old call: Search.SearchMoves(board, params, Settings, true);
+			// old call: Search.SearchMoves(board, params, true);
 			SearchThread = std::thread([&]() {
-				Search.SearchMoves(board, params, Settings, true);
+				Search.SearchMoves(board, params, true);
 			});
 			continue;
 		}
@@ -423,15 +412,13 @@ void Engine::HandleBench() {
 	uint64_t nodes = 0;
 	SearchParams params;
 	params.depth = 14;
-	EngineSettings settings;
-	const int oldHashSize = Settings.Hash;
+	const int oldHashSize = Settings::Hash;
 	Search.Heuristics.SetHashSize(16);
-	settings.ExtendedOutput = false;
-	auto startTime = Clock::now();
+	const auto startTime = Clock::now();
 	for (const std::string& fen : BenchmarkFENs) {
 		Search.ResetState(false);
 		Board b = Board(fen);
-		const Results r = Search.SearchMoves(b, params, settings, false);
+		const Results r = Search.SearchMoves(b, params, false);
 		nodes += r.stats.Nodes;
 	}
 	const auto endTime = Clock::now();
