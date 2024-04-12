@@ -643,7 +643,7 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 	while (movePicker.hasNext()) {
 		const auto& [m, order] = movePicker.get();
 		if (!board.IsLegalMove(m)) continue;
-		if (!StaticExchangeEval(board, m, 0)) continue; // Quiescence search SEE pruning (+39 elo)
+		if (!StaticExchangeEval(board, m, Tune::see_qsearch_th.value)) continue; // Quiescence search SEE pruning (+39 elo)
 		Statistics.Nodes += 1;
 		Statistics.QuiescenceNodes += 1;
 
@@ -784,7 +784,7 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 
 void Search::OrderMoves(const Board& board, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks) {
 	for (auto& m : ml) {
-		const bool losingCapture = board.IsMoveQuiet(m.move) ? false : !StaticExchangeEval(board, m.move, 0);
+		const bool losingCapture = board.IsMoveQuiet(m.move) ? false : !StaticExchangeEval(board, m.move, Tune::see_search_th.value);
 		m.orderScore = Heuristics.CalculateOrderScore(board, m.move, level, ttMove, MoveStack, losingCapture, true, opponentAttacks);
 	}
 }

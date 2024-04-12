@@ -18,6 +18,8 @@ namespace Tune {
 
     Tunable see_quiet = Tunable{ "see_quiet", 30, 80, 50, 10 };
     Tunable see_noisy = Tunable{ "see_noisy", 60, 130, 100, 10 };
+    Tunable see_search_th = Tunable{ "see_search_th", 0, 100, 0, 20 };
+    Tunable see_qsearch_th = Tunable{ "see_qsearch_th", 0, 100, 0, 20 };
 
     std::unordered_map<std::string_view, Tunable&> List = {
         {see_pawn.name, see_pawn},
@@ -27,6 +29,8 @@ namespace Tune {
         {see_queen.name, see_queen},
         {see_quiet.name, see_quiet},
         {see_noisy.name, see_noisy},
+        {see_search_th.name, see_search_th},
+        {see_qsearch_th.name, see_qsearch_th},
     };
 
     // Helper functions:
