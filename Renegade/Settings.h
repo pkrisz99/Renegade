@@ -35,5 +35,5 @@ namespace Tune {
 	void GenerateString();
 	bool Active();
 
-	extern Tunable see_pawn, see_knight, see_bishop, see_rook, see_queen, see_quiet, see_noisy, see_search_th, see_qsearch_th;
+	//extern Tunable see_pawn, see_knight, see_bishop, see_rook, see_queen, see_quiet, see_noisy, see_search_th, see_qsearch_th;
 }

@@ -461,8 +461,8 @@ int Search::SearchRecursive(Board& board, int depth, const int level, int alpha,
 			if (isQuiet && (alpha < MateThreshold) && futilityPrunable) break;
 
 			// Main search SEE pruning (+20 elo)
-			const int seeQuietMargin = -Tune::see_quiet.value * depth;
-			const int seeNoisyMargin = -Tune::see_noisy.value * depth;
+			const int seeQuietMargin = -57 * depth;
+			const int seeNoisyMargin = -89 * depth;
 			if (depth <= 5) {
 				const int seeMargin = isQuiet ? seeQuietMargin : seeNoisyMargin;
 				if (!StaticExchangeEval(board, m, seeMargin)) continue;
@@ -643,7 +643,7 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 	while (movePicker.hasNext()) {
 		const auto& [m, order] = movePicker.get();
 		if (!board.IsLegalMove(m)) continue;
-		if (!StaticExchangeEval(board, m, -Tune::see_qsearch_th.value)) continue; // Quiescence search SEE pruning (+39 elo)
+		if (!StaticExchangeEval(board, m, -11)) continue; // Quiescence search SEE pruning (+39 elo)
 		Statistics.Nodes += 1;
 		Statistics.QuiescenceNodes += 1;
 
@@ -690,8 +690,7 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 	// This is more or less the standard way of doing this
 	// The implementation follows Ethereal's method
 
-	const int seeValues[] = { 0, Tune::see_pawn.value, Tune::see_knight.value, Tune::see_bishop.value,
-		Tune::see_rook.value, Tune::see_queen.value, 999999 };
+	constexpr auto seeValues = std::array{ 0, 100, 308, 299, 471, 1000, 999999 };
 
 	// Get the initial piece
 	uint8_t victim = TypeOfPiece(board.GetPieceAt(move.from));
@@ -784,7 +783,7 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 
 void Search::OrderMoves(const Board& board, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks) {
 	for (auto& m : ml) {
-		const bool losingCapture = board.IsMoveQuiet(m.move) ? false : !StaticExchangeEval(board, m.move, -Tune::see_search_th.value);
+		const bool losingCapture = board.IsMoveQuiet(m.move) ? false : !StaticExchangeEval(board, m.move, -64);
 		m.orderScore = Heuristics.CalculateOrderScore(board, m.move, level, ttMove, MoveStack, losingCapture, true, opponentAttacks);
 	}
 }
