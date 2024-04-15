@@ -40,6 +40,7 @@ void Engine::Start() {
 			cout << "option name Hash type spin default " << HashDefault << " min " << HashMin << " max " << HashMax << '\n';
 			cout << "option name Threads type spin default 1 min 1 max 1" << '\n';
 			cout << "option name UCI_ShowWDL type check default " << (ShowWDLDefault ? "true" : "false") << '\n';
+			if (Tune::Active()) Tune::PrintOptions();
 			cout << "uciok" << endl;
 			Settings::UseUCI = true;
 			continue;
@@ -80,6 +81,11 @@ void Engine::Start() {
 			continue;
 		}
 
+		if (cmd == "tunetext") {
+			Tune::GenerateString();
+			continue;
+		}
+
 		// Set option
 		if (parts[0] == "setoption") {
 
@@ -110,6 +116,10 @@ void Engine::Start() {
 				}
 			}
 			else if (parts[2] == "threads") {
+				valid = true;
+			}
+			else if (Tune::List.find(parts[2]) != Tune::List.end()) {
+				Tune::List.at(parts[2]).value = stoi(parts[4]);
 				valid = true;
 			}
 			
@@ -145,6 +155,7 @@ void Engine::Start() {
 				cout << "Hash:      " << Settings::Hash << endl;
 				cout << "Show WDL:  " << Settings::ShowWDL << endl;
 				cout << "Using UCI: " << Settings::UseUCI << endl;
+				for (const auto& [name, param] : Tune::List) cout << name << " -> " << param.value << endl;
 			}
 			if (parts[1] == "sizeof") {
 				cout << "sizeof TranspositionEntry: " << sizeof(TranspositionEntry) << endl;
