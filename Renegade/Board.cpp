@@ -257,12 +257,12 @@ uint8_t Board::GetPieceAt(const uint8_t place) const {
 
 // Converts the uci move input to the engine's own representation, and then plays it
 bool Board::PushUci(const std::string& ucistr) {
-	const int sq1 = SquareToNum(ucistr.substr(0, 2));
-	const int sq2 = SquareToNum(ucistr.substr(2, 2));
+	const uint8_t sq1 = SquareToNum(ucistr.substr(0, 2));
+	const uint8_t sq2 = SquareToNum(ucistr.substr(2, 2));
 	const char extra = ucistr[4];
 	Move move = Move(sq1, sq2);
-	const int piece = GetPieceAt(sq1);
-	const int capturedPiece = GetPieceAt(sq2);
+	const uint8_t piece = GetPieceAt(sq1);
+	const uint8_t capturedPiece = GetPieceAt(sq2);
 
 	// Promotions
 	switch (extra) {
@@ -273,16 +273,22 @@ bool Board::PushUci(const std::string& ucistr) {
 	}
 
 	// Castling
-	if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 2)) move.flag = MoveFlag::LongCastle;
-	else if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 6)) move.flag = MoveFlag::ShortCastle;
-	else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 58)) move.flag = MoveFlag::LongCastle;
-	else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 62)) move.flag = MoveFlag::ShortCastle;
+	if (true) {
+		if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 2)) move = { 4, 0, MoveFlag::LongCastle };
+		else if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 6)) move = { 4, 7, MoveFlag::ShortCastle };
+		else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 58)) move = { 60, 56, MoveFlag::LongCastle };
+		else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 62)) move = { 60, 63, MoveFlag::ShortCastle };
+	}
+	else {
+		if (piece == Piece::WhiteKing && capturedPiece == Piece::WhiteRook) move.flag = (move.from < move.to) ? MoveFlag::LongCastle : MoveFlag::ShortCastle;
+		else if (piece == Piece::BlackKing && capturedPiece == Piece::BlackRook) move.flag = (move.from < move.to) ? MoveFlag::LongCastle : MoveFlag::ShortCastle;
+	}
 
 	// En passant possibility
 	if (TypeOfPiece(piece) == PieceType::Pawn) {
-		const int f1 = sq1 / 8;
-		const int f2 = sq2 / 8;
-		if (abs(f2 - f1) > 1) move.flag = MoveFlag::EnPassantPossible;
+		const uint8_t f1 = sq1 / 8;
+		const uint8_t f2 = sq2 / 8;
+		if (std::abs(f2 - f1) > 1) move.flag = MoveFlag::EnPassantPossible;
 	}
 
 	// En passant performed
@@ -315,10 +321,11 @@ bool Board::PushUci(const std::string& ucistr) {
 // Updating bitboard fields
 void Board::TryMove(const Move& move) {
 	
-	const int piece = GetPieceAt(move.from);
-	const int pieceType = TypeOfPiece(piece);
-	const int targetPiece = GetPieceAt(move.to);
+	const uint8_t piece = GetPieceAt(move.from);
+	const uint8_t pieceType = TypeOfPiece(piece);
+	const uint8_t targetPiece = GetPieceAt(move.to);
 
+	// Update bitboard fields for ordinary moves
 	switch (piece) {
 	case Piece::WhitePawn: SetBitFalse(WhitePawnBits, move.from); SetBitTrue(WhitePawnBits, move.to); break;
 	case Piece::BlackPawn: SetBitFalse(BlackPawnBits, move.from); SetBitTrue(BlackPawnBits, move.to); break;
@@ -348,13 +355,15 @@ void Board::TryMove(const Move& move) {
 	case Piece::BlackQueen: SetBitFalse(BlackQueenBits, move.to); break;
 	}
 
+	// Handle en passant
 	if ((piece == Piece::WhitePawn) && (move.to == EnPassantSquare)) {
-		SetBitFalse(BlackPawnBits, EnPassantSquare-8);
+		SetBitFalse(BlackPawnBits, EnPassantSquare - 8);
 	}
 	else if ((piece == Piece::BlackPawn) && (move.to == EnPassantSquare)) {
-		SetBitFalse(WhitePawnBits, EnPassantSquare+8);
+		SetBitFalse(WhitePawnBits, EnPassantSquare + 8);
 	}
 
+	// Handle promotions
 	if (piece == Piece::WhitePawn) {
 		switch (move.flag) {
 		case MoveFlag::None: break;
@@ -374,39 +383,45 @@ void Board::TryMove(const Move& move) {
 		}
 	}
 
-	if (targetPiece != 0) HalfmoveClock = 0;
+	// Reset fifty-move counter if needed
+	if (targetPiece != Piece::None) HalfmoveClock = 0;
 	if (pieceType == PieceType::Pawn) HalfmoveClock = 0;
 	if (move.flag == MoveFlag::EnPassantPerformed) HalfmoveClock = 0;
 
-	// 2. Handle castling
-	if ((move.flag == MoveFlag::ShortCastle) || (move.flag == MoveFlag::LongCastle)) {
-		if ((Turn == Side::White) && (move.flag == MoveFlag::ShortCastle)) {
-			SetBitFalse(WhiteRookBits, Squares::H1);
+	// Handle castling
+	if (piece == Piece::WhiteKing && targetPiece == Piece::WhiteRook) {
+		WhiteRightToShortCastle = false;
+		WhiteRightToLongCastle = false;
+
+		if (move.flag == MoveFlag::ShortCastle) {
+			SetBitFalse(WhiteKingBits, move.to);
+			SetBitTrue(WhiteKingBits, Squares::G1);
 			SetBitTrue(WhiteRookBits, Squares::F1);
-			WhiteRightToShortCastle = false;
-			WhiteRightToLongCastle = false;
 		}
-		else if ((Turn == Side::White) && (move.flag == MoveFlag::LongCastle)) {
-			SetBitFalse(WhiteRookBits, Squares::A1);
+		else if (move.flag == MoveFlag::LongCastle) {
+			SetBitFalse(WhiteKingBits, move.to);
+			SetBitTrue(WhiteKingBits, Squares::C1);
 			SetBitTrue(WhiteRookBits, Squares::D1);
-			WhiteRightToShortCastle = false;
-			WhiteRightToLongCastle = false;
 		}
-		else if ((Turn == Side::Black) && (move.flag == MoveFlag::ShortCastle)) {
-			SetBitFalse(BlackRookBits, Squares::H8);
+
+	}
+	else if (piece == Piece::BlackKing && targetPiece == Piece::BlackRook) {
+		BlackRightToShortCastle = false;
+		BlackRightToLongCastle = false;
+
+		if (move.flag == MoveFlag::ShortCastle) {
+			SetBitFalse(BlackKingBits, move.to);
+			SetBitTrue(BlackKingBits, Squares::G8);
 			SetBitTrue(BlackRookBits, Squares::F8);
-			BlackRightToShortCastle = false;
-			BlackRightToLongCastle = false;
 		}
-		else if ((Turn == Side::Black) && (move.flag == MoveFlag::LongCastle)) {
-			SetBitFalse(BlackRookBits, Squares::A8);
+		else if (move.flag == MoveFlag::LongCastle) {
+			SetBitFalse(BlackKingBits, move.to);
+			SetBitTrue(BlackKingBits, Squares::C8);
 			SetBitTrue(BlackRookBits, Squares::D8);
-			BlackRightToShortCastle = false;
-			BlackRightToLongCastle = false;
 		}
 	}
 
-	// 3. Update castling rights
+	// Update castling rights
 	if (piece == Piece::WhiteKing) {
 		WhiteRightToShortCastle = false;
 		WhiteRightToLongCastle = false;
@@ -415,15 +430,27 @@ void Board::TryMove(const Move& move) {
 		BlackRightToShortCastle = false;
 		BlackRightToLongCastle = false;
 	}
-	if ((move.to == Squares::H1) || (move.from == Squares::H1)) WhiteRightToShortCastle = false;
-	if ((move.to == Squares::A1) || (move.from == Squares::A1)) WhiteRightToLongCastle = false;
-	if ((move.to == Squares::H8) || (move.from == Squares::H8)) BlackRightToShortCastle = false;
-	if ((move.to == Squares::A8) || (move.from == Squares::A8)) BlackRightToLongCastle = false;
 
-	// 4. Update en passant
+	if (targetPiece == Piece::WhiteRook && GetSquareRank(move.to) == 0) {
+		if (move.to < Squares::E1) WhiteRightToLongCastle = false;
+		else WhiteRightToShortCastle = false;
+	}
+	if (targetPiece == Piece::BlackRook && GetSquareRank(move.to) == 7) {
+		if (move.to < Squares::E8) BlackRightToLongCastle = false;
+		else BlackRightToShortCastle = false;
+	}
+	if (piece == Piece::WhiteRook && GetSquareRank(move.from) == 0) {
+		if (move.from < Squares::E1) WhiteRightToLongCastle = false;
+		else WhiteRightToShortCastle = false;
+	}
+	if (piece == Piece::BlackRook && GetSquareRank(move.from) == 7) {
+		if (move.from < Squares::E8) BlackRightToLongCastle = false;
+		else BlackRightToShortCastle = false;
+	}
+
+	// Update en passant
 	if (move.flag == MoveFlag::EnPassantPossible) {
-		if (Turn == Side::White) EnPassantSquare = move.to - 8;
-		else EnPassantSquare = move.to + 8;
+		EnPassantSquare = (Turn == Side::White) ? move.to - 8 : move.to + 8;
 	}
 	else {
 		EnPassantSquare = -1;
@@ -519,6 +546,7 @@ bool Board::IsLegalMove(const Move& m) {
 }
 
 bool Board::IsMoveQuiet(const Move& move) const {
+	if (move.IsCastling()) return true;
 	const uint8_t movedPiece = GetPieceAt(move.from);
 	const uint8_t targetPiece = GetPieceAt(move.to);
 	if (targetPiece != Piece::None) return false;
@@ -652,8 +680,8 @@ void Board::GenerateCastlingMoves(MoveList& moves) const {
 	constexpr auto longEmpty = (side == Side::White) ? std::array{ B1, C1, D1 } : std::array{ B8, C8, D8 };
 	constexpr auto longSafe = (side == Side::White) ? std::array{ C1, D1, E1 } : std::array{ C8, D8, E8 };
 	constexpr int from = (side == Side::White) ? E1 : E8;
-	constexpr int shortTo = (side == Side::White) ? G1 : G8;
-	constexpr int longTo = (side == Side::White) ? C1 : C8;
+	constexpr int shortRook = (side == Side::White) ? H1 : H8;
+	constexpr int longRook = (side == Side::White) ? A1 : A8;
 
 	const bool rightToShortCastle = (side == Side::White) ? WhiteRightToShortCastle : BlackRightToShortCastle;
 	const bool rightToLongCastle = (side == Side::White) ? WhiteRightToLongCastle : BlackRightToLongCastle;
@@ -666,7 +694,7 @@ void Board::GenerateCastlingMoves(MoveList& moves) const {
 			const bool safe = std::all_of(shortSafe.begin(), shortSafe.end(), [&](const int sq) {
 				return !IsSquareAttacked<!side>(sq);
 			});
-			if (safe) moves.pushUnscored(Move(from, shortTo, MoveFlag::ShortCastle));
+			if (safe) moves.pushUnscored(Move(from, shortRook, MoveFlag::ShortCastle));
 		}
 	}
 	if (rightToLongCastle) {
@@ -677,7 +705,7 @@ void Board::GenerateCastlingMoves(MoveList& moves) const {
 			const bool safe = std::all_of(longSafe.begin(), longSafe.end(), [&](const int sq) {
 				return !IsSquareAttacked<!side>(sq);
 			});
-			if (safe) moves.pushUnscored(Move(from, longTo, MoveFlag::LongCastle));
+			if (safe) moves.pushUnscored(Move(from, longRook, MoveFlag::LongCastle));
 		}
 	}
 }

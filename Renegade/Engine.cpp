@@ -278,7 +278,7 @@ void Engine::Start() {
 				if ((parts.size() > 2) && (parts[2] == "moves")) {
 					for (int i = 3; i < parts.size(); i++) {
 						bool r = board.PushUci(parts[i]);
-						if (!r) cout << "!!! Error: invalid pushuci move: '" << parts[i] << "' !!!" << endl;
+						if (!r) cout << "!!! Error: invalid pushuci move: '" << parts[i] << "' at position '" << board.GetFEN() <<"' !!!" << endl;
 					}
 				}
 			}

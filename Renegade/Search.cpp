@@ -672,7 +672,7 @@ int Search::SearchQuiescence(Board& board, const int level, int alpha, int beta)
 
 int Search::Evaluate(const Board &board, const int level) {
 	Statistics.Evaluations += 1;
-	//if (NeuralEvaluate(Accumulator, board.Turn) != NeuralEvaluate(board)) cout << "!" << endl;
+	//if (NeuralEvaluate((*Accumulators)[level], board.Turn) != NeuralEvaluate(board)) cout << "!" << endl;
 	//return NeuralEvaluate(board);
 	return NeuralEvaluate((*Accumulators)[level], board.Turn);
 }
@@ -698,6 +698,7 @@ bool Search::StaticExchangeEval(const Board& board, const Move& move, const int 
 	int estimatedMoveValue = seeValues[TypeOfPiece(board.GetPieceAt(move.to))];
 	if (move.IsPromotion()) estimatedMoveValue += seeValues[move.GetPromotionPieceType()] - seeValues[PieceType::Pawn];
 	else if (move.flag == MoveFlag::EnPassantPerformed) estimatedMoveValue = seeValues[PieceType::Pawn];
+	else if (move.IsCastling()) estimatedMoveValue = 0;
 
 	// Handle trivial cases (losing the piece for nothing still above / having initial gain below threshold)
 	int score = -threshold;
@@ -809,7 +810,6 @@ void Search::SetupAccumulators(const Board& board) {
 void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
 
 	// Copy the previous state over
-	//std::memcpy(&(*Accumulators)[level + 1], &(*Accumulators)[level], sizeof(AccumulatorRepresentation));
 	(*Accumulators)[level + 1] = (*Accumulators)[level];
 	if (m.IsNull()) return; // If it's a null move, we're done
 	AccumulatorRepresentation& Accumulator = (*Accumulators)[level + 1];
@@ -823,10 +823,10 @@ void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const u
 	}
 
 	// Activate the new position of the moved piece
-	if (!m.IsPromotion()) {
+	if (!m.IsPromotion() && !m.IsCastling()) {
 		Accumulator.AddFeature( FeatureIndexes(movedPiece, m.to) );
 	}
-	else {
+	else if (m.IsPromotion()) {
 		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
 		Accumulator.AddFeature( FeatureIndexes(promotionPiece, m.to) );
 	}
@@ -835,27 +835,25 @@ void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const u
 	switch (m.flag) {
 		case MoveFlag::None: break;
 
-		// Short castling: move the castling rook from H1 to F1 or from H8 to F8
 		case MoveFlag::ShortCastle:
 			if (ColorOfPiece(movedPiece) == PieceColor::White) {
-				Accumulator.RemoveFeature( FeatureIndexes(Piece::WhiteRook, Squares::H1) );
-				Accumulator.AddFeature( FeatureIndexes(Piece::WhiteRook, Squares::F1) );
+				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::G1));
+				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::F1));
 			}
 			else {
-				Accumulator.RemoveFeature( FeatureIndexes(Piece::BlackRook, Squares::H8) );
-				Accumulator.AddFeature( FeatureIndexes(Piece::BlackRook, Squares::F8) );
+				Accumulator.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::G8));
+				Accumulator.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::F8));
 			}
 			break;
 
-		// Long castling: move the castling rook from A1 to D1 or from A8 to D8
 		case MoveFlag::LongCastle:
 			if (ColorOfPiece(movedPiece) == PieceColor::White) {
-				Accumulator.RemoveFeature( FeatureIndexes(Piece::WhiteRook, Squares::A1) );
-				Accumulator.AddFeature( FeatureIndexes(Piece::WhiteRook, Squares::D1) );
+				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::C1));
+				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::D1));
 			}
 			else {
-				Accumulator.RemoveFeature( FeatureIndexes(Piece::BlackRook, Squares::A8) );
-				Accumulator.AddFeature( FeatureIndexes(Piece::BlackRook, Squares::D8) );
+				Accumulator.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::C8));
+				Accumulator.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::D8));
 			}
 			break;
 
