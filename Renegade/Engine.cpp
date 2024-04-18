@@ -429,7 +429,7 @@ void Engine::DrawBoard(const Position& position, const uint64_t customBits) cons
 void Engine::HandleBench(const bool lengthy) {
 	uint64_t nodes = 0;
 	SearchParams params;
-	params.depth = lengthy ? 22 : 14;
+	params.depth = lengthy ? 21 : 14;
 	const int oldHashSize = Settings::Hash;
 	Search.Heuristics.SetHashSize(16);
 	const auto startTime = Clock::now();

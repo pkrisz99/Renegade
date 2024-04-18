@@ -487,7 +487,7 @@ constexpr std::array<bool, 64> OutpostFilter = {
 };
 
 // Randomly selected FENs from Renegade's games for benchmarking, might replace with something more standard
-const std::array<std::string, 19> BenchmarkFENs = {
+const std::array<std::string, 20> BenchmarkFENs = {
 	"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 	"2r3k1/2P2pp1/3Np2p/8/7P/5qP1/5P1K/2Q5 b - - 2 42",
 	"rnbqkb1r/pppppppp/8/3nP3/2P5/8/PP1P1PPP/RNBQKBNR b KQkq - 0 3",
@@ -506,7 +506,8 @@ const std::array<std::string, 19> BenchmarkFENs = {
 	"5k2/8/4p2p/4P1p1/3P2P1/3b3K/3B2P1/8 w - - 92 121",
 	"rnbqk2r/ppppppbp/5np1/8/2PP4/2N2N2/PP2PPPP/R1BQKB1R b KQkq - 3 4",
 	"2r1r1k1/p3B2p/3p1P2/2pP3q/P1P3n1/1R3p1P/2Q3P1/1R5K b - - 2 47",
-	"8/8/6R1/5K1p/8/5k2/6p1/8 w - - 0 79"
+	"8/8/6R1/5K1p/8/5k2/6p1/8 w - - 0 79",
+	"3k4/8/1Q6/1b6/8/1P1p1P2/3K4/7q b - - 7 64"
 };
 
 // Polyglot hashing numbers, taken from python-chess
