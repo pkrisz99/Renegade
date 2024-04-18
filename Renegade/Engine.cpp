@@ -8,7 +8,7 @@ Engine::Engine(int argc, char* argv[]) {
 	Search.Heuristics.SetHashSize(Settings::Hash);
 
 	if ((argc == 2) && (std::string(argv[1]) == "bench")) {
-		HandleBench();
+		HandleBench(false);
 		QuitAfterBench = true;
 	}
 	else PrintHeader();
@@ -346,7 +346,12 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "bench") {
-			HandleBench();
+			HandleBench(false);
+			continue;
+		}
+
+		if (parts[0] == "longbench") {
+			HandleBench(true);
 			continue;
 		}
 
@@ -421,10 +426,10 @@ void Engine::DrawBoard(const Position& position, const uint64_t customBits) cons
 
 }
 
-void Engine::HandleBench() {
+void Engine::HandleBench(const bool lengthy) {
 	uint64_t nodes = 0;
 	SearchParams params;
-	params.depth = 14;
+	params.depth = lengthy ? 22 : 14;
 	const int oldHashSize = Settings::Hash;
 	Search.Heuristics.SetHashSize(16);
 	const auto startTime = Clock::now();
@@ -437,6 +442,7 @@ void Engine::HandleBench() {
 	const auto endTime = Clock::now();
 	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
 	cout << nodes << " nodes " << nps << " nps" << endl;
+	Search.ResetState(false);
 	Search.Heuristics.SetHashSize(oldHashSize); // also clears the transposition table
 }
 
