@@ -21,7 +21,7 @@ void Engine::PrintHeader() const {
 // Start UCI protocol
 void Engine::Start() {
 	if (QuitAfterBench) return;
-	Board board = Board(FEN::StartPos);
+	Position position = Position(FEN::StartPos);
 	std::string cmd;
 	SearchParams params;
 
@@ -131,25 +131,25 @@ void Engine::Start() {
 
 		// Debug commands
 		if ((parts[0] == "debug") && (parts.size() > 1)) {
-			if (parts[1] == "attackmap") DrawBoard(board, board.CalculateAttackedSquares(board.Turn));
-			if (parts[1] == "enpassant") cout << "En passant target: " << board.EnPassantSquare << endl;
-			if (parts[1] == "halfmovecounter") cout << "Half move counter: " << board.HalfmoveClock << endl;
-			if (parts[1] == "fullmovecounter") cout << "Full move counter: " << board.FullmoveClock << endl;
-			if (parts[1] == "plys") cout << "Game plys: " << board.GetPlys() << endl;
+			if (parts[1] == "attackmap") DrawBoard(position, position.CalculateAttackedSquares(position.Turn()));
+			if (parts[1] == "enpassant") cout << "En passant target: " << position.CurrentState().EnPassantSquare << endl;
+			if (parts[1] == "halfmovecounter") cout << "Half move counter: " << position.CurrentState().HalfmoveClock << endl;
+			if (parts[1] == "fullmovecounter") cout << "Full move counter: " << position.CurrentState().FullmoveClock << endl;
+			if (parts[1] == "plys") cout << "Game plys: " << position.GetPlys() << endl;
 			if (parts[1] == "pseudolegal") {
 				MoveList pseudoMoves{};
-				board.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
+				position.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
 				for (const auto& m : pseudoMoves) cout << m.move.ToString() << " ";
 				cout << endl;
 			}
 			if (parts[1] == "legal") {
 				MoveList moves{};
-				board.GenerateMoves(moves, MoveGen::All, Legality::Legal);
+				position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
 				for (const auto& m : moves) cout << m.move.ToString() << " ";
 				cout << endl;
 			}
 			if (parts[1] == "hash") {
-				cout << "Hash (polyglot): " << std::hex << board.Hash() << std::dec << endl;
+				cout << "Hash (polyglot): " << std::hex << position.Hash() << std::dec << endl;
 			}
 			if (parts[1] == "settings") {
 				cout << "Hash:      " << Settings::Hash << endl;
@@ -159,18 +159,18 @@ void Engine::Start() {
 			}
 			if (parts[1] == "sizeof") {
 				cout << "sizeof TranspositionEntry: " << sizeof(TranspositionEntry) << endl;
-				cout << "sizeof Board:              " << sizeof(Board) << endl;
+				cout << "sizeof Position:           " << sizeof(position) << endl;
 				cout << "sizeof Move:               " << sizeof(Move) << endl;
 				cout << "sizeof int:                " << sizeof(int) << endl;
 			}
 			if (parts[1] == "pasthashes") {
-				cout << "Past hashes size: " << board.PreviousHashes.size() << endl;
-				for (int i = 0; i < board.PreviousHashes.size(); i++) {
-					cout << "- entry " << i << ": " << std::hex << board.PreviousHashes[i] << std::dec << endl;
+				cout << "Past hashes size: " << position.Hashes.size() << endl;
+				for (int i = 0; i < position.Hashes.size(); i++) {
+					cout << "- entry " << i << ": " << std::hex << position.Hashes[i] << std::dec << endl;
 				}
 			}
 			if (parts[1] == "phase") {
-				cout << "Game phase: " << CalculateGamePhase(board) << endl;
+				cout << "Game phase: " << CalculateGamePhase(position) << endl;
 			}
 			if (parts[1] == "weight") {
 				const int id = stoi(parts[2]);
@@ -188,14 +188,14 @@ void Engine::Start() {
 
 			}
 			if (parts[1] == "isdraw") {
-				cout << "Is drawn? " << board.IsDraw(true) << endl;
+				cout << "Is drawn? " << position.IsDrawn(true) << endl;
 			}
 			if (parts[1] == "see") {
 				const Move m = Move(stoi(parts[2]), stoi(parts[3]), stoi(parts[4]));
-				cout << "SEE: " << Search.StaticExchangeEval(board, m, stoi(parts[5])) << endl;
+				cout << "SEE: " << Search.StaticExchangeEval(position, m, stoi(parts[5])) << endl;
 
 				int threshold = -2000;
-				while (Search.StaticExchangeEval(board, m, threshold)) {
+				while (Search.StaticExchangeEval(position, m, threshold)) {
 					threshold += 1;
 				}
 				cout << "SEE toggle threshold: " << threshold << endl;
@@ -213,18 +213,20 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "draw") {
-			DrawBoard(board);
+			uint64_t bitboard = 0;
+			if (parts.size() > 1) bitboard = stoull(parts[1]);
+			DrawBoard(position, bitboard);
 			continue;
 		}
 		if (parts[0] == "eval") {
-			const int hce = ClassicalEvaluate(board);
-			const int nnue = NeuralEvaluate(board);
-			cout << "Hand-crafted evaluation:   " << ToCentipawns(hce, board.GetPlys()) << " cp  (internal units: " << hce << ")" << endl;
-			cout << "Neural network evaluation: " << ToCentipawns(nnue, board.GetPlys()) << " cp  (internal units: " << nnue << ")\n" << endl;
+			const int hce = ClassicalEvaluate(position);
+			const int nnue = NeuralEvaluate(position);
+			cout << "Hand-crafted evaluation:   " << ToCentipawns(hce, position.GetPlys()) << " cp  (internal units: " << hce << ")" << endl;
+			cout << "Neural network evaluation: " << ToCentipawns(nnue, position.GetPlys()) << " cp  (internal units: " << nnue << ")\n" << endl;
 			continue;
 		}
 		if (parts[0] == "fen") {
-			cout << "Position FEN: " << board.GetFEN() << endl;
+			cout << "Position FEN: " << position.GetFEN() << endl;
 			continue;
 		}
 		if (parts[0] == "clear") {
@@ -252,7 +254,7 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "gamestate") {
-			GameState state = board.GetGameState();
+			const GameState state = position.GetGameState();
 			switch (state) {
 			case GameState::Playing: cout << "Playing." << endl; break;
 			case GameState::Draw: cout << "Drawn." << endl; break;
@@ -271,14 +273,14 @@ void Engine::Start() {
 			}
 
 			if ((parts[1] == "startpos") || (parts[1] == "kiwipete") || (parts[1] == "lasker")) {
-				if (parts[1] == "startpos") board = Board(FEN::StartPos);
-				else if (parts[1] == "kiwipete") board = Board(FEN::Kiwipete);
-				else if (parts[1] == "lasker") board = Board(FEN::Lasker);
+				if (parts[1] == "startpos") position = Position(FEN::StartPos);
+				else if (parts[1] == "kiwipete") position = Position(FEN::Kiwipete);
+				else if (parts[1] == "lasker") position = Position(FEN::Lasker);
 
 				if ((parts.size() > 2) && (parts[2] == "moves")) {
 					for (int i = 3; i < parts.size(); i++) {
-						bool r = board.PushUci(parts[i]);
-						if (!r) cout << "!!! Error: invalid pushuci move: '" << parts[i] << "' at position '" << board.GetFEN() <<"' !!!" << endl;
+						bool r = position.PushUCI(parts[i]);
+						if (!r) cout << "!!! Error: invalid pushuci move: '" << parts[i] << "' at position '" << /*board.GetFEN() <<*/ "' !!!" << endl;
 					}
 				}
 			}
@@ -289,11 +291,11 @@ void Engine::Start() {
 					fen = parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " " + parts[6] + " " + parts[7];
 				else
 					fen = parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " 0 1";
-				board = Board(fen);
+				position = Position(fen);
 
 				if ((parts.size() > 8) && (parts[8] == "moves")) {
 					for (int i = 9; i < parts.size(); i++) {
-						bool r = board.PushUci(parts[i]);
+						const bool r = position.PushUCI(parts[i]);
 						if (!r) cout << "!!! Error: invalid pushuci move !!!" << endl;
 					}
 				}
@@ -315,7 +317,7 @@ void Engine::Start() {
 				int depth = stoi(parts[2]);
 				PerftType type = PerftType::Normal;
 				if (parts[1] == "perftdiv") type = PerftType::PerftDiv;
-				Search.Perft(board, depth, type);
+				Search.Perft(position, depth, type);
 				continue;
 			}
 
@@ -338,7 +340,7 @@ void Engine::Start() {
 			// Starting the search thread
 			// old call: Search.SearchMoves(board, params, true);
 			SearchThread = std::thread([&]() {
-				Search.SearchMoves(board, params, true);
+				Search.SearchMoves(position, params, true);
 			});
 			continue;
 		}
@@ -355,7 +357,7 @@ void Engine::Start() {
 
 		if (parts[0] == "flip") {
 			cout << "Turn flipped." << endl;
-			board.Turn = !board.Turn;
+			position.CurrentState().Turn = !position.CurrentState().Turn;
 			continue;
 		}
 
@@ -371,10 +373,10 @@ void Engine::Start() {
 	cout << "Stopping engine." << endl;
 }
 
-void Engine::DrawBoard(const Board &b, const uint64_t customBits) const {
+void Engine::DrawBoard(const Position& position, const uint64_t customBits) const {
 
-	const std::string side = b.Turn ? "white" : "black";
-	cout << "    Move: " << b.FullmoveClock << " - " << side << " to play" << endl;;
+	const std::string side = position.Turn() ? "white" : "black";
+	cout << "    Move: " << position.CurrentState().FullmoveClock << " - " << side << " to play" << endl;;
 
 	const std::string WhiteOnLightSquare = "\033[31;47m";
 	const std::string WhiteOnDarkSquare = "\033[31;43m";
@@ -389,7 +391,7 @@ void Engine::DrawBoard(const Board &b, const uint64_t customBits) const {
 	for (int i = 7; i >= 0; i--) {
 		cout << " " << i + 1 << " |";
 		for (int j = 0; j <= 7; j++) {
-			const int pieceId = b.GetPieceAt(i * 8 + j);
+			const int pieceId = position.GetPieceAt(i * 8 + j);
 			const int pieceColor = ColorOfPiece(pieceId);
 			char piece = PieceChars[pieceId];
 
@@ -428,8 +430,8 @@ void Engine::HandleBench() {
 	const auto startTime = Clock::now();
 	for (const std::string& fen : BenchmarkFENs) {
 		Search.ResetState(false);
-		Board b = Board(fen);
-		const Results r = Search.SearchMoves(b, params, false);
+		Position pos = Position(fen);
+		const Results r = Search.SearchMoves(pos, params, false);
 		nodes += r.stats.Nodes;
 	}
 	const auto endTime = Clock::now();

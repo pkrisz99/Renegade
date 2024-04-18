@@ -1,5 +1,5 @@
 #pragma once
-#include "Board.h"
+#include "Position.h"
 #include <algorithm>
 #include <array>
 #include <fstream>
@@ -58,7 +58,7 @@ struct alignas(64) AccumulatorRepresentation {
 void LoadDefaultNetwork();
 void LoadExternalNetwork(const std::string& filename);
 
-int NeuralEvaluate(const Board &board);
+int NeuralEvaluate(const Position &position);
 int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn);
 
 inline int32_t ClippedReLU(const int16_t value) {

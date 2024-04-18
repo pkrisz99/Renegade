@@ -147,13 +147,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Board.cpp" />
+    <ClCompile Include="Board2.cpp" />
+    <ClCompile Include="BoardState.cpp" />
     <ClCompile Include="Datagen.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Evaluation.cpp" />
     <ClCompile Include="Magics.cpp" />
     <ClCompile Include="Heuristics.cpp" />
     <ClCompile Include="Neurals.cpp" />
+    <ClCompile Include="Position.cpp" />
     <ClCompile Include="Renegade.cpp" />
     <ClCompile Include="Reporting.cpp" />
     <ClCompile Include="Search.cpp" />
@@ -161,7 +163,8 @@
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Board.h" />
+    <ClInclude Include="Board2.h" />
+    <ClInclude Include="BoardState.h" />
     <ClInclude Include="Datagen.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Evaluation.h" />
@@ -169,6 +172,7 @@
     <ClInclude Include="Move.h" />
     <ClInclude Include="Heuristics.h" />
     <ClInclude Include="Neurals.h" />
+    <ClInclude Include="Position.h" />
     <ClInclude Include="Reporting.h" />
     <ClInclude Include="Search.h" />
     <ClInclude Include="Settings.h" />

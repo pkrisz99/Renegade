@@ -65,7 +65,7 @@ int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
 	return std::clamp(output, -MateThreshold + 1, MateThreshold - 1);
 }
 
-int NeuralEvaluate(const Board& board) {
+int NeuralEvaluate(const Position& position) {
 	
 	// Initialize arrays and accumulators
 	alignas(64) std::array<int16_t, HiddenSize> hiddenWhite = std::array<int16_t, HiddenSize>();
@@ -76,14 +76,14 @@ int NeuralEvaluate(const Board& board) {
 	acc.Reset();
 
 	// Iterate through pieces and activate features
-	uint64_t bits = board.GetOccupancy();
+	uint64_t bits = position.GetOccupancy();
 	while (bits) {
 		const uint8_t sq = Popsquare(bits);
-		const int piece = board.GetPieceAt(sq);
+		const int piece = position.GetPieceAt(sq);
 		acc.AddFeature(FeatureIndexes(piece, sq));
 	}
 
-	return NeuralEvaluate(acc, board.Turn);
+	return NeuralEvaluate(acc, position.Turn());
 }
 
 void LoadExternalNetwork(const std::string& filename) {
@@ -99,8 +99,8 @@ void LoadExternalNetwork(const std::string& filename) {
 	std::swap(ExternalNetwork, loadedNetwork);
 	Network = ExternalNetwork.get();
 
-	const Board b;
-	const int startposEval = NeuralEvaluate(b);
+	const Position pos{};
+	const int startposEval = NeuralEvaluate(pos);
 	if (std::abs(startposEval) < 300 && startposEval != 0) cout << "Loaded '" << filename << "' external network probably successfully";
 	else cout << "Loaded '" << filename << "', but it stinks";
 	cout << " (startpos raw eval: " << startposEval << ")" << endl;

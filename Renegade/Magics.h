@@ -5,9 +5,9 @@
 // Methods:
 // void GenerateMagicNumbers();
 void GenerateMagicTables();
-uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy);
-uint64_t GetBishopAttacks(const uint8_t square, const uint64_t occupancy);
-uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
+extern uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy);
+extern uint64_t GetBishopAttacks(const uint8_t square, const uint64_t occupancy);
+extern uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
 
 // Attack lookup tables (generated at runtime)
 static std::array<std::array<uint64_t, 4096>, 64> RookAttacks;

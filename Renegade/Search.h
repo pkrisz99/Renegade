@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Board.h"
-#include "Evaluation.h"
 #include "Heuristics.h"
 #include "Neurals.h"
+#include "Position.h"
 #include "Reporting.h"
 #include "Utils.h"
 #include <atomic>
@@ -25,29 +24,29 @@ public:
 	Search();
 	void ResetState(const bool clearTT);
 
-	void Perft(Board& board, const int depth, const PerftType type) const;
-	Results SearchMoves(Board board, const SearchParams params, const bool display);
-	bool StaticExchangeEval(const Board& board, const Move& move, const int threshold) const;
+	void Perft(Position& position, const int depth, const PerftType type) const;
+	Results SearchMoves(Position& position, const SearchParams params, const bool display);
+	bool StaticExchangeEval(const Position& position, const Move& move, const int threshold) const;
 
 	std::atomic<bool> Aborting = true;
 	bool DatagenMode = false;
 	Heuristics Heuristics;
 
 private:
-	int SearchRecursive(Board& board, int depth, const int level, int alpha, int beta, const bool canNullMove);
-	int SearchQuiescence(Board& board, const int level, int alpha, int beta);
-	int Evaluate(const Board& board, const int level);
-	uint64_t PerftRecursive(Board& board, const int depth, const int originalDepth, const PerftType type) const;
+	int SearchRecursive(Position& position, int depth, const int level, int alpha, int beta, const bool canNullMove);
+	int SearchQuiescence(Position& position, const int level, int alpha, int beta);
+	int Evaluate(const Position& position, const int level);
+	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	bool ShouldAbort();
-	int DrawEvaluation();
+	int DrawEvaluation() const;
 	void ResetStatistics();
 
-	void OrderMoves(const Board& board, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks);
-	void OrderMovesQ(const Board& board, MoveList& ml, const int level);
+	void OrderMoves(const Position& position, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks);
+	void OrderMovesQ(const Position& position, MoveList& ml, const int level);
 
 	// NNUE
-	void SetupAccumulators(const Board& board);
+	void SetupAccumulators(const Position& position);
 	void UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level);
 
 	std::unique_ptr<std::array<AccumulatorRepresentation, MaxDepth + 1>> Accumulators;
@@ -62,7 +61,6 @@ private:
 
 	// Reused variables / stack
 	std::array<MoveList, MaxDepth> MoveListStack{};
-	std::array<Board, MaxDepth> Boards;
 	std::array<int, MaxDepth> StaticEvalStack;
 	std::array<int, MaxDepth> EvalStack;
 	std::array<MoveAndPiece, MaxDepth> MoveStack;
