@@ -269,8 +269,13 @@ constexpr int Popsquare(uint64_t& number) {
 	*/
 }
 
-constexpr int LsbSquare(uint64_t number) {
+constexpr int LsbSquare(const uint64_t number) {
 	return static_cast<int>(std::countr_zero(number));
+	// return static_cast<int>(_tzcnt_u64(number));
+}
+
+constexpr int MsbSquare(const uint64_t number) {
+	return static_cast<int>(63 - std::countl_zero(number));
 	// return static_cast<int>(_tzcnt_u64(number));
 }
 

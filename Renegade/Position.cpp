@@ -42,15 +42,51 @@ Position::Position(const std::string& fen) {
 	// Other information
 	board.Turn = (parts[1] == "w") ? Side::White : Side::Black;
 
+	// Castling rights
+
+	CastlingConfig = { 0, 7, 56, 63 }; // Default
+
 	for (const char& f : parts[2]) {
-		switch (f) {
-		case 'K': board.WhiteRightToShortCastle = true; break;
-		case 'Q': board.WhiteRightToLongCastle = true; break;
-		case 'k': board.BlackRightToShortCastle = true; break;
-		case 'q': board.BlackRightToLongCastle = true; break;
+		if (Settings::Chess960) {
+
+			// Chess960
+			// KQkq is ambiguous and it's currently not supported
+
+			if (f >= 'A' && f <= 'H') {
+				const uint8_t rookFile = f - 'A';
+				const uint8_t kingFile = GetSquareFile(LsbSquare(board.WhiteKingBits));
+				if (rookFile < kingFile) {
+					board.WhiteRightToLongCastle = true;
+					CastlingConfig.WhiteLongCastleRookSquare = rookFile;
+				}
+				else {
+					board.WhiteRightToShortCastle = true;
+					CastlingConfig.WhiteShortCastleRookSquare = rookFile;
+				}
+			}
+			else if (f >= 'a' && f <= 'h') {
+				const uint8_t rookFile = f - 'a';
+				const uint8_t kingFile = GetSquareFile(LsbSquare(board.BlackKingBits));
+				if (rookFile < kingFile) {
+					board.BlackRightToLongCastle = true;
+					CastlingConfig.BlackLongCastleRookSquare = rookFile + 56;
+				}
+				else {
+					board.BlackRightToShortCastle = true;
+					CastlingConfig.BlackShortCastleRookSquare = rookFile + 56;
+				}
+			}
+		}
+		else {
+			// Normal chess
+			switch (f) {
+			case 'K': board.WhiteRightToShortCastle = true; break;
+			case 'Q': board.WhiteRightToLongCastle = true; break;
+			case 'k': board.BlackRightToShortCastle = true; break;
+			case 'q': board.BlackRightToLongCastle = true; break;
+			}
 		}
 	}
-	CastlingConfig = { 0, 7, 56, 63 };
 
 	if (parts[3] != "-") {
 		board.EnPassantSquare = SquareToNum(parts[3]);
@@ -58,6 +94,124 @@ Position::Position(const std::string& fen) {
 
 	board.HalfmoveClock = stoi(parts[4]);
 	board.FullmoveClock = stoi(parts[5]);
+
+	Hashes.push_back(board.CalculateHash());
+}
+
+Position::Position(const int frcWhite, const int frcBlack) {
+
+	if (!Settings::Chess960) cout << "uhhh" << endl;
+
+	// Reserve memory, add starting state
+	States.reserve(512);
+	Hashes.reserve(512);
+	States.push_back(Board());
+	Board& board = States.back();
+	
+	// https://en.wikipedia.org/wiki/Fischer_random_chess_numbering_scheme
+
+	assert(0 <= frcWhite && frcWhite < 960);
+	assert(0 <= frcBlack && frcBlack < 960);
+
+	auto gfs = [&](const uint8_t nth, const bool side) { // get free square
+		const uint64_t free = ~GetOccupancy() & (side == Side::White ? Rank[0] : Rank[7]);
+		int i = 0;
+		const int offset = (side == Side::White) ? 0 : 56;
+		for (int sq = offset; sq < offset + 8; sq++) {
+			if (!CheckBit(free, sq)) continue;
+			if (i == nth) return sq;
+			i += 1;
+		}
+		assert(false);
+		//cout << ":|" << endl;
+	};
+
+	// to do: unduplicate this
+	// white
+	{
+		const int frcIndex = frcWhite;
+		const bool s = Side::White;
+
+		const auto [n2, b1] = std::div(frcIndex, 4);
+		board.AddPiece<Piece::WhiteBishop>(b1 * 2 + 1);
+		const auto [n3, b2] = std::div(n2, 4);
+		board.AddPiece<Piece::WhiteBishop>(b2 * 2);
+		const auto [n4, q] = std::div(n3, 6);
+		board.AddPiece<Piece::WhiteQueen>(gfs(q, s));
+
+		switch (n4) {
+		case 0: board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); break;
+		case 1: board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); break;
+		case 2: board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); break;
+		case 3: board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); break;
+		case 4: board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); break;
+		case 5: board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); break;
+		case 6: board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); break;
+		case 7: board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); break;
+		case 8: board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); break;
+		case 9: board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); break;
+		}
+
+		const uint64_t remaining = ~GetOccupancy() & Rank[0];
+		board.AddPiece<Piece::WhiteRook>(LsbSquare(remaining));
+		board.AddPiece<Piece::WhiteRook>(MsbSquare(remaining));
+		const uint64_t kingBit = ~GetOccupancy() & Rank[0];
+		board.AddPiece<Piece::WhiteKing>(LsbSquare(kingBit));
+	}
+
+	// black
+	{
+		const int frcIndex = frcBlack;
+		const bool s = Side::Black;
+
+		const auto [n2, b1] = std::div(frcIndex, 4);
+		board.AddPiece<Piece::BlackBishop>(b1 * 2 + 1 + 56);
+		const auto [n3, b2] = std::div(n2, 4);
+		board.AddPiece<Piece::BlackBishop>(b2 * 2 + 56);
+		const auto [n4, q] = std::div(n3, 6);
+		board.AddPiece<Piece::BlackQueen>(gfs(q, s));
+
+		switch (n4) {
+		case 0: board.AddPiece<Piece::BlackKnight>(gfs(0, s)); board.AddPiece<Piece::BlackKnight>(gfs(0, s)); break;
+		case 1: board.AddPiece<Piece::BlackKnight>(gfs(0, s)); board.AddPiece<Piece::BlackKnight>(gfs(1, s)); break;
+		case 2: board.AddPiece<Piece::BlackKnight>(gfs(0, s)); board.AddPiece<Piece::BlackKnight>(gfs(2, s)); break;
+		case 3: board.AddPiece<Piece::BlackKnight>(gfs(0, s)); board.AddPiece<Piece::BlackKnight>(gfs(3, s)); break;
+		case 4: board.AddPiece<Piece::BlackKnight>(gfs(1, s)); board.AddPiece<Piece::BlackKnight>(gfs(1, s)); break;
+		case 5: board.AddPiece<Piece::BlackKnight>(gfs(1, s)); board.AddPiece<Piece::BlackKnight>(gfs(2, s)); break;
+		case 6: board.AddPiece<Piece::BlackKnight>(gfs(1, s)); board.AddPiece<Piece::BlackKnight>(gfs(3, s)); break;
+		case 7: board.AddPiece<Piece::BlackKnight>(gfs(2, s)); board.AddPiece<Piece::BlackKnight>(gfs(2, s)); break;
+		case 8: board.AddPiece<Piece::BlackKnight>(gfs(2, s)); board.AddPiece<Piece::BlackKnight>(gfs(3, s)); break;
+		case 9: board.AddPiece<Piece::BlackKnight>(gfs(3, s)); board.AddPiece<Piece::BlackKnight>(gfs(3, s)); break;
+		}
+
+		const uint64_t remaining = ~GetOccupancy() & Rank[7];
+		board.AddPiece<Piece::BlackRook>(LsbSquare(remaining));
+		board.AddPiece<Piece::BlackRook>(MsbSquare(remaining));
+		const uint64_t kingBit = ~GetOccupancy() & Rank[7];
+		board.AddPiece<Piece::BlackKing>(LsbSquare(kingBit));
+	}
+
+	// Pawns
+	for (int i = 0; i < 8; i++) {
+		board.AddPiece<Piece::WhitePawn>(8 + i);
+		board.AddPiece<Piece::BlackPawn>(48 + i);
+	}
+
+	// Castling
+	board.WhiteRightToShortCastle = true;
+	board.WhiteRightToLongCastle = true;
+	board.BlackRightToShortCastle = true;
+	board.BlackRightToLongCastle = true;
+	CastlingConfig.WhiteLongCastleRookSquare = LsbSquare(board.WhiteRookBits);
+	CastlingConfig.WhiteShortCastleRookSquare = MsbSquare(board.WhiteRookBits);
+	CastlingConfig.BlackLongCastleRookSquare = LsbSquare(board.BlackRookBits);
+	CastlingConfig.BlackShortCastleRookSquare = MsbSquare(board.BlackRookBits);
+
+	// Other
+	board.Turn == Side::White;
+	board.EnPassantSquare = -1;
+	board.HalfmoveClock = 0;
+	board.FullmoveClock = 1;
 
 	Hashes.push_back(board.CalculateHash());
 }
@@ -651,7 +805,7 @@ std::string Position::GetFEN() const {
 	for (int r = 7; r >= 0; r--) {
 		int spaces = 0;
 		for (int f = 0; f < 8; f++) {
-			int piece = GetPieceAt(Square(r, f));
+			const uint8_t piece = GetPieceAt(Square(r, f));
 			if (piece == 0) {
 				spaces += 1;
 			}
@@ -667,12 +821,22 @@ std::string Position::GetFEN() const {
 
 	result += (Turn() == Side::White) ? " w " : " b ";
 
-	bool castlingPossible = false;
-	if (b.WhiteRightToShortCastle) { result += 'K'; castlingPossible = true; }
-	if (b.WhiteRightToLongCastle) { result += 'Q'; castlingPossible = true; }
-	if (b.BlackRightToShortCastle) { result += 'k'; castlingPossible = true; }
-	if (b.BlackRightToLongCastle) { result += 'q'; castlingPossible = true; }
-	if (!castlingPossible) result += '-';
+	if (!Settings::Chess960) {
+		bool castlingPossible = false;
+		if (b.WhiteRightToShortCastle) { result += 'K'; castlingPossible = true; }
+		if (b.WhiteRightToLongCastle) { result += 'Q'; castlingPossible = true; }
+		if (b.BlackRightToShortCastle) { result += 'k'; castlingPossible = true; }
+		if (b.BlackRightToLongCastle) { result += 'q'; castlingPossible = true; }
+		if (!castlingPossible) result += '-';
+	}
+	else {
+		bool castlingPossible = false;
+		if (b.WhiteRightToShortCastle) { result += ('A' + CastlingConfig.WhiteShortCastleRookSquare); castlingPossible = true; }
+		if (b.WhiteRightToLongCastle) { result += ('A' + CastlingConfig.WhiteLongCastleRookSquare); castlingPossible = true; }
+		if (b.BlackRightToShortCastle) { result += ('a' + CastlingConfig.BlackShortCastleRookSquare - 56); castlingPossible = true; }
+		if (b.BlackRightToLongCastle) { result += ('a' + CastlingConfig.BlackLongCastleRookSquare - 56); castlingPossible = true; }
+		if (!castlingPossible) result += '-';
+	}
 	result += ' ';
 
 	bool enPassantPossible = false;
@@ -697,14 +861,10 @@ GameState Position::GetGameState() const {
 	// Check checkmates & stalemates
 	MoveList moves{};
 	GenerateMoves(moves, MoveGen::All, Legality::Legal);
+
 	if (moves.size() == 0) {
-		if (IsInCheck()) {
-			if (Turn() == Side::Black) return GameState::WhiteVictory;
-			else return GameState::BlackVictory;
-		}
-		else {
-			return GameState::Draw; // Stalemate
-		}
+		if (IsInCheck()) return (Turn() == Side::Black) ? GameState::WhiteVictory : GameState::BlackVictory;
+		else return GameState::Draw; // Stalemate
 	}
 
 	// Check other types of draws

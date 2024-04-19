@@ -164,10 +164,12 @@ void Engine::Start() {
 				cout << "Hash (polyglot): " << std::hex << position.Hash() << std::dec << endl;
 			}
 			if (parts[1] == "settings") {
+				cout << std::boolalpha;
 				cout << "Hash:      " << Settings::Hash << endl;
 				cout << "Show WDL:  " << Settings::ShowWDL << endl;
 				cout << "Chess960:  " << Settings::Chess960 << endl;
 				cout << "Using UCI: " << Settings::UseUCI << endl;
+				cout << std::noboolalpha;
 				for (const auto& [name, param] : Tune::List) cout << name << " -> " << param.value << endl;
 			}
 			if (parts[1] == "sizeof") {
@@ -274,6 +276,14 @@ void Engine::Start() {
 			case GameState::WhiteVictory: cout << "White won." << endl; break;
 			case GameState::BlackVictory: cout << "Black won." << endl; break;
 			}
+			continue;
+		}
+
+		if (parts[0] == "frc") {
+			Settings::Chess960 = true;
+			const int w = stoi(parts[1]);
+			const int b = stoi(parts[2]);
+			position = Position(w, b);
 			continue;
 		}
 

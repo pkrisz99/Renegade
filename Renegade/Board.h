@@ -8,10 +8,10 @@ uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
 
 struct CastlingConfiguration {
-	uint8_t WhiteQueensideRookSquare = 0;
-	uint8_t WhiteKingsideRookSquare = 0;
-	uint8_t BlackQueensideRookSquare = 0;
-	uint8_t BlackKingsideRookSquare = 0;
+	uint8_t WhiteLongCastleRookSquare = 0;
+	uint8_t WhiteShortCastleRookSquare = 0;
+	uint8_t BlackLongCastleRookSquare = 0;
+	uint8_t BlackShortCastleRookSquare = 0;
 };
 
 
