@@ -4,6 +4,7 @@ namespace Settings {
     int Hash = HashDefault;
     bool ShowWDL = ShowWDLDefault;
     bool UseUCI = false;
+    bool Chess960 = Chess960Default;
 }
 
 namespace Tune {

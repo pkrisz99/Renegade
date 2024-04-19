@@ -32,39 +32,45 @@ public:
 		flag = packedMove & 0x000F;
 	}
 
-	std::string ToString() const {
+	std::string ToString(const bool frc) const {
+
+		// Null moves (hopefully you won't see this)
 		if (from == 0 && to == 0) return "0000";
 
-		// Handle castling (standard)
-		if (flag == MoveFlag::ShortCastle) {
-			const bool side = from < 32 ? Side::White : Side::Black;
-			return side == Side::White ? "e1g1" : "e8g8";
-		}
-		else if (flag == MoveFlag::LongCastle) {
-			const bool side = from < 32 ? Side::White : Side::Black;
-			return side == Side::White ? "e1c1" : "e8c8";
+		// Castling in standard chess
+		if (!frc) {
+			if (flag == MoveFlag::ShortCastle) {
+				const bool side = from < 32 ? Side::White : Side::Black;
+				return side == Side::White ? "e1g1" : "e8g8";
+			}
+			else if (flag == MoveFlag::LongCastle) {
+				const bool side = from < 32 ? Side::White : Side::Black;
+				return side == Side::White ? "e1c1" : "e8c8";
+			}
 		}
 
-		const int file1 = from % 8;
-		const int rank1 = from / 8;
-		const int file2 = to % 8;
-		const int rank2 = to / 8;
+		const uint8_t file1 = from % 8;
+		const uint8_t rank1 = from / 8;
+		const uint8_t file2 = to % 8;
+		const uint8_t rank2 = to / 8;
 
 		const char f1 = 'a' + file1;
 		const char r1 = '1' + rank1;
 		const char f2 = 'a' + file2;
 		const char r2 = '1' + rank2;
 
-		char extra = '?';
-		switch (flag) {
-		case MoveFlag::PromotionToKnight: extra = 'n'; break;
-		case MoveFlag::PromotionToBishop: extra = 'b'; break;
-		case MoveFlag::PromotionToRook: extra = 'r'; break;
-		case MoveFlag::PromotionToQueen: extra = 'q'; break;
-		}
+		const char promo = [&] {
+			switch (flag) {
+			case MoveFlag::PromotionToQueen: return 'q';
+			case MoveFlag::PromotionToRook: return 'r';
+			case MoveFlag::PromotionToBishop: return 'b';
+			case MoveFlag::PromotionToKnight: return 'n';
+			default: return '\0';
+			}
+		}();
 
-		if (extra == '?') return { f1, r1, f2, r2 };
-		else return { f1, r1, f2, r2, extra };
+		if (promo == '\0') return { f1, r1, f2, r2 };
+		else return { f1, r1, f2, r2, promo };
 	}
 
 	inline bool IsEmpty() const {
@@ -177,12 +183,5 @@ struct MoveList {
 
 	inline void reset() {
 		count = 0;
-	}
-
-	std::vector<Move> vectorize() const {
-		std::vector<Move> v{};
-		v.reserve(count);
-		for (int i = 0; i < count; i++) v.push_back(moves[i].move);
-		return v;
 	}
 };

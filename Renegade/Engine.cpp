@@ -40,6 +40,7 @@ void Engine::Start() {
 			cout << "option name Hash type spin default " << HashDefault << " min " << HashMin << " max " << HashMax << '\n';
 			cout << "option name Threads type spin default 1 min 1 max 1" << '\n';
 			cout << "option name UCI_ShowWDL type check default " << (ShowWDLDefault ? "true" : "false") << '\n';
+			cout << "option name UCI_Chess960 type check default " << (Chess960Default ? "true" : "false") << '\n';
 			if (Tune::Active()) Tune::PrintOptions();
 			cout << "uciok" << endl;
 			Settings::UseUCI = true;
@@ -115,6 +116,17 @@ void Engine::Start() {
 					valid = true;
 				}
 			}
+			else if (parts[2] == "uci_chess960") {
+				ConvertToLowercase(parts[4]);
+				if (parts[4] == "true") {
+					Settings::Chess960 = true;
+					valid = true;
+				}
+				else if (parts[4] == "false") {
+					Settings::Chess960 = false;
+					valid = true;
+				}
+			}
 			else if (parts[2] == "threads") {
 				valid = true;
 			}
@@ -139,13 +151,13 @@ void Engine::Start() {
 			if (parts[1] == "pseudolegal") {
 				MoveList pseudoMoves{};
 				position.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
-				for (const auto& m : pseudoMoves) cout << m.move.ToString() << " ";
+				for (const auto& m : pseudoMoves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
 			}
 			if (parts[1] == "legal") {
 				MoveList moves{};
 				position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
-				for (const auto& m : moves) cout << m.move.ToString() << " ";
+				for (const auto& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
 			}
 			if (parts[1] == "hash") {
@@ -154,6 +166,7 @@ void Engine::Start() {
 			if (parts[1] == "settings") {
 				cout << "Hash:      " << Settings::Hash << endl;
 				cout << "Show WDL:  " << Settings::ShowWDL << endl;
+				cout << "Chess960:  " << Settings::Chess960 << endl;
 				cout << "Using UCI: " << Settings::UseUCI << endl;
 				for (const auto& [name, param] : Tune::List) cout << name << " -> " << param.value << endl;
 			}
