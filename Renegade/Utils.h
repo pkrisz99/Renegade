@@ -491,6 +491,35 @@ constexpr std::array<bool, 64> OutpostFilter = {
 	false, false, false, false, false, false, false, false
 };
 
+// Temporary function impl, works differently than you might expect
+consteval auto GenerateRays() {
+
+	std::array<std::array<uint64_t, 64>, 64> result{};
+
+	for (int i = 0; i < 64; i++) {
+		for (int j = 0; j < 64; j++) {
+
+			if (GetSquareRank(i) != GetSquareRank(j)) continue;
+			if (i == j) {
+				result[i][j] = SquareBit(i);
+				continue;
+			}
+
+			uint64_t bitboard = 0;
+
+			// only handle horizontal cases for castling
+			for (int k = std::min(i, j); k <= std::max(i, j); k++) {
+				bitboard |= SquareBit(k);
+			}
+
+			result[i][j] = bitboard;
+
+		}
+	}
+	return result;
+}
+constexpr auto HorizontalRays = GenerateRays();
+
 // Randomly selected FENs from Renegade's games for benchmarking, might replace with something more standard
 const std::array<std::string, 20> BenchmarkFENs = {
 	"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",

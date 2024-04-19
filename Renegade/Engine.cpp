@@ -450,10 +450,12 @@ void Engine::DrawBoard(const Position& position, const uint64_t customBits) cons
 }
 
 void Engine::HandleBench(const bool lengthy) {
+	const int oldHashSize = Settings::Hash;
+	const bool oldChess960Setting = Settings::Chess960;
+	Settings::Chess960 = false;
 	uint64_t nodes = 0;
 	SearchParams params;
 	params.depth = lengthy ? 21 : 14;
-	const int oldHashSize = Settings::Hash;
 	Search.Heuristics.SetHashSize(16);
 	const auto startTime = Clock::now();
 	for (const std::string& fen : BenchmarkFENs) {
@@ -467,6 +469,7 @@ void Engine::HandleBench(const bool lengthy) {
 	cout << nodes << " nodes " << nps << " nps" << endl;
 	Search.ResetState(false);
 	Search.Heuristics.SetHashSize(oldHashSize); // also clears the transposition table
+	Settings::Chess960 = oldChess960Setting;
 }
 
 void Engine::HandleCompiler() const {

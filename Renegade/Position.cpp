@@ -225,7 +225,7 @@ void Position::Push(const Move& move) {
 	Board& board = CurrentState();
 
 	board.HalfmoveClock += 1;
-	board.ApplyMove(move);
+	board.ApplyMove(move, CastlingConfig);
 
 	// Increment timers
 	board.Turn = !board.Turn;
@@ -266,10 +266,18 @@ bool Position::PushUCI(const std::string& str) {
 	}
 
 	// Castling
-	if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 2)) move = { 4, 0, MoveFlag::LongCastle };
-	else if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 6)) move = { 4, 7, MoveFlag::ShortCastle };
-	else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 58)) move = { 60, 56, MoveFlag::LongCastle };
-	else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 62)) move = { 60, 63, MoveFlag::ShortCastle };
+	if (!Settings::Chess960) {
+		if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 2)) move = { 4, 0, MoveFlag::LongCastle };
+		else if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 6)) move = { 4, 7, MoveFlag::ShortCastle };
+		else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 58)) move = { 60, 56, MoveFlag::LongCastle };
+		else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 62)) move = { 60, 63, MoveFlag::ShortCastle };
+	}
+	else {
+		if ((piece == Piece::WhiteKing && capturedPiece == Piece::WhiteRook)
+			|| (piece == Piece::BlackKing && capturedPiece == Piece::BlackRook)) {
+			move = { move.from, move.to, (move.from < move.to) ? MoveFlag::ShortCastle : MoveFlag::LongCastle };
+		}
+	}
 
 	// En passant possibility
 	if (TypeOfPiece(piece) == PieceType::Pawn) {
@@ -434,38 +442,51 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 	using namespace Squares;
 	const Board& b = CurrentState();
 
-	constexpr auto shortEmpty = (side == Side::White) ? std::array{ F1, G1 } : std::array{ F8, G8 };
-	constexpr auto shortSafe = (side == Side::White) ? std::array{ E1, F1, G1 } : std::array{ E8, F8, G8 };
-	constexpr auto longEmpty = (side == Side::White) ? std::array{ B1, C1, D1 } : std::array{ B8, C8, D8 };
-	constexpr auto longSafe = (side == Side::White) ? std::array{ C1, D1, E1 } : std::array{ C8, D8, E8 };
-	constexpr int from = (side == Side::White) ? E1 : E8;
-	constexpr int shortRook = (side == Side::White) ? H1 : H8;
-	constexpr int longRook = (side == Side::White) ? A1 : A8;
-
 	const bool rightToShortCastle = (side == Side::White) ? b.WhiteRightToShortCastle : b.BlackRightToShortCastle;
 	const bool rightToLongCastle = (side == Side::White) ? b.WhiteRightToLongCastle : b.BlackRightToLongCastle;
+	if (!rightToShortCastle && !rightToLongCastle) return;
+
+	const uint64_t friendlyKing = (side == Side::White) ? b.WhiteKingBits : b.BlackKingBits;
+	const uint8_t kingSq = LsbSquare(friendlyKing);
+	const uint64_t occupancy = GetOccupancy();
 
 	if (rightToShortCastle) {
-		const bool empty = std::all_of(shortEmpty.begin(), shortEmpty.end(), [&](const int sq) {
-			return GetPieceAt(sq) == Piece::None;
-			});
+		
+		constexpr uint8_t kingTo = (side == Side::White) ? G1 : G8;
+		constexpr uint8_t rookTo = (side == Side::White) ? F1 : F8;
+
+		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteShortCastleRookSquare : CastlingConfig.BlackShortCastleRookSquare;
+		const uint64_t rayBetweenKingAndG = HorizontalRays[kingSq][kingTo];
+		const uint64_t rayBetweenRookAndF = HorizontalRays[rookSq][rookTo];
+		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
+		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & fakeOccupancy);
+
+		//cout << empty << endl;
+
 		if (empty) {
-			const bool safe = std::all_of(shortSafe.begin(), shortSafe.end(), [&](const int sq) {
-				return !IsSquareAttacked<!side>(sq);
-				});
-			if (safe) moves.pushUnscored(Move(from, shortRook, MoveFlag::ShortCastle));
+			const uint64_t opponentAttacks = CalculateAttackedSquaresTemplated<!side>();
+			const bool safe = !(opponentAttacks & rayBetweenKingAndG);
+			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::ShortCastle));
 		}
 	}
+
 	if (rightToLongCastle) {
-		const bool empty = std::all_of(longEmpty.begin(), longEmpty.end(), [&](const int sq) {
-			return GetPieceAt(sq) == Piece::None;
-			});
+
+		constexpr uint8_t kingTo = (side == Side::White) ? C1 : C8;
+		constexpr uint8_t rookTo = (side == Side::White) ? D1 : D8;
+
+		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteLongCastleRookSquare : CastlingConfig.BlackLongCastleRookSquare;
+		const uint64_t rayBetweenKingAndC = HorizontalRays[kingSq][kingTo];
+		const uint64_t rayBetweenRookAndF = HorizontalRays[rookSq][rookTo];
+		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
+		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & fakeOccupancy);
+
 		if (empty) {
-			const bool safe = std::all_of(longSafe.begin(), longSafe.end(), [&](const int sq) {
-				return !IsSquareAttacked<!side>(sq);
-				});
-			if (safe) moves.pushUnscored(Move(from, longRook, MoveFlag::LongCastle));
+			const uint64_t opponentAttacks = CalculateAttackedSquaresTemplated<!side>();
+			const bool safe = !(opponentAttacks & rayBetweenKingAndC);
+			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::LongCastle));
 		}
+
 	}
 }
 

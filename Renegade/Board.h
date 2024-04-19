@@ -88,7 +88,7 @@ struct Board {
 	}
 
 	uint64_t CalculateHash() const;
-	void ApplyMove(const Move& move);
+	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
 
 };
 
