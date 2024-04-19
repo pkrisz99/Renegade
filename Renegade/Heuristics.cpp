@@ -13,12 +13,12 @@ Heuristics::~Heuristics() {
 
 // Move ordering & clearing -----------------------------------------------------------------------
 
-int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int level, const Move& ttMove,
+int Heuristics::CalculateOrderScore(const Position& position, const Move& m, const int level, const Move& ttMove,
 	const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const {
 
-	const uint8_t movedPiece = board.GetPieceAt(m.from);
+	const uint8_t movedPiece = position.GetPieceAt(m.from);
 	const int attackingPieceType = TypeOfPiece(movedPiece);
-	const int capturedPieceType = TypeOfPiece(board.GetPieceAt(m.to));
+	const int capturedPieceType = TypeOfPiece(position.GetPieceAt(m.to));
 	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
 	
 	// Transposition move
@@ -28,13 +28,15 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 	if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[capturedPieceType];
 
 	// Captures
-	if (!losingCapture) {
-		if (capturedPieceType != PieceType::None) return 600000 + values[capturedPieceType] * 16 - values[attackingPieceType];
-		if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
-	}
-	else {
-		if (capturedPieceType != PieceType::None) return -200000 + values[capturedPieceType] * 16 - values[attackingPieceType];
-		if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
+	if (!m.IsCastling()) {
+		if (!losingCapture) {
+			if (capturedPieceType != PieceType::None) return 600000 + values[capturedPieceType] * 16 - values[attackingPieceType];
+			if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
+		}
+		else {
+			if (capturedPieceType != PieceType::None) return -200000 + values[capturedPieceType] * 16 - values[attackingPieceType];
+			if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
+		}
 	}
 	
 	// Quiet killer moves
@@ -45,7 +47,7 @@ int Heuristics::CalculateOrderScore(const Board& board, const Move& m, const int
 	if (level > 0 && useMoveStack && IsCountermove(moveStack[level - 1].move, m)) return 99000;
 
 	// Quiet moves
-	const bool turn = board.Turn;
+	const bool turn = position.Turn();
 
 	int historyScore = HistoryTables[CheckBit(opponentAttacks, m.from)][CheckBit(opponentAttacks, m.to)][movedPiece][m.to];
 	if (level >= 1) historyScore += (*ContinuationHistory)[moveStack[level - 1].piece][moveStack[level - 1].move.to][movedPiece][m.to];
@@ -162,7 +164,7 @@ void Heuristics::ClearHistory() {
 
 void Heuristics::AddTranspositionEntry(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move& bestMove, const int level) {
 
-	assert(std::abs(score) > MateEval);
+	//assert(std::abs(score) > MateEval);
 	assert(HashFilter != 0);
 	if (std::abs(score) > MateEval) return;
 

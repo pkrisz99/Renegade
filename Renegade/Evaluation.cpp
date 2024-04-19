@@ -1,17 +1,19 @@
 #include "Evaluation.h"
 
-int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
+int ClassicalEvaluate(const Position& position, const EvaluationFeatures& weights) {
 
 	// Renegade's classical evaluation function
-	// This was replaced by a significantly stronger than NNUE evaluation
+	// This was replaced by a significantly stronger NNUE evaluation
+
+	const Board& board = position.CurrentState();
 
 	TaperedScore materialScore, pqstScore, pawnStructureScore, threatScore, mobilityScore, kingScore;
-	const uint64_t occupancy = board.GetOccupancy();
-	const uint64_t whitePieces = board.GetOccupancy(Side::White);
-	const uint64_t blackPieces = board.GetOccupancy(Side::Black);
-	const float phase = CalculateGamePhase(board);
-	const uint64_t whitePawnAttacks = board.GetPawnAttacks<Side::White>();
-	const uint64_t blackPawnAttacks = board.GetPawnAttacks<Side::Black>();
+	const uint64_t occupancy = position.GetOccupancy();
+	const uint64_t whitePieces = position.GetOccupancy(Side::White);
+	const uint64_t blackPieces = position.GetOccupancy(Side::Black);
+	const float phase = CalculateGamePhase(position);
+	const uint64_t whitePawnAttacks = position.GetPawnAttacks<Side::White>();
+	const uint64_t blackPawnAttacks = position.GetPawnAttacks<Side::Black>();
 	uint64_t whiteAttacks = 0, blackAttacks = 0;
 
 	int whiteDangerScore = 0;
@@ -342,7 +344,7 @@ int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 	score += tempo;
 
 	// Drawish endgame
-	const bool drawish = IsDrawishEndgame(board, whitePieces, blackPieces);
+	const bool drawish = IsDrawishEndgame(position, whitePieces, blackPieces);
 	if (drawish) score /= 8;
 
 	// If we're interested how the score is calculated
@@ -361,17 +363,19 @@ int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights) {
 	return score;
 }
 
-inline bool IsDrawishEndgame(const Board& board, const uint64_t whitePieces, const uint64_t blackPieces) {
+inline bool IsDrawishEndgame(const Position& position, const uint64_t whitePieces, const uint64_t blackPieces) {
 	// Drawish endgame detection
 	// To avoid simplifying down to a non-winning endgame with a nominal material advantage
 	// This list is not complete, and probably should be expanded even more (e.g. by including pawns)
 	// Source: Chess Programming Wiki + https://www.madchess.net/2021/04/08/madchess-3-0-beta-4d22dec-endgame-eval-scaling/
-	bool endgame = (Popcount(whitePieces) <= 3) && (Popcount(blackPieces) <= 3);
+	const bool endgame = (Popcount(whitePieces) <= 3) && (Popcount(blackPieces) <= 3);
 	if (!endgame) return false;
 
+	const Board& board = position.CurrentState();
+
 	// Variables for easy access
-	const bool pawnless = (board.WhitePawnBits | board.BlackPawnBits) == 0ULL;
-	const bool queenless = (board.WhiteQueenBits | board.BlackQueenBits) == 0ULL;
+	const bool pawnless = (board.WhitePawnBits | board.BlackPawnBits) == 0;
+	const bool queenless = (board.WhiteQueenBits | board.BlackQueenBits) == 0;
 	const bool queenful = (Popcount(board.WhiteQueenBits | board.BlackQueenBits) > 0)
 		&& (Popcount(board.WhiteQueenBits) <= 1) && (Popcount(board.BlackQueenBits) <= 1);
 	const bool potentiallyDrawishQueenless = queenless && pawnless && endgame;
@@ -389,7 +393,7 @@ inline bool IsDrawishEndgame(const Board& board, const uint64_t whitePieces, con
 
 	// Endgames with no queens
 	if (potentiallyDrawishQueenless) {
-		bool drawish =
+		const bool drawish =
 			// 2 minor pieces (no bishop pair) vs 1 minor piece
 			((whiteExtras == 2) && (blackExtras == 1) && (whiteMinors == 2) && (whiteBishops != 2) && (blackMinors == 1)) ||
 			((whiteExtras == 1) && (blackExtras == 2) && (blackMinors == 2) && (whiteMinors == 1) && (blackBishops != 2)) ||
@@ -418,9 +422,9 @@ inline bool IsDrawishEndgame(const Board& board, const uint64_t whitePieces, con
 	}
 
 	if (potentiallyDrawishQueenful) {
-		int whiteQueens = Popcount(board.WhiteQueenBits);
-		int blackQueens = Popcount(board.BlackQueenBits);
-		bool drawish =
+		const int whiteQueens = Popcount(position.WhiteQueenBits());
+		const int blackQueens = Popcount(position.BlackQueenBits());
+		const bool drawish =
 			// queen vs queen
 			((whiteExtras == 1) && (blackExtras == 1) && (whiteQueens == 1) && (blackQueens == 1)) ||
 			// queen vs 2 bishops

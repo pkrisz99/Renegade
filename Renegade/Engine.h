@@ -1,8 +1,9 @@
 #pragma once
-#include "Board.h"
 #include "Datagen.h"
+#include "Evaluation.h"
 #include "Magics.h"
 #include "Neurals.h"
+#include "Position.h"
 #include "Reporting.h"
 #include "Search.h"
 #include "Settings.h"
@@ -20,8 +21,8 @@ public:
 	Engine(int argc, char* argv[]);
 	void Start();
 	void PrintHeader() const;
-	void DrawBoard(const Board &b, const uint64_t customBits = 0) const;
-	void HandleBench();
+	void DrawBoard(const Position &pos, const uint64_t customBits = 0) const;
+	void HandleBench(const bool lengthy);
 	void HandleHelp() const;
 	void HandleCompiler() const;
 

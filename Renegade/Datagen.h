@@ -2,7 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <thread>
-#include "Board.h"
+#include "Position.h"
 #include "Search.h"
 #include "Settings.h"
 #include "Utils.h"
@@ -14,7 +14,7 @@ public:
 	void Start();
 	void SelfPlay(const std::string filename, const SearchParams params, const SearchParams vParams,
 		const int randomPlyBase, const int startingEvalLimit, const int threadId);
-	bool Filter(const Board& board, const Move& move, const int eval) const;
+	bool Filter(const Position& pos, const Move& move, const int eval) const;
 
 	std::string ToMarlinformat(const std::pair<std::string, int>& position, const GameState outcome) const;
 	// <fen> | <eval> | <wdl>

@@ -62,7 +62,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 	while (true) {
 
 		// 1. Reset state
-		Board board = Board(FEN::StartPos);
+		Position position = Position(FEN::StartPos);
 		Searcher1->ResetState(true);
 		Searcher2->ResetState(true);
 		Searcher1->DatagenMode = true;
@@ -73,18 +73,18 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		const int randomPlies = (Games % 2 == 0) ? randomPlyBase : (randomPlyBase + 1);
 		for (int i = 0; i < randomPlies; i++) {
 			MoveList moves{};
-			board.GenerateMoves(moves, MoveGen::All, Legality::Legal);
+			position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
 			if (moves.size() == 0) {
 				failed = true;
 				break;
 			}
 			std::uniform_int_distribution<std::size_t> distribution(0, moves.size() - 1);
-			board.Push(moves[distribution(generator)].move);
+			position.Push(moves[distribution(generator)].move);
 		}
 		if (failed) continue;
 
 		// 3. Verify evaluation if acceptable
-		results = Searcher1->SearchMoves(board, vParams, false);
+		results = Searcher1->SearchMoves(position, vParams, false);
 		if (std::abs(results.score) > startingEvalLimit) failed = true;
 		if (failed) continue;
 		Searcher1->ResetState(true);
@@ -96,9 +96,9 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		// 4. Play out the game
 		while (true) {
 			// Search
-			Search* currentSearcher = (board.Turn == Side::White) ? Searcher1 : Searcher2;
-			results = currentSearcher->SearchMoves(board, params, false);
-			const int whiteScore = results.score * (board.Turn == Side::Black ? -1 : 1);
+			Search* currentSearcher = (position.Turn() == Side::White) ? Searcher1 : Searcher2;
+			results = currentSearcher->SearchMoves(position, params, false);
+			const int whiteScore = results.score * (position.Turn() == Side::Black ? -1 : 1);
 
 			// Adjudicate
 			if (std::abs(whiteScore) > MateThreshold) {
@@ -111,27 +111,27 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 			}
 			else adjudicationCounter = 0;
 
-			if (board.GetPlys() > 600) {
+			if (position.GetPlys() > 600) {
 				failed = true;
 				//cout << "\nGame too long: " << board.GetFEN() << endl;
 				break;
 			}
 			if (results.BestMove().IsNull()) {
 				failed = true;
-				cout << "\nGot null-move for " << board.GetFEN() << " with eval of " << results.score << endl;
+				cout << "\nGot null-move for " << position.GetFEN() << " with eval of " << results.score << endl;
 				break;
 			}
 
 			// Check position if it should be stored
 			PositionsTotal += 1;
-			if (!Filter(board, results.BestMove(), results.score)) {
+			if (!Filter(position, results.BestMove(), results.score)) {
 				PositionsAccepted += 1;
-				CurrentFENs.push_back(std::pair(board.GetFEN(), whiteScore));
+				CurrentFENs.push_back(std::pair(position.GetFEN(), whiteScore));
 			}
-			board.Push(results.BestMove());
+			position.Push(results.BestMove());
 
 
-			outcome = board.GetGameState();
+			outcome = position.GetGameState();
 			if (outcome != GameState::Playing) break;
 
 		}
@@ -171,11 +171,11 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 }
 
 
-bool Datagen::Filter(const Board& board, const Move& move, const int eval) const {
+bool Datagen::Filter(const Position& pos, const Move& move, const int eval) const {
 	if (std::abs(eval) > MateThreshold) return true;
-	if (board.GetPlys() < minSavePly) return true;
-	if (!board.IsMoveQuiet(move)) return true;
-	if (board.IsInCheck()) return true;
+	if (pos.GetPlys() < minSavePly) return true;
+	if (!pos.IsMoveQuiet(move)) return true;
+	if (pos.IsInCheck()) return true;
 	return false;
 }
 

@@ -1,10 +1,10 @@
 #pragma once
-#include "Board.h"
 #include "Move.h"
+#include "Position.h"
 
-extern uint64_t GetBishopAttacks(const uint8_t square, const uint64_t occupancy);
-extern uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy);
-extern uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
+uint64_t GetBishopAttacks(const uint8_t square, const uint64_t occupancy);
+uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy);
+uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
 
 struct EvaluationFeatures {
 
@@ -301,23 +301,23 @@ inline int LinearTaper(const TaperedScore& tapered, const float phase) {
 }
 
 
-inline float CalculateGamePhase(const Board& board) {
-	const int remainingPawns = Popcount(board.WhitePawnBits | board.BlackPawnBits);
-	const int remainingKnights = Popcount(board.WhiteKnightBits | board.BlackKnightBits);
-	const int remainingBishops = Popcount(board.WhiteBishopBits | board.BlackBishopBits);
-	const int remainingRooks = Popcount(board.WhiteRookBits | board.BlackRookBits);
-	const int remainingQueens = Popcount(board.WhiteQueenBits | board.BlackQueenBits);
+inline float CalculateGamePhase(const Position& position) {
+	const int remainingPawns = Popcount(position.WhitePawnBits() | position.BlackPawnBits());
+	const int remainingKnights = Popcount(position.WhiteKnightBits() | position.BlackKnightBits());
+	const int remainingBishops = Popcount(position.WhiteBishopBits() | position.BlackBishopBits());
+	const int remainingRooks = Popcount(position.WhiteRookBits() | position.BlackRookBits());
+	const int remainingQueens = Popcount(position.WhiteQueenBits() | position.BlackQueenBits());
 	const int remainingScore = remainingPawns + remainingKnights * 10 + remainingBishops * 10 + remainingRooks * 20 + remainingQueens * 40;
 	const float phase = (256 - remainingScore) / (256.f);
 	return std::clamp(phase, 0.f, 1.f);
 }
 
 
-inline bool IsDrawishEndgame(const Board& board, const uint64_t whitePieces, const uint64_t blackPieces);
+inline bool IsDrawishEndgame(const Position& position, const uint64_t whitePieces, const uint64_t blackPieces);
 
-int ClassicalEvaluate(const Board& board, const EvaluationFeatures& weights);
+int ClassicalEvaluate(const Position& position, const EvaluationFeatures& weights);
 
 
-inline int ClassicalEvaluate(const Board& board) {
-	return ClassicalEvaluate(board, Weights);
+inline int ClassicalEvaluate(const Position& position) {
+	return ClassicalEvaluate(position, Weights);
 }

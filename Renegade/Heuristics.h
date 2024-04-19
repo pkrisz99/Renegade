@@ -1,5 +1,5 @@
 #pragma once
-#include "Board.h"
+#include "Position.h"
 #include "Utils.h"
 #include <algorithm>
 #include <array>
@@ -66,7 +66,7 @@ public:
 
 	Heuristics();
 	~Heuristics();
-	[[nodiscard]] int CalculateOrderScore(const Board& board, const Move& m, const int level, const Move& ttMove,
+	[[nodiscard]] int CalculateOrderScore(const Position& position, const Move& m, const int level, const Move& ttMove,
 		const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const;
 	
 	// PV table

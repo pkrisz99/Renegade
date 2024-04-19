@@ -35,6 +35,16 @@ public:
 	std::string ToString() const {
 		if (from == 0 && to == 0) return "0000";
 
+		// Handle castling (standard)
+		if (flag == MoveFlag::ShortCastle) {
+			const bool side = from < 32 ? Side::White : Side::Black;
+			return side == Side::White ? "e1g1" : "e8g8";
+		}
+		else if (flag == MoveFlag::LongCastle) {
+			const bool side = from < 32 ? Side::White : Side::Black;
+			return side == Side::White ? "e1c1" : "e8c8";
+		}
+
 		const int file1 = from % 8;
 		const int rank1 = from / 8;
 		const int file2 = to % 8;
@@ -76,6 +86,10 @@ public:
 	inline bool IsPromotion() const {
 		return (flag == MoveFlag::PromotionToQueen) || (flag == MoveFlag::PromotionToRook)
 			|| (flag == MoveFlag::PromotionToKnight) || (flag == MoveFlag::PromotionToBishop);
+	}
+
+	inline bool IsCastling() const {
+		return flag == MoveFlag::ShortCastle || flag == MoveFlag::LongCastle;
 	}
 
 	inline uint8_t GetPromotionPieceType() const {
