@@ -19,7 +19,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "1.1.0 dev 21";
+constexpr std::string_view Version = "1.1.0 dev 22";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -520,8 +520,8 @@ consteval auto GenerateRays() {
 }
 constexpr auto HorizontalRays = GenerateRays();
 
-// Randomly selected FENs from Renegade's games for benchmarking, might replace with something more standard
-const std::array<std::string, 20> BenchmarkFENs = {
+const std::array<std::string, 25> BenchmarkFENs = {
+	// Randomly selected FENs from Renegade's games (might replace with something more standard):
 	"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 	"2r3k1/2P2pp1/3Np2p/8/7P/5qP1/5P1K/2Q5 b - - 2 42",
 	"rnbqkb1r/pppppppp/8/3nP3/2P5/8/PP1P1PPP/RNBQKBNR b KQkq - 0 3",
@@ -541,7 +541,15 @@ const std::array<std::string, 20> BenchmarkFENs = {
 	"rnbqk2r/ppppppbp/5np1/8/2PP4/2N2N2/PP2PPPP/R1BQKB1R b KQkq - 3 4",
 	"2r1r1k1/p3B2p/3p1P2/2pP3q/P1P3n1/1R3p1P/2Q3P1/1R5K b - - 2 47",
 	"8/8/6R1/5K1p/8/5k2/6p1/8 w - - 0 79",
-	"3k4/8/1Q6/1b6/8/1P1p1P2/3K4/7q b - - 7 64"
+	"3k4/8/1Q6/1b6/8/1P1p1P2/3K4/7q b - - 7 64",
+	// Zugzwang test suite:
+	"6Q1/8/8/7k/8/8/3p1pp1/3Kbrrb w - - 0 1",
+	// Taken from webperft:
+	"[frc] 1rqbkrbn/1ppppp1p/1n6/p1N3p1/8/2P4P/PP1PPPP1/1RQBKRBN w FBfb - 0 9",
+	"[frc] rbbqn1kr/pp2p1pp/6n1/2pp1p2/2P4P/P7/BP1PPPP1/R1BQNNKR w HAha - 0 9",
+	"[frc] rqbbk1r1/1ppp2pp/p3n1n1/4pp2/P7/1PP1N3/1Q1PPPPP/R1BB1RKN b ga - 3 10",
+	// DFRC:
+	"[frc] brnqnbkr/pppppppp/8/8/8/8/PPPPPPPP/BQNRNKRB w GDhb - 0 1"
 };
 
 // Polyglot hashing numbers, taken from python-chess

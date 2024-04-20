@@ -281,9 +281,12 @@ void Engine::Start() {
 
 		if (parts[0] == "frc") {
 			Settings::Chess960 = true;
-			const int w = stoi(parts[1]);
-			const int b = stoi(parts[2]);
-			position = Position(w, b);
+			cout << "-> Chess960 on" << endl;
+			continue;
+		}
+		if (parts[0] == "nofrc") {
+			Settings::Chess960 = false;
+			cout << "-> Chess960 off" << endl;
 			continue;
 		}
 
@@ -295,10 +298,16 @@ void Engine::Start() {
 				continue;
 			}
 
-			if ((parts[1] == "startpos") || (parts[1] == "kiwipete") || (parts[1] == "lasker")) {
+			if ((parts[1] == "startpos") || (parts[1] == "kiwipete") || (parts[1] == "lasker") || (parts[1] == "frc")) {
 				if (parts[1] == "startpos") position = Position(FEN::StartPos);
 				else if (parts[1] == "kiwipete") position = Position(FEN::Kiwipete);
 				else if (parts[1] == "lasker") position = Position(FEN::Lasker);
+				else if (parts[1] == "frc") {
+					Settings::Chess960 = true;
+					position = Position(stoi(parts[2]), stoi(parts[3]));
+					cout << "-> FEN: " << position.GetFEN() << endl;
+					continue;
+				}
 
 				if ((parts.size() > 2) && (parts[2] == "moves")) {
 					for (int i = 3; i < parts.size(); i++) {
@@ -458,7 +467,10 @@ void Engine::HandleBench(const bool lengthy) {
 	params.depth = lengthy ? 21 : 14;
 	Search.Heuristics.SetHashSize(16);
 	const auto startTime = Clock::now();
-	for (const std::string& fen : BenchmarkFENs) {
+	
+	for (std::string fen : BenchmarkFENs) {
+		Settings::Chess960 = StartsWith(fen, "[frc]") ? true : false;
+		if (StartsWith(fen, "[frc]")) fen = fen.substr(6, fen.length() - 6);
 		Search.ResetState(false);
 		Position pos = Position(fen);
 		const Results r = Search.SearchMoves(pos, params, false);
