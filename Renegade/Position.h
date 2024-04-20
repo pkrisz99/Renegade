@@ -8,6 +8,7 @@
 uint64_t GetBishopAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
+uint64_t GetConnectingRay(const uint8_t from, const uint64_t to);
 
 class Position
 {

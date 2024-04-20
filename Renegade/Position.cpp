@@ -429,8 +429,8 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		constexpr uint8_t rookTo = (side == Side::White) ? F1 : F8;
 
 		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteShortCastleRookSquare : CastlingConfig.BlackShortCastleRookSquare;
-		const uint64_t rayBetweenKingAndG = HorizontalRays[kingSq][kingTo];
-		const uint64_t rayBetweenRookAndF = HorizontalRays[rookSq][rookTo];
+		const uint64_t rayBetweenKingAndG = GetConnectingRay(kingSq, kingTo);
+		const uint64_t rayBetweenRookAndF = GetConnectingRay(rookSq, rookTo);
 		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
 		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & fakeOccupancy);
 
@@ -449,8 +449,8 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		constexpr uint8_t rookTo = (side == Side::White) ? D1 : D8;
 
 		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteLongCastleRookSquare : CastlingConfig.BlackLongCastleRookSquare;
-		const uint64_t rayBetweenKingAndC = HorizontalRays[kingSq][kingTo];
-		const uint64_t rayBetweenRookAndF = HorizontalRays[rookSq][rookTo];
+		const uint64_t rayBetweenKingAndC = GetConnectingRay(kingSq, kingTo);
+		const uint64_t rayBetweenRookAndF = GetConnectingRay(rookSq, rookTo);
 		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
 		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & fakeOccupancy);
 

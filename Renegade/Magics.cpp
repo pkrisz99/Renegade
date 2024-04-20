@@ -21,6 +21,10 @@ uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy) {
 	return BishopAttacks[square][bishopIndex] | RookAttacks[square][rookIndex];
 }
 
+uint64_t GetConnectingRay(const uint8_t from, const uint64_t to) {
+	return ConnectingRays[from][to];
+}
+
 // Things for lookup table population -------------------------------------------------------------
 
 // Generate an occupancy bitboard where the encoded bits represent occupied bits in the mask
@@ -118,6 +122,28 @@ void GenerateMagicTables() {
 			const uint64_t occ = GenerateMagicOccupancy(i, BishopMasks[sq]);
 			const int index = static_cast<int>((occ * BishopMagicNumbers[sq]) >> (64 - BishopRelevantBits[sq]));
 			BishopAttacks[sq][index] = DynamicBishopAttacks(sq, occ);
+		}
+	}
+
+	// 3. Generate connecting rays (this is not magic, but for now it's an alright place for this)
+	//    note: the rays include the from and to squares
+	for (int i = 0; i < 64; i++) {
+		for (int j = 0; j < 64; j++) {
+			ConnectingRays[i][j] = [&] {
+				if (i == j) return SquareBit(i);
+				if (GetSquareFile(i) == GetSquareFile(j) || GetSquareRank(i) == GetSquareRank(j)) {
+					const uint64_t ray1 = GetRookAttacks(i, SquareBit(j));
+					const uint64_t ray2 = GetRookAttacks(j, SquareBit(i));
+					return ray1 & ray2 | SquareBit(i) | SquareBit(j);
+				}
+				else if (std::abs(GetSquareFile(i) - GetSquareFile(j)) == std::abs(GetSquareRank(i) - GetSquareRank(j))) {
+					const uint64_t ray1 = GetBishopAttacks(i, SquareBit(j));
+					const uint64_t ray2 = GetBishopAttacks(j, SquareBit(i));
+					const uint64_t ends = (ray1 & ray2) ? SquareBit(i) | SquareBit(j) : 0;
+					return ray1 & ray2 | ends;
+				}
+				return 0ull;
+			}();
 		}
 	}
 }
