@@ -109,7 +109,7 @@ uint64_t Board::CalculateHash() const {
 	return hash;
 }
 
-void Board::ApplyMove(const Move& move) {
+void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 
 	const uint8_t piece = GetPieceAt(move.from);
 	const uint8_t pieceType = TypeOfPiece(piece);
@@ -221,21 +221,21 @@ void Board::ApplyMove(const Move& move) {
 		BlackRightToLongCastle = false;
 	}
 	else if (piece == Piece::WhiteRook) {
-		if (move.from == Squares::A1) WhiteRightToLongCastle = false;
-		else if (move.from == Squares::H1) WhiteRightToShortCastle = false;
+		if (move.from == castling.WhiteLongCastleRookSquare) WhiteRightToLongCastle = false;
+		else if (move.from == castling.WhiteShortCastleRookSquare) WhiteRightToShortCastle = false;
 	}
 	else if (piece == Piece::BlackRook) {
-		if (move.from == Squares::A8) BlackRightToLongCastle = false;
-		else if (move.from == Squares::H8) BlackRightToShortCastle = false;
+		if (move.from == castling.BlackLongCastleRookSquare) BlackRightToLongCastle = false;
+		else if (move.from == castling.BlackShortCastleRookSquare) BlackRightToShortCastle = false;
 	}
 
 	if (capturedPiece == Piece::WhiteRook) {
-		if (move.to == Squares::A1) WhiteRightToLongCastle = false;
-		else if (move.to == Squares::H1) WhiteRightToShortCastle = false;
+		if (move.to == castling.WhiteLongCastleRookSquare) WhiteRightToLongCastle = false;
+		else if (move.to == castling.WhiteShortCastleRookSquare) WhiteRightToShortCastle = false;
 	}
 	else if (capturedPiece == Piece::BlackRook) {
-		if (move.to == Squares::A8) BlackRightToLongCastle = false;
-		else if (move.to == Squares::H8) BlackRightToShortCastle = false;
+		if (move.to == castling.BlackLongCastleRookSquare) BlackRightToLongCastle = false;
+		else if (move.to == castling.BlackShortCastleRookSquare) BlackRightToShortCastle = false;
 	}
 
 	// Update en passant

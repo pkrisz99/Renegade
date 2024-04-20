@@ -60,7 +60,7 @@ void PrintInfo(const Results& e) {
 
 	std::string pvString;
 	for (const Move& move : e.pv)
-		pvString += " " + move.ToString();
+		pvString += " " + move.ToString(Settings::Chess960);
 
 	std::string output{};
 	std::string wdlOutput{};
@@ -143,9 +143,9 @@ void PrintPretty(const Results& e) {
 	const auto [modelW, modelL] = GetWDL(e.score, e.ply);
 	const int modelD = 1000 - modelW - modelL;
 	constexpr double q = 10.0;
-	int w = static_cast<int>(std::round(modelW / q));
-	int d = static_cast<int>(std::round(modelD / q));
-	int l = static_cast<int>(std::round(modelL / q));
+	const int w = static_cast<int>(std::round(modelW / q));
+	const int d = static_cast<int>(std::round(modelD / q));
+	const int l = static_cast<int>(std::round(modelL / q));
 	const std::string outputWdl = std::format("  {}{:<8}", 
 		Console::Gray, std::to_string(w) + "-" + std::to_string(d) + "-" + std::to_string(l));
 
@@ -160,7 +160,7 @@ void PrintPretty(const Results& e) {
 		std::string list{};
 		for (int i = 0; i < movesShown; i++) {
 			if (i >= pvMoveCount) break;
-			list += e.pv[i].ToString() + " ";
+			list += e.pv[i].ToString(Settings::Chess960) + " ";
 		}
 		list.pop_back();
 		if (pvMoveCount > movesShown) list += " (+" + std::to_string(pvMoveCount - movesShown) + ")";
@@ -176,5 +176,5 @@ void PrintPretty(const Results& e) {
 }
 
 void PrintBestmove(const Move& move) {
-	cout << "bestmove " << move.ToString() << endl;
+	cout << "bestmove " << move.ToString(Settings::Chess960) << endl;
 }

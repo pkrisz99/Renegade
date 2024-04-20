@@ -9,13 +9,14 @@
 constexpr int HashMin = 1;
 constexpr int HashDefault = 64;
 constexpr int HashMax = 4096;
-
+constexpr bool Chess960Default = false;
 constexpr bool ShowWDLDefault = true;
 
 namespace Settings {
 	extern int Hash;
 	extern bool ShowWDL;
 	extern bool UseUCI;
+	extern bool Chess960;
 }
 
 // Search parameter tuning:

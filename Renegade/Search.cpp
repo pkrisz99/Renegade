@@ -64,7 +64,7 @@ uint64_t Search::PerftRecursive(Position& position, const int depth, const int o
 		uint64_t r;
 		if (depth == 1) {
 			r = 1;
-			count += r;
+			count += 1;
 		}
 		else {
 			position.Push(m.move);
@@ -72,7 +72,8 @@ uint64_t Search::PerftRecursive(Position& position, const int depth, const int o
 			position.Pop();
 			count += r;
 		}
-		if ((originalDepth == depth) && (type == PerftType::PerftDiv)) cout << " - " << m.move.ToString() << " : " << r << endl;
+		if ((originalDepth == depth) && (type == PerftType::PerftDiv))
+			cout << " - " << m.move.ToString(Settings::Chess960) << " : " << r << endl;
 	}
 	return count;
 }

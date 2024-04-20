@@ -1,6 +1,7 @@
 #pragma once
 #include "Board.h"
 #include "Move.h"
+#include "Settings.h"
 #include "Utils.h"
 
 // Magic lookup tables
@@ -14,6 +15,7 @@ public:
 
 	Position(const std::string& fen);
 	Position() : Position(FEN::StartPos) {};
+	Position(const int frcWhite, const int frcBlack);
 
 	void Push(const Move& move);
 	void PushNullMove();

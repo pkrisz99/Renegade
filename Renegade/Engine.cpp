@@ -40,6 +40,7 @@ void Engine::Start() {
 			cout << "option name Hash type spin default " << HashDefault << " min " << HashMin << " max " << HashMax << '\n';
 			cout << "option name Threads type spin default 1 min 1 max 1" << '\n';
 			cout << "option name UCI_ShowWDL type check default " << (ShowWDLDefault ? "true" : "false") << '\n';
+			cout << "option name UCI_Chess960 type check default " << (Chess960Default ? "true" : "false") << '\n';
 			if (Tune::Active()) Tune::PrintOptions();
 			cout << "uciok" << endl;
 			Settings::UseUCI = true;
@@ -115,6 +116,17 @@ void Engine::Start() {
 					valid = true;
 				}
 			}
+			else if (parts[2] == "uci_chess960") {
+				ConvertToLowercase(parts[4]);
+				if (parts[4] == "true") {
+					Settings::Chess960 = true;
+					valid = true;
+				}
+				else if (parts[4] == "false") {
+					Settings::Chess960 = false;
+					valid = true;
+				}
+			}
 			else if (parts[2] == "threads") {
 				valid = true;
 			}
@@ -139,22 +151,25 @@ void Engine::Start() {
 			if (parts[1] == "pseudolegal") {
 				MoveList pseudoMoves{};
 				position.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
-				for (const auto& m : pseudoMoves) cout << m.move.ToString() << " ";
+				for (const auto& m : pseudoMoves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
 			}
 			if (parts[1] == "legal") {
 				MoveList moves{};
 				position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
-				for (const auto& m : moves) cout << m.move.ToString() << " ";
+				for (const auto& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
 			}
 			if (parts[1] == "hash") {
 				cout << "Hash (polyglot): " << std::hex << position.Hash() << std::dec << endl;
 			}
 			if (parts[1] == "settings") {
+				cout << std::boolalpha;
 				cout << "Hash:      " << Settings::Hash << endl;
 				cout << "Show WDL:  " << Settings::ShowWDL << endl;
+				cout << "Chess960:  " << Settings::Chess960 << endl;
 				cout << "Using UCI: " << Settings::UseUCI << endl;
+				cout << std::noboolalpha;
 				for (const auto& [name, param] : Tune::List) cout << name << " -> " << param.value << endl;
 			}
 			if (parts[1] == "sizeof") {
@@ -264,6 +279,17 @@ void Engine::Start() {
 			continue;
 		}
 
+		if (parts[0] == "frc") {
+			Settings::Chess960 = true;
+			cout << "-> Chess960 on" << endl;
+			continue;
+		}
+		if (parts[0] == "nofrc") {
+			Settings::Chess960 = false;
+			cout << "-> Chess960 off" << endl;
+			continue;
+		}
+
 		// Position command
 		if (parts[0] == "position") {
 
@@ -272,10 +298,16 @@ void Engine::Start() {
 				continue;
 			}
 
-			if ((parts[1] == "startpos") || (parts[1] == "kiwipete") || (parts[1] == "lasker")) {
+			if ((parts[1] == "startpos") || (parts[1] == "kiwipete") || (parts[1] == "lasker") || (parts[1] == "frc")) {
 				if (parts[1] == "startpos") position = Position(FEN::StartPos);
 				else if (parts[1] == "kiwipete") position = Position(FEN::Kiwipete);
 				else if (parts[1] == "lasker") position = Position(FEN::Lasker);
+				else if (parts[1] == "frc") {
+					Settings::Chess960 = true;
+					position = Position(stoi(parts[2]), stoi(parts[3]));
+					cout << "-> FEN: " << position.GetFEN() << endl;
+					continue;
+				}
 
 				if ((parts.size() > 2) && (parts[2] == "moves")) {
 					for (int i = 3; i < parts.size(); i++) {
@@ -427,13 +459,18 @@ void Engine::DrawBoard(const Position& position, const uint64_t customBits) cons
 }
 
 void Engine::HandleBench(const bool lengthy) {
+	const int oldHashSize = Settings::Hash;
+	const bool oldChess960Setting = Settings::Chess960;
+	Settings::Chess960 = false;
 	uint64_t nodes = 0;
 	SearchParams params;
 	params.depth = lengthy ? 21 : 14;
-	const int oldHashSize = Settings::Hash;
 	Search.Heuristics.SetHashSize(16);
 	const auto startTime = Clock::now();
-	for (const std::string& fen : BenchmarkFENs) {
+	
+	for (std::string fen : BenchmarkFENs) {
+		Settings::Chess960 = StartsWith(fen, "[frc]") ? true : false;
+		if (StartsWith(fen, "[frc]")) fen = fen.substr(6, fen.length() - 6);
 		Search.ResetState(false);
 		Position pos = Position(fen);
 		const Results r = Search.SearchMoves(pos, params, false);
@@ -444,6 +481,7 @@ void Engine::HandleBench(const bool lengthy) {
 	cout << nodes << " nodes " << nps << " nps" << endl;
 	Search.ResetState(false);
 	Search.Heuristics.SetHashSize(oldHashSize); // also clears the transposition table
+	Settings::Chess960 = oldChess960Setting;
 }
 
 void Engine::HandleCompiler() const {
