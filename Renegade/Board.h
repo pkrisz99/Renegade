@@ -53,6 +53,11 @@ struct Board {
 		Mailbox[square] = piece;
 	}
 
+	inline void AddPiece(const uint8_t piece, const uint8_t square) {
+		SetBitTrue(PieceBitboard(piece), square);
+		Mailbox[square] = piece;
+	}
+
 	template<const uint8_t piece>
 	inline void RemovePiece(const uint8_t square) {
 		SetBitFalse(PieceBitboard(piece), square);

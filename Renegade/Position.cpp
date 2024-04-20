@@ -107,91 +107,64 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	Hashes.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
-	
-	// https://en.wikipedia.org/wiki/Fischer_random_chess_numbering_scheme
 
 	assert(0 <= frcWhite && frcWhite < 960);
 	assert(0 <= frcBlack && frcBlack < 960);
 
-	auto gfs = [&](const uint8_t nth, const bool side) { // get free square
-		const uint64_t free = ~GetOccupancy() & (side == Side::White ? Rank[0] : Rank[7]);
+	// Find n-th free square
+	auto fnfsq = [&](const std::array<uint8_t, 8>& pieces, const int nth) {
 		int i = 0;
-		const int offset = (side == Side::White) ? 0 : 56;
-		for (int sq = offset; sq < offset + 8; sq++) {
-			if (!CheckBit(free, sq)) continue;
-			if (i == nth) return sq;
+		for (int f = 0; f < 8; f++) {
+			if (pieces[f] != PieceType::None) continue;
+			if (i == nth) return f;
 			i += 1;
 		}
 		assert(false);
-		//cout << ":|" << endl;
 	};
 
-	// to do: unduplicate this
-	// white
-	{
-		const int frcIndex = frcWhite;
-		const bool s = Side::White;
+	// Generate an array of piece types
+	// https://en.wikipedia.org/wiki/Fischer_random_chess_numbering_scheme
+	auto layout = [&](const int frcIndex) {
+		std::array<uint8_t, 8> pieces{};
 
+		// Place bishops and queen
 		const auto [n2, b1] = std::div(frcIndex, 4);
-		board.AddPiece<Piece::WhiteBishop>(b1 * 2 + 1);
+		pieces[b1 * 2 + 1] = PieceType::Bishop;
 		const auto [n3, b2] = std::div(n2, 4);
-		board.AddPiece<Piece::WhiteBishop>(b2 * 2);
+		pieces[b2 * 2] = PieceType::Bishop;
 		const auto [n4, q] = std::div(n3, 6);
-		board.AddPiece<Piece::WhiteQueen>(gfs(q, s));
+		pieces[fnfsq(pieces, q)] = PieceType::Queen;
 
+		// Place knights (oh boy)
+		constexpr uint8_t knight = PieceType::Knight;
 		switch (n4) {
-		case 0: board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); break;
-		case 1: board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); break;
-		case 2: board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); break;
-		case 3: board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); break;
-		case 4: board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); break;
-		case 5: board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); break;
-		case 6: board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); break;
-		case 7: board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); break;
-		case 8: board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); break;
-		case 9: board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); break;
+		case 0: pieces[fnfsq(pieces, 0)] = knight; pieces[fnfsq(pieces, 0)] = knight; break;
+		case 1: pieces[fnfsq(pieces, 0)] = knight; pieces[fnfsq(pieces, 1)] = knight; break;
+		case 2: pieces[fnfsq(pieces, 0)] = knight; pieces[fnfsq(pieces, 2)] = knight; break;
+		case 3: pieces[fnfsq(pieces, 0)] = knight; pieces[fnfsq(pieces, 3)] = knight; break;
+		case 4: pieces[fnfsq(pieces, 1)] = knight; pieces[fnfsq(pieces, 1)] = knight; break;
+		case 5: pieces[fnfsq(pieces, 1)] = knight; pieces[fnfsq(pieces, 2)] = knight; break;
+		case 6: pieces[fnfsq(pieces, 1)] = knight; pieces[fnfsq(pieces, 3)] = knight; break;
+		case 7: pieces[fnfsq(pieces, 2)] = knight; pieces[fnfsq(pieces, 2)] = knight; break;
+		case 8: pieces[fnfsq(pieces, 2)] = knight; pieces[fnfsq(pieces, 3)] = knight; break;
+		case 9: pieces[fnfsq(pieces, 3)] = knight; pieces[fnfsq(pieces, 3)] = knight; break;
 		}
 
-		const uint64_t remaining = ~GetOccupancy() & Rank[0];
-		board.AddPiece<Piece::WhiteRook>(LsbSquare(remaining));
-		board.AddPiece<Piece::WhiteRook>(MsbSquare(remaining));
-		const uint64_t kingBit = ~GetOccupancy() & Rank[0];
-		board.AddPiece<Piece::WhiteKing>(LsbSquare(kingBit));
-	}
+		// Place rooks and king
+		pieces[fnfsq(pieces, 0)] = PieceType::Rook;
+		pieces[fnfsq(pieces, 0)] = PieceType::King;
+		pieces[fnfsq(pieces, 0)] = PieceType::Rook;
 
-	// black
-	{
-		const int frcIndex = frcBlack;
-		const bool s = Side::Black;
+		return pieces;
+	};
 
-		const auto [n2, b1] = std::div(frcIndex, 4);
-		board.AddPiece<Piece::BlackBishop>(b1 * 2 + 1 + 56);
-		const auto [n3, b2] = std::div(n2, 4);
-		board.AddPiece<Piece::BlackBishop>(b2 * 2 + 56);
-		const auto [n4, q] = std::div(n3, 6);
-		board.AddPiece<Piece::BlackQueen>(gfs(q, s));
+	// Add pieces from the generated layout to the board
+	const std::array<uint8_t, 8> whiteLayout = layout(frcWhite);
+	const std::array<uint8_t, 8> blackLayout = layout(frcBlack);
+	for (int i = 0; i < 8; i++) board.AddPiece(whiteLayout[i] + Piece::WhitePieceOffset, i);
+	for (int i = 0; i < 8; i++) board.AddPiece(blackLayout[i] + Piece::BlackPieceOffset, 56 + i);
 
-		switch (n4) {
-		case 0: board.AddPiece<Piece::BlackKnight>(gfs(0, s)); board.AddPiece<Piece::BlackKnight>(gfs(0, s)); break;
-		case 1: board.AddPiece<Piece::BlackKnight>(gfs(0, s)); board.AddPiece<Piece::BlackKnight>(gfs(1, s)); break;
-		case 2: board.AddPiece<Piece::BlackKnight>(gfs(0, s)); board.AddPiece<Piece::BlackKnight>(gfs(2, s)); break;
-		case 3: board.AddPiece<Piece::BlackKnight>(gfs(0, s)); board.AddPiece<Piece::BlackKnight>(gfs(3, s)); break;
-		case 4: board.AddPiece<Piece::BlackKnight>(gfs(1, s)); board.AddPiece<Piece::BlackKnight>(gfs(1, s)); break;
-		case 5: board.AddPiece<Piece::BlackKnight>(gfs(1, s)); board.AddPiece<Piece::BlackKnight>(gfs(2, s)); break;
-		case 6: board.AddPiece<Piece::BlackKnight>(gfs(1, s)); board.AddPiece<Piece::BlackKnight>(gfs(3, s)); break;
-		case 7: board.AddPiece<Piece::BlackKnight>(gfs(2, s)); board.AddPiece<Piece::BlackKnight>(gfs(2, s)); break;
-		case 8: board.AddPiece<Piece::BlackKnight>(gfs(2, s)); board.AddPiece<Piece::BlackKnight>(gfs(3, s)); break;
-		case 9: board.AddPiece<Piece::BlackKnight>(gfs(3, s)); board.AddPiece<Piece::BlackKnight>(gfs(3, s)); break;
-		}
-
-		const uint64_t remaining = ~GetOccupancy() & Rank[7];
-		board.AddPiece<Piece::BlackRook>(LsbSquare(remaining));
-		board.AddPiece<Piece::BlackRook>(MsbSquare(remaining));
-		const uint64_t kingBit = ~GetOccupancy() & Rank[7];
-		board.AddPiece<Piece::BlackKing>(LsbSquare(kingBit));
-	}
-
-	// Pawns
+	// Place pawns
 	for (int i = 0; i < 8; i++) {
 		board.AddPiece<Piece::WhitePawn>(8 + i);
 		board.AddPiece<Piece::BlackPawn>(48 + i);
