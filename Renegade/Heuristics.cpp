@@ -14,12 +14,12 @@ Heuristics::~Heuristics() {
 // Move ordering & clearing -----------------------------------------------------------------------
 
 int Heuristics::CalculateOrderScore(const Position& position, const Move& m, const int level, const Move& ttMove,
-	const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const {
+	const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const {
 
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
 	const int attackingPieceType = TypeOfPiece(movedPiece);
 	const int capturedPieceType = TypeOfPiece(position.GetPieceAt(m.to));
-	const int values[] = { 0, 100, 300, 300, 500, 900, 0 };
+	constexpr std::array<int, 7> values = { 0, 100, 300, 300, 500, 900, 0 };
 	
 	// Transposition move
 	if (m == ttMove) return 900000;
@@ -44,15 +44,15 @@ int Heuristics::CalculateOrderScore(const Position& position, const Move& m, con
 	if (IsSecondKillerMove(m, level)) return 100000;
 
 	// Countermove heuristic
-	if (level > 0 && useMoveStack && IsCountermove(moveStack[level - 1].move, m)) return 99000;
+	if (level > 0 && useMoveStack && IsCountermove(position.GetPreviousMove(1).move, m)) return 99000;
 
 	// Quiet moves
 	const bool turn = position.Turn();
 
 	int historyScore = HistoryTables[CheckBit(opponentAttacks, m.from)][CheckBit(opponentAttacks, m.to)][movedPiece][m.to];
-	if (level >= 1) historyScore += (*ContinuationHistory)[moveStack[level - 1].piece][moveStack[level - 1].move.to][movedPiece][m.to];
-	if (level >= 2) historyScore += (*ContinuationHistory)[moveStack[level - 2].piece][moveStack[level - 2].move.to][movedPiece][m.to];
-	if (level >= 4) historyScore += (*ContinuationHistory)[moveStack[level - 4].piece][moveStack[level - 4].move.to][movedPiece][m.to];
+	if (level >= 1) historyScore += (*ContinuationHistory)[position.GetPreviousMove(1).piece][position.GetPreviousMove(1).move.to][movedPiece][m.to];
+	if (level >= 2) historyScore += (*ContinuationHistory)[position.GetPreviousMove(2).piece][position.GetPreviousMove(2).move.to][movedPiece][m.to];
+	if (level >= 4) historyScore += (*ContinuationHistory)[position.GetPreviousMove(4).piece][position.GetPreviousMove(4).move.to][movedPiece][m.to];
 
 	return historyScore;
 }
@@ -121,7 +121,7 @@ bool Heuristics::IsCountermove(const Move& previousMove, const Move& thisMove) c
 }
 
 void Heuristics::AddCountermove(const Move& previousMove, const Move& thisMove) {
-	if (previousMove.IsNotNull()) CounterMoves[previousMove.from][previousMove.to] = thisMove;
+	if (!previousMove.IsNull()) CounterMoves[previousMove.from][previousMove.to] = thisMove;
 }
 
 void Heuristics::ClearKillerAndCounterMoves() {
@@ -131,7 +131,7 @@ void Heuristics::ClearKillerAndCounterMoves() {
 
 // History heuristic ------------------------------------------------------------------------------
 
-void Heuristics::UpdateHistory(const Move& m, const int16_t delta, const uint8_t piece, const int depth, const std::array<MoveAndPiece, MaxDepth>& moveStack,
+void Heuristics::UpdateHistory(const Move& m, const int16_t delta, const uint8_t piece, const int depth, const Position& position,
 	const int level, const bool fromSquareAttacked, const bool toSquareAttacked) {
 
 	// Main quiet history
@@ -141,10 +141,9 @@ void Heuristics::UpdateHistory(const Move& m, const int16_t delta, const uint8_t
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
-		const uint8_t prevPiece = moveStack[level - ply].piece;
-		const uint8_t prevTo = moveStack[level - ply].move.to;
+		const auto& [prevMove, prevPiece] = position.GetPreviousMove(ply);
 		if (prevPiece != Piece::None) {
-			int16_t& value = (*ContinuationHistory)[prevPiece][prevTo][piece][m.to];
+			int16_t& value = (*ContinuationHistory)[prevPiece][prevMove.to][piece][m.to];
 			UpdateHistoryValue(value, delta);
 		}
 	}
@@ -175,7 +174,7 @@ void Heuristics::AddTranspositionEntry(const uint64_t hash, const uint16_t age, 
 	if (quality >= TranspositionTable[key].quality) { // (TranspositionTable[key].depth <= depth)
 		if (TranspositionTable[key].hash == 0) TranspositionEntryCount += 1;
 		TranspositionTable[key].depth = depth;
-		if ((TranspositionTable[key].hash != storedHash) || (bestMove.IsNotNull())) {
+		if (TranspositionTable[key].hash != storedHash || !bestMove.IsNull()) {
 			TranspositionTable[key].packedMove = bestMove.Pack();
 		}
 		TranspositionTable[key].scoreType = scoreType;

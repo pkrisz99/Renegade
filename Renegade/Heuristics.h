@@ -67,7 +67,7 @@ public:
 	Heuristics();
 	~Heuristics();
 	[[nodiscard]] int CalculateOrderScore(const Position& position, const Move& m, const int level, const Move& ttMove,
-		const std::array<MoveAndPiece, MaxDepth>& moveStack, const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const;
+		const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const;
 	
 	// PV table
 	void UpdatePvTable(const Move& move, const int level);
@@ -85,7 +85,7 @@ public:
 	void AddCountermove(const Move& previousMove, const Move& thisMove);
 
 	// History heuristic
-	void UpdateHistory(const Move& m, const int16_t delta, const uint8_t piece, const int depth, const std::array<MoveAndPiece, MaxDepth>& moveStack,
+	void UpdateHistory(const Move& m, const int16_t delta, const uint8_t piece, const int depth, const Position& position,
 		const int level, const bool fromSquareAttacked, const bool toSquareAttacked);
 	void ClearHistory();
 

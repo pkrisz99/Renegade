@@ -281,11 +281,6 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 	}
 	if (display) PrintBestmove(e.BestMove());
 
-	for (int i = 0; i < MaxDepth; i++) {
-		MoveStack[i].move = EmptyMove;
-		MoveStack[i].piece = 0;
-	}
-
 	Heuristics.ClearKillerAndCounterMoves();
 	Heuristics.ResetPvTable();
 	Aborting.store(true, std::memory_order_relaxed);
@@ -392,8 +387,6 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 			nmpReduction = std::min(nmpReduction, depth);
 			position.PushNullMove();
 			UpdateAccumulators(NullMove, 0, 0, level);
-			MoveStack[level].move = NullMove;
-			MoveStack[level].piece = Piece::None;
 			const int nullMoveEval = -SearchRecursive(position, depth - nmpReduction, level + 1, -beta, -beta + 1, false);
 			position.Pop();
 			if (nullMoveEval >= beta) {
@@ -494,8 +487,6 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		// Push move
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
-		MoveStack[level].move = m;
-		MoveStack[level].piece = movedPiece;
 		const uint64_t nodesBefore = Statistics.Nodes;
 
 		position.Push(m);
@@ -563,8 +554,8 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 						Heuristics.AddKillerMove(m, level);
 						const bool fromSquareAttacked = CheckBit(opponentAttacks, m.from);
 						const bool toSquareAttacked = CheckBit(opponentAttacks, m.to);
-						if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1].move, m);
-						if (depth > 1) Heuristics.UpdateHistory(m, historyDelta, movedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+						if (level > 0) Heuristics.AddCountermove(position.GetPreviousMove(1).move, m);
+						if (depth > 1) Heuristics.UpdateHistory(m, historyDelta, movedPiece, depth, position, level, fromSquareAttacked, toSquareAttacked);
 					}
 
 					// Decrement history scores for all previously tried quiet moves
@@ -574,7 +565,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 							const bool fromSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.from);
 							const bool toSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.to);
 							const uint8_t previouslyTriedPiece = position.GetPieceAt(previouslyTriedMove.from);
-							Heuristics.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+							Heuristics.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, position, level, fromSquareAttacked, toSquareAttacked);
 						}
 					}
 				}
@@ -782,13 +773,13 @@ bool Search::StaticExchangeEval(const Position& position, const Move& move, cons
 void Search::OrderMoves(const Position& position, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks) {
 	for (auto& m : ml) {
 		const bool losingCapture = position.IsMoveQuiet(m.move) ? false : !StaticExchangeEval(position, m.move, 0);
-		m.orderScore = Heuristics.CalculateOrderScore(position, m.move, level, ttMove, MoveStack, losingCapture, true, opponentAttacks);
+		m.orderScore = Heuristics.CalculateOrderScore(position, m.move, level, ttMove, losingCapture, true, opponentAttacks);
 	}
 }
 
 void Search::OrderMovesQ(const Position& position, MoveList& ml, const int level) {
 	for (auto& m : ml) {
-		m.orderScore = Heuristics.CalculateOrderScore(position, m.move, level, NullMove, MoveStack, false, false, 0);
+		m.orderScore = Heuristics.CalculateOrderScore(position, m.move, level, NullMove, false, false, 0);
 	}
 }
 

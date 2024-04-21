@@ -93,6 +93,12 @@ public:
 		return KingMoveBits[from];
 	}
 
+	inline const MoveAndPiece& GetPreviousMove(const int plys) const {
+		assert(plys > 0);
+		assert(plys <= Moves.size());
+		return Moves[Moves.size() - plys];
+	}
+
 	template<bool attackingSide> bool IsSquareAttacked(const uint8_t square) const;
 	template<bool attackingSide> bool IsSquareAttacked(const uint8_t square, const uint64_t occupancy) const;
 	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;
@@ -121,6 +127,7 @@ public:
 
 	std::vector<Board> States{};
 	std::vector<uint64_t> Hashes{};
+	std::vector<MoveAndPiece> Moves{};
 	CastlingConfiguration CastlingConfig{};
 
 private:

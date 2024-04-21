@@ -8,6 +8,7 @@ Position::Position(const std::string& fen) {
 	// Reserve memory, add starting state
 	States.reserve(512);
 	Hashes.reserve(512);
+	Moves.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
 	
@@ -100,16 +101,16 @@ Position::Position(const std::string& fen) {
 
 Position::Position(const int frcWhite, const int frcBlack) {
 
-	if (!Settings::Chess960) cout << "uhhh" << endl;
+	assert(Settings::Chess960);
+	assert(0 <= frcWhite && frcWhite < 960);
+	assert(0 <= frcBlack && frcBlack < 960);
 
 	// Reserve memory, add starting state
 	States.reserve(512);
 	Hashes.reserve(512);
+	Moves.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
-
-	assert(0 <= frcWhite && frcWhite < 960);
-	assert(0 <= frcBlack && frcBlack < 960);
 
 	// Find n-th free square
 	auto fnfsq = [](const std::array<uint8_t, 8>& pieces, const int nth) {
@@ -181,7 +182,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	CastlingConfig.BlackShortCastleRookSquare = MsbSquare(board.BlackRookBits);
 
 	// Other
-	board.Turn == Side::White;
+	board.Turn = Side::White;
 	board.EnPassantSquare = -1;
 	board.HalfmoveClock = 0;
 	board.FullmoveClock = 1;
@@ -192,26 +193,26 @@ Position::Position(const int frcWhite, const int frcBlack) {
 // Pushing moves ----------------------------------------------------------------------------------
 
 void Position::Push(const Move& move) {
-	assert(move.IsNotNull());
+	assert(!move.IsNull());
 
 	States.push_back(Board(CurrentState()));
 	Board& board = CurrentState();
+	const uint8_t movedPiece = board.GetPieceAt(move.from);
 
-	board.HalfmoveClock += 1;
 	board.ApplyMove(move, CastlingConfig);
 
-	// Increment timers
-	board.Turn = !board.Turn;
-	if (board.Turn == Side::White) board.FullmoveClock += 1;
-
 	Hashes.push_back(board.CalculateHash());
-	assert(States.size() == Hashes.size());
+	Moves.push_back({ move, movedPiece });
+	assert(States.size() == Hashes.size() && States.size() - 1 == Moves.size());
 }
 
 void Position::PushNullMove() {
 	States.push_back(Board(CurrentState()));
 	Board& board = CurrentState();
+
 	board.Turn = !board.Turn;
+	if (board.Turn == Side::White) board.FullmoveClock += 1;
+
 	if (board.EnPassantSquare == -1) {
 		Hashes.push_back(Hashes.back() ^ Zobrist[780]);
 	}
@@ -219,6 +220,7 @@ void Position::PushNullMove() {
 		board.EnPassantSquare = -1;
 		Hashes.push_back(board.CalculateHash());
 	}
+	Moves.push_back({ NullMove, Piece::None });
 	return;
 }
 
@@ -240,28 +242,33 @@ bool Position::PushUCI(const std::string& str) {
 
 	// Castling
 	if (!Settings::Chess960) {
-		if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 2)) move = { 4, 0, MoveFlag::LongCastle };
-		else if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 6)) move = { 4, 7, MoveFlag::ShortCastle };
-		else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 58)) move = { 60, 56, MoveFlag::LongCastle };
-		else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 62)) move = { 60, 63, MoveFlag::ShortCastle };
+		using namespace Squares;
+		if (piece == Piece::WhiteKing && sq1 == E1) {
+			if (sq2 == C1) move = { E1, A1, MoveFlag::LongCastle };
+			else if (sq2 == G1) move = { E1, H1, MoveFlag::ShortCastle};
+		}
+		else if (piece == Piece::BlackKing && sq1 == E8) {
+			if (sq2 == C8) move = { E8, A8, MoveFlag::LongCastle };
+			else if (sq2 == G8) move = { E8, H8, MoveFlag::ShortCastle };
+		}
 	}
 	else {
 		if ((piece == Piece::WhiteKing && capturedPiece == Piece::WhiteRook)
 			|| (piece == Piece::BlackKing && capturedPiece == Piece::BlackRook)) {
-			move = { move.from, move.to, (move.from < move.to) ? MoveFlag::ShortCastle : MoveFlag::LongCastle };
+			move.flag = (move.from < move.to) ? MoveFlag::ShortCastle : MoveFlag::LongCastle;
 		}
 	}
 
 	// En passant possibility
 	if (TypeOfPiece(piece) == PieceType::Pawn) {
-		const uint8_t f1 = sq1 / 8;
-		const uint8_t f2 = sq2 / 8;
-		if (std::abs(f2 - f1) > 1) move.flag = MoveFlag::EnPassantPossible;
+		const uint8_t r1 = GetSquareRank(sq1);
+		const uint8_t r2 = GetSquareRank(sq2);
+		if (std::abs(r2 - r1) == 2) move.flag = MoveFlag::EnPassantPossible;
 	}
 
 	// En passant performed
 	if (TypeOfPiece(piece) == PieceType::Pawn) {
-		if ((TypeOfPiece(capturedPiece) == 0) && (GetSquareFile(sq1) != GetSquareFile(sq2))) {
+		if ((TypeOfPiece(capturedPiece) == PieceType::None) && (GetSquareFile(sq1) != GetSquareFile(sq2))) {
 			move.flag = MoveFlag::EnPassantPerformed;
 		}
 	}
@@ -269,27 +276,22 @@ bool Position::PushUCI(const std::string& str) {
 	// Generate the list of valid moves
 	MoveList legalMoves{};
 	GenerateMoves(legalMoves, MoveGen::All, Legality::Legal);
-	bool valid = false;
-	for (const auto& m : legalMoves) {
-		if ((m.move.to == move.to) && (m.move.from == move.from) && (m.move.flag == move.flag)) {
-			valid = true;
-			break;
-		}
-	}
+	const bool valid = std::any_of(legalMoves.begin(), legalMoves.end(), [&](const ScoredMove& sm) {
+		return sm.move == move;
+		});
 
 	// Make the move if valid
-	if (valid) {
+	if (!valid) return false;
+	else {
 		Push(move);
 		return true;
-	}
-	else {
-		return false;
 	}
 }
 
 void Position::Pop() {
 	States.pop_back();
 	Hashes.pop_back();
+	Moves.pop_back();
 }
 
 // Generating moves -------------------------------------------------------------------------------
@@ -433,8 +435,6 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const uint64_t rayBetweenRookAndF = GetConnectingRay(rookSq, rookTo);
 		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
 		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & fakeOccupancy);
-
-		//cout << empty << endl;
 
 		if (empty) {
 			const uint64_t opponentAttacks = CalculateAttackedSquaresTemplated<!side>();
@@ -590,8 +590,7 @@ uint64_t Position::GetAttackersOfSquare(const uint8_t square, const uint64_t occ
 // This is terrible currently, but it was pain to get right, and I don't want to touch it with a 10 ft pole
 bool Position::IsLegalMove(const Move& m) const {
 	
-	//if (m.IsNull()) cout << "#" << endl;
-
+	assert(!m.IsNull());
 	if (m.IsCastling()) return true; // Castling is guaranteed to be legal from movegen
 
 	const Board& board = CurrentState();

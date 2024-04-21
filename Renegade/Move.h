@@ -81,10 +81,6 @@ public:
 		return (from == 0) && (to == 0);
 	}
 
-	inline bool IsNotNull() const {
-		return (from != 0) || (to != 0);
-	}
-
 	inline bool IsUnderpromotion() const {
 		return (flag == MoveFlag::PromotionToRook) || (flag == MoveFlag::PromotionToKnight) || (flag == MoveFlag::PromotionToBishop);
 	}
@@ -123,7 +119,7 @@ static const Move NullMove { 0, 0, MoveFlag::NullMove };
 static const Move EmptyMove { 0, 0, MoveFlag::None };
 
 struct MoveAndPiece {
-	Move move;
+	Move move{};
 	uint8_t piece = 0;
 };
 
