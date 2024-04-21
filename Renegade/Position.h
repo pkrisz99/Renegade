@@ -94,8 +94,10 @@ public:
 	}
 
 	template<bool attackingSide> bool IsSquareAttacked(const uint8_t square) const;
+	template<bool attackingSide> bool IsSquareAttacked(const uint8_t square, const uint64_t occupancy) const;
 	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;
-	bool IsSquareAttacked2(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const;
+	bool IsSquareAttacked(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const;
+	bool IsSquareAttacked(const uint8_t square, const uint64_t occupancy) const;
 
 
 	inline uint64_t WhitePawnBits() const { return States.back().WhitePawnBits; }

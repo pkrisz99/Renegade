@@ -112,7 +112,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	assert(0 <= frcBlack && frcBlack < 960);
 
 	// Find n-th free square
-	auto fnfsq = [&](const std::array<uint8_t, 8>& pieces, const int nth) {
+	auto fnfsq = [](const std::array<uint8_t, 8>& pieces, const int nth) {
 		int i = 0;
 		for (int f = 0; f < 8; f++) {
 			if (pieces[f] != PieceType::None) continue;
@@ -601,7 +601,7 @@ bool Position::IsLegalMove(const Move& m) const {
 		// Destination square must not be attacked by the opponent
 		const uint8_t kingSq = (board.Turn == Side::White) ? LsbSquare(board.WhiteKingBits) : LsbSquare(board.BlackKingBits);
 		const uint64_t occupancy = GetOccupancy() ^ SquareBit(kingSq);
-		return (board.Turn == Side::White) ? !IsSquareAttacked2(Side::Black, m.to, occupancy) : !IsSquareAttacked2(Side::White, m.to, occupancy);
+		return (board.Turn == Side::White) ? !IsSquareAttacked<Side::Black>(m.to, occupancy) : !IsSquareAttacked<Side::White>(m.to, occupancy);
 	}
 
 	const uint8_t capturedPiece = GetPieceAt(m.to);
@@ -653,11 +653,8 @@ bool Position::IsLegalMove(const Move& m) const {
 
 }
 
-
-
 template <bool attackingSide>
-bool Position::IsSquareAttacked(const uint8_t square) const {
-	const uint64_t occupancy = GetOccupancy();
+bool Position::IsSquareAttacked(const uint8_t square, const uint64_t occupancy) const {
 	const Board& b = CurrentState();
 
 	if constexpr (attackingSide == Side::White) {
@@ -690,38 +687,9 @@ bool Position::IsSquareAttacked(const uint8_t square) const {
 	}
 }
 
-// will be simplified somehow
-bool Position::IsSquareAttacked2(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const {
-	const Board& b = CurrentState();
-
-	if (attackingSide == Side::White) {
-		// Attacked by a knight?
-		if (KnightMoveBits[square] & b.WhiteKnightBits) return true;
-		// Attacked by a king?
-		if (KingMoveBits[square] & b.WhiteKingBits) return true;
-		// Attacked by a pawn?
-		if (SquareBit(square) & ((b.WhitePawnBits & ~File[0]) << 7)) return true;
-		if (SquareBit(square) & ((b.WhitePawnBits & ~File[7]) << 9)) return true;
-		// Attacked by a sliding piece?
-		if (GetRookAttacks(square, occupancy) & (b.WhiteRookBits | b.WhiteQueenBits)) return true;
-		if (GetBishopAttacks(square, occupancy) & (b.WhiteBishopBits | b.WhiteQueenBits)) return true;
-		// Okay
-		return false;
-	}
-	else {
-		// Attacked by a knight?
-		if (KnightMoveBits[square] & b.BlackKnightBits) return true;
-		// Attacked by a king?
-		if (KingMoveBits[square] & b.BlackKingBits) return true;
-		// Attacked by a pawn?
-		if (SquareBit(square) & ((b.BlackPawnBits & ~File[0]) >> 9)) return true;
-		if (SquareBit(square) & ((b.BlackPawnBits & ~File[7]) >> 7)) return true;
-		// Attacked by a sliding piece?
-		if (GetRookAttacks(square, occupancy) & (b.BlackRookBits | b.BlackQueenBits)) return true;
-		if (GetBishopAttacks(square, occupancy) & (b.BlackBishopBits | b.BlackQueenBits)) return true;
-		// Okay
-		return false;
-	}
+template <bool attackingSide>
+bool Position::IsSquareAttacked(const uint8_t square) const {
+	return IsSquareAttacked<attackingSide>(square, GetOccupancy());
 }
 
 uint64_t Position::AttackersOfSquare(const bool attackingSide, const uint8_t square) const {
@@ -730,20 +698,20 @@ uint64_t Position::AttackersOfSquare(const bool attackingSide, const uint8_t squ
 	uint64_t attackers = 0;
 
 	if (attackingSide == Side::White) {
-		attackers |= (KnightMoveBits[square] & b.WhiteKnightBits);
-		attackers |= (KingMoveBits[square] & b.WhiteKingBits);
+		attackers |= KnightMoveBits[square] & b.WhiteKnightBits;
+		attackers |= KingMoveBits[square] & b.WhiteKingBits;
 		attackers |= ((SquareBit(square) & ~File[0]) >> 9) & b.WhitePawnBits;
 		attackers |= ((SquareBit(square) & ~File[7]) >> 7) & b.WhitePawnBits;
-		attackers |= (GetRookAttacks(square, occupancy) & (b.WhiteRookBits | b.WhiteQueenBits));
-		attackers |= (GetBishopAttacks(square, occupancy) & (b.WhiteBishopBits | b.WhiteQueenBits));
+		attackers |= GetRookAttacks(square, occupancy) & (b.WhiteRookBits | b.WhiteQueenBits);
+		attackers |= GetBishopAttacks(square, occupancy) & (b.WhiteBishopBits | b.WhiteQueenBits);
 	}
 	else {
-		attackers |= (KnightMoveBits[square] & b.BlackKnightBits);
-		attackers |= (KingMoveBits[square] & b.BlackKingBits);
+		attackers |= KnightMoveBits[square] & b.BlackKnightBits;
+		attackers |= KingMoveBits[square] & b.BlackKingBits;
 		attackers |= ((SquareBit(square) & ~File[7]) << 9) & b.BlackPawnBits;
 		attackers |= ((SquareBit(square) & ~File[0]) << 7) & b.BlackPawnBits;
-		attackers |= (GetRookAttacks(square, occupancy) & (b.BlackRookBits | b.BlackQueenBits));
-		attackers |= (GetBishopAttacks(square, occupancy) & (b.BlackBishopBits | b.BlackQueenBits));
+		attackers |= GetRookAttacks(square, occupancy) & (b.BlackRookBits | b.BlackQueenBits);
+		attackers |= GetBishopAttacks(square, occupancy) & (b.BlackBishopBits | b.BlackQueenBits);
 	}
 	return attackers;
 }
