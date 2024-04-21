@@ -26,7 +26,18 @@ int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
 
 #ifdef __AVX2__
 	// Calculate output with handwritten SIMD (autovec also works, but it's slower)
-	// Idea by somelizard, it makes fast QA=255 SCReLU possible (but now the net is still QA=181)
+	// Idea by somelizard, it makes fast QA=255 SCReLU possible
+
+	auto HorizontalSum = [] (const __m256i sum) {
+		const auto upper_128 = _mm256_extracti128_si256(sum, 1);
+		const auto lower_128 = _mm256_castsi256_si128(sum);
+		const auto sum_128 = _mm_add_epi32(upper_128, lower_128);
+		const auto upper_64 = _mm_unpackhi_epi64(sum_128, sum_128);
+		const auto sum_64 = _mm_add_epi32(upper_64, sum_128);
+		const auto upper_32 = _mm_shuffle_epi32(sum_64, 0b00'00'00'01);
+		const auto sum_32 = _mm_add_epi32(upper_32, sum_64);
+		return _mm_cvtsi128_si32(sum_32);
+	};
 	
 	constexpr int chunkSize = 16; // for AVX2: 256/16=16
 	const auto min = _mm256_setzero_si256();
@@ -40,7 +51,7 @@ int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
 		const auto p = _mm256_madd_epi16(v, _mm256_mullo_epi16(v, w));
 		sum = _mm256_add_epi32(sum, p);
 	}
-	output = ExtractInteger(sum);
+	output = HorizontalSum(sum);
 
 	sum = _mm256_setzero_si256();
 	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
@@ -50,18 +61,20 @@ int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
 		const auto p = _mm256_madd_epi16(v, _mm256_mullo_epi16(v, w));
 		sum = _mm256_add_epi32(sum, p);
 	}
-	output += ExtractInteger(sum);
+	output += HorizontalSum(sum);
 #else
 	// Slower fallback
 	// if you end up here... that's bad.
-	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenFriendly[i]) * Network->OutputWeights[i];
-	for (int i = 0; i < HiddenSize; i++) output += SquareClippedReLU(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
+	auto Activation = [] (const int16_t value) {
+		const int32_t x = std::clamp<int32_t>(value, 0, QA);
+		return x * x;
+	};
+	for (int i = 0; i < HiddenSize; i++) output += Activation(hiddenFriendly[i]) * Network->OutputWeights[i];
+	for (int i = 0; i < HiddenSize; i++) output += Activation(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
 #endif
 
 	constexpr int Q = QA * QB;
 	output = (output / QA + Network->OutputBias) * Scale / Q; // Square Clipped ReLU
-	//output = (output + Network->OutputBias) * Scale / Q;    // Clipped ReLU
-
 	return std::clamp(output, -MateThreshold + 1, MateThreshold - 1);
 }
 
