@@ -1,9 +1,11 @@
 #pragma once
 
-#include "Heuristics.h"
+#include "History.h"
+#include "Movepicker.h"
 #include "Neurals.h"
 #include "Position.h"
 #include "Reporting.h"
+#include "Transpositions.h"
 #include "Utils.h"
 #include <atomic>
 #include <tuple>
@@ -30,7 +32,7 @@ public:
 
 	std::atomic<bool> Aborting = true;
 	bool DatagenMode = false;
-	Heuristics Heuristics;
+	Transpositions TranspositionTable;
 
 private:
 	int SearchRecursive(Position& position, int depth, const int level, int alpha, int beta, const bool canNullMove);
@@ -44,10 +46,19 @@ private:
 
 	void OrderMoves(const Position& position, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks);
 	void OrderMovesQ(const Position& position, MoveList& ml, const int level);
+	int CalculateOrderScore(const Position& position, const Move& m, const int level, const Move& ttMove,
+		const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const;
 
 	// NNUE
 	void SetupAccumulators(const Position& position);
 	void UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level);
+
+	// PV table
+	void UpdatePvTable(const Move& move, const int level);
+	void InitPvLength(const int level);
+	void GeneratePvLine(std::vector<Move>& list) const;
+	void ResetPvTable();
+
 
 	std::unique_ptr<std::array<AccumulatorRepresentation, MaxDepth + 1>> Accumulators;
 
@@ -58,6 +69,11 @@ private:
 	int Depth;
 	SearchStatistics Statistics;
 	SearchConstraints Constraints;
+
+	std::array<std::array<Move, MaxDepth + 1>, MaxDepth + 1> PvTable;
+	std::array<int, MaxDepth + 1> PvLength;
+
+	History History; // todo: rename one
 
 	// Reused variables / stack
 	std::array<MoveList, MaxDepth> MoveListStack{};
