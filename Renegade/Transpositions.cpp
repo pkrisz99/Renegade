@@ -4,14 +4,14 @@ Transpositions::Transpositions() {
 	SetSize(1); // set an initial size, it will be resized before using
 }
 
-void Transpositions::Store(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move& bestMove, const int level) {
+void Transpositions::Store(const uint64_t hash, const int depth, int score, const int scoreType, const Move& bestMove, const int level) {
 
 	//assert(std::abs(score) > MateEval);
 	assert(HashFilter != 0);
 	if (std::abs(score) > MateEval) return;
 
 	const uint64_t key = hash & HashFilter;
-	const uint16_t quality = age * 2 + depth;
+	const uint16_t quality = Age * 2 + depth;
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
 
 	if (quality >= Table[key].quality) { // (TranspositionTable[key].depth <= depth)
@@ -62,6 +62,10 @@ void Transpositions::Prefetch(const uint64_t hash) const {
 #endif
 }
 
+void Transpositions::IncreaseAge() {
+	if (Age < 32000) Age += 1;
+}
+
 void Transpositions::SetSize(const int megabytes) {
 	assert(megabytes != 0);
 	EntryCount = 0;
@@ -74,16 +78,17 @@ void Transpositions::SetSize(const int megabytes) {
 	Clear();
 }
 
-int Transpositions::GetHashfull() const {
-	return static_cast<int>(EntryCount * 1000 / (HashFilter + 1));
-}
-
 void Transpositions::Clear() {
 	Table.clear();
 	Table.reserve(HashFilter + 1);
 	for (uint64_t i = 0; i < HashFilter + 1; i++) Table.push_back(TranspositionEntry());
 	Table.shrink_to_fit();
 	EntryCount = 0;
+	Age = 0;
+}
+
+int Transpositions::GetHashfull() const {
+	return static_cast<int>(EntryCount * 1000 / (HashFilter + 1));
 }
 
 void Transpositions::GetInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits, uint64_t& ttUsed) const {

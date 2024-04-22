@@ -64,7 +64,6 @@ private:
 
 	std::chrono::high_resolution_clock::time_point StartSearchTime;
 	std::array<std::array<uint64_t, 64>, 64> RootNodeCounts;
-	uint16_t Age = 0;
 
 	int Depth;
 	SearchStatistics Statistics;

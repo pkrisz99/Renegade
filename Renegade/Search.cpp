@@ -30,10 +30,7 @@ void Search::ResetState(const bool clearTT) {
 	History.ClearHistory();
 	History.ClearKillerAndCounterMoves();
 	ResetPvTable();
-	if (clearTT) {
-		TranspositionTable.Clear();
-		Age = 0;
-	}
+	if (clearTT) TranspositionTable.Clear();
 }
 
 // Perft methods ----------------------------------------------------------------------------------
@@ -149,7 +146,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 	int elapsedMs = 0;
 	ResetStatistics();
 	bool finished = false;
-	if (Age < 32000) Age += 1;
+	TranspositionTable.IncreaseAge();
 
 	SetupAccumulators(position);
 	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
@@ -585,7 +582,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 	}
 
 	// Return the best score (fail-soft)
-	if (!aborting && !singularSearch) TranspositionTable.Store(hash, Age, depth, bestScore, scoreType, bestMove, level);
+	if (!aborting && !singularSearch) TranspositionTable.Store(hash, depth, bestScore, scoreType, bestMove, level);
 
 	return bestScore;
 }
@@ -654,7 +651,7 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 			}
 		}
 	}
-	if (!aborting) TranspositionTable.Store(hash, Age, 0, bestScore, scoreType, EmptyMove, level);
+	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, EmptyMove, level);
 	return bestScore;
 }
 

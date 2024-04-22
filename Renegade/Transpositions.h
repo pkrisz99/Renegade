@@ -28,13 +28,14 @@ class Transpositions
 {
 public:
 	Transpositions();
-	void Store(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move& bestMove, const int level);
+	void Store(const uint64_t hash, const int depth, int score, const int scoreType, const Move& bestMove, const int level);
 	bool Retrieve(const uint64_t& hash, TranspositionEntry& entry, const int level) const;
+	void Prefetch(const uint64_t hash) const;
+	void IncreaseAge();
 	void SetSize(const int megabytes);
+	void Clear();
 	int GetHashfull() const;
 	void GetInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits, uint64_t& ttUsed) const;
-	void Clear();
-	void Prefetch(const uint64_t hash) const;
 
 private:
 	std::vector<TranspositionEntry> Table;
@@ -42,5 +43,6 @@ private:
 	int HashBits;
 	uint64_t EntryCount;
 	uint64_t TheoreticalEntryCount;
+	uint16_t Age;
 };
 
