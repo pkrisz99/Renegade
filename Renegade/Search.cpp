@@ -585,7 +585,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 	}
 
 	// Return the best score (fail-soft)
-	if (!aborting && !singularSearch) TranspositionTable.Add(hash, Age, depth, bestScore, scoreType, bestMove, level);
+	if (!aborting && !singularSearch) TranspositionTable.Store(hash, Age, depth, bestScore, scoreType, bestMove, level);
 
 	return bestScore;
 }
@@ -654,7 +654,7 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 			}
 		}
 	}
-	if (!aborting) TranspositionTable.Add(hash, Age, 0, bestScore, scoreType, EmptyMove, level);
+	if (!aborting) TranspositionTable.Store(hash, Age, 0, bestScore, scoreType, EmptyMove, level);
 	return bestScore;
 }
 

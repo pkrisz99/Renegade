@@ -4,7 +4,7 @@ Transpositions::Transpositions() {
 	SetSize(1); // set an initial size, it will be resized before using
 }
 
-void Transpositions::Add(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move& bestMove, const int level) {
+void Transpositions::Store(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move& bestMove, const int level) {
 
 	//assert(std::abs(score) > MateEval);
 	assert(HashFilter != 0);

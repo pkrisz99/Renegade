@@ -28,7 +28,7 @@ class Transpositions
 {
 public:
 	Transpositions();
-	void Add(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move& bestMove, const int level);
+	void Store(const uint64_t hash, const uint16_t age, const int depth, int score, const int scoreType, const Move& bestMove, const int level);
 	bool Retrieve(const uint64_t& hash, TranspositionEntry& entry, const int level) const;
 	void SetSize(const int megabytes);
 	int GetHashfull() const;
