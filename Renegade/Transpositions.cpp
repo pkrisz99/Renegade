@@ -32,7 +32,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, int score, cons
 	}
 }
 
-bool Transpositions::Retrieve(const uint64_t& hash, TranspositionEntry& entry, const int level) const {
+bool Transpositions::Probe(const uint64_t& hash, TranspositionEntry& entry, const int level) const {
 	assert(HashFilter != 0);
 	const uint64_t key = hash & HashFilter;
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);

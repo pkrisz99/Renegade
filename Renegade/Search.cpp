@@ -329,7 +329,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 	const uint64_t hash = position.Hash();
 
 	if (!singularSearch) {
-		found = TranspositionTable.Retrieve(hash, ttEntry, level);
+		found = TranspositionTable.Probe(hash, ttEntry, level);
 		Statistics.TranspositionQueries += 1;
 		if (found) {
 			if (!pvNode) {
@@ -608,7 +608,7 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 	// Probe the transposition table
 	const uint64_t hash = position.Hash();
 	TranspositionEntry ttEntry;
-	const bool found = TranspositionTable.Retrieve(hash, ttEntry, level);
+	const bool found = TranspositionTable.Probe(hash, ttEntry, level);
 	Statistics.TranspositionQueries += 1;
 	if (found) {
 		if (ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;

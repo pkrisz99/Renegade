@@ -29,7 +29,7 @@ class Transpositions
 public:
 	Transpositions();
 	void Store(const uint64_t hash, const int depth, int score, const int scoreType, const Move& bestMove, const int level);
-	bool Retrieve(const uint64_t& hash, TranspositionEntry& entry, const int level) const;
+	bool Probe(const uint64_t& hash, TranspositionEntry& entry, const int level) const;
 	void Prefetch(const uint64_t hash) const;
 	void IncreaseAge();
 	void SetSize(const int megabytes);
