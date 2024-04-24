@@ -27,13 +27,10 @@ void Search::ResetStatistics() {
 
 
 void Search::ResetState(const bool clearTT) {
-	Heuristics.ClearHistory();
-	Heuristics.ClearKillerAndCounterMoves();
-	Heuristics.ResetPvTable();
-	if (clearTT) {
-		Heuristics.ClearTranspositionTable();
-		Age = 0;
-	}
+	History.ClearHistory();
+	History.ClearKillerAndCounterMoves();
+	ResetPvTable();
+	if (clearTT) TranspositionTable.Clear();
 }
 
 // Perft methods ----------------------------------------------------------------------------------
@@ -149,7 +146,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 	int elapsedMs = 0;
 	ResetStatistics();
 	bool finished = false;
-	if (Age < 32000) Age += 1;
+	TranspositionTable.IncreaseAge();
 
 	SetupAccumulators(position);
 	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
@@ -179,7 +176,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 	e.ply = position.GetPlys();
 	int result = NoEval;
 	while (!finished) {
-		Heuristics.ResetPvTable();
+		ResetPvTable();
 		Depth += 1;
 		Statistics.SelDepth = Depth;
 
@@ -245,7 +242,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 
 		if (Constraints.SearchTimeMin != -1) {
 			const int originalSoftTimeLimit = Constraints.SearchTimeMin;
-			const Move& bestMove = Heuristics.PvTable[0][0];
+			const Move& bestMove = PvTable[0][0];
 			const double bestMoveFraction = static_cast<double>(RootNodeCounts[bestMove.from][bestMove.to]) / static_cast<double>(Statistics.Nodes);
 			const int adjustedSoftTimeLimit = originalSoftTimeLimit * static_cast<float>(Depth >= 10 ? (1.5 - bestMoveFraction) * 1.35 : 1.0);
 			//cout << RootNodeCounts[bestMove.from][bestMove.to] << " " << bestMoveFraction << " " << adjustedSoftTimeLimit << endl;
@@ -261,7 +258,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 			e.stats = Statistics;
 			e.time = elapsedMs;
 			e.nps = static_cast<int>(Statistics.Nodes * 1e9 / (currentTime - StartSearchTime).count());
-			e.hashfull = Heuristics.GetHashfull();
+			e.hashfull = TranspositionTable.GetHashfull();
 			if (display) PrintInfo(e);
 			break;
 		}
@@ -272,22 +269,17 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 		e.stats = Statistics;
 		e.time = elapsedMs;
 		e.nps = static_cast<int>(Statistics.Nodes * 1e9 / (currentTime - StartSearchTime).count());
-		e.hashfull = Heuristics.GetHashfull();
+		e.hashfull = TranspositionTable.GetHashfull();
 
 		// Obtaining PV line
 		e.pv.clear();
-		Heuristics.GeneratePvLine(e.pv);
+		GeneratePvLine(e.pv);
 		if (display) PrintInfo(e);
 	}
 	if (display) PrintBestmove(e.BestMove());
 
-	for (int i = 0; i < MaxDepth; i++) {
-		MoveStack[i].move = EmptyMove;
-		MoveStack[i].piece = 0;
-	}
-
-	Heuristics.ClearKillerAndCounterMoves();
-	Heuristics.ResetPvTable();
+	History.ClearKillerAndCounterMoves();
+	ResetPvTable();
 	Aborting.store(true, std::memory_order_relaxed);
 	return e;
 }
@@ -298,7 +290,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 	// Check search limits
 	const bool aborting = ShouldAbort();
 	if (aborting) return NoEval;
-	Heuristics.InitPvLength(level);
+	InitPvLength(level);
 	if (level >= MaxDepth) return Evaluate(position, level);
 
 	const bool rootNode = (level == 0);
@@ -337,7 +329,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 	const uint64_t hash = position.Hash();
 
 	if (!singularSearch) {
-		found = Heuristics.RetrieveTranspositionEntry(hash, ttEntry, level);
+		found = TranspositionTable.Probe(hash, ttEntry, level);
 		Statistics.TranspositionQueries += 1;
 		if (found) {
 			if (!pvNode) {
@@ -392,8 +384,6 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 			nmpReduction = std::min(nmpReduction, depth);
 			position.PushNullMove();
 			UpdateAccumulators(NullMove, 0, 0, level);
-			MoveStack[level].move = NullMove;
-			MoveStack[level].piece = Piece::None;
 			const int nullMoveEval = -SearchRecursive(position, depth - nmpReduction, level + 1, -beta, -beta + 1, false);
 			position.Pop();
 			if (nullMoveEval >= beta) {
@@ -424,10 +414,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		OrderMoves(position, MoveListStack[level], level, ttMove, opponentAttacks);
 
 		// Resetting killers and fail-high cutoff counts
-		if (level + 2 < MaxDepth) {
-			Heuristics.KillerMoves[level + 2][0] = EmptyMove;
-			Heuristics.KillerMoves[level + 2][1] = EmptyMove;
-		}
+		if (level + 2 < MaxDepth) History.ResetKillersForPly(level + 2);
 		if (level + 1 < MaxDepth) CutoffCount[level + 1] = 0;
 		if (level > 0) DoubleExtensions[level] = DoubleExtensions[level - 1];
 	}
@@ -494,12 +481,10 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		// Push move
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
-		MoveStack[level].move = m;
-		MoveStack[level].piece = movedPiece;
 		const uint64_t nodesBefore = Statistics.Nodes;
 
 		position.Push(m);
-		Heuristics.PrefetchTranspositionEntry(position.Hash());
+		TranspositionTable.Prefetch(position.Hash());
 		Statistics.Nodes += 1;
 		int score = NoEval;
 		UpdateAccumulators(m, movedPiece, capturedPiece, level);
@@ -543,7 +528,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		// Process search results
 		if (score > bestScore) {
 			bestScore = score;
-			if (!aborting && pvNode) Heuristics.UpdatePvTable(m, level);
+			if (!aborting && pvNode) UpdatePvTable(m, level);
 
 			// Fail-high
 			if (score >= beta) {
@@ -560,11 +545,11 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 					// If a quiet move causes a fail-high, update move ordering tables
 					if (isQuiet) {
-						Heuristics.AddKillerMove(m, level);
+						History.AddKillerMove(m, level);
 						const bool fromSquareAttacked = CheckBit(opponentAttacks, m.from);
 						const bool toSquareAttacked = CheckBit(opponentAttacks, m.to);
-						if (level > 0) Heuristics.AddCountermove(MoveStack[level - 1].move, m);
-						if (depth > 1) Heuristics.UpdateHistory(m, historyDelta, movedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+						if (level > 0) History.AddCountermove(position.GetPreviousMove(1).move, m);
+						if (depth > 1) History.UpdateHistory(m, historyDelta, movedPiece, depth, position, level, fromSquareAttacked, toSquareAttacked);
 					}
 
 					// Decrement history scores for all previously tried quiet moves
@@ -574,7 +559,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 							const bool fromSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.from);
 							const bool toSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.to);
 							const uint8_t previouslyTriedPiece = position.GetPieceAt(previouslyTriedMove.from);
-							Heuristics.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, MoveStack, level, fromSquareAttacked, toSquareAttacked);
+							History.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, position, level, fromSquareAttacked, toSquareAttacked);
 						}
 					}
 				}
@@ -597,7 +582,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 	}
 
 	// Return the best score (fail-soft)
-	if (!aborting && !singularSearch) Heuristics.AddTranspositionEntry(hash, Age, depth, bestScore, scoreType, bestMove, level);
+	if (!aborting && !singularSearch) TranspositionTable.Store(hash, depth, bestScore, scoreType, bestMove, level);
 
 	return bestScore;
 }
@@ -623,7 +608,7 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 	// Probe the transposition table
 	const uint64_t hash = position.Hash();
 	TranspositionEntry ttEntry;
-	const bool found = Heuristics.RetrieveTranspositionEntry(hash, ttEntry, level);
+	const bool found = TranspositionTable.Probe(hash, ttEntry, level);
 	Statistics.TranspositionQueries += 1;
 	if (found) {
 		if (ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
@@ -649,7 +634,7 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
 		position.Push(m);
-		Heuristics.PrefetchTranspositionEntry(position.Hash());
+		TranspositionTable.Prefetch(position.Hash());
 		UpdateAccumulators(m, movedPiece, capturedPiece, level);
 		const int score = -SearchQuiescence(position, level + 1, -beta, -alpha);
 		position.Pop();
@@ -666,7 +651,7 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 			}
 		}
 	}
-	if (!aborting) Heuristics.AddTranspositionEntry(hash, Age, 0, bestScore, scoreType, EmptyMove, level);
+	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, EmptyMove, level);
 	return bestScore;
 }
 
@@ -777,21 +762,6 @@ bool Search::StaticExchangeEval(const Position& position, const Move& move, cons
 	return turn != position.Turn();
 }
 
-// Move ordering ----------------------------------------------------------------------------------
-
-void Search::OrderMoves(const Position& position, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks) {
-	for (auto& m : ml) {
-		const bool losingCapture = position.IsMoveQuiet(m.move) ? false : !StaticExchangeEval(position, m.move, 0);
-		m.orderScore = Heuristics.CalculateOrderScore(position, m.move, level, ttMove, MoveStack, losingCapture, true, opponentAttacks);
-	}
-}
-
-void Search::OrderMovesQ(const Position& position, MoveList& ml, const int level) {
-	for (auto& m : ml) {
-		m.orderScore = Heuristics.CalculateOrderScore(position, m.move, level, NullMove, MoveStack, false, false, 0);
-	}
-}
-
 // Accumulators for neural networks ---------------------------------------------------------------
 
 void Search::SetupAccumulators(const Position& position) {
@@ -863,4 +833,88 @@ void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const u
 			break;
 	}
 
+}
+
+// PV table ---------------------------------------------------------------------------------------
+
+void Search::InitPvLength(const int level) {
+	PvLength[level] = level;
+}
+
+void Search::UpdatePvTable(const Move& move, const int level) {
+	PvTable[level][level] = move;
+	for (int nextLevel = level + 1; nextLevel < PvLength[level + 1]; nextLevel++) {
+		PvTable[level][nextLevel] = PvTable[level + 1][nextLevel];
+	}
+	PvLength[level] = PvLength[level + 1];
+}
+
+void Search::GeneratePvLine(std::vector<Move>& list) const {
+	for (int i = 0; i < PvLength[0]; i++) {
+		const Move& m = PvTable[0][i];
+		if (m.IsEmpty()) break;
+		list.push_back(m);
+	}
+}
+
+void Search::ResetPvTable() {
+	for (int i = 0; i < MaxDepth; i++) {
+		for (int j = 0; j < MaxDepth; j++) PvTable[i][j] = EmptyMove;
+		PvLength[i] = 0; // ?
+	}
+}
+
+// Move ordering ----------------------------------------------------------------------------------
+
+int Search::CalculateOrderScore(const Position& position, const Move& m, const int level, const Move& ttMove,
+	const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const {
+
+	const uint8_t movedPiece = position.GetPieceAt(m.from);
+	const uint8_t attackingPieceType = TypeOfPiece(movedPiece);
+	const uint8_t capturedPieceType = TypeOfPiece(position.GetPieceAt(m.to));
+	constexpr std::array<int, 7> values = { 0, 100, 300, 300, 500, 900, 0 };
+
+	// Transposition move
+	if (m == ttMove) return 900000;
+
+	// Queen promotions
+	if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[capturedPieceType];
+
+	// Captures
+	if (!m.IsCastling()) {
+		if (!losingCapture) {
+			if (capturedPieceType != PieceType::None) return 600000 + values[capturedPieceType] * 16 - values[attackingPieceType];
+			if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
+		}
+		else {
+			if (capturedPieceType != PieceType::None) return -200000 + values[capturedPieceType] * 16 - values[attackingPieceType];
+			if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
+		}
+	}
+
+	// Quiet killer moves
+	if (History.IsFirstKillerMove(m, level)) return 100100;
+	if (History.IsSecondKillerMove(m, level)) return 100000;
+
+	// Countermove heuristic
+	if (level > 0 && useMoveStack && History.IsCountermove(position.GetPreviousMove(1).move, m)) return 99000;
+
+	// Quiet moves
+	const bool turn = position.Turn();
+	const int historyScore = History.GetHistoryScore(position, m, level, movedPiece, opponentAttacks);
+
+	return historyScore;
+}
+
+void Search::OrderMoves(const Position& position, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks) {
+	for (auto& m : ml) {
+		const bool losingCapture = position.IsMoveQuiet(m.move) ? false : !StaticExchangeEval(position, m.move, 0);
+		m.orderScore = CalculateOrderScore(position, m.move, level, ttMove, losingCapture, true, opponentAttacks);
+	}
+}
+
+void Search::OrderMovesQ(const Position& position, MoveList& ml, const int level) {
+	for (auto& m : ml) {
+		m.orderScore = CalculateOrderScore(position, m.move, level, NullMove, false, false, 0);
+	}
 }

@@ -8,6 +8,7 @@
 uint64_t GetBishopAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
+uint64_t GetConnectingRay(const uint8_t from, const uint64_t to);
 
 class Position
 {
@@ -92,9 +93,17 @@ public:
 		return KingMoveBits[from];
 	}
 
+	inline const MoveAndPiece& GetPreviousMove(const int plys) const {
+		assert(plys > 0);
+		assert(plys <= Moves.size());
+		return Moves[Moves.size() - plys];
+	}
+
 	template<bool attackingSide> bool IsSquareAttacked(const uint8_t square) const;
+	template<bool attackingSide> bool IsSquareAttacked(const uint8_t square, const uint64_t occupancy) const;
 	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;
-	bool IsSquareAttacked2(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const;
+	bool IsSquareAttacked(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const;
+	bool IsSquareAttacked(const uint8_t square, const uint64_t occupancy) const;
 
 
 	inline uint64_t WhitePawnBits() const { return States.back().WhitePawnBits; }
@@ -118,6 +127,7 @@ public:
 
 	std::vector<Board> States{};
 	std::vector<uint64_t> Hashes{};
+	std::vector<MoveAndPiece> Moves{};
 	CastlingConfiguration CastlingConfig{};
 
 private:

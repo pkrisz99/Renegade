@@ -5,7 +5,7 @@ Engine::Engine(int argc, char* argv[]) {
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
 	LoadDefaultNetwork();
-	Search.Heuristics.SetHashSize(Settings::Hash);
+	Search.TranspositionTable.SetSize(Settings::Hash);
 
 	if ((argc == 2) && (std::string(argv[1]) == "bench")) {
 		HandleBench(false);
@@ -95,7 +95,7 @@ void Engine::Start() {
 
 			if (parts[2] == "hash") {
 				Settings::Hash = stoi(parts[4]);
-				Search.Heuristics.SetHashSize(Settings::Hash);
+				Search.TranspositionTable.SetSize(Settings::Hash);
 				valid = true;
 			}
 			else if (parts[2] == "clear") {
@@ -194,7 +194,7 @@ void Engine::Start() {
 			}
 			if (parts[1] == "hashalloc") {
 				uint64_t ttTheoretical, ttUsable, ttBits, ttUsed;
-				Search.Heuristics.GetTranspositionInfo(ttTheoretical, ttUsable, ttBits, ttUsed);
+				Search.TranspositionTable.GetInfo(ttTheoretical, ttUsable, ttBits, ttUsed);
 				cout << "Theoretical transposition size: " << ttTheoretical << endl;
 				cout << "Usable transposition size:      " << ttUsable << endl;
 				cout << "Usable bits:                    " << ttBits << endl;
@@ -259,12 +259,12 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "bighash") {
-			Search.Heuristics.SetHashSize(1024);
+			Search.TranspositionTable.SetSize(1024);
 			cout << "Using big hash: 1024 MB" << endl;
 			continue;
 		}
 		if (parts[0] == "hugehash") {
-			Search.Heuristics.SetHashSize(4096);
+			Search.TranspositionTable.SetSize(4096);
 			cout << "Using huge hash: 4096 MB" << endl;
 			continue;
 		}
@@ -311,8 +311,8 @@ void Engine::Start() {
 
 				if ((parts.size() > 2) && (parts[2] == "moves")) {
 					for (int i = 3; i < parts.size(); i++) {
-						bool r = position.PushUCI(parts[i]);
-						if (!r) cout << "!!! Error: invalid pushuci move: '" << parts[i] << "' at position '" << /*board.GetFEN() <<*/ "' !!!" << endl;
+						const bool r = position.PushUCI(parts[i]);
+						if (!r) cout << "!!! Error: invalid pushuci move: '" << parts[i] << "' at position '" << position.GetFEN() << "' !!!" << endl;
 					}
 				}
 			}
@@ -465,7 +465,7 @@ void Engine::HandleBench(const bool lengthy) {
 	uint64_t nodes = 0;
 	SearchParams params;
 	params.depth = lengthy ? 21 : 14;
-	Search.Heuristics.SetHashSize(16);
+	Search.TranspositionTable.SetSize(16);
 	const auto startTime = Clock::now();
 	
 	for (std::string fen : BenchmarkFENs) {
@@ -480,7 +480,7 @@ void Engine::HandleBench(const bool lengthy) {
 	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
 	cout << nodes << " nodes " << nps << " nps" << endl;
 	Search.ResetState(false);
-	Search.Heuristics.SetHashSize(oldHashSize); // also clears the transposition table
+	Search.TranspositionTable.SetSize(oldHashSize); // also clears the transposition table
 	Settings::Chess960 = oldChess960Setting;
 }
 

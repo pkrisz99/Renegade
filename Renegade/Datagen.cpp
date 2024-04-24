@@ -49,8 +49,8 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 	Search* Searcher1 = new Search;
 	Search* Searcher2 = new Search;
 
-	Searcher1->Heuristics.SetHashSize(Settings::Hash);
-	Searcher2->Heuristics.SetHashSize(Settings::Hash);
+	Searcher1->TranspositionTable.SetSize(Settings::Hash);
+	Searcher2->TranspositionTable.SetSize(Settings::Hash);
 	
 	Results results;
 	int gamesOnThread = 0;

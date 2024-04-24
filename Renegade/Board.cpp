@@ -111,6 +111,7 @@ uint64_t Board::CalculateHash() const {
 
 void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 
+	assert(!move.IsNull());
 	const uint8_t piece = GetPieceAt(move.from);
 	const uint8_t pieceType = TypeOfPiece(piece);
 	const uint8_t capturedPiece = GetPieceAt(move.to);
@@ -171,10 +172,6 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 		case MoveFlag::PromotionToBishop: RemovePiece<Piece::BlackPawn>(move.to); AddPiece<Piece::BlackBishop>(move.to); break;
 		}
 	}
-
-	// Reset fifty-move counter if needed
-	if (capturedPiece != Piece::None || pieceType == PieceType::Pawn || move.flag == MoveFlag::EnPassantPerformed)
-		HalfmoveClock = 0;
 
 	// Handle castling
 	if (piece == Piece::WhiteKing && capturedPiece == Piece::WhiteRook) {
@@ -245,6 +242,12 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 	else {
 		EnPassantSquare = -1;
 	}
+
+	// Update counters
+	HalfmoveClock += 1;
+	if (capturedPiece != Piece::None || pieceType == PieceType::Pawn) HalfmoveClock = 0;
+	Turn = !Turn;
+	if (Turn == Side::White) FullmoveClock += 1;
 
 	assert(Popcount(WhiteKingBits) == 1 && Popcount(BlackKingBits) == 1);
 }

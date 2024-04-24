@@ -8,6 +8,7 @@ Position::Position(const std::string& fen) {
 	// Reserve memory, add starting state
 	States.reserve(512);
 	Hashes.reserve(512);
+	Moves.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
 	
@@ -100,98 +101,71 @@ Position::Position(const std::string& fen) {
 
 Position::Position(const int frcWhite, const int frcBlack) {
 
-	if (!Settings::Chess960) cout << "uhhh" << endl;
+	assert(Settings::Chess960);
+	assert(0 <= frcWhite && frcWhite < 960);
+	assert(0 <= frcBlack && frcBlack < 960);
 
 	// Reserve memory, add starting state
 	States.reserve(512);
 	Hashes.reserve(512);
+	Moves.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
-	
-	// https://en.wikipedia.org/wiki/Fischer_random_chess_numbering_scheme
 
-	assert(0 <= frcWhite && frcWhite < 960);
-	assert(0 <= frcBlack && frcBlack < 960);
-
-	auto gfs = [&](const uint8_t nth, const bool side) { // get free square
-		const uint64_t free = ~GetOccupancy() & (side == Side::White ? Rank[0] : Rank[7]);
+	// Find n-th free square
+	auto fnfsq = [](const std::array<uint8_t, 8>& pieces, const int nth) {
 		int i = 0;
-		const int offset = (side == Side::White) ? 0 : 56;
-		for (int sq = offset; sq < offset + 8; sq++) {
-			if (!CheckBit(free, sq)) continue;
-			if (i == nth) return sq;
+		for (int f = 0; f < 8; f++) {
+			if (pieces[f] != PieceType::None) continue;
+			if (i == nth) return f;
 			i += 1;
 		}
 		assert(false);
-		//cout << ":|" << endl;
 	};
 
-	// to do: unduplicate this
-	// white
-	{
-		const int frcIndex = frcWhite;
-		const bool s = Side::White;
+	// Generate an array of piece types
+	// https://en.wikipedia.org/wiki/Fischer_random_chess_numbering_scheme
+	auto layout = [&](const int frcIndex) {
+		std::array<uint8_t, 8> pieces{};
 
+		// Place bishops and queen
 		const auto [n2, b1] = std::div(frcIndex, 4);
-		board.AddPiece<Piece::WhiteBishop>(b1 * 2 + 1);
+		pieces[b1 * 2 + 1] = PieceType::Bishop;
 		const auto [n3, b2] = std::div(n2, 4);
-		board.AddPiece<Piece::WhiteBishop>(b2 * 2);
+		pieces[b2 * 2] = PieceType::Bishop;
 		const auto [n4, q] = std::div(n3, 6);
-		board.AddPiece<Piece::WhiteQueen>(gfs(q, s));
+		pieces[fnfsq(pieces, q)] = PieceType::Queen;
 
+		// Place knights (oh boy)
+		constexpr uint8_t knight = PieceType::Knight;
 		switch (n4) {
-		case 0: board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); break;
-		case 1: board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); break;
-		case 2: board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); break;
-		case 3: board.AddPiece<Piece::WhiteKnight>(gfs(0, s)); board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); break;
-		case 4: board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); break;
-		case 5: board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); break;
-		case 6: board.AddPiece<Piece::WhiteKnight>(gfs(1, s)); board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); break;
-		case 7: board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); break;
-		case 8: board.AddPiece<Piece::WhiteKnight>(gfs(2, s)); board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); break;
-		case 9: board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); board.AddPiece<Piece::WhiteKnight>(gfs(3, s)); break;
+		case 0: pieces[fnfsq(pieces, 0)] = knight; pieces[fnfsq(pieces, 0)] = knight; break;
+		case 1: pieces[fnfsq(pieces, 0)] = knight; pieces[fnfsq(pieces, 1)] = knight; break;
+		case 2: pieces[fnfsq(pieces, 0)] = knight; pieces[fnfsq(pieces, 2)] = knight; break;
+		case 3: pieces[fnfsq(pieces, 0)] = knight; pieces[fnfsq(pieces, 3)] = knight; break;
+		case 4: pieces[fnfsq(pieces, 1)] = knight; pieces[fnfsq(pieces, 1)] = knight; break;
+		case 5: pieces[fnfsq(pieces, 1)] = knight; pieces[fnfsq(pieces, 2)] = knight; break;
+		case 6: pieces[fnfsq(pieces, 1)] = knight; pieces[fnfsq(pieces, 3)] = knight; break;
+		case 7: pieces[fnfsq(pieces, 2)] = knight; pieces[fnfsq(pieces, 2)] = knight; break;
+		case 8: pieces[fnfsq(pieces, 2)] = knight; pieces[fnfsq(pieces, 3)] = knight; break;
+		case 9: pieces[fnfsq(pieces, 3)] = knight; pieces[fnfsq(pieces, 3)] = knight; break;
 		}
 
-		const uint64_t remaining = ~GetOccupancy() & Rank[0];
-		board.AddPiece<Piece::WhiteRook>(LsbSquare(remaining));
-		board.AddPiece<Piece::WhiteRook>(MsbSquare(remaining));
-		const uint64_t kingBit = ~GetOccupancy() & Rank[0];
-		board.AddPiece<Piece::WhiteKing>(LsbSquare(kingBit));
-	}
+		// Place rooks and king
+		pieces[fnfsq(pieces, 0)] = PieceType::Rook;
+		pieces[fnfsq(pieces, 0)] = PieceType::King;
+		pieces[fnfsq(pieces, 0)] = PieceType::Rook;
 
-	// black
-	{
-		const int frcIndex = frcBlack;
-		const bool s = Side::Black;
+		return pieces;
+	};
 
-		const auto [n2, b1] = std::div(frcIndex, 4);
-		board.AddPiece<Piece::BlackBishop>(b1 * 2 + 1 + 56);
-		const auto [n3, b2] = std::div(n2, 4);
-		board.AddPiece<Piece::BlackBishop>(b2 * 2 + 56);
-		const auto [n4, q] = std::div(n3, 6);
-		board.AddPiece<Piece::BlackQueen>(gfs(q, s));
+	// Add pieces from the generated layout to the board
+	const std::array<uint8_t, 8> whiteLayout = layout(frcWhite);
+	const std::array<uint8_t, 8> blackLayout = layout(frcBlack);
+	for (int i = 0; i < 8; i++) board.AddPiece(whiteLayout[i] + Piece::WhitePieceOffset, i);
+	for (int i = 0; i < 8; i++) board.AddPiece(blackLayout[i] + Piece::BlackPieceOffset, 56 + i);
 
-		switch (n4) {
-		case 0: board.AddPiece<Piece::BlackKnight>(gfs(0, s)); board.AddPiece<Piece::BlackKnight>(gfs(0, s)); break;
-		case 1: board.AddPiece<Piece::BlackKnight>(gfs(0, s)); board.AddPiece<Piece::BlackKnight>(gfs(1, s)); break;
-		case 2: board.AddPiece<Piece::BlackKnight>(gfs(0, s)); board.AddPiece<Piece::BlackKnight>(gfs(2, s)); break;
-		case 3: board.AddPiece<Piece::BlackKnight>(gfs(0, s)); board.AddPiece<Piece::BlackKnight>(gfs(3, s)); break;
-		case 4: board.AddPiece<Piece::BlackKnight>(gfs(1, s)); board.AddPiece<Piece::BlackKnight>(gfs(1, s)); break;
-		case 5: board.AddPiece<Piece::BlackKnight>(gfs(1, s)); board.AddPiece<Piece::BlackKnight>(gfs(2, s)); break;
-		case 6: board.AddPiece<Piece::BlackKnight>(gfs(1, s)); board.AddPiece<Piece::BlackKnight>(gfs(3, s)); break;
-		case 7: board.AddPiece<Piece::BlackKnight>(gfs(2, s)); board.AddPiece<Piece::BlackKnight>(gfs(2, s)); break;
-		case 8: board.AddPiece<Piece::BlackKnight>(gfs(2, s)); board.AddPiece<Piece::BlackKnight>(gfs(3, s)); break;
-		case 9: board.AddPiece<Piece::BlackKnight>(gfs(3, s)); board.AddPiece<Piece::BlackKnight>(gfs(3, s)); break;
-		}
-
-		const uint64_t remaining = ~GetOccupancy() & Rank[7];
-		board.AddPiece<Piece::BlackRook>(LsbSquare(remaining));
-		board.AddPiece<Piece::BlackRook>(MsbSquare(remaining));
-		const uint64_t kingBit = ~GetOccupancy() & Rank[7];
-		board.AddPiece<Piece::BlackKing>(LsbSquare(kingBit));
-	}
-
-	// Pawns
+	// Place pawns
 	for (int i = 0; i < 8; i++) {
 		board.AddPiece<Piece::WhitePawn>(8 + i);
 		board.AddPiece<Piece::BlackPawn>(48 + i);
@@ -208,7 +182,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	CastlingConfig.BlackShortCastleRookSquare = MsbSquare(board.BlackRookBits);
 
 	// Other
-	board.Turn == Side::White;
+	board.Turn = Side::White;
 	board.EnPassantSquare = -1;
 	board.HalfmoveClock = 0;
 	board.FullmoveClock = 1;
@@ -219,26 +193,26 @@ Position::Position(const int frcWhite, const int frcBlack) {
 // Pushing moves ----------------------------------------------------------------------------------
 
 void Position::Push(const Move& move) {
-	assert(move.IsNotNull());
+	assert(!move.IsNull());
 
 	States.push_back(Board(CurrentState()));
 	Board& board = CurrentState();
+	const uint8_t movedPiece = board.GetPieceAt(move.from);
 
-	board.HalfmoveClock += 1;
 	board.ApplyMove(move, CastlingConfig);
 
-	// Increment timers
-	board.Turn = !board.Turn;
-	if (board.Turn == Side::White) board.FullmoveClock += 1;
-
 	Hashes.push_back(board.CalculateHash());
-	assert(States.size() == Hashes.size());
+	Moves.push_back({ move, movedPiece });
+	assert(States.size() == Hashes.size() && States.size() - 1 == Moves.size());
 }
 
 void Position::PushNullMove() {
 	States.push_back(Board(CurrentState()));
 	Board& board = CurrentState();
+
 	board.Turn = !board.Turn;
+	if (board.Turn == Side::White) board.FullmoveClock += 1;
+
 	if (board.EnPassantSquare == -1) {
 		Hashes.push_back(Hashes.back() ^ Zobrist[780]);
 	}
@@ -246,6 +220,7 @@ void Position::PushNullMove() {
 		board.EnPassantSquare = -1;
 		Hashes.push_back(board.CalculateHash());
 	}
+	Moves.push_back({ NullMove, Piece::None });
 	return;
 }
 
@@ -267,28 +242,33 @@ bool Position::PushUCI(const std::string& str) {
 
 	// Castling
 	if (!Settings::Chess960) {
-		if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 2)) move = { 4, 0, MoveFlag::LongCastle };
-		else if ((piece == Piece::WhiteKing) && (sq1 == 4) && (sq2 == 6)) move = { 4, 7, MoveFlag::ShortCastle };
-		else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 58)) move = { 60, 56, MoveFlag::LongCastle };
-		else if ((piece == Piece::BlackKing) && (sq1 == 60) && (sq2 == 62)) move = { 60, 63, MoveFlag::ShortCastle };
+		using namespace Squares;
+		if (piece == Piece::WhiteKing && sq1 == E1) {
+			if (sq2 == C1) move = { E1, A1, MoveFlag::LongCastle };
+			else if (sq2 == G1) move = { E1, H1, MoveFlag::ShortCastle};
+		}
+		else if (piece == Piece::BlackKing && sq1 == E8) {
+			if (sq2 == C8) move = { E8, A8, MoveFlag::LongCastle };
+			else if (sq2 == G8) move = { E8, H8, MoveFlag::ShortCastle };
+		}
 	}
 	else {
 		if ((piece == Piece::WhiteKing && capturedPiece == Piece::WhiteRook)
 			|| (piece == Piece::BlackKing && capturedPiece == Piece::BlackRook)) {
-			move = { move.from, move.to, (move.from < move.to) ? MoveFlag::ShortCastle : MoveFlag::LongCastle };
+			move.flag = (move.from < move.to) ? MoveFlag::ShortCastle : MoveFlag::LongCastle;
 		}
 	}
 
 	// En passant possibility
 	if (TypeOfPiece(piece) == PieceType::Pawn) {
-		const uint8_t f1 = sq1 / 8;
-		const uint8_t f2 = sq2 / 8;
-		if (std::abs(f2 - f1) > 1) move.flag = MoveFlag::EnPassantPossible;
+		const uint8_t r1 = GetSquareRank(sq1);
+		const uint8_t r2 = GetSquareRank(sq2);
+		if (std::abs(r2 - r1) == 2) move.flag = MoveFlag::EnPassantPossible;
 	}
 
 	// En passant performed
 	if (TypeOfPiece(piece) == PieceType::Pawn) {
-		if ((TypeOfPiece(capturedPiece) == 0) && (GetSquareFile(sq1) != GetSquareFile(sq2))) {
+		if ((TypeOfPiece(capturedPiece) == PieceType::None) && (GetSquareFile(sq1) != GetSquareFile(sq2))) {
 			move.flag = MoveFlag::EnPassantPerformed;
 		}
 	}
@@ -296,27 +276,22 @@ bool Position::PushUCI(const std::string& str) {
 	// Generate the list of valid moves
 	MoveList legalMoves{};
 	GenerateMoves(legalMoves, MoveGen::All, Legality::Legal);
-	bool valid = false;
-	for (const auto& m : legalMoves) {
-		if ((m.move.to == move.to) && (m.move.from == move.from) && (m.move.flag == move.flag)) {
-			valid = true;
-			break;
-		}
-	}
+	const bool valid = std::any_of(legalMoves.begin(), legalMoves.end(), [&](const ScoredMove& sm) {
+		return sm.move == move;
+		});
 
 	// Make the move if valid
-	if (valid) {
+	if (!valid) return false;
+	else {
 		Push(move);
 		return true;
-	}
-	else {
-		return false;
 	}
 }
 
 void Position::Pop() {
 	States.pop_back();
 	Hashes.pop_back();
+	Moves.pop_back();
 }
 
 // Generating moves -------------------------------------------------------------------------------
@@ -456,12 +431,10 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		constexpr uint8_t rookTo = (side == Side::White) ? F1 : F8;
 
 		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteShortCastleRookSquare : CastlingConfig.BlackShortCastleRookSquare;
-		const uint64_t rayBetweenKingAndG = HorizontalRays[kingSq][kingTo];
-		const uint64_t rayBetweenRookAndF = HorizontalRays[rookSq][rookTo];
+		const uint64_t rayBetweenKingAndG = GetConnectingRay(kingSq, kingTo);
+		const uint64_t rayBetweenRookAndF = GetConnectingRay(rookSq, rookTo);
 		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
 		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & fakeOccupancy);
-
-		//cout << empty << endl;
 
 		if (empty) {
 			const uint64_t opponentAttacks = CalculateAttackedSquaresTemplated<!side>();
@@ -476,8 +449,8 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		constexpr uint8_t rookTo = (side == Side::White) ? D1 : D8;
 
 		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteLongCastleRookSquare : CastlingConfig.BlackLongCastleRookSquare;
-		const uint64_t rayBetweenKingAndC = HorizontalRays[kingSq][kingTo];
-		const uint64_t rayBetweenRookAndF = HorizontalRays[rookSq][rookTo];
+		const uint64_t rayBetweenKingAndC = GetConnectingRay(kingSq, kingTo);
+		const uint64_t rayBetweenRookAndF = GetConnectingRay(rookSq, rookTo);
 		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
 		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & fakeOccupancy);
 
@@ -617,8 +590,7 @@ uint64_t Position::GetAttackersOfSquare(const uint8_t square, const uint64_t occ
 // This is terrible currently, but it was pain to get right, and I don't want to touch it with a 10 ft pole
 bool Position::IsLegalMove(const Move& m) const {
 	
-	//if (m.IsNull()) cout << "#" << endl;
-
+	assert(!m.IsNull());
 	if (m.IsCastling()) return true; // Castling is guaranteed to be legal from movegen
 
 	const Board& board = CurrentState();
@@ -628,7 +600,7 @@ bool Position::IsLegalMove(const Move& m) const {
 		// Destination square must not be attacked by the opponent
 		const uint8_t kingSq = (board.Turn == Side::White) ? LsbSquare(board.WhiteKingBits) : LsbSquare(board.BlackKingBits);
 		const uint64_t occupancy = GetOccupancy() ^ SquareBit(kingSq);
-		return (board.Turn == Side::White) ? !IsSquareAttacked2(Side::Black, m.to, occupancy) : !IsSquareAttacked2(Side::White, m.to, occupancy);
+		return (board.Turn == Side::White) ? !IsSquareAttacked<Side::Black>(m.to, occupancy) : !IsSquareAttacked<Side::White>(m.to, occupancy);
 	}
 
 	const uint8_t capturedPiece = GetPieceAt(m.to);
@@ -680,11 +652,8 @@ bool Position::IsLegalMove(const Move& m) const {
 
 }
 
-
-
 template <bool attackingSide>
-bool Position::IsSquareAttacked(const uint8_t square) const {
-	const uint64_t occupancy = GetOccupancy();
+bool Position::IsSquareAttacked(const uint8_t square, const uint64_t occupancy) const {
 	const Board& b = CurrentState();
 
 	if constexpr (attackingSide == Side::White) {
@@ -717,38 +686,9 @@ bool Position::IsSquareAttacked(const uint8_t square) const {
 	}
 }
 
-// will be simplified somehow
-bool Position::IsSquareAttacked2(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const {
-	const Board& b = CurrentState();
-
-	if (attackingSide == Side::White) {
-		// Attacked by a knight?
-		if (KnightMoveBits[square] & b.WhiteKnightBits) return true;
-		// Attacked by a king?
-		if (KingMoveBits[square] & b.WhiteKingBits) return true;
-		// Attacked by a pawn?
-		if (SquareBit(square) & ((b.WhitePawnBits & ~File[0]) << 7)) return true;
-		if (SquareBit(square) & ((b.WhitePawnBits & ~File[7]) << 9)) return true;
-		// Attacked by a sliding piece?
-		if (GetRookAttacks(square, occupancy) & (b.WhiteRookBits | b.WhiteQueenBits)) return true;
-		if (GetBishopAttacks(square, occupancy) & (b.WhiteBishopBits | b.WhiteQueenBits)) return true;
-		// Okay
-		return false;
-	}
-	else {
-		// Attacked by a knight?
-		if (KnightMoveBits[square] & b.BlackKnightBits) return true;
-		// Attacked by a king?
-		if (KingMoveBits[square] & b.BlackKingBits) return true;
-		// Attacked by a pawn?
-		if (SquareBit(square) & ((b.BlackPawnBits & ~File[0]) >> 9)) return true;
-		if (SquareBit(square) & ((b.BlackPawnBits & ~File[7]) >> 7)) return true;
-		// Attacked by a sliding piece?
-		if (GetRookAttacks(square, occupancy) & (b.BlackRookBits | b.BlackQueenBits)) return true;
-		if (GetBishopAttacks(square, occupancy) & (b.BlackBishopBits | b.BlackQueenBits)) return true;
-		// Okay
-		return false;
-	}
+template <bool attackingSide>
+bool Position::IsSquareAttacked(const uint8_t square) const {
+	return IsSquareAttacked<attackingSide>(square, GetOccupancy());
 }
 
 uint64_t Position::AttackersOfSquare(const bool attackingSide, const uint8_t square) const {
@@ -757,20 +697,20 @@ uint64_t Position::AttackersOfSquare(const bool attackingSide, const uint8_t squ
 	uint64_t attackers = 0;
 
 	if (attackingSide == Side::White) {
-		attackers |= (KnightMoveBits[square] & b.WhiteKnightBits);
-		attackers |= (KingMoveBits[square] & b.WhiteKingBits);
+		attackers |= KnightMoveBits[square] & b.WhiteKnightBits;
+		attackers |= KingMoveBits[square] & b.WhiteKingBits;
 		attackers |= ((SquareBit(square) & ~File[0]) >> 9) & b.WhitePawnBits;
 		attackers |= ((SquareBit(square) & ~File[7]) >> 7) & b.WhitePawnBits;
-		attackers |= (GetRookAttacks(square, occupancy) & (b.WhiteRookBits | b.WhiteQueenBits));
-		attackers |= (GetBishopAttacks(square, occupancy) & (b.WhiteBishopBits | b.WhiteQueenBits));
+		attackers |= GetRookAttacks(square, occupancy) & (b.WhiteRookBits | b.WhiteQueenBits);
+		attackers |= GetBishopAttacks(square, occupancy) & (b.WhiteBishopBits | b.WhiteQueenBits);
 	}
 	else {
-		attackers |= (KnightMoveBits[square] & b.BlackKnightBits);
-		attackers |= (KingMoveBits[square] & b.BlackKingBits);
+		attackers |= KnightMoveBits[square] & b.BlackKnightBits;
+		attackers |= KingMoveBits[square] & b.BlackKingBits;
 		attackers |= ((SquareBit(square) & ~File[7]) << 9) & b.BlackPawnBits;
 		attackers |= ((SquareBit(square) & ~File[0]) << 7) & b.BlackPawnBits;
-		attackers |= (GetRookAttacks(square, occupancy) & (b.BlackRookBits | b.BlackQueenBits));
-		attackers |= (GetBishopAttacks(square, occupancy) & (b.BlackBishopBits | b.BlackQueenBits));
+		attackers |= GetRookAttacks(square, occupancy) & (b.BlackRookBits | b.BlackQueenBits);
+		attackers |= GetBishopAttacks(square, occupancy) & (b.BlackBishopBits | b.BlackQueenBits);
 	}
 	return attackers;
 }
