@@ -451,7 +451,10 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 			// Main search SEE pruning (+20 elo)
 			if (depth <= 5) {
-				const int seeMargin = isQuiet ? (-50 * depth) : (-100 * depth);
+				const int seeMargin = [&] {
+					if (!isQuiet) return -100 * depth;
+					else return -50 * (depth + (order >= 32678));
+				}();
 				if (!StaticExchangeEval(position, m, seeMargin)) continue;
 			}
 		}
