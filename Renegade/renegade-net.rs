@@ -8,7 +8,7 @@ use bullet_lib::{
 
 macro_rules! net_id {
     () => {
-        "renegade-net-19c"
+        "renegade-net-19oversampled"
     };
 }
 const NET_ID: &str = net_id!();
@@ -48,7 +48,7 @@ fn main() {
 	
     let settings = LocalSettings {
         threads: 4,
-        data_file_paths: vec!["../nnue/data/20240221_20240325_20240421"],
+        data_file_paths: vec!["../nnue/data/huge"],
         output_directory: "checkpoints",
     };
 	
