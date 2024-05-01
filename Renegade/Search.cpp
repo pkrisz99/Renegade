@@ -368,6 +368,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 	const bool improving = (level >= 2) && !inCheck && (StaticEvalStack[level] > StaticEvalStack[level - 2]); // <- add nullmove condition?
 	bool futilityPrunable = false;
+	const bool ttPV = pvNode || (found && ttEntry.ttPV);
 
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
@@ -503,8 +504,8 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 				// Less reduction when in check
 				if (inCheck) reduction -= 1;
 
-				// More reduction for non-PV nodes
-				if (!pvNode) reduction += 1;
+				// More reduction for non-PV nodes if it haven't been on PV previously
+				if (!ttPV) reduction += 1;
 
 				// Less reduction when the next ply only had a few fail-highs
 				if (CutoffCount[level] < 4) reduction -= 1;
@@ -582,7 +583,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 	}
 
 	// Return the best score (fail-soft)
-	if (!aborting && !singularSearch) TranspositionTable.Store(hash, depth, bestScore, scoreType, bestMove, level);
+	if (!aborting && !singularSearch) TranspositionTable.Store(hash, depth, bestScore, scoreType, bestMove, level, ttPV);
 
 	return bestScore;
 }
@@ -614,6 +615,8 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 		if (ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
 		Statistics.TranspositionHits += 1;
 	}
+	const bool pvNode = (beta - alpha > 1);
+	const bool ttPV = pvNode || (found && ttEntry.ttPV);
 
 	// Generate noisy moves and order them
 	MoveListStack[level].reset();
@@ -651,7 +654,7 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 			}
 		}
 	}
-	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, EmptyMove, level);
+	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, EmptyMove, level, ttPV);
 	return bestScore;
 }
 

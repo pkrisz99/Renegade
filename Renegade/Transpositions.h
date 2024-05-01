@@ -18,6 +18,7 @@ struct TranspositionEntry {
 	uint8_t depth = 0;
 	uint8_t scoreType = 0;
 	uint16_t packedMove = 0;
+	bool ttPV = false;
 
 	bool IsCutoffPermitted(const int searchDepth, const int alpha, const int beta) const;
 };
@@ -28,7 +29,7 @@ class Transpositions
 {
 public:
 	Transpositions();
-	void Store(const uint64_t hash, const int depth, int score, const int scoreType, const Move& bestMove, const int level);
+	void Store(const uint64_t hash, const int depth, int score, const int scoreType, const Move& bestMove, const int level, const bool ttPV);
 	bool Probe(const uint64_t& hash, TranspositionEntry& entry, const int level) const;
 	void Prefetch(const uint64_t hash) const;
 	void IncreaseAge();
