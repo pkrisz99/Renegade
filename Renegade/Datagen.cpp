@@ -17,11 +17,17 @@ void Datagen::Start() {
 	cin >> ThreadCount;
 	cout << endl;
 
+	cout << "Do DRFC? ";
+	cin >> DFRC;
+	cout << endl;
+	Settings::Chess960 = DFRC;
+
 	cout << "Datagen settings: " << endl;
 	cout << " - " << randomPlyBase << " or " << randomPlyBase + 1 << " plies of random rollout, then normal playout" << endl;
 	cout << " - Verification at depth " << verificationDepth << " with a threshold of " << startingEvalLimit << endl;
 	cout << " - Playing with a soft node limit of " << softNodeLimit << endl;
-	cout << " - Adjudication if mate is reported for 2 plies\n" << endl;
+	cout << " - Adjudication if mate is reported for 2 plies" << endl;
+	cout << " - Using DFRC rules: " << std::boolalpha << DFRC << std::noboolalpha << "\n" << endl;
 
 
 	SearchParams params = SearchParams();
@@ -62,7 +68,16 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 	while (true) {
 
 		// 1. Reset state
-		Position position = Position(FEN::StartPos);
+		Position position = [&] {
+			if (!DFRC) return Position(FEN::StartPos);
+			else {
+				std::uniform_int_distribution<std::size_t> distribution(0, 959);
+				const int whiteFrcIndex = distribution(generator);
+				const int blackFrcIndex = distribution(generator);
+				return Position(whiteFrcIndex, blackFrcIndex);
+			}
+		}();
+		
 		Searcher1->ResetState(true);
 		Searcher2->ResetState(true);
 		Searcher1->DatagenMode = true;
@@ -143,10 +158,10 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 
 		// 5. Store the game
 		for (const auto& position : CurrentFENs) {
-			const std::string marlinformat = ToMarlinformat(position, outcome);
+			const std::string marlinformat = ToTextformat(position, outcome);
 			unsavedFENs.push_back(marlinformat);
 		}
-		if (gamesOnThread % 16 == 0) { // periodically save file
+		if (gamesOnThread % 64 == 0) { // periodically save file
 			std::ofstream file(filename, std::ios_base::app);
 			for (const auto& line : unsavedFENs) file << line << '\n';
 			file.close();
@@ -154,7 +169,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		}
 
 		// 6. Update display
-		if (Games % 20 == 0) {
+		if (Games % 50 == 0) {
 			const auto endTime = Clock::now();
 			const int seconds = static_cast<int>((endTime - StartTime).count() / 1e9);
 			const int speed1 = PositionsAccepted * 3600 / std::max(seconds, 1);
@@ -174,12 +189,13 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 bool Datagen::Filter(const Position& pos, const Move& move, const int eval) const {
 	if (std::abs(eval) > MateThreshold) return true;
 	if (pos.GetPlys() < minSavePly) return true;
+	if (DFRC && move.IsCastling()) return true;
 	if (!pos.IsMoveQuiet(move)) return true;
 	if (pos.IsInCheck()) return true;
 	return false;
 }
 
-std::string Datagen::ToMarlinformat(const std::pair<std::string, int>& position, const GameState outcome) const {
+std::string Datagen::ToTextformat(const std::pair<std::string, int>& position, const GameState outcome) const {
 	std::string outcomeStr;
 	switch (outcome) {
 	case GameState::WhiteVictory:

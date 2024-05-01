@@ -16,7 +16,7 @@ public:
 		const int randomPlyBase, const int startingEvalLimit, const int threadId);
 	bool Filter(const Position& pos, const Move& move, const int eval) const;
 
-	std::string ToMarlinformat(const std::pair<std::string, int>& position, const GameState outcome) const;
+	std::string ToTextformat(const std::pair<std::string, int>& position, const GameState outcome) const;
 	// <fen> | <eval> | <wdl>
 	// eval: white pov in cp, wdl 1.0 = white win, 0.0 = black win
 	
@@ -28,6 +28,7 @@ public:
 	uint64_t Games = 0;
 	Clock::time_point StartTime;
 	int ThreadCount = 0;
+	bool DFRC = false;
 
 	// Datagen settings:
 	const int startingEvalLimit = 500;
