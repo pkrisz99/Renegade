@@ -512,7 +512,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 				// Adjust based on history
 				if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
 
-				reduction = std::clamp(reduction, 0, depth - 1);
+				reduction = std::clamp(reduction, 0, depth - 2);
 			}
 
 			// Principal variation search
