@@ -392,7 +392,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		}
 
 		// Futility pruning (+37 elo)
-		const int futilityMargin = 30 + depth * 100;
+		const int futilityMargin = 30 + depth * 120;
 		if ((depth <= 5) && (std::abs(beta) < MateThreshold)) {
 			futilityPrunable = (eval + futilityMargin < alpha);
 		}
