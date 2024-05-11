@@ -351,6 +351,8 @@ namespace Console {
 	const std::string Yellow = "\x1b[93m";
 	// std::string str = "\033[" + std::to_string(row) + ";" + std::to_string(col) + "H";
 
+	const std::string Highlight = "\x1b[30;103m";
+
 	static void ClearScreen() {
 		cout << "\033[2J\033[1;1H" << std::flush;
 	};
