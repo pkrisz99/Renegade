@@ -8,7 +8,7 @@ use bullet_lib::{
 
 macro_rules! net_id {
     () => {
-        "renegade-net-19c"
+        "renegade-net-20-v2"
     };
 }
 const NET_ID: &str = net_id!();
@@ -48,37 +48,9 @@ fn main() {
 	
     let settings = LocalSettings {
         threads: 4,
-        data_file_paths: vec!["../nnue/data/20240221_20240325_20240421"],
+        data_file_paths: vec!["../nnue/data/240221_240325_240421_frc240513"],
         output_directory: "checkpoints",
     };
-	
-	/*let base_engine = Engine {
-        repo: "https://github.com/pkrisz99/Renegade",
-        branch: "makefile-update",
-        bench: Some(2098685),
-        net_path: None,
-        uci_options: vec![UciOption("Hash", "4")],
-    };
-
-    let dev_engine = Engine {
-        repo: "https://github.com/pkrisz99/Renegade",
-        branch: "makefile-update",
-        bench: None,
-        net_path: None,
-        uci_options: vec![UciOption("Hash", "4")],
-    };
-	
-	let testing = TestSettings {
-        test_rate: 1,
-        out_dir: concat!("../nnue/", net_id!()),
-        cutechess_path: "../nnue/cutechess-cli.exe",
-        book_path: OpeningBook::Epd("../nnue/Pohl.epd"),
-        num_game_pairs: 10,
-        concurrency: 6,
-        time_control: TimeControl::FixedNodes(25000),
-        base_engine,
-        dev_engine,
-    };*/
 
     trainer.run(&schedule, &settings);
 }
