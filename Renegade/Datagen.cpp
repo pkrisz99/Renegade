@@ -7,27 +7,29 @@ Datagen::Datagen() {
 void Datagen::Start() {
 
 	Console::ClearScreen();
-	cout << "Renegade's datagen tool\n" << endl;
+	cout << Console::Highlight << " Renegade's datagen tool " << Console::White << "\n" << endl;
 
 	std::string filename;
-	cout << "Filename? ";
+	cout << "Filename? " << Console::Yellow;
 	cin >> filename;
 
-	cout << "How many threads? ";
+	cout << Console::White << "How many threads? " << Console::Yellow;
 	cin >> ThreadCount;
-	cout << endl;
 
-	cout << "Do DRFC? ";
+	cout << Console::White << "Do DRFC? " << Console::Yellow;
 	cin >> DFRC;
-	cout << endl;
+	cout << Console::White << endl;
 	Settings::Chess960 = DFRC;
 
 	cout << "Datagen settings: " << endl;
-	cout << " - " << randomPlyBase << " or " << randomPlyBase + 1 << " plies of random rollout, then normal playout" << endl;
-	cout << " - Verification at depth " << verificationDepth << " with a threshold of " << startingEvalLimit << endl;
-	cout << " - Playing with a soft node limit of " << softNodeLimit << endl;
+	cout << " - " << Console::Yellow << randomPlyBase << Console::White << " or " << Console::Yellow << randomPlyBase + 1
+		<< Console::White << " plies of random rollout, then normal playout" << endl;
+	cout << " - Verification at depth " << Console::Yellow << verificationDepth << Console::White
+		<< " with a threshold of " << Console::Yellow << startingEvalLimit << Console::White << endl;
+	cout << " - Playing with a soft node limit of " << Console::Yellow << softNodeLimit << Console::White << endl;
 	cout << " - Adjudication if mate is reported for 2 plies" << endl;
-	cout << " - Using DFRC rules: " << std::boolalpha << DFRC << std::noboolalpha << "\n" << endl;
+	cout << " - Using DFRC starting positions: " << Console::Yellow << std::boolalpha << DFRC
+		<< std::noboolalpha << Console::White << "\n" << endl;
 
 
 	SearchParams params = SearchParams();

@@ -19,7 +19,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "1.1.0 dev 24";
+constexpr std::string_view Version = "dev 1.0.25";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -350,6 +350,8 @@ namespace Console {
 	const std::string Gray = "\x1b[90m";
 	const std::string Yellow = "\x1b[93m";
 	// std::string str = "\033[" + std::to_string(row) + ";" + std::to_string(col) + "H";
+
+	const std::string Highlight = "\x1b[30;103m";
 
 	static void ClearScreen() {
 		cout << "\033[2J\033[1;1H" << std::flush;

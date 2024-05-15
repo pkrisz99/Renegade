@@ -333,7 +333,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		Statistics.TranspositionQueries += 1;
 		if (found) {
 			if (!pvNode) {
-				// The branch was already analysed to the same or greater depth, so we can return the result if the score is alright
+				// The branch was already analyzed to the same or greater depth, so we can return the result if the score is alright
 				if (ttEntry.IsCutoffPermitted(depth, alpha, beta)) return ttEntry.score;
 			}
 			ttEval = ttEntry.score;
@@ -403,7 +403,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		depth -= 1;
 	}
 
-	// Initalize variables and generate moves
+	// Initialize variables and generate moves
 	// (if we are in singular search, we already have the moves)
 	const uint64_t opponentAttacks = position.CalculateAttackedSquares(!position.Turn()); // ^ to do: make a stack variable for it
 

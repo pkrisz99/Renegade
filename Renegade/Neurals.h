@@ -16,7 +16,7 @@
 
 // Network constants
 #ifndef NETWORK_NAME
-#define NETWORK_NAME "renegade-net-19.bin"
+#define NETWORK_NAME "renegade-net-20.bin"
 #endif
 
 constexpr int FeatureSize = 768;
