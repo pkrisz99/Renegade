@@ -458,7 +458,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 		// Singular extensions
 		int extension = 0;
-		if (singularCandidate && (m == ttMove)) {
+		if (singularCandidate && m == ttMove) {
 			const int singularMargin = depth * 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
@@ -468,7 +468,9 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 				
 			if (singularScore < singularBeta) {
 				if (!pvNode && (singularScore < singularBeta - 30) && (DoubleExtensions[level] < 6)) {
-					extension = 2;
+					const int tripleMargin = 250 + (std::abs(singularBeta) / 4);
+					const bool triple = (singularScore < singularBeta - tripleMargin) && position.IsMoveQuiet(m);
+					extension = 2 + triple;
 					DoubleExtensions[level] += 1;
 				}
 				else {
