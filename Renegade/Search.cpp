@@ -447,7 +447,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 			}
 
 			// Performing futility pruning
-			if (isQuiet && (alpha < MateThreshold) && futilityPrunable) break;
+			if (isQuiet && (order < 32678) && (alpha < MateThreshold) && futilityPrunable) break;
 
 			// Main search SEE pruning (+20 elo)
 			if (depth <= 5) {
