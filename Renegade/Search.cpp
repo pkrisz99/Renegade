@@ -438,7 +438,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		if (isQuiet) quietsTried.push_back(m);
 
 		// Moves loop pruning techniques
-		if (!pvNode && (bestScore > -MateThreshold) && (order < 90000) && !DatagenMode) {
+		if (!pvNode && (bestScore > -MateThreshold) && (order < 90000) && !DatagenMode && position.HasNonPawnMaterial()) {
 
 			// Late-move pruning (+9 elo)
 			if (isQuiet && !inCheck && (depth < 5)) {
