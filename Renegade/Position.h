@@ -73,9 +73,8 @@ public:
 
 	inline bool HasNonPawnMaterial() const {
 		const Board& b = States.back();
-		const int friendlyPieces = Popcount(GetOccupancy(b.Turn));
-		const int friendlyPawns = (b.Turn == Side::White) ? Popcount(b.WhitePawnBits) : Popcount(b.BlackPawnBits);
-		return (friendlyPieces - friendlyPawns) > 1;
+		if (b.Turn == Side::White) return (b.WhiteKnightBits | b.WhiteBishopBits | b.WhiteRookBits | b.WhiteQueenBits) != 0;
+		else return (b.BlackKnightBits | b.BlackBishopBits | b.BlackRookBits | b.BlackQueenBits) != 0;
 	}
 
 	template <bool side>
