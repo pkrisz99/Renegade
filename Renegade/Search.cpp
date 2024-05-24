@@ -367,7 +367,6 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 	}
 
 	const bool improving = (level >= 2) && !inCheck && (StaticEvalStack[level] > StaticEvalStack[level - 2]); // <- add nullmove condition?
-	bool futilityPrunable = false;
 
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
@@ -389,12 +388,6 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 			if (nullMoveEval >= beta) {
 				return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
 			}
-		}
-
-		// Futility pruning (+37 elo)
-		const int futilityMargin = 30 + depth * 100;
-		if ((depth <= 5) && (std::abs(beta) < MateThreshold)) {
-			futilityPrunable = (eval + futilityMargin < alpha);
 		}
 	}
 
@@ -445,9 +438,6 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 				const int lmpCount = 3 + depth * (depth - !improving);
 				if (legalMoveCount > lmpCount) break;
 			}
-
-			// Performing futility pruning
-			if (isQuiet && (order < 32678) && (alpha < MateThreshold) && futilityPrunable) break;
 
 			// Main search SEE pruning (+20 elo)
 			if (depth <= 5) {
