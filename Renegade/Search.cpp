@@ -366,7 +366,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		eval = EvalStack[level];
 	}
 
-	const bool improving = (level >= 2) && !inCheck && (StaticEvalStack[level] > StaticEvalStack[level - 2]); // <- add nullmove condition?
+	const bool improving = (level >= 2) && canNullMove && !inCheck && (StaticEvalStack[level] > StaticEvalStack[level - 2]);
 	bool futilityPrunable = false;
 
 	// Whole-node pruning techniques
