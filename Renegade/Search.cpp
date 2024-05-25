@@ -183,7 +183,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 		// Obtain score
 		if (Depth < 5) {
 			// Regular negamax for shallow depths
-			result = SearchRecursive(position, Depth, 0, NegativeInfinity, PositiveInfinity, true);
+			result = SearchRecursive(position, Depth, 0, NegativeInfinity, PositiveInfinity);
 		}
 		else {
 			// Aspiration windows
@@ -204,7 +204,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 
 				//if (!settings.UciOutput) cout << "[" << alpha << ".." << beta << "] ";
 
-				result = SearchRecursive(position, searchDepth, 0, alpha, beta, true);
+				result = SearchRecursive(position, searchDepth, 0, alpha, beta);
 
 				if (result <= alpha) {
 					alpha = std::max(alpha - windowSize, NegativeInfinity);
@@ -285,7 +285,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 }
 
 // Recursively called during the alpha-beta search
-int Search::SearchRecursive(Position& position, int depth, const int level, int alpha, int beta, const bool canNullMove) {
+int Search::SearchRecursive(Position& position, int depth, const int level, int alpha, int beta) {
 
 	// Check search limits
 	const bool aborting = ShouldAbort();
@@ -366,7 +366,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		eval = EvalStack[level];
 	}
 
-	const bool improving = (level >= 2) && !inCheck && (StaticEvalStack[level] > StaticEvalStack[level - 2]); // <- add nullmove condition?
+	const bool improving = (level >= 2) && !inCheck && (StaticEvalStack[level] > StaticEvalStack[level - 2]);
 	bool futilityPrunable = false;
 
 	// Whole-node pruning techniques
@@ -379,12 +379,12 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		}
 
 		// Null-move pruning (+33 elo)
-		if ((depth >= 3) && canNullMove && (eval >= beta) && position.HasNonPawnMaterial()) {
+		if ((depth >= 3) && !position.PreviousMoveIsNull() && (eval >= beta) && position.HasNonPawnMaterial()) {
 			int nmpReduction = 3 + depth / 3 + std::min((eval - beta) / 200, 3);
 			nmpReduction = std::min(nmpReduction, depth);
 			position.PushNullMove();
 			UpdateAccumulators(NullMove, 0, 0, level);
-			const int nullMoveEval = -SearchRecursive(position, depth - nmpReduction, level + 1, -beta, -beta + 1, false);
+			const int nullMoveEval = -SearchRecursive(position, depth - nmpReduction, level + 1, -beta, -beta + 1);
 			position.Pop();
 			if (nullMoveEval >= beta) {
 				return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
@@ -458,24 +458,24 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 		// Singular extensions
 		int extension = 0;
-		if (singularCandidate && (m == ttMove)) {
+		if (singularCandidate && m == ttMove) {
 			const int singularMargin = depth * 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
 			ExcludedMoves[level] = m;
-			const int singularScore = SearchRecursive(position, singularDepth, level, singularBeta - 1, singularBeta, false);
+			const int singularScore = SearchRecursive(position, singularDepth, level, singularBeta - 1, singularBeta);
 			ExcludedMoves[level] = EmptyMove;
 				
 			if (singularScore < singularBeta) {
-				if (!pvNode && (singularScore < singularBeta - 30) && (DoubleExtensions[level] < 6)) {
-					extension = 2;
-					DoubleExtensions[level] += 1;
-				}
-				else {
-					extension = 1;
-				}
+				// Successful extension
+				const bool doubleExtend = !pvNode && (singularScore < singularBeta - 30) && (DoubleExtensions[level] < 6);
+				if (doubleExtend) DoubleExtensions[level] += 1;
+				extension = 1 + doubleExtend;
 			}
-			else if (!pvNode && (singularBeta >= beta)) return singularBeta; // Multicut
+			else {
+				// Extension check failed
+				if (!pvNode && (singularBeta >= beta)) return singularBeta; // Multicut
+			}
 		}
 
 		// Push move
@@ -490,7 +490,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		UpdateAccumulators(m, movedPiece, capturedPiece, level);
 
 		if (legalMoveCount == 1) {
-			score = -SearchRecursive(position, depth - 1 + extension, level + 1, -beta, -alpha, true);
+			score = -SearchRecursive(position, depth - 1 + extension, level + 1, -beta, -alpha);
 		}
 		else {
 			int reduction = 0;
@@ -516,9 +516,9 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 			}
 
 			// Principal variation search
-			score = -SearchRecursive(position, depth - 1 - reduction, level + 1, -alpha - 1, -alpha, true);
-			if ((score > alpha) && (reduction > 0)) score = -SearchRecursive(position, depth - 1, level + 1, -alpha - 1, -alpha, true);
-			if ((score > alpha) && (score < beta)) score = -SearchRecursive(position, depth - 1, level + 1, -beta, -alpha, true);
+			score = -SearchRecursive(position, depth - 1 - reduction, level + 1, -alpha - 1, -alpha);
+			if ((score > alpha) && (reduction > 0)) score = -SearchRecursive(position, depth - 1, level + 1, -alpha - 1, -alpha);
+			if ((score > alpha) && (score < beta)) score = -SearchRecursive(position, depth - 1, level + 1, -beta, -alpha);
 		}
 		position.Pop();
 

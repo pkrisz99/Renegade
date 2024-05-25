@@ -35,7 +35,7 @@ public:
 	Transpositions TranspositionTable;
 
 private:
-	int SearchRecursive(Position& position, int depth, const int level, int alpha, int beta, const bool canNullMove);
+	int SearchRecursive(Position& position, int depth, const int level, int alpha, int beta);
 	int SearchQuiescence(Position& position, const int level, int alpha, int beta);
 	int Evaluate(const Position& position, const int level);
 	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;

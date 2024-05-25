@@ -98,6 +98,10 @@ public:
 		return Moves[Moves.size() - plys];
 	}
 
+	inline bool PreviousMoveIsNull() const {
+		return Moves.size() != 0 && Moves.back().move == NullMove;
+	}
+
 	template<bool attackingSide> bool IsSquareAttacked(const uint8_t square) const;
 	template<bool attackingSide> bool IsSquareAttacked(const uint8_t square, const uint64_t occupancy) const;
 	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;
