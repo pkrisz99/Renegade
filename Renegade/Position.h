@@ -58,8 +58,8 @@ public:
 	}
 
 	inline bool IsInCheck() const {
-		if (Turn() == Side::White) return IsSquareAttacked<Side::Black>(LsbSquare(WhiteKingBits()));
-		else return IsSquareAttacked<Side::White>(LsbSquare(BlackKingBits()));
+		if (Turn() == Side::White) return IsSquareAttacked(Side::Black, LsbSquare(WhiteKingBits()));
+		else return IsSquareAttacked(Side::White, LsbSquare(BlackKingBits()));
 	}
 
 	inline uint64_t Hash() const {
@@ -102,11 +102,9 @@ public:
 		return Moves.size() != 0 && Moves.back().move == NullMove;
 	}
 
-	template<bool attackingSide> bool IsSquareAttacked(const uint8_t square) const;
-	template<bool attackingSide> bool IsSquareAttacked(const uint8_t square, const uint64_t occupancy) const;
 	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;
+	bool IsSquareAttacked(const bool attackingSide, const uint8_t square) const;
 	bool IsSquareAttacked(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const;
-	bool IsSquareAttacked(const uint8_t square, const uint64_t occupancy) const;
 
 
 	inline uint64_t WhitePawnBits() const { return States.back().WhitePawnBits; }
@@ -123,7 +121,6 @@ public:
 	inline uint64_t BlackKingBits() const { return States.back().BlackKingBits; }
 
 	uint64_t CalculateAttackedSquares(const bool attackingSide) const;
-	template <bool attackingSide> uint64_t CalculateAttackedSquaresTemplated() const;
 	uint64_t GetAttackersOfSquare(const uint8_t square, const uint64_t occupied) const;
 	std::string GetFEN() const;
 	GameState GetGameState() const;

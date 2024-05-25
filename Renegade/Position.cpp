@@ -437,7 +437,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & fakeOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = CalculateAttackedSquaresTemplated<!side>();
+			const uint64_t opponentAttacks = CalculateAttackedSquares(!side);
 			const bool safe = !(opponentAttacks & rayBetweenKingAndG);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::ShortCastle));
 		}
@@ -455,7 +455,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & fakeOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = CalculateAttackedSquaresTemplated<!side>();
+			const uint64_t opponentAttacks = CalculateAttackedSquares(!side);
 			const bool safe = !(opponentAttacks & rayBetweenKingAndC);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::LongCastle));
 		}
@@ -530,8 +530,7 @@ void Position::GeneratePseudolegalMoves(MoveList& moves) const {
 
 // Threats and move legality ----------------------------------------------------------------------
 
-template <bool attackingSide>
-uint64_t Position::CalculateAttackedSquaresTemplated() const {
+uint64_t Position::CalculateAttackedSquares(const bool attackingSide) const {
 
 	uint64_t map = 0;
 	const Board& b = CurrentState();
@@ -568,10 +567,6 @@ uint64_t Position::CalculateAttackedSquaresTemplated() const {
 	return map;
 }
 
-uint64_t Position::CalculateAttackedSquares(const bool attackingSide) const {
-	return (attackingSide == Side::White) ? CalculateAttackedSquaresTemplated<Side::White>() : CalculateAttackedSquaresTemplated<Side::Black>();
-}
-
 uint64_t Position::GetAttackersOfSquare(const uint8_t square, const uint64_t occupied) const {
 	// if not being used for SEE: occupied = GetOccupancy();
 
@@ -600,7 +595,7 @@ bool Position::IsLegalMove(const Move& m) const {
 		// Destination square must not be attacked by the opponent
 		const uint8_t kingSq = (board.Turn == Side::White) ? LsbSquare(board.WhiteKingBits) : LsbSquare(board.BlackKingBits);
 		const uint64_t occupancy = GetOccupancy() ^ SquareBit(kingSq);
-		return (board.Turn == Side::White) ? !IsSquareAttacked<Side::Black>(m.to, occupancy) : !IsSquareAttacked<Side::White>(m.to, occupancy);
+		return !IsSquareAttacked(!board.Turn, m.to, occupancy);
 	}
 
 	const uint8_t capturedPiece = GetPieceAt(m.to);
@@ -652,11 +647,10 @@ bool Position::IsLegalMove(const Move& m) const {
 
 }
 
-template <bool attackingSide>
-bool Position::IsSquareAttacked(const uint8_t square, const uint64_t occupancy) const {
+bool Position::IsSquareAttacked(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const {
 	const Board& b = CurrentState();
 
-	if constexpr (attackingSide == Side::White) {
+	if (attackingSide == Side::White) {
 		// Attacked by a knight?
 		if (KnightMoveBits[square] & b.WhiteKnightBits) return true;
 		// Attacked by a king?
@@ -686,9 +680,8 @@ bool Position::IsSquareAttacked(const uint8_t square, const uint64_t occupancy) 
 	}
 }
 
-template <bool attackingSide>
-bool Position::IsSquareAttacked(const uint8_t square) const {
-	return IsSquareAttacked<attackingSide>(square, GetOccupancy());
+bool Position::IsSquareAttacked(const bool attackingSide, const uint8_t square) const {
+	return IsSquareAttacked(attackingSide, square, GetOccupancy());
 }
 
 uint64_t Position::AttackersOfSquare(const bool attackingSide, const uint8_t square) const {
