@@ -212,6 +212,7 @@ void Position::PushNullMove() {
 
 	board.Turn = !board.Turn;
 	if (board.Turn == Side::White) board.FullmoveClock += 1;
+	board.HalfmoveClock += 1;
 
 	if (board.EnPassantSquare == -1) {
 		Hashes.push_back(Hashes.back() ^ Zobrist[780]);
