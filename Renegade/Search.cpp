@@ -334,7 +334,8 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		if (found) {
 			if (!pvNode) {
 				// The branch was already analyzed to the same or greater depth, so we can return the result if the score is alright
-				if (ttEntry.IsCutoffPermitted(depth, alpha, beta)) return ttEntry.score;
+				const bool fiftyClose = position.CurrentState().HalfmoveClock >= 90; // workaround for graph history interaction
+				if (ttEntry.IsCutoffPermitted(depth, alpha, beta) && !fiftyClose) return ttEntry.score;
 			}
 			ttEval = ttEntry.score;
 			ttMove = Move(ttEntry.packedMove);
