@@ -617,7 +617,8 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 
 	// Generate noisy moves and order them
 	MoveListStack[level].reset();
-	position.GenerateMoves(MoveListStack[level], MoveGen::Noisy, Legality::Pseudolegal);
+	const MoveGen moveGenType = position.IsInCheck() ? MoveGen::All : MoveGen::Noisy;
+	position.GenerateMoves(MoveListStack[level], moveGenType, Legality::Pseudolegal);
 	OrderMovesQ(position, MoveListStack[level], level);
 	MovePicker movePicker(MoveListStack[level]);
 
