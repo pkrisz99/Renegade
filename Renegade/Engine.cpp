@@ -147,10 +147,6 @@ void Engine::Start() {
 				position.RequestThreats();
 				DrawBoard(position, position.GetThreats());
 			}
-			if (parts[1] == "enpassant") cout << "En passant target: " << position.CurrentState().EnPassantSquare << endl;
-			if (parts[1] == "halfmovecounter") cout << "Half move counter: " << position.CurrentState().HalfmoveClock << endl;
-			if (parts[1] == "fullmovecounter") cout << "Full move counter: " << position.CurrentState().FullmoveClock << endl;
-			if (parts[1] == "plys") cout << "Game plys: " << position.GetPlys() << endl;
 			if (parts[1] == "pseudolegal") {
 				MoveList pseudoMoves{};
 				position.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
@@ -162,9 +158,6 @@ void Engine::Start() {
 				position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
 				for (const auto& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
-			}
-			if (parts[1] == "hash") {
-				cout << "Hash (polyglot): " << std::hex << position.Hash() << std::dec << endl;
 			}
 			if (parts[1] == "settings") {
 				cout << std::boolalpha;
@@ -186,9 +179,6 @@ void Engine::Start() {
 				for (int i = 0; i < position.Hashes.size(); i++) {
 					cout << "- entry " << i << ": " << std::hex << position.Hashes[i] << std::dec << endl;
 				}
-			}
-			if (parts[1] == "phase") {
-				cout << "Game phase: " << CalculateGamePhase(position) << endl;
 			}
 			if (parts[1] == "weight") {
 				const int id = stoi(parts[2]);
@@ -230,7 +220,7 @@ void Engine::Start() {
 			HandleHelp();
 			continue;
 		}
-		if (parts[0] == "draw") {
+		if (parts[0] == "draw" || parts[0] == "d") {
 			uint64_t bitboard = 0;
 			if (parts.size() > 1) bitboard = stoull(parts[1]);
 			DrawBoard(position, bitboard);
@@ -269,16 +259,6 @@ void Engine::Start() {
 		if (parts[0] == "hugehash") {
 			Search.TranspositionTable.SetSize(4096);
 			cout << "Using huge hash: 4096 MB" << endl;
-			continue;
-		}
-		if (parts[0] == "gamestate") {
-			const GameState state = position.GetGameState();
-			switch (state) {
-			case GameState::Playing: cout << "Playing." << endl; break;
-			case GameState::Draw: cout << "Drawn." << endl; break;
-			case GameState::WhiteVictory: cout << "White won." << endl; break;
-			case GameState::BlackVictory: cout << "Black won." << endl; break;
-			}
 			continue;
 		}
 
@@ -413,52 +393,116 @@ void Engine::Start() {
 	cout << "Stopping engine." << endl;
 }
 
-void Engine::DrawBoard(const Position& position, const uint64_t customBits) const {
+void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
 
-	const std::string side = position.Turn() ? "white" : "black";
-	cout << "    Move: " << position.CurrentState().FullmoveClock << " - " << side << " to play" << endl;;
+	constexpr std::string_view whiteOnLightSquare = "\033[31;47m";
+	constexpr std::string_view whiteOnDarkSquare = "\033[31;43m";
+	constexpr std::string_view blackOnLightSquare = "\033[30;47m";
+	constexpr std::string_view blackOnDarkSquare = "\033[30;43m";
+	constexpr std::string_view defaultStyle = "\033[0m";
+	constexpr std::string_view whiteOnTarget = "\033[31;45m";
+	constexpr std::string_view blackOnTarget = "\033[30;45m";
 
-	const std::string WhiteOnLightSquare = "\033[31;47m";
-	const std::string WhiteOnDarkSquare = "\033[31;43m";
-	const std::string BlackOnLightSquare = "\033[30;47m";
-	const std::string BlackOnDarkSquare = "\033[30;43m";
-	const std::string Default = "\033[0m";
-	const std::string WhiteOnTarget = "\033[31;45m";
-	const std::string BlackOnTarget = "\033[30;45m";
+	const Board& b = pos.CurrentState();
 
-	cout << "    ------------------------ " << endl;
-	// https://stackoverflow.com/questions/2616906/how-do-i-output-coloured-text-to-a-linux-terminal
-	for (int i = 7; i >= 0; i--) {
-		cout << " " << i + 1 << " |";
-		for (int j = 0; j <= 7; j++) {
-			const int pieceId = position.GetPieceAt(i * 8 + j);
-			const int pieceColor = ColorOfPiece(pieceId);
-			char piece = PieceChars[pieceId];
+	std::string castling{};
+	if (b.WhiteRightToShortCastle) castling += "K";
+	if (b.WhiteRightToLongCastle) castling += "Q";
+	if (b.BlackRightToShortCastle) castling += "k";
+	if (b.BlackRightToLongCastle) castling += "q";
 
-			std::string cellStyle;
+	const GameState gameState = pos.GetGameState();
+	const std::string_view gameStateStr = [&] {
+		if (gameState == GameState::Playing) return "in progress";
+		else if (gameState == GameState::WhiteVictory) return "white won";
+		else if (gameState == GameState::WhiteVictory) return "black won";
+		else return "drawn";
+	}();
 
-			if ((i + j) % 2 == 1) {
-				if (pieceColor == PieceColor::Black) cellStyle = BlackOnLightSquare;
-				else cellStyle = WhiteOnLightSquare;
+	const int raw = NeuralEvaluate(pos);
+	const int cp = ToCentipawns(raw, pos.GetPlys());
+
+	cout << '\n';
+
+	for (int i = 8; i >= -4; i--) {
+
+		if (i == 8) cout << "    ------------------------     ";
+
+		if (i <= 7 && i >= 0) {
+			cout << " " << i + 1 << " |";
+			for (int j = 0; j <= 7; j++) {
+				const uint8_t sq = Square(i, j);
+				const uint8_t piece = pos.GetPieceAt(sq);
+				const uint8_t pieceColor = ColorOfPiece(piece);
+				const char pieceChar = PieceChars[piece];
+
+				const std::string_view cellStyle = [&] {
+					if (CheckBit(highlight, sq))
+						return (pieceColor == PieceColor::Black) ? blackOnTarget : whiteOnTarget;
+
+					if ((i + j) % 2 == 1)
+						return (pieceColor == PieceColor::Black) ? blackOnLightSquare : whiteOnLightSquare;
+					else
+						return (pieceColor == PieceColor::Black) ? blackOnDarkSquare : whiteOnDarkSquare;
+				}();
+
+				cout << cellStyle << ' ' << pieceChar << ' ' << defaultStyle;
+
 			}
-			else {
-				if (pieceColor == PieceColor::Black) cellStyle = BlackOnDarkSquare;
-				else cellStyle = WhiteOnDarkSquare;
-			}
-
-			if (CheckBit(customBits, i * 8 + j)) {
-				if (pieceColor == PieceColor::Black) cellStyle = BlackOnTarget;
-				else cellStyle = WhiteOnTarget;
-			}
-
-			cout << cellStyle << ' ' << piece << ' ' << Default;
-
+			cout << "|    ";
 		}
-		cout << "|" << '\n';
-	}
-	cout << "    ------------------------ " << '\n';
-	cout << "     a  b  c  d  e  f  g  h" << endl;
 
+		if (i == -1) cout << "    ------------------------     ";
+		if (i == -2) cout << "     a  b  c  d  e  f  g  h      ";
+		if (i < -2) cout << "                                 ";
+
+		// information to be displayed for each line:
+		switch (i) {
+		case 8:
+			cout << "Board information:";
+			break;
+		case 7:
+			cout << " - " << (pos.Turn() == Side::White ? "White" : "Black") << " to move";
+			break;
+		case 6:
+			cout << " - Move " << b.FullmoveClock;
+			cout << " [halfmove counter: " << static_cast<int>(b.HalfmoveClock);
+			cout << ", game plies: " << pos.GetPlys() << "]";
+			break;
+		case 5:
+			cout << " - In check: " << (pos.IsInCheck() ? "yes" : "no");
+			break;
+		case 4:
+			cout << " - Castling rights: ";
+			cout << (castling.empty() ? "none" : castling);
+			break;
+		case 3:
+			cout << " - En passant target: ";
+			cout << (b.EnPassantSquare == -1 ? "none" : SquareStrings[b.EnPassantSquare]);
+			break;
+
+		case 1:
+			cout << "Internal state:";
+			break;
+		case 0:
+			cout << " - Hash: " << std::hex << pos.Hash() << std::dec;
+			break;
+		case -1:
+			cout << " - Static eval: " << cp << " cp [" << raw << " units]";
+			break;
+		case -2:
+			cout << " - Phase: " << CalculateGamePhase(pos);
+			break;
+		case -3:
+			cout << " - Game state: " << gameStateStr;
+			break;
+		case -4:
+			cout << " - FEN: " << pos.GetFEN();
+			break;
+		}
+		cout << '\n';
+	}
+	cout << endl;
 }
 
 void Engine::HandleBench(const bool lengthy) {

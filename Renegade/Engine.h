@@ -21,7 +21,7 @@ public:
 	Engine(int argc, char* argv[]);
 	void Start();
 	void PrintHeader() const;
-	void DrawBoard(const Position &pos, const uint64_t customBits = 0) const;
+	void DrawBoard(const Position &pos, const uint64_t highlight = 0) const;
 	void HandleBench(const bool lengthy);
 	void HandleHelp() const;
 	void HandleCompiler() const;
