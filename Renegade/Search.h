@@ -44,10 +44,10 @@ private:
 	int DrawEvaluation() const;
 	void ResetStatistics();
 
-	void OrderMoves(const Position& position, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks);
+	void OrderMoves(const Position& position, MoveList& ml, const int level, const Move& ttMove);
 	void OrderMovesQ(const Position& position, MoveList& ml, const int level);
 	int CalculateOrderScore(const Position& position, const Move& m, const int level, const Move& ttMove,
-		const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const;
+		const bool losingCapture, const bool useMoveStack) const;
 
 	// NNUE
 	void SetupAccumulators(const Position& position);

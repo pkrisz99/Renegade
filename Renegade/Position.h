@@ -20,7 +20,7 @@ public:
 
 	void Push(const Move& move);
 	void PushNullMove();
-	bool PushUCI(const std::string& ucistr);
+	bool PushUCI(const std::string& str);
 	void Pop();
 
 	void GenerateMoves(MoveList& moves, const MoveGen moveGen, const Legality legality) const;
@@ -102,10 +102,23 @@ public:
 		return Moves.size() != 0 && Moves.back().move == NullMove;
 	}
 
-	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;
-	bool IsSquareAttacked(const bool attackingSide, const uint8_t square) const;
-	bool IsSquareAttacked(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const;
+	inline void RequestThreats() {
+		// This function has to be called before we use threats to calculate them
+		// Somewhat of a weird approach, but this doesn't require removing const from absolutely everywhere
+		Threats.back() = CalculateAttackedSquares(!Turn());
+	}
 
+	inline uint64_t GetThreats() const {
+		assert(Threats.back() != 0ull);
+		return Threats.back();
+	}
+
+	inline bool IsSquareThreatened(const uint8_t sq) const {
+		assert(Threats.back() != 0ull);
+		return CheckBit(Threats.back(), sq);
+	}
+
+	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;
 
 	inline uint64_t WhitePawnBits() const { return States.back().WhitePawnBits; }
 	inline uint64_t WhiteKnightBits() const { return States.back().WhiteKnightBits; }
@@ -120,18 +133,19 @@ public:
 	inline uint64_t BlackQueenBits() const { return States.back().BlackQueenBits; }
 	inline uint64_t BlackKingBits() const { return States.back().BlackKingBits; }
 
-	uint64_t CalculateAttackedSquares(const bool attackingSide) const;
 	uint64_t GetAttackersOfSquare(const uint8_t square, const uint64_t occupied) const;
 	std::string GetFEN() const;
 	GameState GetGameState() const;
 
 	std::vector<Board> States{};
 	std::vector<uint64_t> Hashes{};
+	std::vector<uint64_t> Threats{};
 	std::vector<MoveAndPiece> Moves{};
 	CastlingConfiguration CastlingConfig{};
 
 private:
 
+	// Functions for move generation
 	template <bool side, MoveGen moveGen> void GeneratePseudolegalMoves(MoveList& moves) const;
 	template <bool side, MoveGen moveGen> void GenerateKnightMoves(MoveList& moves, const int home) const;
 	template <bool side, MoveGen moveGen> void GenerateKingMoves(MoveList& moves, const int home) const;
@@ -139,6 +153,8 @@ private:
 	template <bool side> void GenerateCastlingMoves(MoveList& moves) const;
 	template <bool side, int pieceType, MoveGen moveGen> void GenerateSlidingMoves(MoveList& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) const;
 
-
+	bool IsSquareAttacked(const bool attackingSide, const uint8_t square) const;
+	bool IsSquareAttacked(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const;
+	uint64_t CalculateAttackedSquares(const bool attackingSide) const;
 };
 

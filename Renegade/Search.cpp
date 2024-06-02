@@ -309,9 +309,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 	// Check extensions
 	const bool inCheck = position.IsInCheck();
-	if (!rootNode) {
-		if (inCheck) depth += 1;
-	}
+	if (!rootNode && inCheck) depth += 1;
 
 	// Drop into quiescence search at depth 0
 	if (depth <= 0) {
@@ -405,13 +403,13 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 	// Initialize variables and generate moves
 	// (if we are in singular search, we already have the moves)
-	const uint64_t opponentAttacks = position.CalculateAttackedSquares(!position.Turn()); // ^ to do: make a stack variable for it
+	position.RequestThreats();
 
 	if (!singularSearch) {
 		// Generating moves and move ordering
 		MoveListStack[level].reset();
 		position.GenerateMoves(MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
-		OrderMoves(position, MoveListStack[level], level, ttMove, opponentAttacks);
+		OrderMoves(position, MoveListStack[level], level, ttMove);
 
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) History.ResetKillersForPly(level + 2);
@@ -546,20 +544,16 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 					// If a quiet move causes a fail-high, update move ordering tables
 					if (isQuiet) {
 						History.AddKillerMove(m, level);
-						const bool fromSquareAttacked = CheckBit(opponentAttacks, m.from);
-						const bool toSquareAttacked = CheckBit(opponentAttacks, m.to);
 						if (level > 0) History.AddCountermove(position.GetPreviousMove(1).move, m);
-						if (depth > 1) History.UpdateHistory(m, historyDelta, movedPiece, depth, position, level, fromSquareAttacked, toSquareAttacked);
+						if (depth > 1) History.UpdateHistory(m, historyDelta, movedPiece, depth, position, level);
 					}
 
 					// Decrement history scores for all previously tried quiet moves
 					if (depth > 1) {
 						if (isQuiet) quietsTried.pop_back(); // don't decrement for the current quiet move
 						for (const Move& previouslyTriedMove : quietsTried) {
-							const bool fromSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.from);
-							const bool toSquareAttacked = CheckBit(opponentAttacks, previouslyTriedMove.to);
 							const uint8_t previouslyTriedPiece = position.GetPieceAt(previouslyTriedMove.from);
-							History.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, position, level, fromSquareAttacked, toSquareAttacked);
+							History.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, position, level);
 						}
 					}
 				}
@@ -867,7 +861,7 @@ void Search::ResetPvTable() {
 // Move ordering ----------------------------------------------------------------------------------
 
 int Search::CalculateOrderScore(const Position& position, const Move& m, const int level, const Move& ttMove,
-	const bool losingCapture, const bool useMoveStack, const uint64_t opponentAttacks) const {
+	const bool losingCapture, const bool useMoveStack) const {
 
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
 	const uint8_t attackingPieceType = TypeOfPiece(movedPiece);
@@ -901,20 +895,20 @@ int Search::CalculateOrderScore(const Position& position, const Move& m, const i
 
 	// Quiet moves
 	const bool turn = position.Turn();
-	const int historyScore = History.GetHistoryScore(position, m, level, movedPiece, opponentAttacks);
+	const int historyScore = History.GetHistoryScore(position, m, level, movedPiece);
 
 	return historyScore;
 }
 
-void Search::OrderMoves(const Position& position, MoveList& ml, const int level, const Move& ttMove, const uint64_t opponentAttacks) {
+void Search::OrderMoves(const Position& position, MoveList& ml, const int level, const Move& ttMove) {
 	for (auto& m : ml) {
 		const bool losingCapture = position.IsMoveQuiet(m.move) ? false : !StaticExchangeEval(position, m.move, 0);
-		m.orderScore = CalculateOrderScore(position, m.move, level, ttMove, losingCapture, true, opponentAttacks);
+		m.orderScore = CalculateOrderScore(position, m.move, level, ttMove, losingCapture, true);
 	}
 }
 
 void Search::OrderMovesQ(const Position& position, MoveList& ml, const int level) {
 	for (auto& m : ml) {
-		m.orderScore = CalculateOrderScore(position, m.move, level, NullMove, false, false, 0);
+		m.orderScore = CalculateOrderScore(position, m.move, level, NullMove, false, false);
 	}
 }

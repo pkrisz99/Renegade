@@ -143,7 +143,10 @@ void Engine::Start() {
 
 		// Debug commands
 		if ((parts[0] == "debug") && (parts.size() > 1)) {
-			if (parts[1] == "attackmap") DrawBoard(position, position.CalculateAttackedSquares(position.Turn()));
+			if (parts[1] == "attackmap") {
+				position.RequestThreats();
+				DrawBoard(position, position.GetThreats());
+			}
 			if (parts[1] == "enpassant") cout << "En passant target: " << position.CurrentState().EnPassantSquare << endl;
 			if (parts[1] == "halfmovecounter") cout << "Half move counter: " << position.CurrentState().HalfmoveClock << endl;
 			if (parts[1] == "fullmovecounter") cout << "Full move counter: " << position.CurrentState().FullmoveClock << endl;

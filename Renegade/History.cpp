@@ -63,10 +63,12 @@ bool History::IsCountermove(const Move& previousMove, const Move& thisMove) cons
 // History heuristic ------------------------------------------------------------------------------
 
 void History::UpdateHistory(const Move& m, const int16_t delta, const uint8_t piece, const int depth, const Position& position,
-	const int level, const bool fromSquareAttacked, const bool toSquareAttacked) {
+	const int level) {
 
 	// Main quiet history
 	const bool side = ColorOfPiece(piece) == PieceColor::White;
+	const bool fromSquareAttacked = position.IsSquareThreatened(m.from);
+	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
 	UpdateHistoryValue(HistoryTables[fromSquareAttacked][toSquareAttacked][piece][m.to], delta);
 
 	// Continuation history
@@ -80,8 +82,11 @@ void History::UpdateHistory(const Move& m, const int16_t delta, const uint8_t pi
 	}
 }
 
-int History::GetHistoryScore(const Position& position, const Move& m, const int level, const uint8_t movedPiece, const uint64_t opponentAttacks) const {
-	int historyScore = HistoryTables[CheckBit(opponentAttacks, m.from)][CheckBit(opponentAttacks, m.to)][movedPiece][m.to];
+int History::GetHistoryScore(const Position& position, const Move& m, const int level, const uint8_t movedPiece) const {
+	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
+	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
+	int historyScore = HistoryTables[fromSquareThreatened][toSquareThreatened][movedPiece][m.to];
+
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
 		historyScore += (*ContinuationHistory)[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];

@@ -9,6 +9,7 @@ Position::Position(const std::string& fen) {
 	States.reserve(512);
 	Hashes.reserve(512);
 	Moves.reserve(512);
+	Threats.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
 	
@@ -97,6 +98,7 @@ Position::Position(const std::string& fen) {
 	board.FullmoveClock = stoi(parts[5]);
 
 	Hashes.push_back(board.CalculateHash());
+	Threats.push_back(0ull);
 }
 
 Position::Position(const int frcWhite, const int frcBlack) {
@@ -109,6 +111,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	States.reserve(512);
 	Hashes.reserve(512);
 	Moves.reserve(512);
+	Threats.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
 
@@ -188,6 +191,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	board.FullmoveClock = 1;
 
 	Hashes.push_back(board.CalculateHash());
+	Threats.push_back(0ull);
 }
 
 // Pushing moves ----------------------------------------------------------------------------------
@@ -203,7 +207,8 @@ void Position::Push(const Move& move) {
 
 	Hashes.push_back(board.CalculateHash());
 	Moves.push_back({ move, movedPiece });
-	assert(States.size() == Hashes.size() && States.size() - 1 == Moves.size());
+	Threats.push_back(0ull);
+	assert(States.size() == Hashes.size() && States.size() - 1 == Moves.size() && States.size() == Threats.size());
 }
 
 void Position::PushNullMove() {
@@ -221,6 +226,7 @@ void Position::PushNullMove() {
 		Hashes.push_back(board.CalculateHash());
 	}
 	Moves.push_back({ NullMove, Piece::None });
+	Threats.push_back(0ull);
 	return;
 }
 
@@ -292,6 +298,7 @@ void Position::Pop() {
 	States.pop_back();
 	Hashes.pop_back();
 	Moves.pop_back();
+	Threats.pop_back();
 }
 
 // Generating moves -------------------------------------------------------------------------------

@@ -26,8 +26,8 @@ public:
 
 	// History heuristic:
 	void UpdateHistory(const Move& m, const int16_t delta, const uint8_t piece, const int depth, const Position& position,
-		const int level, const bool fromSquareAttacked, const bool toSquareAttacked);
-	int GetHistoryScore(const Position& position, const Move& m, const int level, const uint8_t movedPiece, const uint64_t opponentAttacks) const;
+		const int level);
+	int GetHistoryScore(const Position& position, const Move& m, const int level, const uint8_t movedPiece) const;
 
 private:
 
