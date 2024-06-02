@@ -8,7 +8,6 @@ class History
 public:
 	
 	History();
-	~History();
 
 	void ClearHistory();
 	void ClearKillerAndCounterMoves();
@@ -25,9 +24,8 @@ public:
 	bool IsCountermove(const Move& previousMove, const Move& thisMove) const;
 
 	// History heuristic:
-	void UpdateHistory(const Move& m, const int16_t delta, const uint8_t piece, const int depth, const Position& position,
-		const int level);
-	int GetHistoryScore(const Position& position, const Move& m, const int level, const uint8_t movedPiece) const;
+	void UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level);
+	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
 
 private:
 
@@ -39,9 +37,10 @@ private:
 	std::array<std::array<Move, 2>, MaxDepth> KillerMoves;
 	std::array<std::array<Move, 64>, 64> CounterMoves;
 
-	std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 2>, 2> HistoryTables;
+	using ThreatHistory = std::array<std::array<std::array<std::array<int16_t, 2>, 2>, 64>, 14>;
+	ThreatHistory HistoryTables;
 
 	using Continuations = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
-	Continuations* ContinuationHistory;
+	std::unique_ptr<Continuations> ContinuationHistory;
 };
 

@@ -545,15 +545,15 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 					if (isQuiet) {
 						History.AddKillerMove(m, level);
 						if (level > 0) History.AddCountermove(position.GetPreviousMove(1).move, m);
-						if (depth > 1) History.UpdateHistory(m, historyDelta, movedPiece, depth, position, level);
+						if (depth > 1) History.UpdateHistory(position, m, movedPiece, historyDelta, level);
 					}
 
 					// Decrement history scores for all previously tried quiet moves
 					if (depth > 1) {
 						if (isQuiet) quietsTried.pop_back(); // don't decrement for the current quiet move
-						for (const Move& previouslyTriedMove : quietsTried) {
-							const uint8_t previouslyTriedPiece = position.GetPieceAt(previouslyTriedMove.from);
-							History.UpdateHistory(previouslyTriedMove, -historyDelta, previouslyTriedPiece, depth, position, level);
+						for (const Move& prevTriedMove : quietsTried) {
+							const uint8_t prevTriedPiece = position.GetPieceAt(prevTriedMove.from);
+							History.UpdateHistory(position, prevTriedMove, prevTriedPiece, -historyDelta, level);
 						}
 					}
 				}
@@ -895,7 +895,7 @@ int Search::CalculateOrderScore(const Position& position, const Move& m, const i
 
 	// Quiet moves
 	const bool turn = position.Turn();
-	const int historyScore = History.GetHistoryScore(position, m, level, movedPiece);
+	const int historyScore = History.GetHistoryScore(position, m, movedPiece, level);
 
 	return historyScore;
 }

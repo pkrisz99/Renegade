@@ -1,17 +1,13 @@
 #include "History.h"
 
 History::History() {
-	ContinuationHistory = new Continuations;
+	ContinuationHistory = std::make_unique<Continuations>();
 	ClearHistory();
-}
-
-History::~History() {
-	delete ContinuationHistory;
 }
 
 void History::ClearHistory() {
 	std::memset(&HistoryTables, 0, sizeof(HistoryTables));
-	std::memset(ContinuationHistory, 0, sizeof(Continuations));
+	std::memset(ContinuationHistory.get(), 0, sizeof(Continuations));
 }
 
 void History::ClearKillerAndCounterMoves() {
@@ -62,14 +58,13 @@ bool History::IsCountermove(const Move& previousMove, const Move& thisMove) cons
 
 // History heuristic ------------------------------------------------------------------------------
 
-void History::UpdateHistory(const Move& m, const int16_t delta, const uint8_t piece, const int depth, const Position& position,
-	const int level) {
+void History::UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level) {
 
 	// Main quiet history
 	const bool side = ColorOfPiece(piece) == PieceColor::White;
 	const bool fromSquareAttacked = position.IsSquareThreatened(m.from);
 	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
-	UpdateHistoryValue(HistoryTables[fromSquareAttacked][toSquareAttacked][piece][m.to], delta);
+	UpdateHistoryValue(HistoryTables[piece][m.to][fromSquareAttacked][toSquareAttacked], delta);
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
@@ -82,10 +77,10 @@ void History::UpdateHistory(const Move& m, const int16_t delta, const uint8_t pi
 	}
 }
 
-int History::GetHistoryScore(const Position& position, const Move& m, const int level, const uint8_t movedPiece) const {
+int History::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
-	int historyScore = HistoryTables[fromSquareThreatened][toSquareThreatened][movedPiece][m.to];
+	int historyScore = HistoryTables[movedPiece][m.to][fromSquareThreatened][toSquareThreatened];
 
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
