@@ -403,11 +403,10 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 	// Initialize variables and generate moves
 	// (if we are in singular search, we already have the moves)
-	position.RequestThreats();
-
 	if (!singularSearch) {
 		// Generating moves and move ordering
 		MoveListStack[level].reset();
+		position.RequestThreats();
 		position.GenerateMoves(MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
 		OrderMoves(position, MoveListStack[level], level, ttMove);
 
