@@ -2,13 +2,13 @@
 /// bullet version used: 630c962 from April 18, 2024
 
 use bullet_lib::{
-    inputs, outputs, Activation, Engine, LocalSettings, LrScheduler, OpeningBook, TestSettings, TimeControl,
-    TrainerBuilder, TrainingSchedule, UciOption, WdlScheduler, Loss
+    inputs, outputs, Activation, LocalSettings, LrScheduler,
+    TrainerBuilder, TrainingSchedule, WdlScheduler, Loss
 };
 
 macro_rules! net_id {
     () => {
-        "renegade-net-20-v2"
+        "renegade-net-21"
     };
 }
 const NET_ID: &str = net_id!();
@@ -47,8 +47,10 @@ fn main() {
 	
 	
     let settings = LocalSettings {
-        threads: 4,
-        data_file_paths: vec!["../nnue/data/240221_240325_240421_frc240513"],
+        threads: 6,
+        data_file_paths: vec![
+			"../nnue/data/240221_240325_240421_240609_frc240513",
+		],
         output_directory: "checkpoints",
     };
 
