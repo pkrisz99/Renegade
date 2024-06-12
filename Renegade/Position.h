@@ -66,6 +66,20 @@ public:
 		return Hashes.back();
 	}
 
+	inline uint64_t PawnHash() const {
+		auto xorshift = [](uint64_t input) {
+			input ^= input >> 33;
+			input *= 0xff51afd7ed558ccd;
+			input ^= input >> 33;
+			input *= 0xc4ceb9fe1a85ec53;
+			input ^= input >> 33;
+			return input;
+		};
+
+		const Board& b = States.back();
+		return xorshift(b.WhitePawnBits) ^ xorshift(b.BlackPawnBits); // idk whether that's good
+	}
+
 	inline int GetPlys() const {
 		const Board& b = States.back();
 		return (b.FullmoveClock - 1) * 2 + (b.Turn == Side::White ? 0 : 1);

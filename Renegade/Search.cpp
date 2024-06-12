@@ -378,14 +378,24 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 		// Null-move pruning (+33 elo)
 		if ((depth >= 3) && !position.PreviousMoveIsNull() && (eval >= beta) && position.HasNonPawnMaterial()) {
-			int nmpReduction = 3 + depth / 3 + std::min((eval - beta) / 200, 3);
-			nmpReduction = std::min(nmpReduction, depth);
-			position.PushNullMove();
-			UpdateAccumulators(NullMove, 0, 0, level);
-			const int nullMoveEval = -SearchRecursive(position, depth - nmpReduction, level + 1, -beta, -beta + 1);
-			position.Pop();
-			if (nullMoveEval >= beta) {
-				return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
+
+			const bool evenBother = History.GetNullmoveHistory(position).first;
+			if (!evenBother) {
+				History.DecayNullmoveHistory(position);
+			}
+			else {
+
+				int nmpReduction = 3 + depth / 3 + std::min((eval - beta) / 200, 3);
+				nmpReduction = std::min(nmpReduction, depth);
+				position.PushNullMove();
+				UpdateAccumulators(NullMove, 0, 0, level);
+				const int nullMoveEval = -SearchRecursive(position, depth - nmpReduction, level + 1, -beta, -beta + 1);
+				position.Pop();
+				History.UpdateNullmoveHistory(position, nullMoveEval >= beta);
+
+				if (nullMoveEval >= beta) {
+					return IsMateScore(nullMoveEval) ? beta : nullMoveEval;
+				}
 			}
 		}
 

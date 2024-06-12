@@ -7,6 +7,7 @@ History::History() {
 
 void History::ClearHistory() {
 	std::memset(&HistoryTables, 0, sizeof(HistoryTables));
+	std::memset(&NullmoveHistory, 0, sizeof(NullmoveHistory));
 	std::memset(ContinuationHistory.get(), 0, sizeof(Continuations));
 }
 
@@ -87,4 +88,27 @@ int History::GetHistoryScore(const Position& position, const Move& m, const uint
 		historyScore += (*ContinuationHistory)[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
 	}
 	return historyScore;
+}
+
+// Null-move pruning history
+
+void History::UpdateNullmoveHistory(const Position& position, const bool success) {
+	const int key = position.PawnHash() & (NullmoveHistorySize - 1);
+	int16_t& value = NullmoveHistory[key].second;
+	const int delta = success ? 1000 : -1000;  // based on vibes, make it depth dependent maybe?
+	UpdateHistoryValue(value, delta);
+	if (value < -8192) NullmoveHistory[key].first = false;
+}
+
+void History::DecayNullmoveHistory(const Position& position) {
+	const int key = position.PawnHash() & (NullmoveHistorySize - 1);
+	int16_t& value = NullmoveHistory[key].second;
+	constexpr int delta = 500; // also vibes
+	UpdateHistoryValue(value, delta);
+	if (value > -4096) NullmoveHistory[key].first = true;
+}
+
+std::pair<bool, int> History::GetNullmoveHistory(const Position& position) {
+	const int key = position.PawnHash() & (NullmoveHistorySize - 1);
+	return NullmoveHistory[key];
 }

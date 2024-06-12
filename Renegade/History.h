@@ -27,6 +27,11 @@ public:
 	void UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level);
 	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
 
+	// Null-move pruning history: (lol)
+	void UpdateNullmoveHistory(const Position& position, const bool success);
+	void DecayNullmoveHistory(const Position& position);
+	std::pair<bool, int> GetNullmoveHistory(const Position& position);
+
 private:
 
 	inline void UpdateHistoryValue(int16_t& value, const int amount) {
@@ -36,6 +41,9 @@ private:
 
 	std::array<std::array<Move, 2>, MaxDepth> KillerMoves;
 	std::array<std::array<Move, 64>, 64> CounterMoves;
+
+	static const int NullmoveHistorySize = 8192;
+	std::array<std::pair<bool, int16_t>, NullmoveHistorySize> NullmoveHistory;
 
 	using ThreatHistory = std::array<std::array<std::array<std::array<int16_t, 2>, 2>, 64>, 14>;
 	ThreatHistory HistoryTables;
