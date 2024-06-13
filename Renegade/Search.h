@@ -1,6 +1,5 @@
 #pragma once
-
-#include "History.h"
+#include "Histories.h"
 #include "Movepicker.h"
 #include "Neurals.h"
 #include "Position.h"
@@ -60,19 +59,18 @@ private:
 	void ResetPvTable();
 
 
-	std::unique_ptr<std::array<AccumulatorRepresentation, MaxDepth + 1>> Accumulators;
-
-	std::chrono::high_resolution_clock::time_point StartSearchTime;
-	std::array<std::array<uint64_t, 64>, 64> RootNodeCounts;
-
 	int Depth;
 	SearchStatistics Statistics;
 	SearchConstraints Constraints;
+	Histories History;
+	std::chrono::high_resolution_clock::time_point StartSearchTime;
+	std::array<std::array<uint64_t, 64>, 64> RootNodeCounts;
+	std::unique_ptr<std::array<AccumulatorRepresentation, MaxDepth + 1>> Accumulators;
 
 	std::array<std::array<Move, MaxDepth + 1>, MaxDepth + 1> PvTable;
 	std::array<int, MaxDepth + 1> PvLength;
 
-	History History; // todo: rename one
+	std::array<std::array<int, 32>, 32> LMRTable;
 
 	// Reused variables / stack
 	std::array<MoveList, MaxDepth> MoveListStack{};
@@ -82,7 +80,4 @@ private:
 	std::array<int, MaxDepth> DoubleExtensions;
 	std::array<Move, MaxDepth> ExcludedMoves;
 
-	std::array<std::array<int, 32>, 32> LMRTable;
-
 };
-

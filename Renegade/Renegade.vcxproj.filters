@@ -51,7 +51,7 @@
     <ClCompile Include="Evaluation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="History.cpp">
+    <ClCompile Include="Histories.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Transpositions.cpp">
@@ -98,7 +98,7 @@
     <ClInclude Include="Evaluation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="History.h">
+    <ClInclude Include="Histories.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Transpositions.h">

@@ -27,8 +27,7 @@ void Search::ResetStatistics() {
 
 
 void Search::ResetState(const bool clearTT) {
-	History.ClearHistory();
-	History.ClearKillerAndCounterMoves();
+	History.ClearAll();
 	ResetPvTable();
 	if (clearTT) TranspositionTable.Clear();
 }

@@ -1,5 +1,4 @@
 #pragma once
-#include "History.h"
 #include "Position.h"
 #include "Utils.h"
 #include <algorithm>

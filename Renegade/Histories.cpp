@@ -1,23 +1,24 @@
-#include "History.h"
+#include "Histories.h"
 
-History::History() {
+Histories::Histories() {
 	ContinuationHistory = std::make_unique<Continuations>();
-	ClearHistory();
+	ClearAll();
 }
 
-void History::ClearHistory() {
+void Histories::ClearAll() {
+	ClearKillerAndCounterMoves();
 	std::memset(&HistoryTables, 0, sizeof(HistoryTables));
 	std::memset(ContinuationHistory.get(), 0, sizeof(Continuations));
 }
 
-void History::ClearKillerAndCounterMoves() {
+void Histories::ClearKillerAndCounterMoves() {
 	std::memset(&KillerMoves, 0, sizeof(KillerMoves));
 	std::memset(&CounterMoves, 0, sizeof(CounterMoves));
 }
 
 // Killer and countermoves ------------------------------------------------------------------------
 
-void History::AddKillerMove(const Move& move, const int level) {
+void Histories::AddKillerMove(const Move& move, const int level) {
 	if (level >= MaxDepth) return;
 	if (IsFirstKillerMove(move, level)) return;
 	if (IsSecondKillerMove(move, level)) {
@@ -29,36 +30,36 @@ void History::AddKillerMove(const Move& move, const int level) {
 	KillerMoves[level][0] = move;
 }
 
-bool History::IsKillerMove(const Move& move, const int level) const {
+bool Histories::IsKillerMove(const Move& move, const int level) const {
 	if (KillerMoves[level][0] == move) return true;
 	if (KillerMoves[level][1] == move) return true;
 	return false;
 }
 
-bool History::IsFirstKillerMove(const Move& move, const int level) const {
+bool Histories::IsFirstKillerMove(const Move& move, const int level) const {
 	return KillerMoves[level][0] == move;
 }
 
-bool History::IsSecondKillerMove(const Move& move, const int level) const {
+bool Histories::IsSecondKillerMove(const Move& move, const int level) const {
 	return KillerMoves[level][1] == move;
 }
 
-void History::ResetKillersForPly(const int level) {
+void Histories::ResetKillersForPly(const int level) {
 	KillerMoves[level][0] = EmptyMove;
 	KillerMoves[level][1] = EmptyMove;
 }
 
-void History::AddCountermove(const Move& previousMove, const Move& thisMove) {
+void Histories::AddCountermove(const Move& previousMove, const Move& thisMove) {
 	if (!previousMove.IsNull()) CounterMoves[previousMove.from][previousMove.to] = thisMove;
 }
 
-bool History::IsCountermove(const Move& previousMove, const Move& thisMove) const {
+bool Histories::IsCountermove(const Move& previousMove, const Move& thisMove) const {
 	return CounterMoves[previousMove.from][previousMove.to] == thisMove;
 }
 
 // History heuristic ------------------------------------------------------------------------------
 
-void History::UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level) {
+void Histories::UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level) {
 
 	// Main quiet history
 	const bool side = ColorOfPiece(piece) == PieceColor::White;
@@ -77,7 +78,7 @@ void History::UpdateHistory(const Position& position, const Move& m, const uint8
 	}
 }
 
-int History::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
+int Histories::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
 	int historyScore = HistoryTables[movedPiece][m.to][fromSquareThreatened][toSquareThreatened];

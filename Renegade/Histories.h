@@ -3,13 +3,13 @@
 #include "Position.h"
 #include "Utils.h"
 
-class History
+class Histories
 {
 public:
 	
-	History();
+	Histories();
 
-	void ClearHistory();
+	void ClearAll();
 	void ClearKillerAndCounterMoves();
 
 	// Killer move heuristic:
@@ -23,7 +23,7 @@ public:
 	void AddCountermove(const Move& previousMove, const Move& thisMove);
 	bool IsCountermove(const Move& previousMove, const Move& thisMove) const;
 
-	// History heuristic:
+	// History heuristic (quiet moves):
 	void UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level);
 	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
 

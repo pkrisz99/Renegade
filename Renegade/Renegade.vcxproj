@@ -151,7 +151,7 @@
     <ClCompile Include="Datagen.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Evaluation.cpp" />
-    <ClCompile Include="History.cpp" />
+    <ClCompile Include="Histories.cpp" />
     <ClCompile Include="Magics.cpp" />
     <ClCompile Include="Neurals.cpp" />
     <ClCompile Include="Position.cpp" />
@@ -167,7 +167,7 @@
     <ClInclude Include="Datagen.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Evaluation.h" />
-    <ClInclude Include="History.h" />
+    <ClInclude Include="Histories.h" />
     <ClInclude Include="Magics.h" />
     <ClInclude Include="Move.h" />
     <ClInclude Include="Movepicker.h" />
