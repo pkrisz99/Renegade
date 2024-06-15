@@ -377,8 +377,11 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 		// Null-move pruning (+33 elo)
 		if ((depth >= 3) && !position.PreviousMoveIsNull() && (eval >= beta) && position.HasNonPawnMaterial()) {
-			int nmpReduction = 3 + depth / 3 + std::min((eval - beta) / 200, 3);
-			nmpReduction = std::min(nmpReduction, depth);
+			TranspositionTable.Prefetch(position.Hash() ^ Zobrist[780]);
+			const int nmpReduction = [&] {
+				const int defaultReduction = 3 + depth / 3 + std::min((eval - beta) / 200, 3);
+				return std::min(defaultReduction, depth);
+			}();
 			position.PushNullMove();
 			UpdateAccumulators(NullMove, 0, 0, level);
 			const int nullMoveEval = -SearchRecursive(position, depth - nmpReduction, level + 1, -beta, -beta + 1);
@@ -388,7 +391,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 			}
 		}
 
-		// Futility pruning (+37 elo)
+		// Futility pruning (2024: +10 elo)
 		const int futilityMargin = 30 + depth * 100;
 		if ((depth <= 5) && (std::abs(beta) < MateThreshold)) {
 			futilityPrunable = (eval + futilityMargin < alpha);
@@ -401,9 +404,9 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 	}
 
 	// Initialize variables and generate moves
-	// (if we are in singular search, we already have the moves)
+	// (in singular search we've already done these)
 	if (!singularSearch) {
-		// Generating moves and move ordering
+		// Generating moves and ordering them
 		MoveListStack[level].reset();
 		position.RequestThreats();
 		position.GenerateMoves(MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
