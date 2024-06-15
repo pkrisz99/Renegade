@@ -139,10 +139,10 @@ void GenerateMagicTables() {
 				else if (std::abs(GetSquareFile(i) - GetSquareFile(j)) == std::abs(GetSquareRank(i) - GetSquareRank(j))) {
 					const uint64_t ray1 = GetBishopAttacks(i, SquareBit(j));
 					const uint64_t ray2 = GetBishopAttacks(j, SquareBit(i));
-					const uint64_t ends = (ray1 & ray2) ? SquareBit(i) | SquareBit(j) : 0;
+					const uint64_t ends = (ray1 & ray2) ? SquareBit(i) | SquareBit(j) : 0ull;
 					return ray1 & ray2 | ends;
 				}
-				return 0ull;
+				return uint64_t{0};
 			}();
 		}
 	}
