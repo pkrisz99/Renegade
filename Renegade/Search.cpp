@@ -343,17 +343,21 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && (std::abs(ttEval) < MateThreshold);
 	
 	// Obtain the evaluation of the position
-	int staticEval = NoEval;
-	int eval = NoEval;
+	int rawEval = NoEval; // raw evaluation function output
+	int staticEval = NoEval; // after statistical correction
+	int eval = NoEval; // after guarding from TT
 
 	if (!singularSearch) {
-		staticEval = inCheck ? NoEval : Evaluate(position, level);
-		eval = staticEval;
+		if (!inCheck) {
+			rawEval = Evaluate(position, level);
+			staticEval = History.AdjustStaticEvaluation(position, rawEval);
+			eval = staticEval;
 
-		if ((ttEval != NoEval) && !inCheck) {  // inCheck is cosmetic
-			if ((ttEntry.scoreType == ScoreType::Exact)
-				|| ((ttEntry.scoreType == ScoreType::LowerBound) && (staticEval < ttEval))
-				|| ((ttEntry.scoreType == ScoreType::UpperBound) && (staticEval > ttEval))) eval = ttEval;
+			if (ttEval != NoEval) {
+				if ((ttEntry.scoreType == ScoreType::Exact)
+					|| ((ttEntry.scoreType == ScoreType::LowerBound) && (staticEval < ttEval))
+					|| ((ttEntry.scoreType == ScoreType::UpperBound) && (staticEval > ttEval))) eval = ttEval;
+			}
 		}
 		StaticEvalStack[level] = staticEval;
 		EvalStack[level] = eval;
@@ -577,7 +581,18 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 	}
 
 	// Return the best score (fail-soft)
-	if (!aborting && !singularSearch) TranspositionTable.Store(hash, depth, bestScore, scoreType, bestMove, level);
+	if (!aborting && !singularSearch) {
+		TranspositionTable.Store(hash, depth, bestScore, scoreType, bestMove, level);
+
+		const bool updateCorrection = [&] {
+			if (inCheck) return false;
+			if (!bestMove.IsNull() && !position.IsMoveQuiet(bestMove)) return false;
+			return (scoreType == ScoreType::Exact)
+				|| (scoreType == ScoreType::UpperBound && bestScore < staticEval)
+				|| (scoreType == ScoreType::LowerBound && bestScore > staticEval);
+		}();
+		if (updateCorrection) History.UpdateCorrection(position, staticEval, bestScore, depth); // rawEval maybe?
+	}
 
 	return bestScore;
 }

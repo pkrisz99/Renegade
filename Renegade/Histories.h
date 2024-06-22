@@ -28,6 +28,10 @@ public:
 	void UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level);
 	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
 
+	// Static evaluation correction history:
+	void UpdateCorrection(const Position& position, const int16_t staticEval, const int16_t score, const int depth);
+	int AdjustStaticEvaluation(const Position& position, const int16_t staticEval) const;
+
 private:
 
 	inline void UpdateHistoryValue(int16_t& value, const int amount) {
@@ -43,5 +47,10 @@ private:
 
 	using Continuations = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
 	std::unique_ptr<Continuations> ContinuationHistory;
+
+	static constexpr int CorrectionEntryCount = 65536;
+	static constexpr int CorrectionGranularity = 256;
+	static constexpr int CorrectionCap = 32;
+	std::array<std::array<int32_t, CorrectionEntryCount>, 2> CorrectionHistory;
 };
 
