@@ -105,6 +105,7 @@ void Histories::UpdateCorrection(const Position& position, const int16_t rawEval
 	constexpr int correctionHistoryCap = CorrectionCap * CorrectionGranularity;
 	int32_t& value = CorrectionHistory[position.Turn()][key];
 	value = (correctionInertia - targetWeight) * value + targetWeight * target;
+	value /= correctionInertia;
 	value = std::clamp(value, -correctionHistoryCap, correctionHistoryCap);
 }
 
