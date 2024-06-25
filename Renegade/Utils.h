@@ -19,7 +19,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.0.37";
+constexpr std::string_view Version = "dev 1.0.38";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -33,9 +33,9 @@ constexpr int MaxDepth = 128;
 
 // Pawn value normalization and WDL reporting:
 // (calculated with https://github.com/official-stockfish/WDL_model using Renegade's own games)
-constexpr int PawnNormalizationForMove32 = 265;
-constexpr std::array<double, 4> as = { 0.48511404, -17.19270585, 125.01967633, 157.42013693 };
-constexpr std::array<double, 4> bs = { -0.72040281, 14.57833868, -60.76193200, 149.28009426 };
+constexpr int PawnNormalizationForMove32 = 277;
+constexpr std::array<double, 4> as = { -0.57292811, -5.66866770, 84.83978005, 198.87135819 };
+constexpr std::array<double, 4> bs = { -5.59848897, 45.67341221, -112.43672836, 159.70989134 };
 static_assert(static_cast<int>(std::reduce(as.begin(), as.end())) == PawnNormalizationForMove32);
 
 std::pair<double, double> ModelWDLForPly(const int ply);
