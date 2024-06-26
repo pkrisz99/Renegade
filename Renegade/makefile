@@ -97,7 +97,7 @@ endif
 SOURCES := $(wildcard *.cpp)
 OBJECTS := $(patsubst %.cpp,%.o,$(SOURCES))
 DEPENDS := $(patsubst %.cpp,%.d,$(SOURCES))
-EXE     := $(TARGET)$(SUFFIX)
+EXE     := $(TARGET)
 
 all: $(TARGET)
 
@@ -105,7 +105,7 @@ clean:
 	rm -rf *.o $(DEPENDS)
 
 $(TARGET): $(OBJECTS)
-	$(CXX) -o $(EXE) $^ $(CXXFLAGS) ${NETFLAGS} $(NATIVE) $(INSTRUCTIONS) $(FLAGS) -flto
+	$(CXX) -o $(EXE)$(SUFFIX) $^ $(CXXFLAGS) ${NETFLAGS} $(NATIVE) $(INSTRUCTIONS) $(FLAGS) -flto
 
 -include $(DEPENDS)
 
