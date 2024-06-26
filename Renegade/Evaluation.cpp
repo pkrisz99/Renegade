@@ -2,7 +2,7 @@
 
 int ClassicalEvaluate(const Position& position, const EvaluationFeatures& weights) {
 
-	// Renegade's classical evaluation function
+	// Renegade's classical evaluation function used before version 1.0.0
 	// This was replaced by a significantly stronger NNUE evaluation
 
 	const Board& board = position.CurrentState();

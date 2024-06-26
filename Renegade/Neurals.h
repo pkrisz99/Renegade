@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <array>
 #include <fstream>
-#include <iterator>
 #include <immintrin.h>
+#include <iterator>
 #include <memory>
 
 // This is the code for the NNUE evaluation

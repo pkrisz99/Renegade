@@ -1,11 +1,23 @@
 #include "Search.h"
 
+// This is the main search code of Renegade. If you're reading this, you're probably interested in
+// what this engine does, and I'm happy for that, feel free to try some ideas from here!
+
+// However, you may have confidence in this code, but be aware, that I don't. Here are some caveats:
+// - this engine does not reduce losing captures at all
+// - LMR is quite conservative
+// - the ordering score can come either directly from history, or from captures/killers etc.
+// - quiescence search is very basic
+// - there aren't any form of staged movegen implemented
+// - elo gain estimates are very outdated
+// - some stuff are just plain cursed
+
 Search::Search() {
 	constexpr double lmrMultiplier = 0.4;
 	constexpr double lmrBase = 0.7;
 	for (int i = 1; i < 32; i++) {
 		for (int j = 1; j < 32; j++) {
-			LMRTable[i][j] = static_cast<int>(lmrMultiplier * log(i) * log(j) + lmrBase);
+			LMRTable[i][j] = static_cast<int>(lmrMultiplier * std::log(i) * std::log(j) + lmrBase);
 		}
 	}
 	ResetStatistics();
