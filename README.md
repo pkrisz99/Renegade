@@ -18,8 +18,8 @@ The engine is fairly strong, and regularly competes on Lichess over at https://l
 
 ### Evaluation
 - Renegade makes use of modern NNUE (efficiently updatable neural network) technology for accurate position evaluation
-- Its neural network was trained entirely on self-play data, amounting to over 640 million positions
-- The network architecture is a 768->512x2->1 perspective net with SCReLU activation 
+- Its neural network was trained entirely on self-play data, amounting to over 2.7 billion positions
+- The network architecture is a (768->1024)x2->1 perspective net with SCReLU activation 
 
 ## Usage
 Renegade - like most chess engines - is a command line application implementing the UCI protocol. It should be used alongside a graphical user interface, such as [Cute Chess](https://github.com/cutechess/cutechess).  
@@ -48,13 +48,13 @@ Some useful custom commands are also implemented, such as `eval`, `draw` and `fe
 
 The recommended compiler is Clang 16. It should be noted that the engine makes use of modern hardware instructions for the best possible performance.  
 
-Windows executables can be found for each release.
+Windows and Linux executables can be found for each release.
 
 ## Acknowledgments
 Getting this far would not have been possible without the members of the [Engine Programming Discord](https://github.com/EngineProgramming/engine-list), and the decades of prior research done into chess programming.  
 
-In particular, Renegade took many ideas from [Akimbo](https://github.com/jw1912/akimbo), [Ethereal](https://github.com/AndyGrant/Ethereal), [Stockfish](https://github.com/official-stockfish/Stockfish), [Stormphrax](https://github.com/Ciekce/Stormphrax), [Viridithas](https://github.com/cosmobobak/viridithas) and [Wahoo](https://github.com/spamdrew128/Wahoo).  
+In particular, Renegade makes use of many ideas from [Akimbo](https://github.com/jw1912/akimbo), [Ethereal](https://github.com/AndyGrant/Ethereal), [Stockfish](https://github.com/official-stockfish/Stockfish), [Stormphrax](https://github.com/Ciekce/Stormphrax), [Viridithas](https://github.com/cosmobobak/viridithas) and [Wahoo](https://github.com/spamdrew128/Wahoo). These are fantastic engines, and you are highly encouraged to check them out!  
 
 The neural networks were trained with [bullet](https://github.com/jw1912/bullet), and win-draw-loss models have been calculated using [Stockfish's WDL tool](https://github.com/official-stockfish/WDL_model).  
 
-Additionally, I would also like to thank everyone who spent the time trying out and testing the engine, which provides valuable feedback for me.  
+Additionally, I would also like to thank everyone who gave me feedback, and those who spent the time trying out and testing the engine!
