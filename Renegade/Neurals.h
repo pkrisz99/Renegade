@@ -66,12 +66,10 @@ inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq,
 	const uint8_t pieceType = TypeOfPiece(piece);
 	constexpr int colorOffset = 64 * 6;
 
-	const uint8_t transform = [&] {
-		if (pieceColor == PieceColor::White) return (GetSquareFile(whiteKingSq) < 4) ? 0 : 7;
-		else return (GetSquareFile(blackKingSq) < 4) ? 0 : 7;
-	}();
+	const uint8_t whiteTransform = (GetSquareFile(whiteKingSq) < 4) ? 0 : 7;
+	const uint8_t blackTransform = (GetSquareFile(blackKingSq) < 4) ? 0 : 7;
 
-	const int whiteFeatureIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + (sq ^ transform);
-	const int blackFeatureIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq ^ transform);
+	const int whiteFeatureIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + (sq ^ whiteTransform);
+	const int blackFeatureIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq ^ blackTransform);
 	return { whiteFeatureIndex, blackFeatureIndex };
 }
