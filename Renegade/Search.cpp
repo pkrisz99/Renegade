@@ -665,7 +665,8 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 int Search::Evaluate(const Position& position, const int level) {
 	Statistics.Evaluations += 1;
 	//if (NeuralEvaluate((*Accumulators)[level], position.Turn()) != NeuralEvaluate(position)) cout << "!" << endl;
-	return NeuralEvaluate((*Accumulators)[level], position.Turn());
+	return NeuralEvaluate(position);
+	//return NeuralEvaluate((*Accumulators)[level], position.Turn());
 }
 
 int Search::DrawEvaluation() const {
@@ -772,7 +773,7 @@ bool Search::StaticExchangeEval(const Position& position, const Move& move, cons
 // Accumulators for neural networks ---------------------------------------------------------------
 
 void Search::SetupAccumulators(const Position& position) {
-	(*Accumulators)[0].Reset();
+	/*(*Accumulators)[0].Reset();
 	uint64_t bits = position.GetOccupancy();
 
 	// Turning on the right inputs
@@ -780,10 +781,12 @@ void Search::SetupAccumulators(const Position& position) {
 		const uint8_t sq = Popsquare(bits);
 		const int piece = position.GetPieceAt(sq);
 		(*Accumulators)[0].AddFeature(FeatureIndexes(piece, sq));
-	}
+	}*/
 }
 
 void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
+
+	/*
 
 	// Copy the previous state over
 	(*Accumulators)[level + 1] = (*Accumulators)[level];
@@ -838,7 +841,7 @@ void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const u
 			if (movedPiece == Piece::WhitePawn) Accumulator.RemoveFeature( FeatureIndexes(Piece::BlackPawn, m.to - 8) );
 			else Accumulator.RemoveFeature( FeatureIndexes(Piece::WhitePawn, m.to + 8) );
 			break;
-	}
+	}*/
 
 }
 

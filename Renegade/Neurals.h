@@ -16,14 +16,14 @@
 
 // Network constants
 #ifndef NETWORK_NAME
-#define NETWORK_NAME "renegade-net-21.bin"
+#define NETWORK_NAME "mpe25.bin"
 #endif
 
 constexpr int FeatureSize = 768;
 constexpr int HiddenSize = 1024;
 constexpr int Scale = 400;
-constexpr int QA = 255;
-constexpr int QB = 64;
+constexpr int QA = 403;
+constexpr int QB = 81;
 
 struct alignas(64) NetworkRepresentation {
 	std::array<std::array<int16_t, HiddenSize>, FeatureSize> FeatureWeights;
@@ -61,12 +61,17 @@ void LoadExternalNetwork(const std::string& filename);
 int NeuralEvaluate(const Position &position);
 int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn);
 
-inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq) {
+inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq, const uint8_t whiteKingSq, const uint8_t blackKingSq) {
 	const uint8_t pieceColor = ColorOfPiece(piece);
 	const uint8_t pieceType = TypeOfPiece(piece);
 	constexpr int colorOffset = 64 * 6;
 
-	const int whiteFeatureIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + sq;
-	const int blackFeatureIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq);
+	const uint8_t transform = [&] {
+		if (pieceColor == PieceColor::White) return (GetSquareFile(whiteKingSq) < 4) ? 0 : 7;
+		else return (GetSquareFile(blackKingSq) < 4) ? 0 : 7;
+	}();
+
+	const int whiteFeatureIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + (sq ^ transform);
+	const int blackFeatureIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq ^ transform);
 	return { whiteFeatureIndex, blackFeatureIndex };
 }

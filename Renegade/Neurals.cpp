@@ -90,10 +90,12 @@ int NeuralEvaluate(const Position& position) {
 
 	// Iterate through pieces and activate features
 	uint64_t bits = position.GetOccupancy();
+	const uint8_t whiteKingSq = LsbSquare(position.WhiteKingBits());
+	const uint8_t blackKingSq = LsbSquare(position.BlackKingBits());
 	while (bits) {
 		const uint8_t sq = Popsquare(bits);
-		const int piece = position.GetPieceAt(sq);
-		acc.AddFeature(FeatureIndexes(piece, sq));
+		const uint8_t piece = position.GetPieceAt(sq);
+		acc.AddFeature(FeatureIndexes(piece, sq, whiteKingSq, blackKingSq));
 	}
 
 	return NeuralEvaluate(acc, position.Turn());
