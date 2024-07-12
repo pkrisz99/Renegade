@@ -664,8 +664,15 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 
 int Search::Evaluate(const Position& position, const int level) {
 	Statistics.Evaluations += 1;
-	//if (NeuralEvaluate((*Accumulators)[level], position.Turn()) != NeuralEvaluate(position)) cout << "!" << endl;
-	return NeuralEvaluate((*Accumulators)[level], position.Turn());
+
+    int gamePhase = (Popcount(position.WhiteKnightBits() | position.BlackKnightBits())) +
+                   (Popcount(position.WhiteBishopBits() | position.BlackBishopBits())) +
+                   (Popcount(position.WhiteRookBits() | position.BlackRookBits())) * 2 +
+                   (Popcount(position.WhiteQueenBits() | position.BlackQueenBits())) * 4;
+
+    int evaluation = NeuralEvaluate((*Accumulators)[level], position.Turn());
+
+	return evaluation * (52 + std::min(24, gamePhase)) / 64;
 }
 
 int Search::DrawEvaluation() const {
