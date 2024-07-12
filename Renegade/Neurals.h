@@ -16,14 +16,14 @@
 
 // Network constants
 #ifndef NETWORK_NAME
-#define NETWORK_NAME "mpe25.bin"
+#define NETWORK_NAME "renegade-net-22-hm.bin"
 #endif
 
 constexpr int FeatureSize = 768;
 constexpr int HiddenSize = 1024;
 constexpr int Scale = 400;
-constexpr int QA = 403;
-constexpr int QB = 81;
+constexpr int QA = 255;
+constexpr int QB = 64;
 
 struct alignas(64) NetworkRepresentation {
 	std::array<std::array<int16_t, HiddenSize>, FeatureSize> FeatureWeights;
