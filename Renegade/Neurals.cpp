@@ -90,6 +90,8 @@ int NeuralEvaluate(const Position& position) {
 	const uint8_t blackKingSq = position.BlackKingSquare();
 	AccumulatorRepresentation acc{};
 	acc.Reset();
+	acc.SetActiveBucket(Side::White, GetInputBucket(whiteKingSq, Side::White));
+	acc.SetActiveBucket(Side::Black, GetInputBucket(blackKingSq, Side::Black));
 
 	// Iterate through pieces and activate features
 	uint64_t bits = position.GetOccupancy();
