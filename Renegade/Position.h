@@ -133,6 +133,9 @@ public:
 	inline uint64_t BlackQueenBits() const { return States.back().BlackQueenBits; }
 	inline uint64_t BlackKingBits() const { return States.back().BlackKingBits; }
 
+	inline uint8_t WhiteKingSquare() const { return LsbSquare(States.back().WhiteKingBits); }
+	inline uint8_t BlackKingSquare() const { return LsbSquare(States.back().BlackKingBits); }
+
 	uint64_t GetAttackersOfSquare(const uint8_t square, const uint64_t occupied) const;
 	std::string GetFEN() const;
 	GameState GetGameState() const;
