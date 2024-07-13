@@ -50,7 +50,7 @@ private:
 
 	// NNUE
 	void SetupAccumulators(const Position& position);
-	void UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level);
+	void UpdateAccumulators(const Position& pos, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level);
 
 	// PV table
 	void UpdatePvTable(const Move& move, const int level);
