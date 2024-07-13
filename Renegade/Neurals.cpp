@@ -85,13 +85,14 @@ int NeuralEvaluate(const Position& position) {
 	alignas(64) std::array<int16_t, HiddenSize> hiddenBlack = std::array<int16_t, HiddenSize>();
 	for (int i = 0; i < HiddenSize; i++) hiddenWhite[i] = Network->FeatureBias[i];
 	for (int i = 0; i < HiddenSize; i++) hiddenBlack[i] = Network->FeatureBias[i];
+
+	const uint8_t whiteKingSq = position.WhiteKingSquare();
+	const uint8_t blackKingSq = position.BlackKingSquare();
 	AccumulatorRepresentation acc{};
 	acc.Reset();
 
 	// Iterate through pieces and activate features
 	uint64_t bits = position.GetOccupancy();
-	const uint8_t whiteKingSq = LsbSquare(position.WhiteKingBits());
-	const uint8_t blackKingSq = LsbSquare(position.BlackKingBits());
 	while (bits) {
 		const uint8_t sq = Popsquare(bits);
 		const uint8_t piece = position.GetPieceAt(sq);

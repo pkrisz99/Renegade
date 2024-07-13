@@ -8,7 +8,7 @@
 #include <memory>
 
 // This is the code for the NNUE evaluation
-// Renegade uses a simple, unbucketed perspective net
+// Renegade uses a horizontally mirrored perspective net with input buckets based on the king's position
 
 // The engine's neural network is trained purely on self-play
 // a king tropism-only evaluation was the starting point:
@@ -24,6 +24,30 @@ constexpr int HiddenSize = 1024;
 constexpr int Scale = 400;
 constexpr int QA = 255;
 constexpr int QB = 64;
+
+constexpr std::array<int, 32> InputBucketMap = {
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+};
+/*
+constexpr std::array<int, 32> InputBucketMap = {
+	0, 0, 1, 1,
+	2, 2, 2, 2,
+	2, 2, 2, 2,
+	3, 3, 3, 3,
+	3, 3, 3, 3,
+	3, 3, 3, 3,
+	3, 3, 3, 3,
+	3, 3, 3, 3,
+};
+*/
+constexpr int InputBucketCount = 1;
 
 struct alignas(64) NetworkRepresentation {
 	std::array<std::array<int16_t, HiddenSize>, FeatureSize> FeatureWeights;
@@ -72,4 +96,11 @@ inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq,
 	const int whiteFeatureIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + (sq ^ whiteTransform);
 	const int blackFeatureIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq ^ blackTransform);
 	return { whiteFeatureIndex, blackFeatureIndex };
+}
+
+inline int GetInputBucket(const uint8_t kingSq, const bool side) {
+	const uint8_t transform = side == Side::White ? 0 : 56;
+	const uint8_t rank = GetSquareRank(kingSq ^ transform);
+	const uint8_t file = GetSquareFile(kingSq ^ transform) ^ 7;
+	return InputBucketMap[rank * 4 + file];
 }

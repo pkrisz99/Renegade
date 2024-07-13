@@ -670,7 +670,8 @@ int Search::Evaluate(const Position& position, const int level) {
                    (Popcount(position.WhiteRookBits() | position.BlackRookBits())) * 2 +
                    (Popcount(position.WhiteQueenBits() | position.BlackQueenBits())) * 4;
 
-    int evaluation = NeuralEvaluate((*Accumulators)[level], position.Turn());
+    //int evaluation = NeuralEvaluate((*Accumulators)[level], position.Turn());
+	int evaluation = NeuralEvaluate(position);
 
 	return evaluation * (52 + std::min(24, gamePhase)) / 64;
 }
@@ -779,6 +780,7 @@ bool Search::StaticExchangeEval(const Position& position, const Move& move, cons
 // Accumulators for neural networks ---------------------------------------------------------------
 
 void Search::SetupAccumulators(const Position& position) {
+	/*
 	(*Accumulators)[0].Reset();
 	uint64_t bits = position.GetOccupancy();
 
@@ -789,11 +791,11 @@ void Search::SetupAccumulators(const Position& position) {
 		const uint8_t sq = Popsquare(bits);
 		const int piece = position.GetPieceAt(sq);
 		(*Accumulators)[0].AddFeature(FeatureIndexes(piece, sq, whiteKingSq, blackKingSq));
-	}
+	}*/
 }
 
 void Search::UpdateAccumulators(const Position& pos, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
-
+	/*
 	// Handle null moves
 	if (m.IsNull()) {
 		(*Accumulators)[level + 1] = (*Accumulators)[level];
@@ -805,7 +807,12 @@ void Search::UpdateAccumulators(const Position& pos, const Move& m, const uint8_
 
 	// Check if a refresh is necessary
 	if (TypeOfPiece(movedPiece) == PieceType::King) {
-		if (((GetSquareFile(m.from) < 4) && (GetSquareFile(m.to) >= 4)) || (GetSquareFile(m.from) >= 4) && (GetSquareFile(m.to) < 4)) {
+
+		const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
+		const bool refreshFromMirroring = ((GetSquareFile(m.from) < 4) && (GetSquareFile(m.to) >= 4)) || ((GetSquareFile(m.from) >= 4) && (GetSquareFile(m.to) < 4));
+		const bool refreshFromBucketing = GetInputBucket(m.from, side) != GetInputBucket(m.to, side);
+
+		if (refreshFromMirroring || refreshFromBucketing) {
 			(*Accumulators)[level + 1].Reset();
 			uint64_t bits = pos.GetOccupancy();
 
@@ -873,7 +880,7 @@ void Search::UpdateAccumulators(const Position& pos, const Move& m, const uint8_
 			else Accumulator.RemoveFeature( FeatureIndexes(Piece::WhitePawn, m.to + 8, whiteKingSq, blackKingSq));
 			break;
 	}
-
+	*/
 }
 
 // PV table ---------------------------------------------------------------------------------------
