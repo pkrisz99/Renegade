@@ -603,7 +603,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 				|| (scoreType == ScoreType::UpperBound && bestScore < staticEval)
 				|| (scoreType == ScoreType::LowerBound && bestScore > staticEval);
 		}();
-		if (updateCorrection) History.UpdateCorrection(position, staticEval, bestScore, depth); // rawEval maybe?
+		if (updateCorrection) History.UpdateCorrection(position, rawEval, bestScore, depth);
 	}
 
 	return bestScore;
