@@ -25,6 +25,9 @@ void Engine::Start() {
 	std::string cmd;
 	SearchParams params;
 
+	// Please be aware that this code is utterly terrible and a rewrite is long overdue
+	// I'll get to this one day
+
 	while (getline(cin, cmd)) {
 
 		cmd = Trim(cmd);
@@ -65,7 +68,7 @@ void Engine::Start() {
 			continue;
 		}
 
-		if (cmd == "datagen") {
+		/*if (cmd == "datagen") {
 			Datagen datagen = Datagen();
 			datagen.Start();
 			continue;
@@ -85,7 +88,7 @@ void Engine::Start() {
 		if (cmd == "tunetext") {
 			Tune::GenerateString();
 			continue;
-		}
+		}*/
 
 		// Set option
 		if (parts[0] == "setoption") {
@@ -229,8 +232,8 @@ void Engine::Start() {
 		if (parts[0] == "eval") {
 			const int hce = ClassicalEvaluate(position);
 			const int nnue = NeuralEvaluate(position);
-			cout << "Hand-crafted evaluation:   " << ToCentipawns(hce, position.GetPlys()) << " cp  (internal units: " << hce << ")" << endl;
-			cout << "Neural network evaluation: " << ToCentipawns(nnue, position.GetPlys()) << " cp  (internal units: " << nnue << ")\n" << endl;
+			cout << "-> Classical evaluation:      " << ToCentipawns(hce, position.GetPlys()) << " cp  (internal units: " << hce << ")" << endl;
+			cout << "-> Neural network evaluation: " << ToCentipawns(nnue, position.GetPlys()) << " cp  (internal units: " << nnue << ")" << endl;
 			continue;
 		}
 		if (parts[0] == "fen") {
@@ -328,10 +331,9 @@ void Engine::Start() {
 			}
 			if (SearchThread.joinable()) SearchThread.join();
 
-			if ((parts.size() == 3) && ((parts[1] == "perft") || (parts[1] == "perftdiv"))) {
-				int depth = stoi(parts[2]);
-				PerftType type = PerftType::Normal;
-				if (parts[1] == "perftdiv") type = PerftType::PerftDiv;
+			if ((parts.size() == 3) && (parts[1] == "perft" || parts[1] == "perftdiv")) {
+				const int depth = stoi(parts[2]);
+				const PerftType type = (parts[1] == "perftdiv") ? PerftType::PerftDiv : PerftType::Normal;
 				Search.Perft(position, depth, type);
 				continue;
 			}
@@ -339,16 +341,16 @@ void Engine::Start() {
 			params = SearchParams();
 			for (int i = 1; i < parts.size(); i++) {
 				// This looks ugly, but I'll rewrite it
-				if (parts[i] == "wtime") { params.wtime = stoi(parts[i + 1LL]); i++; }
-				if (parts[i] == "btime") { params.btime = stoi(parts[i + 1LL]); i++; }
-				if (parts[i] == "movestogo") { params.movestogo = stoi(parts[i + 1LL]); i++; }
-				if (parts[i] == "winc") { params.winc = stoi(parts[i + 1LL]); i++; }
-				if (parts[i] == "binc") { params.binc = stoi(parts[i + 1LL]); i++; }
-				if (parts[i] == "nodes") { params.nodes = stoi(parts[i + 1LL]); i++; }
-				if (parts[i] == "softnodes") { params.softnodes = stoi(parts[i + 1LL]); i++; }
-				if (parts[i] == "depth") { params.depth = stoi(parts[i + 1LL]); i++; }
-				if (parts[i] == "mate") { params.depth = stoi(parts[i + 1LL]); i++; } // To do: search for mates only
-				if (parts[i] == "movetime") { params.movetime = stoi(parts[i + 1LL]); i++; }
+				if (parts[i] == "wtime") { params.wtime = stoi(parts[i + 1]); i++; }
+				if (parts[i] == "btime") { params.btime = stoi(parts[i + 1]); i++; }
+				if (parts[i] == "movestogo") { params.movestogo = stoi(parts[i + 1]); i++; }
+				if (parts[i] == "winc") { params.winc = stoi(parts[i + 1]); i++; }
+				if (parts[i] == "binc") { params.binc = stoi(parts[i + 1]); i++; }
+				if (parts[i] == "nodes") { params.nodes = stoi(parts[i + 1]); i++; }
+				if (parts[i] == "softnodes") { params.softnodes = stoi(parts[i + 1]); i++; }
+				if (parts[i] == "depth") { params.depth = stoi(parts[i + 1]); i++; }
+				if (parts[i] == "mate") { params.depth = stoi(parts[i + 1]); i++; } // To do: search for mates only
+				if (parts[i] == "movetime") { params.movetime = stoi(parts[i + 1]); i++; }
 				if (parts[i] == "searchmoves") { cout << "info string Searchmoves parameter is not yet implemented!" << endl; }
 			}
 

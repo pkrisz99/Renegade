@@ -1,11 +1,23 @@
 #include "Search.h"
 
+// This is the main search code of Renegade. If you're reading this, you're probably interested in
+// what this engine does, and I'm happy for that, feel free to try some ideas from here!
+
+// However, you may have confidence in this code, but be aware, that I don't. Here are some caveats:
+// - this engine does not reduce losing captures at all
+// - LMR is quite conservative
+// - the ordering score can come either directly from history, or from captures/killers etc.
+// - quiescence search is very basic
+// - there aren't any form of staged movegen implemented
+// - elo gain estimates are very outdated
+// - some stuff are just plain cursed
+
 Search::Search() {
 	constexpr double lmrMultiplier = 0.4;
 	constexpr double lmrBase = 0.7;
 	for (int i = 1; i < 32; i++) {
 		for (int j = 1; j < 32; j++) {
-			LMRTable[i][j] = static_cast<int>(lmrMultiplier * log(i) * log(j) + lmrBase);
+			LMRTable[i][j] = static_cast<int>(lmrMultiplier * std::log(i) * std::log(j) + lmrBase);
 		}
 	}
 	ResetStatistics();
@@ -387,7 +399,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 				return std::min(defaultReduction, depth);
 			}();
 			position.PushNullMove();
-			UpdateAccumulators(NullMove, 0, 0, level);
+			UpdateAccumulators(position, NullMove, 0, 0, level);
 			const int nullMoveEval = -SearchRecursive(position, depth - nmpReduction, level + 1, -beta, -beta + 1);
 			position.Pop();
 			if (nullMoveEval >= beta) {
@@ -490,7 +502,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		TranspositionTable.Prefetch(position.Hash());
 		Statistics.Nodes += 1;
 		int score = NoEval;
-		UpdateAccumulators(m, movedPiece, capturedPiece, level);
+		UpdateAccumulators(position, m, movedPiece, capturedPiece, level);
 
 		if (legalMoveCount == 1) {
 			score = -SearchRecursive(position, depth - 1 + extension, level + 1, -beta, -alpha);
@@ -645,7 +657,7 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
 		position.Push(m);
 		TranspositionTable.Prefetch(position.Hash());
-		UpdateAccumulators(m, movedPiece, capturedPiece, level);
+		UpdateAccumulators(position, m, movedPiece, capturedPiece, level);
 		const int score = -SearchQuiescence(position, level + 1, -beta, -alpha);
 		position.Pop();
 
@@ -667,8 +679,14 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 
 int Search::Evaluate(const Position& position, const int level) {
 	Statistics.Evaluations += 1;
-	//if (NeuralEvaluate((*Accumulators)[level], position.Turn()) != NeuralEvaluate(position)) cout << "!" << endl;
-	return NeuralEvaluate((*Accumulators)[level], position.Turn());
+
+    int gamePhase = (Popcount(position.WhiteKnightBits() | position.BlackKnightBits())) +
+                   (Popcount(position.WhiteBishopBits() | position.BlackBishopBits())) +
+                   (Popcount(position.WhiteRookBits() | position.BlackRookBits())) * 2 +
+                   (Popcount(position.WhiteQueenBits() | position.BlackQueenBits())) * 4;
+
+    int evaluation = NeuralEvaluate((*Accumulators)[level], position.Turn());
+	return evaluation * (52 + std::min(24, gamePhase)) / 64;
 }
 
 int Search::DrawEvaluation() const {
@@ -775,18 +793,56 @@ bool Search::StaticExchangeEval(const Position& position, const Move& move, cons
 // Accumulators for neural networks ---------------------------------------------------------------
 
 void Search::SetupAccumulators(const Position& position) {
+
 	(*Accumulators)[0].Reset();
+	(*Accumulators)[0].SetActiveBucket(Side::White, GetInputBucket(position.WhiteKingSquare(), Side::White));
+	(*Accumulators)[0].SetActiveBucket(Side::Black, GetInputBucket(position.BlackKingSquare(), Side::Black));
 	uint64_t bits = position.GetOccupancy();
 
 	// Turning on the right inputs
+	const uint8_t whiteKingSq = position.WhiteKingSquare();
+	const uint8_t blackKingSq = position.BlackKingSquare();
 	while (bits) {
 		const uint8_t sq = Popsquare(bits);
 		const int piece = position.GetPieceAt(sq);
-		(*Accumulators)[0].AddFeature(FeatureIndexes(piece, sq));
+		(*Accumulators)[0].AddFeature(FeatureIndexes(piece, sq, whiteKingSq, blackKingSq));
 	}
 }
 
-void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
+void Search::UpdateAccumulators(const Position& pos, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
+	
+	// Handle null moves
+	if (m.IsNull()) {
+		(*Accumulators)[level + 1] = (*Accumulators)[level];
+		return;
+	}
+
+	const uint8_t whiteKingSq = pos.WhiteKingSquare();
+	const uint8_t blackKingSq = pos.BlackKingSquare();
+
+	// Check if a refresh is necessary
+	if (TypeOfPiece(movedPiece) == PieceType::King) {
+
+		const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
+		const bool refreshFromMirroring = ((GetSquareFile(m.from) < 4) && (GetSquareFile(m.to) >= 4)) || ((GetSquareFile(m.from) >= 4) && (GetSquareFile(m.to) < 4));
+		const bool refreshFromBucketing = GetInputBucket(m.from, side) != GetInputBucket(m.to, side);
+		const bool refreshFromCastling = m.IsCastling(); // temporary workaround
+
+		if (refreshFromMirroring || refreshFromBucketing || refreshFromCastling) {
+			(*Accumulators)[level + 1].Reset();
+			(*Accumulators)[level + 1].SetActiveBucket(Side::White, GetInputBucket(whiteKingSq, Side::White));
+			(*Accumulators)[level + 1].SetActiveBucket(Side::Black, GetInputBucket(blackKingSq, Side::Black));
+			uint64_t bits = pos.GetOccupancy();
+
+			// Turning on the right inputs
+			while (bits) {
+				const uint8_t sq = Popsquare(bits);
+				const int piece = pos.GetPieceAt(sq);
+				(*Accumulators)[level + 1].AddFeature(FeatureIndexes(piece, sq, whiteKingSq, blackKingSq));
+			}
+			return;
+		}
+	}
 
 	// Copy the previous state over
 	(*Accumulators)[level + 1] = (*Accumulators)[level];
@@ -794,20 +850,20 @@ void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const u
 	AccumulatorRepresentation& Accumulator = (*Accumulators)[level + 1];
 
 	// No longer activate the previous position of the moved piece
-	Accumulator.RemoveFeature( FeatureIndexes(movedPiece, m.from) );
+	Accumulator.RemoveFeature( FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq) );
 
 	// No longer activate the position of the captured piece (if any)
 	if (capturedPiece != Piece::None) {
-		Accumulator.RemoveFeature( FeatureIndexes(capturedPiece, m.to) );
+		Accumulator.RemoveFeature( FeatureIndexes(capturedPiece, m.to, whiteKingSq, blackKingSq));
 	}
 
 	// Activate the new position of the moved piece
 	if (!m.IsPromotion() && !m.IsCastling()) {
-		Accumulator.AddFeature( FeatureIndexes(movedPiece, m.to) );
+		Accumulator.AddFeature( FeatureIndexes(movedPiece, m.to, whiteKingSq, blackKingSq));
 	}
 	else if (m.IsPromotion()) {
 		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		Accumulator.AddFeature( FeatureIndexes(promotionPiece, m.to) );
+		Accumulator.AddFeature( FeatureIndexes(promotionPiece, m.to, whiteKingSq, blackKingSq));
 	}
 
 	// Special cases
@@ -816,33 +872,32 @@ void Search::UpdateAccumulators(const Move& m, const uint8_t movedPiece, const u
 
 		case MoveFlag::ShortCastle:
 			if (ColorOfPiece(movedPiece) == PieceColor::White) {
-				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::G1));
-				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::F1));
+				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::G1, whiteKingSq, blackKingSq));
+				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::F1, whiteKingSq, blackKingSq));
 			}
 			else {
-				Accumulator.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::G8));
-				Accumulator.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::F8));
+				Accumulator.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::G8, whiteKingSq, blackKingSq));
+				Accumulator.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::F8, whiteKingSq, blackKingSq));
 			}
 			break;
 
 		case MoveFlag::LongCastle:
 			if (ColorOfPiece(movedPiece) == PieceColor::White) {
-				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::C1));
-				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::D1));
+				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::C1, whiteKingSq, blackKingSq));
+				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::D1, whiteKingSq, blackKingSq));
 			}
 			else {
-				Accumulator.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::C8));
-				Accumulator.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::D8));
+				Accumulator.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::C8, whiteKingSq, blackKingSq));
+				Accumulator.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::D8, whiteKingSq, blackKingSq));
 			}
 			break;
 
 		// Treat en passant
 		case MoveFlag::EnPassantPerformed:
-			if (movedPiece == Piece::WhitePawn) Accumulator.RemoveFeature( FeatureIndexes(Piece::BlackPawn, m.to - 8) );
-			else Accumulator.RemoveFeature( FeatureIndexes(Piece::WhitePawn, m.to + 8) );
+			if (movedPiece == Piece::WhitePawn) Accumulator.RemoveFeature( FeatureIndexes(Piece::BlackPawn, m.to - 8, whiteKingSq, blackKingSq));
+			else Accumulator.RemoveFeature( FeatureIndexes(Piece::WhitePawn, m.to + 8, whiteKingSq, blackKingSq));
 			break;
 	}
-
 }
 
 // PV table ---------------------------------------------------------------------------------------
