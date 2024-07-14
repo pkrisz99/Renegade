@@ -16,9 +16,7 @@ public:
 	// Killer move heuristic:
 	void AddKillerMove(const Move& move, const int level);
 	bool IsKillerMove(const Move& move, const int level) const;
-	bool IsFirstKillerMove(const Move& move, const int level) const;
-	bool IsSecondKillerMove(const Move& move, const int level) const;
-	void ResetKillersForPly(const int level);
+	void ResetKillerForPly(const int level);
 
 	// Countermove heuristic:
 	void AddCountermove(const Move& previousMove, const Move& thisMove);
@@ -35,7 +33,7 @@ private:
 		value += amount - gravity;
 	}
 
-	std::array<std::array<Move, 2>, MaxDepth> KillerMoves;
+	std::array<Move, MaxDepth> KillerMoves;
 	std::array<std::array<Move, 64>, 64> CounterMoves;
 
 	using ThreatHistory = std::array<std::array<std::array<std::array<int16_t, 2>, 2>, 64>, 14>;

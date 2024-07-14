@@ -425,7 +425,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		OrderMoves(position, MoveListStack[level], level, ttMove);
 
 		// Resetting killers and fail-high cutoff counts
-		if (level + 2 < MaxDepth) History.ResetKillersForPly(level + 2);
+		if (level + 2 < MaxDepth) History.ResetKillerForPly(level + 2);
 		if (level + 1 < MaxDepth) CutoffCount[level + 1] = 0;
 		if (level > 0) DoubleExtensions[level] = DoubleExtensions[level - 1];
 	}
@@ -943,8 +943,7 @@ int Search::CalculateOrderScore(const Position& position, const Move& m, const i
 	}
 
 	// Quiet killer moves
-	if (History.IsFirstKillerMove(m, level)) return 100100;
-	if (History.IsSecondKillerMove(m, level)) return 100000;
+	if (History.IsKillerMove(m, level)) return 100000;
 
 	// Countermove heuristic
 	if (level > 0 && useMoveStack && History.IsCountermove(position.GetPreviousMove(1).move, m)) return 99000;
