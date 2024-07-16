@@ -19,8 +19,8 @@ public:
 	void ResetKillerForPly(const int level);
 
 	// Countermove heuristic:
-	void AddCountermove(const Move& previousMove, const Move& thisMove);
-	bool IsCountermove(const Move& previousMove, const Move& thisMove) const;
+	void AddCountermove(const Move& previousMove, const Move& thisMove, const Position& pos);
+	bool IsCountermove(const Move& previousMove, const Move& thisMove, const Position& pos) const;
 
 	// History heuristic (quiet moves):
 	void UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level);
@@ -34,7 +34,7 @@ private:
 	}
 
 	std::array<Move, MaxDepth> KillerMoves;
-	std::array<std::array<Move, 64>, 64> CounterMoves;
+	std::array<std::array<std::array<std::array<Move, 2>, 2>, 64>, 64> CounterMoves;
 
 	using ThreatHistory = std::array<std::array<std::array<std::array<int16_t, 2>, 2>, 64>, 14>;
 	ThreatHistory HistoryTables;

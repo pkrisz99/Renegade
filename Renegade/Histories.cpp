@@ -31,12 +31,21 @@ void Histories::ResetKillerForPly(const int level) {
 	KillerMoves[level] = EmptyMove;
 }
 
-void Histories::AddCountermove(const Move& previousMove, const Move& thisMove) {
-	if (!previousMove.IsNull()) CounterMoves[previousMove.from][previousMove.to] = thisMove;
+void Histories::AddCountermove(const Move& previousMove, const Move& thisMove, const Position& pos) {
+	if (!previousMove.IsNull()) {
+		const uint64_t threats = pos.GetThreats();
+		const bool fromSquareAttacked = CheckBit(threats, previousMove.from);
+		const bool toSquareAttacked = CheckBit(threats, previousMove.to);
+		CounterMoves[previousMove.from][previousMove.to][fromSquareAttacked][toSquareAttacked] = thisMove;
+	}
 }
 
-bool Histories::IsCountermove(const Move& previousMove, const Move& thisMove) const {
-	return CounterMoves[previousMove.from][previousMove.to] == thisMove;
+bool Histories::IsCountermove(const Move& previousMove, const Move& thisMove, const Position& pos) const {
+	if (previousMove.IsNull()) return false;
+	const uint64_t previousThreats = pos.GetPreviousThreats(1);
+	const bool fromSquareAttacked = CheckBit(previousThreats, previousMove.from);
+	const bool toSquareAttacked = CheckBit(previousThreats, previousMove.to);
+	return CounterMoves[previousMove.from][previousMove.to][fromSquareAttacked][toSquareAttacked] == thisMove;
 }
 
 // History heuristic ------------------------------------------------------------------------------

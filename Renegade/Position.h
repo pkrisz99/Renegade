@@ -98,6 +98,13 @@ public:
 		return Moves[Moves.size() - plys];
 	}
 
+	inline uint64_t GetPreviousThreats(const int plys) const {
+		assert(plys > 0);
+		assert(plys <= Threats.size());
+		assert(Threats[Threats.size() - plys - 1] != 0ull);
+		return Threats[Threats.size() - plys - 1];
+	}
+
 	inline bool PreviousMoveIsNull() const {
 		return Moves.size() != 0 && Moves.back().move == NullMove;
 	}

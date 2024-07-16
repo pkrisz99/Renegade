@@ -557,7 +557,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 					// If a quiet move causes a fail-high, update move ordering tables
 					if (isQuiet) {
 						History.AddKillerMove(m, level);
-						if (level > 0) History.AddCountermove(position.GetPreviousMove(1).move, m);
+						if (level > 0) History.AddCountermove(position.GetPreviousMove(1).move, m, position);
 						if (depth > 1) History.UpdateHistory(position, m, movedPiece, historyDelta, level);
 					}
 
@@ -946,7 +946,7 @@ int Search::CalculateOrderScore(const Position& position, const Move& m, const i
 	if (History.IsKillerMove(m, level)) return 100000;
 
 	// Countermove heuristic
-	if (level > 0 && useMoveStack && History.IsCountermove(position.GetPreviousMove(1).move, m)) return 99000;
+	if (level > 0 && useMoveStack && History.IsCountermove(position.GetPreviousMove(1).move, m, position)) return 99000;
 
 	// Quiet moves
 	const bool turn = position.Turn();
