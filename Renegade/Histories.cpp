@@ -20,33 +20,15 @@ void Histories::ClearKillerAndCounterMoves() {
 
 void Histories::AddKillerMove(const Move& move, const int level) {
 	if (level >= MaxDepth) return;
-	if (IsFirstKillerMove(move, level)) return;
-	if (IsSecondKillerMove(move, level)) {
-		KillerMoves[level][1] = KillerMoves[level][0];
-		KillerMoves[level][0] = move;
-		return;
-	}
-	KillerMoves[level][1] = KillerMoves[level][0];
-	KillerMoves[level][0] = move;
+	KillerMoves[level] = move;
 }
 
 bool Histories::IsKillerMove(const Move& move, const int level) const {
-	if (KillerMoves[level][0] == move) return true;
-	if (KillerMoves[level][1] == move) return true;
-	return false;
+	return KillerMoves[level] == move;
 }
 
-bool Histories::IsFirstKillerMove(const Move& move, const int level) const {
-	return KillerMoves[level][0] == move;
-}
-
-bool Histories::IsSecondKillerMove(const Move& move, const int level) const {
-	return KillerMoves[level][1] == move;
-}
-
-void Histories::ResetKillersForPly(const int level) {
-	KillerMoves[level][0] = EmptyMove;
-	KillerMoves[level][1] = EmptyMove;
+void Histories::ResetKillerForPly(const int level) {
+	KillerMoves[level] = EmptyMove;
 }
 
 void Histories::AddCountermove(const Move& previousMove, const Move& thisMove) {
