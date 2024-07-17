@@ -945,9 +945,6 @@ int Search::CalculateOrderScore(const Position& position, const Move& m, const i
 	// Quiet killer moves
 	if (History.IsKillerMove(m, level)) return 100000;
 
-	// Countermove heuristic
-	if (level > 0 && useMoveStack && History.IsCountermove(position.GetPreviousMove(1).move, m)) return 99000;
-
 	// Quiet moves
 	const bool turn = position.Turn();
 	const int historyScore = History.GetHistoryScore(position, m, movedPiece, level);
