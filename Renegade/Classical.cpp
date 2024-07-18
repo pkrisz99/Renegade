@@ -1,29 +1,38 @@
-#include "Evaluation.h"
+#include "Classical.h"
 
-int ClassicalEvaluate(const Position& position, const EvaluationFeatures& weights) {
+int ClassicalEvaluate(const Position& position) {
 
-	// Renegade's classical evaluation function used before version 1.0.0
+	// Renegade's classical evaluation function used before version 1.0.0 (January 2024)
 	// This was replaced by a significantly stronger NNUE evaluation
 
 	const Board& board = position.CurrentState();
+	const EvaluationFeatures& weights = Weights;
 
 	TaperedScore materialScore, pqstScore, pawnStructureScore, threatScore, mobilityScore, kingScore;
 	const uint64_t occupancy = position.GetOccupancy();
 	const uint64_t whitePieces = position.GetOccupancy(Side::White);
 	const uint64_t blackPieces = position.GetOccupancy(Side::Black);
-	const float phase = CalculateGamePhase(position);
 	const uint64_t whitePawnAttacks = position.GetPawnAttacks<Side::White>();
 	const uint64_t blackPawnAttacks = position.GetPawnAttacks<Side::Black>();
 	uint64_t whiteAttacks = 0, blackAttacks = 0;
 
-	int whiteDangerScore = 0;
-	int blackDangerScore = 0;
-	int whiteDangerPieces = 0;
-	int blackDangerPieces = 0;
+	const float phase = [&] {
+		const int remainingPawns = Popcount(position.WhitePawnBits() | position.BlackPawnBits());
+		const int remainingKnights = Popcount(position.WhiteKnightBits() | position.BlackKnightBits());
+		const int remainingBishops = Popcount(position.WhiteBishopBits() | position.BlackBishopBits());
+		const int remainingRooks = Popcount(position.WhiteRookBits() | position.BlackRookBits());
+		const int remainingQueens = Popcount(position.WhiteQueenBits() | position.BlackQueenBits());
+		const int remainingScore = remainingPawns + remainingKnights * 10 + remainingBishops * 10 + remainingRooks * 20 + remainingQueens * 40;
+		const float phase = (256 - remainingScore) / (256.f);
+		return std::clamp(phase, 0.f, 1.f);
+	}();
 
-	const int whiteKingSquare = LsbSquare(board.WhiteKingBits);
+	int whiteDangerScore = 0, blackDangerScore = 0;
+	int whiteDangerPieces = 0, blackDangerPieces = 0;
+
+	const int whiteKingSquare = position.WhiteKingSquare();
+	const int blackKingSquare = position.BlackKingSquare();
 	const uint64_t whiteKingZone = KingArea[whiteKingSquare];
-	const int blackKingSquare = LsbSquare(board.BlackKingBits);
 	const uint64_t blackKingZone = KingArea[blackKingSquare];
 
 	uint64_t piecesOnBoard = occupancy;
@@ -116,7 +125,7 @@ int ClassicalEvaluate(const Position& position, const EvaluationFeatures& weight
 				blackDangerPieces += 1;
 			}
 			// Knight outposts
-			if (OutpostFilter[sq]) {
+			if (CheckBit(OutpostFilter, sq)) {
 				if ((board.GetPieceAt(sq - 7) == Piece::WhitePawn) || (board.GetPieceAt(sq - 9) == Piece::WhitePawn)) {
 					threatScore += weights.GetKnightOutpostEval();
 				}
@@ -139,7 +148,7 @@ int ClassicalEvaluate(const Position& position, const EvaluationFeatures& weight
 				whiteDangerPieces += 1;
 			}
 			// Knight outposts
-			if (OutpostFilter[sq]) {
+			if (CheckBit(OutpostFilter, sq)) {
 				if ((board.GetPieceAt(sq + 7) == Piece::BlackPawn) || (board.GetPieceAt(sq + 9) == Piece::BlackPawn)) {
 					threatScore -= weights.GetKnightOutpostEval();
 				}

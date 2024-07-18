@@ -1,7 +1,7 @@
 #pragma once
 #include "Histories.h"
 #include "Movepicker.h"
-#include "Neurals.h"
+#include "Neural.h"
 #include "Position.h"
 #include "Reporting.h"
 #include "Transpositions.h"

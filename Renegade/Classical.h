@@ -6,10 +6,53 @@ uint64_t GetBishopAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
 
+// Tapered score struct ---------------------------------------------------------------------------
+
+struct TaperedScore {
+	int early = 0;
+	int late = 0;
+	inline TaperedScore operator+ (const TaperedScore& s) const {
+		return { early + s.early, late + s.late };
+	}
+	inline TaperedScore operator- (const TaperedScore& s) const {
+		return { early - s.early, late - s.late };
+	}
+	inline TaperedScore& operator+= (const TaperedScore& s) {
+		early += s.early;
+		late += s.late;
+		return *this;
+	}
+	inline TaperedScore& operator-= (const TaperedScore& s) {
+		early -= s.early;
+		late -= s.late;
+		return *this;
+	}
+	inline TaperedScore operator* (const int m) const {
+		return { early * m, late * m };
+	}
+};
+
+#define S(early, late) TaperedScore{early, late}
+
+// Functions --------------------------------------------------------------------------------------
+
+int ClassicalEvaluate(const Position& position);
+inline bool IsDrawishEndgame(const Position& position, const uint64_t whitePieces, const uint64_t blackPieces);
+
+inline int LinearTaper(const int earlyValue, const int lateValue, const float phase) {
+	return static_cast<int>((1.f - phase) * earlyValue + phase * lateValue);
+}
+
+inline int LinearTaper(const TaperedScore& tapered, const float phase) {
+	return static_cast<int>((1.f - phase) * tapered.early + phase * tapered.late);
+}
+
+// Features and values ----------------------------------------------------------------------------
+
 struct EvaluationFeatures {
 
 	// Weight size and its array
-	static constexpr int WeightSize = 886;
+	static constexpr int WeightSize = 874;
 	TaperedScore Weights[WeightSize];
 
 	// King safety constants
@@ -24,29 +67,26 @@ struct EvaluationFeatures {
 	constexpr int IndexRookMobility(const uint8_t mobility) const { return 413 + mobility; }
 	constexpr int IndexQueenMobility(const uint8_t mobility) const { return 428 + mobility; }
 	constexpr int IndexKingDanger(const uint8_t danger) const { return 455 + danger; }
-	//constexpr int IndexPassedPawn(const uint8_t rank) const { return 481 + rank; }
-	constexpr int IndexBlockedPasser(const uint8_t rank) const { return 489 + rank; }
-	constexpr int IndexIsolatedPawn(const uint8_t file) const { return 497 + file; }
-	const int IndexDoubledPawns = 505;
-	const int IndexTripledPawns = 506;
-	const int IndexBishopPair = 507;
-	//const int IndexRookOnOpenFile = 508;
-	//const int IndexRookOnSemiOpenFile = 509;
-	const int IndexKnightOutpost = 510;
-	const int IndexTempoBonus = 513;
-	constexpr int IndexPawnThreats(const uint8_t attackedPieceType) const { return 513 + attackedPieceType; };
-	constexpr int IndexKnightThreats(const uint8_t attackedPieceType) const { return 519 + attackedPieceType; };
-	constexpr int IndexBishopThreats(const uint8_t attackedPieceType) const { return 525 + attackedPieceType; };
-	constexpr int IndexRookThreats(const uint8_t attackedPieceType) const { return 531 + attackedPieceType; };
-	constexpr int IndexQueenThreats(const uint8_t attackedPieceType) const { return 537 + attackedPieceType; };
-	constexpr int IndexKingThreats(const uint8_t attackedPieceType) const { return 543 + attackedPieceType; };
-	constexpr int IndexPawnSupportingPawn(const uint8_t rank) const { return 550 + rank; };
-	constexpr int IndexPawnPhalanx(const uint8_t rank) const { return 558 + rank; };
-	constexpr int IndexRookOnOpenFile(const uint8_t sq) const { return 566 + sq; };
-	constexpr int IndexRookOnSemiOpenFile(const uint8_t sq) const { return 630 + sq; };
-	constexpr int IndexPassedPawn(const uint8_t sq) const { return 694 + sq; }
-	constexpr int IndexKingOnOpenFile(const uint8_t sq) const { return 758 + sq; }
-	constexpr int IndexKingOnSemiOpenFile(const uint8_t sq) const { return 822 + sq; }
+	constexpr int IndexPassedPawn(const uint8_t sq) const { return 481 + sq; }
+	constexpr int IndexBlockedPasser(const uint8_t rank) const { return 545 + rank; }
+	constexpr int IndexIsolatedPawn(const uint8_t file) const { return 553 + file; }
+	const int IndexDoubledPawns = 561;
+	const int IndexTripledPawns = 562;
+	constexpr int IndexPawnSupportingPawn(const uint8_t rank) const { return 563 + rank; };
+	constexpr int IndexPawnPhalanx(const uint8_t rank) const { return 571 + rank; };
+	constexpr int IndexPawnThreats(const uint8_t attackedPieceType) const { return 578 + attackedPieceType; };
+	constexpr int IndexKnightThreats(const uint8_t attackedPieceType) const { return 584 + attackedPieceType; };
+	constexpr int IndexBishopThreats(const uint8_t attackedPieceType) const { return 590 + attackedPieceType; };
+	constexpr int IndexRookThreats(const uint8_t attackedPieceType) const { return 596 + attackedPieceType; };
+	constexpr int IndexQueenThreats(const uint8_t attackedPieceType) const { return 602 + attackedPieceType; };
+	constexpr int IndexKingThreats(const uint8_t attackedPieceType) const { return 608 + attackedPieceType; };
+	const int IndexBishopPair = 615;
+	const int IndexKnightOutpost = 616;
+	const int IndexTempoBonus = 617;
+	constexpr int IndexRookOnOpenFile(const uint8_t sq) const { return 618 + sq; };
+	constexpr int IndexRookOnSemiOpenFile(const uint8_t sq) const { return 682 + sq; };
+	constexpr int IndexKingOnOpenFile(const uint8_t sq) const { return 746 + sq; }
+	constexpr int IndexKingOnSemiOpenFile(const uint8_t sq) const { return 810 + sq; }
 
 	// Shorthand for retrieving the evaluation
 	inline const TaperedScore& GetMaterial(const uint8_t pieceType) const { return Weights[IndexPieceMaterial(pieceType)]; }
@@ -61,38 +101,32 @@ struct EvaluationFeatures {
 	inline const TaperedScore& GetIsolatedPawnEval(const uint8_t file) const { return Weights[IndexIsolatedPawn(file)]; }
 	inline const TaperedScore& GetDoubledPawnEval() const { return Weights[IndexDoubledPawns]; }
 	inline const TaperedScore& GetTripledPawnEval() const { return Weights[IndexTripledPawns]; }
-	inline const TaperedScore& GetBishopPairEval() const { return Weights[IndexBishopPair]; }
-	//inline const TaperedScore& GetRookOnOpenFileEval() const { return Weights[IndexRookOnOpenFile]; }
-	//inline const TaperedScore& GetRookOnSemiOpenFileEval() const { return Weights[IndexRookOnSemiOpenFile]; }
-	inline const TaperedScore& GetKnightOutpostEval() const { return Weights[IndexKnightOutpost]; }
-	inline const TaperedScore& GetTempoBonus() const { return Weights[IndexTempoBonus]; }
+	inline const TaperedScore& GetPawnSupportingPawn(const uint8_t rank) const { return Weights[IndexPawnSupportingPawn(rank)]; }
+	inline const TaperedScore& GetPawnPhalanx(const uint8_t rank) const { return Weights[IndexPawnPhalanx(rank)]; }
 	inline const TaperedScore& GetPawnThreat(const uint8_t attackedPieceType) const { return Weights[IndexPawnThreats(attackedPieceType)]; }
 	inline const TaperedScore& GetKnightThreat(const uint8_t attackedPieceType) const { return Weights[IndexKnightThreats(attackedPieceType)]; }
 	inline const TaperedScore& GetBishopThreat(const uint8_t attackedPieceType) const { return Weights[IndexBishopThreats(attackedPieceType)]; }
 	inline const TaperedScore& GetRookThreat(const uint8_t attackedPieceType) const { return Weights[IndexRookThreats(attackedPieceType)]; }
 	inline const TaperedScore& GetQueenThreat(const uint8_t attackedPieceType) const { return Weights[IndexQueenThreats(attackedPieceType)]; }
 	inline const TaperedScore& GetKingThreat(const uint8_t attackedPieceType) const { return Weights[IndexKingThreats(attackedPieceType)]; }
-	inline const TaperedScore& GetPawnSupportingPawn(const uint8_t rank) const { return Weights[IndexPawnSupportingPawn(rank)]; }
-	inline const TaperedScore& GetPawnPhalanx(const uint8_t rank) const { return Weights[IndexPawnPhalanx(rank)]; }
+	inline const TaperedScore& GetBishopPairEval() const { return Weights[IndexBishopPair]; }
+	inline const TaperedScore& GetKnightOutpostEval() const { return Weights[IndexKnightOutpost]; }
+	inline const TaperedScore& GetTempoBonus() const { return Weights[IndexTempoBonus]; }
 	inline const TaperedScore& GetRookOnOpenFileBonus(const uint8_t sq) const { return Weights[IndexRookOnOpenFile(sq)]; }
 	inline const TaperedScore& GetRookOnSemiOpenFileBonus(const uint8_t sq) const { return Weights[IndexRookOnSemiOpenFile(sq)]; }
 	inline const TaperedScore& GetKingOnOpenFileEval(const uint8_t sq) const { return Weights[IndexKingOnOpenFile(sq)]; }
 	inline const TaperedScore& GetKingOnSemiOpenFileEval(const uint8_t sq) const { return Weights[IndexKingOnSemiOpenFile(sq)]; }
 };
 
-
-// Using S as tapered score seems somewhat standard
-#define S(early, late) TaperedScore{early, late}
-
 constexpr EvaluationFeatures Weights = {
 	// These are the weights used in the hand-crafted evaluation
-	// Please note that some of these are no longer used, but life is short and organizing them takes a while
+	// It is a bit messy, but life is short and organizing them takes a while
 	
 	// 1. Material values (pawn, knight, bishop, rook, queen, king)
 	S(80, 92), S(356, 355), S(368, 380), S(479, 684), S(1107, 1245), S(0, 0), 
 
 	// 2. Piece-square tables
-	// Be careful, counter-intuitively the 1st element corresponds to white's bottom-left corner
+	// Be careful, counter-intuitively the first element corresponds to white's bottom-left corner
 
 	// 2.1 Pawn PSQT
 	S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0),
@@ -174,7 +208,6 @@ constexpr EvaluationFeatures Weights = {
 	S(11, 38), S(14, 46), S(11, 60), S(9, 69), S(18, 69), S(36, 62), S(23, 81),
 	S(72, 58), S(61, 70), S(72, 63), S(128, 70), S(100, 49), S(98, 71), S(92, 60),
 
-
 	// 4. King safety (1-25 danger points)
 	// Danger points are given for attacks near the king, and then scaled according to the attacker count
 
@@ -187,8 +220,15 @@ constexpr EvaluationFeatures Weights = {
 	// 5. Pawn structure
 	// Collection of features to evaluate the pawn structure
 
-	// 5.1 Passed pawns by rank -- unused
-	S(0, 0), S(-6, 9), S(-11, 19), S(-8, 45), S(18, 74), S(46, 118), S(45, 78), S(0, 0),
+	// 5.1 Passed pawn bonus PSQT
+	S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0),
+	S(-9, 8), S(-3, 12), S(-15, 13), S(-13, 11), S(4, -7), S(2, 5), S(12, 12), S(5, 8),
+	S(-3, 14), S(-16, 24), S(-21, 22), S(-19, 15), S(-18, 16), S(-12, 17), S(-19, 41), S(17, 11),
+	S(6, 55), S(1, 48), S(-11, 39), S(-5, 33), S(-17, 39), S(-4, 42), S(-14, 60), S(-3, 51),
+	S(29, 93), S(24, 93), S(31, 67), S(21, 65), S(3, 63), S(15, 72), S(-12, 93), S(-10, 94),
+	S(53, 162), S(79, 152), S(47, 139), S(27, 117), S(26, 115), S(16, 134), S(-6, 136), S(-6, 150),
+	S(57, 89), S(27, 88), S(43, 87), S(36, 82), S(45, 79), S(35, 87), S(49, 85), S(48, 82),
+	S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0),
 
 	// 5.2 Blocked passed pawn penalties by rank
 	S(0, 0), S(-25, 13), S(-14, 10), S(-15, -15), S(-6, -37), S(11, -110), S(-31, -126), S(0, 0),
@@ -199,26 +239,13 @@ constexpr EvaluationFeatures Weights = {
 	// 5.4 Doubled and tripled pawns
 	S(-6, -23), S(4, -61),
 
-	// 6. Misc & piece-specific evaluation
+	// 5.5 Supported pawn bonus (by rank)
+	S(0, 0), S(0, 0), S(18, 12), S(13, 7), S(16, 15), S(39, 35), S(150, 30), S(0, 0),
 
-	// 6.1 Bishop pairs
-	S(23, 73),
+	// 5.6 Pawn phalanx (by rank)
+	S(0, 0), S(7, -4), S(15, 7), S(26, 17), S(59, 54), S(122, 122), S(122, 122), S(0, 0),
 
-	// 6.2 Rook on open and semi-open file -- unused
-	S(29, 12), S(13, 9),
-
-	// 6.3 Knight outposts
-	S(7, 21),
-
-	// 6.4 Pawn attacking minor and major pieces -- unused
-	S(51, 28), S(56, 32),
-
-	// 6.5 Tempo bonus
-	S(20, 0),
-
-	// 7. To be sorted
-
-	// 7.1 Threat matrix
+	// 6. Threat matrix
 	// It somewhat helps to see beyond the horizon, also it ruins nps
 	// Threatened king values are 0 due to the tuning dataset lacking such positions
 
@@ -235,11 +262,17 @@ constexpr EvaluationFeatures Weights = {
 	// King attacking
 	S(23, 35), S(-40, 17), S(-30, 28), S(-40, 11), S(0, 0), S(0, 0),
 
-	// 7.2 Supported pawn bonus (by rank)
-	S(0, 0), S(0, 0), S(18, 12), S(13, 7), S(16, 15), S(39, 35), S(150, 30), S(0, 0),
+	// 7. Misc & piece-specific evaluation
+	// Features that don't really fit into other categories
 
-	// 7.3 Pawn phalanx (by rank)
-	S(0, 0), S(7, -4), S(15, 7), S(26, 17), S(59, 54), S(122, 122), S(122, 122), S(0, 0),
+	// 7.1 Bishop pairs
+	S(23, 73),
+
+	// 7.2 Knight outposts
+	S(7, 21),
+
+	// 7.3 Tempo bonus
+	S(20, 0),
 
 	// 7.4 Rook open file bonus PSQT
 	S(30, 8), S(24, 26), S(20, 32), S(19, 20), S(31, 16), S(43, 4), S(81, 18), S(93, 24),
@@ -261,17 +294,7 @@ constexpr EvaluationFeatures Weights = {
 	S(45, 67), S(55, 19), S(30, 24), S(24, 31), S(0, 12), S(20, 9), S(21, 8), S(57, 39),
 	S(47, 65), S(33, 36), S(-15, 27), S(26, 19), S(-37, 21), S(-6, 1), S(6, 1), S(-43, 35),
 
-	// 7.6 Passed pawn bonus PSQT
-	S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0),
-	S(-9, 8), S(-3, 12), S(-15, 13), S(-13, 11), S(4, -7), S(2, 5), S(12, 12), S(5, 8),
-	S(-3, 14), S(-16, 24), S(-21, 22), S(-19, 15), S(-18, 16), S(-12, 17), S(-19, 41), S(17, 11),
-	S(6, 55), S(1, 48), S(-11, 39), S(-5, 33), S(-17, 39), S(-4, 42), S(-14, 60), S(-3, 51),
-	S(29, 93), S(24, 93), S(31, 67), S(21, 65), S(3, 63), S(15, 72), S(-12, 93), S(-10, 94),
-	S(53, 162), S(79, 152), S(47, 139), S(27, 117), S(26, 115), S(16, 134), S(-6, 136), S(-6, 150),
-	S(57, 89), S(27, 88), S(43, 87), S(36, 82), S(45, 79), S(35, 87), S(49, 85), S(48, 82),
-	S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0), S(0, 0),
-
-	// 7.7 King on open file delta PSQT
+	// 7.6 King on open file delta PSQT
 	S(-120, -11), S(-120, -14), S(-102, -4), S(-76, 11), S(-71, 28), S(-97, 10), S(-110, 25), S(-102, 28),
 	S(-120, -25), S(-120, -4), S(-89, 2), S(-88, 4), S(-102, 10), S(-102, 12), S(-112, 17), S(-46, -2),
 	S(-68, -25), S(-46, 0), S(-64, -6), S(-71, 1), S(-96, 1), S(-49, 2), S(-77, 12), S(-46, -3),
@@ -281,7 +304,7 @@ constexpr EvaluationFeatures Weights = {
 	S(-46, -58), S(-54, -54), S(-104, -49), S(-24, -35), S(-43, -10), S(-43, -3), S(-34, -24), S(27, -19),
 	S(-23, -35), S(-35, -86), S(-44, -53), S(-53, -28), S(-44, -6), S(-35, -9), S(-41, -46), S(56, -61),
 	
-	// 7.8 King on semi-open file delta PSQT
+	// 7.7 King on semi-open file delta PSQT
 	S(-54, 116), S(-102, 74), S(-49, 28), S(-20, 25), S(-16, 19), S(-34, 18), S(-33, 28), S(-49, 67),
 	S(-59, 66), S(-53, 28), S(-40, 26), S(-25, 11), S(-22, 0), S(-28, 10), S(-34, 20), S(-29, 27),
 	S(-44, 49), S(-10, 13), S(-31, 2), S(-21, -9), S(-20, -18), S(-33, 11), S(-5, 9), S(-12, 29),
@@ -292,32 +315,78 @@ constexpr EvaluationFeatures Weights = {
 	S(12, 55), S(-14, 28), S(56, -83), S(-69, 19), S(-76, -68), S(-43, -31), S(-7, 42), S(-15, 17),
 };
 
-inline int LinearTaper(const int earlyValue, const int lateValue, const float phase) {
-	return static_cast<int>((1.f - phase) * earlyValue + phase * lateValue);
-}
+// Lookup bitboards -------------------------------------------------------------------------------
 
-inline int LinearTaper(const TaperedScore& tapered, const float phase) {
-	return static_cast<int>((1.f - phase) * tapered.early + phase * tapered.late);
-}
+// Used to select passed pawn candidates
+constexpr std::array<uint64_t, 64> WhitePassedPawnMask = {
+	0x0303030303030300, 0x0707070707070700, 0x0e0e0e0e0e0e0e00, 0x1c1c1c1c1c1c1c00, 0x3838383838383800, 0x7070707070707000, 0xe0e0e0e0e0e0e000, 0xc0c0c0c0c0c0c000,
+	0x0303030303030000, 0x0707070707070000, 0x0e0e0e0e0e0e0000, 0x1c1c1c1c1c1c0000, 0x3838383838380000, 0x7070707070700000, 0xe0e0e0e0e0e00000, 0xc0c0c0c0c0c00000,
+	0x0303030303000000, 0x0707070707000000, 0x0e0e0e0e0e000000, 0x1c1c1c1c1c000000, 0x3838383838000000, 0x7070707070000000, 0xe0e0e0e0e0000000, 0xc0c0c0c0c0000000,
+	0x0303030300000000, 0x0707070700000000, 0x0e0e0e0e00000000, 0x1c1c1c1c00000000, 0x3838383800000000, 0x7070707000000000, 0xe0e0e0e000000000, 0xc0c0c0c000000000,
+	0x0303030000000000, 0x0707070000000000, 0x0e0e0e0000000000, 0x1c1c1c0000000000, 0x3838380000000000, 0x7070700000000000, 0xe0e0e00000000000, 0xc0c0c00000000000,
+	0x0303000000000000, 0x0707000000000000, 0x0e0e000000000000, 0x1c1c000000000000, 0x3838000000000000, 0x7070000000000000, 0xe0e0000000000000, 0xc0c0000000000000,
+	0x0300000000000000, 0x0700000000000000, 0x0e00000000000000, 0x1c00000000000000, 0x3800000000000000, 0x7000000000000000, 0xe000000000000000, 0xc000000000000000,
+	0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000
+};
 
+constexpr std::array<uint64_t, 64> BlackPassedPawnMask = {
+	0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+	0x0000000000000003, 0x0000000000000007, 0x000000000000000e, 0x000000000000001c, 0x0000000000000038, 0x0000000000000070, 0x00000000000000e0, 0x00000000000000c0,
+	0x0000000000000303, 0x0000000000000707, 0x0000000000000e0e, 0x0000000000001c1c, 0x0000000000003838, 0x0000000000007070, 0x000000000000e0e0, 0x000000000000c0c0,
+	0x0000000000030303, 0x0000000000070707, 0x00000000000e0e0e, 0x00000000001c1c1c, 0x0000000000383838, 0x0000000000707070, 0x0000000000e0e0e0, 0x0000000000c0c0c0,
+	0x0000000003030303, 0x0000000007070707, 0x000000000e0e0e0e, 0x000000001c1c1c1c, 0x0000000038383838, 0x0000000070707070, 0x00000000e0e0e0e0, 0x00000000c0c0c0c0,
+	0x0000000303030303, 0x0000000707070707, 0x0000000e0e0e0e0e, 0x0000001c1c1c1c1c, 0x0000003838383838, 0x0000007070707070, 0x000000e0e0e0e0e0, 0x000000c0c0c0c0c0,
+	0x0000030303030303, 0x0000070707070707, 0x00000e0e0e0e0e0e, 0x00001c1c1c1c1c1c, 0x0000383838383838, 0x0000707070707070, 0x0000e0e0e0e0e0e0, 0x0000c0c0c0c0c0c0,
+	0x0003030303030303, 0x0007070707070707, 0x000e0e0e0e0e0e0e, 0x001c1c1c1c1c1c1c, 0x0038383838383838, 0x0070707070707070, 0x00e0e0e0e0e0e0e0, 0x00c0c0c0c0c0c0c0
+};
 
-inline float CalculateGamePhase(const Position& position) {
-	const int remainingPawns = Popcount(position.WhitePawnBits() | position.BlackPawnBits());
-	const int remainingKnights = Popcount(position.WhiteKnightBits() | position.BlackKnightBits());
-	const int remainingBishops = Popcount(position.WhiteBishopBits() | position.BlackBishopBits());
-	const int remainingRooks = Popcount(position.WhiteRookBits() | position.BlackRookBits());
-	const int remainingQueens = Popcount(position.WhiteQueenBits() | position.BlackQueenBits());
-	const int remainingScore = remainingPawns + remainingKnights * 10 + remainingBishops * 10 + remainingRooks * 20 + remainingQueens * 40;
-	const float phase = (256 - remainingScore) / (256.f);
-	return std::clamp(phase, 0.f, 1.f);
-}
+// Filters passed pawn candidates
+constexpr std::array<uint64_t, 64> WhitePassedPawnFilter = {
+	0x0101010101010100, 0x0202020202020200, 0x0404040404040400, 0x0808080808080800, 0x1010101010101000, 0x2020202020202000, 0x4040404040404000, 0x8080808080808000,
+	0x0101010101010000, 0x0202020202020000, 0x0404040404040000, 0x0808080808080000, 0x1010101010100000, 0x2020202020200000, 0x4040404040400000, 0x8080808080800000,
+	0x0101010101000000, 0x0202020202000000, 0x0404040404000000, 0x0808080808000000, 0x1010101010000000, 0x2020202020000000, 0x4040404040000000, 0x8080808080000000,
+	0x0101010100000000, 0x0202020200000000, 0x0404040400000000, 0x0808080800000000, 0x1010101000000000, 0x2020202000000000, 0x4040404000000000, 0x8080808000000000,
+	0x0101010000000000, 0x0202020000000000, 0x0404040000000000, 0x0808080000000000, 0x1010100000000000, 0x2020200000000000, 0x4040400000000000, 0x8080800000000000,
+	0x0101000000000000, 0x0202000000000000, 0x0404000000000000, 0x0808000000000000, 0x1010000000000000, 0x2020000000000000, 0x4040000000000000, 0x8080000000000000,
+	0x0100000000000000, 0x0200000000000000, 0x0400000000000000, 0x0800000000000000, 0x1000000000000000, 0x2000000000000000, 0x4000000000000000, 0x8000000000000000,
+	0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000
+};
 
+constexpr std::array<uint64_t, 64> BlackPassedPawnFilter = {
+	0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+	0x0000000000000001, 0x0000000000000002, 0x0000000000000004, 0x0000000000000008, 0x0000000000000010, 0x0000000000000020, 0x0000000000000040, 0x0000000000000080,
+	0x0000000000000101, 0x0000000000000202, 0x0000000000000404, 0x0000000000000808, 0x0000000000001010, 0x0000000000002020, 0x0000000000004040, 0x0000000000008080,
+	0x0000000000010101, 0x0000000000020202, 0x0000000000040404, 0x0000000000080808, 0x0000000000101010, 0x0000000000202020, 0x0000000000404040, 0x0000000000808080,
+	0x0000000001010101, 0x0000000002020202, 0x0000000004040404, 0x0000000008080808, 0x0000000010101010, 0x0000000020202020, 0x0000000040404040, 0x0000000080808080,
+	0x0000000101010101, 0x0000000202020202, 0x0000000404040404, 0x0000000808080808, 0x0000001010101010, 0x0000002020202020, 0x0000004040404040, 0x0000008080808080,
+	0x0000010101010101, 0x0000020202020202, 0x0000040404040404, 0x0000080808080808, 0x0000101010101010, 0x0000202020202020, 0x0000404040404040, 0x0000808080808080,
+	0x0001010101010101, 0x0002020202020202, 0x0004040404040404, 0x0008080808080808, 0x0010101010101010, 0x0020202020202020, 0x0040404040404040, 0x0080808080808080
+};
 
-inline bool IsDrawishEndgame(const Position& position, const uint64_t whitePieces, const uint64_t blackPieces);
+constexpr std::array<uint64_t, 64> KingArea = {
+	0x0000000000000303, 0x0000000000000707, 0x0000000000000e0e, 0x0000000000001c1c, 0x0000000000003838, 0x0000000000007070, 0x000000000000e0e0, 0x000000000000c0c0,
+	0x0000000000030303, 0x0000000000070707, 0x00000000000e0e0e, 0x00000000001c1c1c, 0x0000000000383838, 0x0000000000707070, 0x0000000000e0e0e0, 0x0000000000c0c0c0,
+	0x0000000003030300, 0x0000000007070700, 0x000000000e0e0e00, 0x000000001c1c1c00, 0x0000000038383800, 0x0000000070707000, 0x00000000e0e0e000, 0x00000000c0c0c000,
+	0x0000000303030000, 0x0000000707070000, 0x0000000e0e0e0000, 0x0000001c1c1c0000, 0x0000003838380000, 0x0000007070700000, 0x000000e0e0e00000, 0x000000c0c0c00000,
+	0x0000030303000000, 0x0000070707000000, 0x00000e0e0e000000, 0x00001c1c1c000000, 0x0000383838000000, 0x0000707070000000, 0x0000e0e0e0000000, 0x0000c0c0c0000000,
+	0x0003030300000000, 0x0007070700000000, 0x000e0e0e00000000, 0x001c1c1c00000000, 0x0038383800000000, 0x0070707000000000, 0x00e0e0e000000000, 0x00c0c0c000000000,
+	0x0303030000000000, 0x0707070000000000, 0x0e0e0e0000000000, 0x1c1c1c0000000000, 0x3838380000000000, 0x7070700000000000, 0xe0e0e00000000000, 0xc0c0c00000000000,
+	0x0303000000000000, 0x0707000000000000, 0x0e0e000000000000, 0x1c1c000000000000, 0x3838000000000000, 0x7070000000000000, 0xe0e0000000000000, 0xc0c0000000000000
+};
 
-int ClassicalEvaluate(const Position& position, const EvaluationFeatures& weights);
+constexpr std::array<uint64_t, 8> Files = {
+	0b0000000100000001000000010000000100000001000000010000000100000001,
+	0b0000001000000010000000100000001000000010000000100000001000000010,
+	0b0000010000000100000001000000010000000100000001000000010000000100,
+	0b0000100000001000000010000000100000001000000010000000100000001000,
+	0b0001000000010000000100000001000000010000000100000001000000010000,
+	0b0010000000100000001000000010000000100000001000000010000000100000,
+	0b0100000001000000010000000100000001000000010000000100000001000000,
+	0b1000000010000000100000001000000010000000100000001000000010000000
+};
 
+constexpr std::array<uint64_t, 8> IsolatedPawnMask = {
+	0x0202020202020202, 0x0505050505050505, 0x0a0a0a0a0a0a0a0a, 0x1414141414141414, 0x2828282828282828, 0x5050505050505050, 0xa0a0a0a0a0a0a0a0, 0x4040404040404040,
+};
 
-inline int ClassicalEvaluate(const Position& position) {
-	return ClassicalEvaluate(position, Weights);
-}
+constexpr uint64_t OutpostFilter = 0b00000000'00000000'00000000'00111100'00111100'00000000'00000000'00000000; // middle 4x2 region

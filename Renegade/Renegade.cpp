@@ -10,8 +10,8 @@
 // - Transpositions : storing data about previously explored positions
 // - Move           : move representation
 // - Movepicker     : lazily sorting moves, currently very barebones
-// - Evaluation     : handcrafted board evaluation (older and weaker, normally isn't used)
-// - Neurals        : NNUE board evaluation (default)
+// - Classical      : handcrafted board evaluation (older and weaker, normally isn't used)
+// - Neural         : NNUE board evaluation (default)
 // - Datagen        : data generation tool for training NNUE networks
 // - Reporting      : output structure used by search & displaying search results
 // - Magics         : magic bitboard lookups for sliding pieces

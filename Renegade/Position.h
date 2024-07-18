@@ -66,7 +66,7 @@ public:
 		return Hashes.back();
 	}
 
-	inline int GetPlys() const {
+	inline int GetPly() const {
 		const Board& b = States.back();
 		return (b.FullmoveClock - 1) * 2 + (b.Turn == Side::White ? 0 : 1);
 	}
@@ -75,6 +75,14 @@ public:
 		const Board& b = States.back();
 		if (b.Turn == Side::White) return (b.WhiteKnightBits | b.WhiteBishopBits | b.WhiteRookBits | b.WhiteQueenBits) != 0;
 		else return (b.BlackKnightBits | b.BlackBishopBits | b.BlackRookBits | b.BlackQueenBits) != 0;
+	}
+
+	inline int GetGamePhase() const {
+		// 24 at the beginning of the game -> 0 for kings and pawns only
+		return (Popcount(WhiteKnightBits() | BlackKnightBits()))
+			+ (Popcount(WhiteBishopBits() | BlackBishopBits()))
+			+ (Popcount(WhiteRookBits() | BlackRookBits())) * 2
+			+ (Popcount(WhiteQueenBits() | BlackQueenBits())) * 4;
 	}
 
 	template <bool side>
@@ -92,13 +100,13 @@ public:
 		return KingMoveBits[from];
 	}
 
-	inline const MoveAndPiece& GetPreviousMove(const int plys) const {
-		assert(plys > 0);
-		assert(plys <= Moves.size());
-		return Moves[Moves.size() - plys];
+	inline const MoveAndPiece& GetPreviousMove(const int plies) const {
+		assert(plies > 0);
+		assert(plies <= Moves.size());
+		return Moves[Moves.size() - plies];
 	}
 
-	inline bool PreviousMoveIsNull() const {
+	inline bool IsPreviousMoveNull() const {
 		return Moves.size() != 0 && Moves.back().move == NullMove;
 	}
 

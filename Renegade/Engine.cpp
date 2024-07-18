@@ -68,7 +68,7 @@ void Engine::Start() {
 			continue;
 		}
 
-		/*if (cmd == "datagen") {
+		if (cmd == "datagen") {
 			Datagen datagen = Datagen();
 			datagen.Start();
 			continue;
@@ -88,7 +88,7 @@ void Engine::Start() {
 		if (cmd == "tunetext") {
 			Tune::GenerateString();
 			continue;
-		}*/
+		}
 
 		// Set option
 		if (parts[0] == "setoption") {
@@ -183,11 +183,6 @@ void Engine::Start() {
 					cout << "- entry " << i << ": " << std::hex << position.Hashes[i] << std::dec << endl;
 				}
 			}
-			if (parts[1] == "weight") {
-				const int id = stoi(parts[2]);
-				cout << "Weight: " << id << "/" << Weights.WeightSize << ": "
-					<< "S(" << Weights.Weights[id].early << ", " << Weights.Weights[id].late << ")" << endl;
-			}
 			if (parts[1] == "hashalloc") {
 				uint64_t ttTheoretical, ttUsable, ttBits, ttUsed;
 				Search.TranspositionTable.GetInfo(ttTheoretical, ttUsable, ttBits, ttUsed);
@@ -230,10 +225,8 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "eval") {
-			const int hce = ClassicalEvaluate(position);
 			const int nnue = NeuralEvaluate(position);
-			cout << "-> Classical evaluation:      " << ToCentipawns(hce, position.GetPlys()) << " cp  (internal units: " << hce << ")" << endl;
-			cout << "-> Neural network evaluation: " << ToCentipawns(nnue, position.GetPlys()) << " cp  (internal units: " << nnue << ")" << endl;
+			cout << "-> Neural network evaluation: " << ToCentipawns(nnue, position.GetPly()) << " cp  (internal units: " << nnue << ")" << endl;
 			continue;
 		}
 		if (parts[0] == "fen") {
@@ -362,7 +355,7 @@ void Engine::Start() {
 			continue;
 		}
 
-		if (parts[0] == "bench") {
+		if (parts[0] == "bench" || parts[0] == "b") {
 			HandleBench(false);
 			continue;
 		}
@@ -422,7 +415,7 @@ void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
 	}();
 
 	const int raw = NeuralEvaluate(pos);
-	const int cp = ToCentipawns(raw, pos.GetPlys());
+	const int cp = ToCentipawns(raw, pos.GetPly());
 
 	cout << '\n';
 
@@ -469,7 +462,7 @@ void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
 		case 6:
 			cout << " - Move " << b.FullmoveClock;
 			cout << " [halfmove counter: " << static_cast<int>(b.HalfmoveClock);
-			cout << ", game plies: " << pos.GetPlys() << "]";
+			cout << ", game plies: " << pos.GetPly() << "]";
 			break;
 		case 5:
 			cout << " - In check: " << (pos.IsInCheck() ? "yes" : "no");
@@ -493,7 +486,7 @@ void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
 			cout << " - Static eval: " << cp << " cp [" << raw << " units]";
 			break;
 		case -2:
-			cout << " - Phase: " << CalculateGamePhase(pos);
+			cout << " - Phase: " << pos.GetGamePhase();
 			break;
 		case -3:
 			cout << " - Game state: " << gameStateStr;

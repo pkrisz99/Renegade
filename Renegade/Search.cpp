@@ -171,11 +171,11 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 		if (rootLegalMoves.size() == 1) {
 			const int eval = Evaluate(position, 0);
 			cout << "info string Only one legal move!" << endl;
-			cout << "info depth 1 score cp " << ToCentipawns(eval, position.GetPlys()) << " nodes 0" << endl;
+			cout << "info depth 1 score cp " << ToCentipawns(eval, position.GetPly()) << " nodes 0" << endl;
 			const Move onlyMove = rootLegalMoves[0].move;
 			PrintBestmove(onlyMove);
 			Aborting.store(true, std::memory_order_relaxed);
-			return Results(eval, {onlyMove}, 1, Statistics, 0, 0, 0, position.GetPlys()); // hack: rootLegalMoves is a vector already
+			return Results(eval, {onlyMove}, 1, Statistics, 0, 0, 0, position.GetPly()); // hack: rootLegalMoves is a vector already
 		}
 	}
 
@@ -184,7 +184,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 
 	// Iterative deepening
 	Results e = Results();
-	e.ply = position.GetPlys();
+	e.ply = position.GetPly();
 	int result = NoEval;
 	while (!finished) {
 		ResetPvTable();
@@ -388,7 +388,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		}
 
 		// Null-move pruning (+33 elo)
-		if ((depth >= 3) && !position.PreviousMoveIsNull() && (eval >= beta) && position.HasNonPawnMaterial()) {
+		if ((depth >= 3) && !position.IsPreviousMoveNull() && (eval >= beta) && position.HasNonPawnMaterial()) {
 			TranspositionTable.Prefetch(position.Hash() ^ Zobrist[780]);
 			const int nmpReduction = [&] {
 				const int defaultReduction = 3 + depth / 3 + std::min((eval - beta) / 200, 3);
@@ -664,13 +664,8 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 
 int Search::Evaluate(const Position& position, const int level) {
 	Statistics.Evaluations += 1;
-
-    int gamePhase = (Popcount(position.WhiteKnightBits() | position.BlackKnightBits())) +
-                   (Popcount(position.WhiteBishopBits() | position.BlackBishopBits())) +
-                   (Popcount(position.WhiteRookBits() | position.BlackRookBits())) * 2 +
-                   (Popcount(position.WhiteQueenBits() | position.BlackQueenBits())) * 4;
-
-    int evaluation = NeuralEvaluate((*Accumulators)[level], position.Turn());
+	const int gamePhase = position.GetGamePhase();
+    const int evaluation = NeuralEvaluate((*Accumulators)[level], position.Turn());
 	return evaluation * (52 + std::min(24, gamePhase)) / 64;
 }
 
@@ -778,61 +773,31 @@ bool Search::StaticExchangeEval(const Position& position, const Move& move, cons
 // Accumulators for neural networks ---------------------------------------------------------------
 
 void Search::SetupAccumulators(const Position& position) {
-
-	(*Accumulators)[0].Reset();
-	(*Accumulators)[0].SetActiveBucket(Side::White, GetInputBucket(position.WhiteKingSquare(), Side::White));
-	(*Accumulators)[0].SetActiveBucket(Side::Black, GetInputBucket(position.BlackKingSquare(), Side::Black));
-	uint64_t bits = position.GetOccupancy();
-
-	// Turning on the right inputs
-	const uint8_t whiteKingSq = position.WhiteKingSquare();
-	const uint8_t blackKingSq = position.BlackKingSquare();
-	while (bits) {
-		const uint8_t sq = Popsquare(bits);
-		const int piece = position.GetPieceAt(sq);
-		(*Accumulators)[0].AddFeature(FeatureIndexes(piece, sq, whiteKingSq, blackKingSq));
-	}
+	(*Accumulators)[0].Refresh(position);
 }
 
 void Search::UpdateAccumulators(const Position& pos, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
 	
-	// Handle null moves
+	// Case 1: Handling null moves - just copy it over
 	if (m.IsNull()) {
 		(*Accumulators)[level + 1] = (*Accumulators)[level];
 		return;
 	}
 
-	const uint8_t whiteKingSq = pos.WhiteKingSquare();
-	const uint8_t blackKingSq = pos.BlackKingSquare();
-
-	// Check if a refresh is necessary
+	// Case 2: King moves - check if a refresh is necessary
 	if (TypeOfPiece(movedPiece) == PieceType::King) {
-
 		const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
-		const bool refreshFromMirroring = ((GetSquareFile(m.from) < 4) && (GetSquareFile(m.to) >= 4)) || ((GetSquareFile(m.from) >= 4) && (GetSquareFile(m.to) < 4));
-		const bool refreshFromBucketing = GetInputBucket(m.from, side) != GetInputBucket(m.to, side);
-		const bool refreshFromCastling = m.IsCastling(); // temporary workaround
-
-		if (refreshFromMirroring || refreshFromBucketing || refreshFromCastling) {
-			(*Accumulators)[level + 1].Reset();
-			(*Accumulators)[level + 1].SetActiveBucket(Side::White, GetInputBucket(whiteKingSq, Side::White));
-			(*Accumulators)[level + 1].SetActiveBucket(Side::Black, GetInputBucket(blackKingSq, Side::Black));
-			uint64_t bits = pos.GetOccupancy();
-
-			// Turning on the right inputs
-			while (bits) {
-				const uint8_t sq = Popsquare(bits);
-				const int piece = pos.GetPieceAt(sq);
-				(*Accumulators)[level + 1].AddFeature(FeatureIndexes(piece, sq, whiteKingSq, blackKingSq));
-			}
+		if (IsRefreshRequired(m, side)) {
+			(*Accumulators)[level + 1].Refresh(pos);
 			return;
 		}
 	}
 
-	// Copy the previous state over
+	// Case 3: Copy the previous state over - normal incremental update
 	(*Accumulators)[level + 1] = (*Accumulators)[level];
-	if (m.IsNull()) return; // If it's a null move, we're done
 	AccumulatorRepresentation& Accumulator = (*Accumulators)[level + 1];
+	const uint8_t whiteKingSq = pos.WhiteKingSquare();
+	const uint8_t blackKingSq = pos.BlackKingSquare();
 
 	// No longer activate the previous position of the moved piece
 	Accumulator.RemoveFeature( FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq) );

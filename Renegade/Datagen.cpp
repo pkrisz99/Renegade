@@ -128,7 +128,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 			}
 			else adjudicationCounter = 0;
 
-			if (position.GetPlys() > 600) {
+			if (position.GetPly() > 600) {
 				failed = true;
 				//cout << "\nGame too long: " << board.GetFEN() << endl;
 				break;
@@ -190,7 +190,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 
 bool Datagen::Filter(const Position& pos, const Move& move, const int eval) const {
 	if (std::abs(eval) > MateThreshold) return true;
-	if (pos.GetPlys() < minSavePly) return true;
+	if (pos.GetPly() < minSavePly) return true;
 	if (DFRC && move.IsCastling()) return true;
 	if (!pos.IsMoveQuiet(move)) return true;
 	if (pos.IsInCheck()) return true;

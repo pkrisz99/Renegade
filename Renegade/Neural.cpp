@@ -1,4 +1,4 @@
-#include "Neurals.h"
+#include "Neural.h"
 
 // Incbin shenanigans
 
@@ -18,6 +18,8 @@
 INCBIN(DefaultNetwork, NETWORK_NAME);
 const NetworkRepresentation* Network;
 std::unique_ptr<NetworkRepresentation> ExternalNetwork;
+
+// Evaluating the position ------------------------------------------------------------------------
 
 int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
 	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.White : acc.Black;
@@ -79,30 +81,12 @@ int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
 }
 
 int NeuralEvaluate(const Position& position) {
-	
-	// Initialize arrays and accumulators
-	alignas(64) std::array<int16_t, HiddenSize> hiddenWhite = std::array<int16_t, HiddenSize>();
-	alignas(64) std::array<int16_t, HiddenSize> hiddenBlack = std::array<int16_t, HiddenSize>();
-	for (int i = 0; i < HiddenSize; i++) hiddenWhite[i] = Network->FeatureBias[i];
-	for (int i = 0; i < HiddenSize; i++) hiddenBlack[i] = Network->FeatureBias[i];
-
-	const uint8_t whiteKingSq = position.WhiteKingSquare();
-	const uint8_t blackKingSq = position.BlackKingSquare();
 	AccumulatorRepresentation acc{};
-	acc.Reset();
-	acc.SetActiveBucket(Side::White, GetInputBucket(whiteKingSq, Side::White));
-	acc.SetActiveBucket(Side::Black, GetInputBucket(blackKingSq, Side::Black));
-
-	// Iterate through pieces and activate features
-	uint64_t bits = position.GetOccupancy();
-	while (bits) {
-		const uint8_t sq = Popsquare(bits);
-		const uint8_t piece = position.GetPieceAt(sq);
-		acc.AddFeature(FeatureIndexes(piece, sq, whiteKingSq, blackKingSq));
-	}
-
+	acc.Refresh(position);
 	return NeuralEvaluate(acc, position.Turn());
 }
+
+// Loading an external network (MSVC fallback) ----------------------------------------------------
 
 void LoadExternalNetwork(const std::string& filename) {
 

@@ -150,10 +150,10 @@
     <ClCompile Include="Board.cpp" />
     <ClCompile Include="Datagen.cpp" />
     <ClCompile Include="Engine.cpp" />
-    <ClCompile Include="Evaluation.cpp" />
+    <ClCompile Include="Classical.cpp" />
     <ClCompile Include="Histories.cpp" />
     <ClCompile Include="Magics.cpp" />
-    <ClCompile Include="Neurals.cpp" />
+    <ClCompile Include="Neural.cpp" />
     <ClCompile Include="Position.cpp" />
     <ClCompile Include="Renegade.cpp" />
     <ClCompile Include="Reporting.cpp" />
@@ -166,12 +166,12 @@
     <ClInclude Include="Board.h" />
     <ClInclude Include="Datagen.h" />
     <ClInclude Include="Engine.h" />
-    <ClInclude Include="Evaluation.h" />
+    <ClInclude Include="Classical.h" />
     <ClInclude Include="Histories.h" />
     <ClInclude Include="Magics.h" />
     <ClInclude Include="Move.h" />
     <ClInclude Include="Movepicker.h" />
-    <ClInclude Include="Neurals.h" />
+    <ClInclude Include="Neural.h" />
     <ClInclude Include="Position.h" />
     <ClInclude Include="Reporting.h" />
     <ClInclude Include="Search.h" />

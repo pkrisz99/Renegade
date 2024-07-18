@@ -1,8 +1,7 @@
 #pragma once
-//#include "Datagen.h"
-#include "Evaluation.h"
+#include "Datagen.h"
 #include "Magics.h"
-#include "Neurals.h"
+#include "Neural.h"
 #include "Position.h"
 #include "Reporting.h"
 #include "Search.h"
@@ -13,7 +12,7 @@
 #include <thread>
 #include <tuple>
 
-extern void GenerateMagicTables();
+void GenerateMagicTables();
 
 class Engine
 {

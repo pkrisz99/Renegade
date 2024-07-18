@@ -37,10 +37,6 @@ void PrintBitboard(const uint64_t bits) {
 	cout << "\n" << endl;
 }
 
-std::ostream& operator<<(std::ostream& os, const TaperedScore& s) {
-	return os << "S(" << s.early << ", " << s.late << ")";
-}
-
 // WDL model and reporting ------------------------------------------------------------------------
 
 // Getting the model for a given game ply

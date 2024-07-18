@@ -33,7 +33,7 @@
     <ClCompile Include="Utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Neurals.cpp">
+    <ClCompile Include="Neural.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Settings.cpp">
@@ -48,7 +48,7 @@
     <ClCompile Include="Datagen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Evaluation.cpp">
+    <ClCompile Include="Classical.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Histories.cpp">
@@ -80,7 +80,7 @@
     <ClInclude Include="Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Neurals.h">
+    <ClInclude Include="Neural.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Settings.h">
@@ -95,7 +95,7 @@
     <ClInclude Include="Datagen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Evaluation.h">
+    <ClInclude Include="Classical.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Histories.h">
