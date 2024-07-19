@@ -173,6 +173,8 @@ enum class MoveGen { All, Noisy };
 
 enum class Legality { Legal, Pseudolegal };
 
+enum class SearchState { Idle, Working, Aborting };
+
 struct SearchParams {
 	int wtime = 0;
 	int btime = 0;

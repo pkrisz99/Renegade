@@ -29,7 +29,7 @@ public:
 	Results SearchMoves(Position& position, const SearchParams params, const bool display);
 	bool StaticExchangeEval(const Position& position, const Move& move, const int threshold) const;
 
-	std::atomic<bool> Aborting = true;
+	std::atomic<SearchState> State = SearchState::Idle;
 	bool DatagenMode = false;
 	Transpositions TranspositionTable;
 

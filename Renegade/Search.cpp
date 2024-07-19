@@ -125,16 +125,16 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 }
 
 bool Search::ShouldAbort() {
-	if (Aborting.load(std::memory_order_relaxed)) return true;
+	if (State.load(std::memory_order_relaxed) == SearchState::Aborting) return true;
 	if ((Constraints.MaxNodes != -1) && (Nodes >= Constraints.MaxNodes) && (Depth > 1)) {
-		Aborting.store(true, std::memory_order_relaxed);
+		State.store(SearchState::Aborting, std::memory_order_relaxed);
 		return true;
 	}
 	if ((Nodes % 1024 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
 		const auto now = Clock::now();
 		const int elapsedMs = static_cast<int>((now - StartSearchTime).count() / 1e6);
 		if (elapsedMs >= Constraints.SearchTimeMax) {
-			Aborting.store(true, std::memory_order_relaxed);
+			State.store(SearchState::Aborting, std::memory_order_relaxed);
 			return true;
 		}
 	}
@@ -146,7 +146,7 @@ bool Search::ShouldAbort() {
 Results Search::SearchMoves(Position& position, const SearchParams params, const bool display) {
 
 	StartSearchTime = Clock::now();
-	Aborting.store(false, std::memory_order_relaxed);
+	State.store(SearchState::Working, std::memory_order_relaxed);
 	int elapsedMs = 0;
 	ResetStatistics();
 	bool finished = false;
@@ -167,7 +167,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 			cout << "info depth 1 score cp " << ToCentipawns(eval, position.GetPly()) << " nodes 0" << endl;
 			const Move onlyMove = rootLegalMoves[0].move;
 			PrintBestmove(onlyMove);
-			Aborting.store(true, std::memory_order_relaxed);
+			State.store(SearchState::Idle, std::memory_order_relaxed);
 			return Results(eval, 1, 1, 0, 0, 0, 0, position.GetPly(), { onlyMove }, SearchStatistics());
 		}
 	}
@@ -195,7 +195,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 			int searchDepth = Depth;
 
 			while (true) {
-				if (Aborting.load(std::memory_order_relaxed)) break;
+				if (State.load(std::memory_order_relaxed) == SearchState::Aborting) break;
 				int alpha, beta;
 				if (windowSize < 500) {
 					alpha = std::max(result - windowSize, NegativeInfinity);
@@ -258,7 +258,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 		if (Depth >= MaxDepth) finished = true;
 		if ((Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
 		if (std::abs(result) == MateEval) finished = true; // Don't search if position is checkmate
-		if (Aborting.load(std::memory_order_relaxed)) {
+		if (State.load(std::memory_order_relaxed) == SearchState::Aborting) {
 			e.nodes = Nodes;
 			e.time = elapsedMs;
 			e.nps = static_cast<int>(Nodes * 1e9 / (currentTime - StartSearchTime).count());
@@ -287,7 +287,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 
 	History.ClearKillerAndCounterMoves();
 	ResetPvTable();
-	Aborting.store(true, std::memory_order_relaxed);
+	State.store(SearchState::Idle, std::memory_order_relaxed);
 	return e;
 }
 

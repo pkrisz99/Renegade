@@ -9,7 +9,7 @@ void Engine::StartSearch(Position pos, SearchParams sp) {
 }
 
 void Engine::StopSearch() {
-	Searcher.Aborting.store(true, std::memory_order_relaxed);
+	Searcher.State.store(SearchState::Aborting, std::memory_order_relaxed);
 	SearchThread.join();
 }
 
@@ -18,7 +18,7 @@ void Engine::JoinThreads() {
 }
 
 bool Engine::IsBusy() const {
-	return !Searcher.Aborting.load(std::memory_order_relaxed);
+	return Searcher.State.load(std::memory_order_relaxed) != SearchState::Idle;
 }
 
 
