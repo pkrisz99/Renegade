@@ -14,10 +14,10 @@
 
 void GenerateMagicTables();
 
-class Engine
+class Interface
 {
 public:
-	Engine(int argc, char* argv[]);
+	Interface(int argc, char* argv[]);
 	void Start();
 	void PrintHeader() const;
 	void DrawBoard(const Position &pos, const uint64_t highlight = 0) const;

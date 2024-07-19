@@ -18,10 +18,10 @@
 // - Settings       : handling engine-wide options and parameter tuning
 // - Utils          : other misc functions, lookup tables and shared variables
 
-#include "Engine.h"
+#include "Interfacing.h"
 
 int main(int argc, char* argv[]) {
-    Engine engine = Engine(argc, argv);
+    Interface engine = Interface(argc, argv);
     engine.Start();
     return 0;
 }

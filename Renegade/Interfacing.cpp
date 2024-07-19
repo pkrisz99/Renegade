@@ -1,6 +1,6 @@
-#include "Engine.h"
+#include "Interfacing.h"
 
-Engine::Engine(int argc, char* argv[]) {
+Interface::Interface(int argc, char* argv[]) {
 	Settings::UseUCI = !PrettySupport;
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
@@ -14,12 +14,12 @@ Engine::Engine(int argc, char* argv[]) {
 	else PrintHeader();
 }
 
-void Engine::PrintHeader() const {
+void Interface::PrintHeader() const {
 	cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
 }
 
 // Start UCI protocol
-void Engine::Start() {
+void Interface::Start() {
 	if (QuitAfterBench) return;
 	Position position = Position(FEN::StartPos);
 	std::string cmd;
@@ -388,7 +388,7 @@ void Engine::Start() {
 	cout << "Stopping engine." << endl;
 }
 
-void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
+void Interface::DrawBoard(const Position& pos, const uint64_t highlight) const {
 
 	constexpr std::string_view whiteOnLightSquare = "\033[31;47m";
 	constexpr std::string_view whiteOnDarkSquare = "\033[31;43m";
@@ -500,7 +500,7 @@ void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
 	cout << endl;
 }
 
-void Engine::HandleBench(const bool lengthy) {
+void Interface::HandleBench(const bool lengthy) {
 	const int oldHashSize = Settings::Hash;
 	const bool oldChess960Setting = Settings::Chess960;
 	Settings::Chess960 = false;
@@ -526,7 +526,7 @@ void Engine::HandleBench(const bool lengthy) {
 	Settings::Chess960 = oldChess960Setting;
 }
 
-void Engine::HandleCompiler() const {
+void Interface::HandleCompiler() const {
 	cout << endl;
 #if defined(__clang__)
 	cout << "Compiler: clang" << endl;
@@ -543,7 +543,7 @@ void Engine::HandleCompiler() const {
 	cout << endl;
 }
 
-void Engine::HandleHelp() const {
+void Interface::HandleHelp() const {
 	cout << "\nRenegade is a chess engine written in C++. It is a command line "
 		<< "application supporting the UCI protocol, for example 'position startpos' "
 		<< "sets up the board and 'go depth 5' initiates a 5 ply deep search.\n" 
