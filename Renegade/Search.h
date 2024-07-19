@@ -59,7 +59,8 @@ private:
 	void ResetPvTable();
 
 
-	int Depth;
+	int Depth, SelDepth;
+	uint64_t Nodes;
 	SearchStatistics Statistics;
 	SearchConstraints Constraints;
 	Histories History;

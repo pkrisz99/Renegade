@@ -26,17 +26,10 @@ Search::Search() {
 
 void Search::ResetStatistics() {
 	Depth = 0;
-	Statistics.SelDepth = 0;
-	Statistics.Nodes = 0;
-	Statistics.QuiescenceNodes = 0;
-	Statistics.Evaluations = 0;
-	Statistics.BetaCutoffs = 0;
-	Statistics.FirstMoveBetaCutoffs = 0;
-	Statistics.TranspositionQueries = 0;
-	Statistics.TranspositionHits = 0;
-	Statistics.AlphaBetaCalls = 0;
+	SelDepth = 0;
+	Nodes = 0;
+	Statistics = {};
 }
-
 
 void Search::ResetState(const bool clearTT) {
 	History.ClearAll();
@@ -133,11 +126,11 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 
 bool Search::ShouldAbort() {
 	if (Aborting.load(std::memory_order_relaxed)) return true;
-	if ((Constraints.MaxNodes != -1) && (Statistics.Nodes >= Constraints.MaxNodes) && (Depth > 1)) {
+	if ((Constraints.MaxNodes != -1) && (Nodes >= Constraints.MaxNodes) && (Depth > 1)) {
 		Aborting.store(true, std::memory_order_relaxed);
 		return true;
 	}
-	if ((Statistics.Nodes % 1024 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
+	if ((Nodes % 1024 == 0) && (Constraints.SearchTimeMax != -1) && (Depth > 1)) {
 		const auto now = Clock::now();
 		const int elapsedMs = static_cast<int>((now - StartSearchTime).count() / 1e6);
 		if (elapsedMs >= Constraints.SearchTimeMax) {
@@ -175,7 +168,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 			const Move onlyMove = rootLegalMoves[0].move;
 			PrintBestmove(onlyMove);
 			Aborting.store(true, std::memory_order_relaxed);
-			return Results(eval, {onlyMove}, 1, Statistics, 0, 0, 0, position.GetPly()); // hack: rootLegalMoves is a vector already
+			return Results(eval, 1, 1, 0, 0, 0, 0, position.GetPly(), { onlyMove }, SearchStatistics());
 		}
 	}
 
@@ -189,7 +182,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 	while (!finished) {
 		ResetPvTable();
 		Depth += 1;
-		Statistics.SelDepth = Depth;
+		SelDepth = Depth;
 
 		// Obtain score
 		if (Depth < 5) {
@@ -254,7 +247,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 		if (Constraints.SearchTimeMin != -1) {
 			const int originalSoftTimeLimit = Constraints.SearchTimeMin;
 			const Move& bestMove = PvTable[0][0];
-			const double bestMoveFraction = static_cast<double>(RootNodeCounts[bestMove.from][bestMove.to]) / static_cast<double>(Statistics.Nodes);
+			const double bestMoveFraction = static_cast<double>(RootNodeCounts[bestMove.from][bestMove.to]) / static_cast<double>(Nodes);
 			const int adjustedSoftTimeLimit = originalSoftTimeLimit * static_cast<float>(Depth >= 10 ? (1.5 - bestMoveFraction) * 1.35 : 1.0);
 			//cout << RootNodeCounts[bestMove.from][bestMove.to] << " " << bestMoveFraction << " " << adjustedSoftTimeLimit << endl;
 			if (elapsedMs >= adjustedSoftTimeLimit) finished = true;
@@ -263,13 +256,14 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 
 		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
 		if (Depth >= MaxDepth) finished = true;
-		if ((Statistics.Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
+		if ((Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
 		if (std::abs(result) == MateEval) finished = true; // Don't search if position is checkmate
 		if (Aborting.load(std::memory_order_relaxed)) {
-			e.stats = Statistics;
+			e.nodes = Nodes;
 			e.time = elapsedMs;
-			e.nps = static_cast<int>(Statistics.Nodes * 1e9 / (currentTime - StartSearchTime).count());
+			e.nps = static_cast<int>(Nodes * 1e9 / (currentTime - StartSearchTime).count());
 			e.hashfull = TranspositionTable.GetHashfull();
+			e.stats = Statistics;
 			if (display) PrintInfo(e);
 			break;
 		}
@@ -277,9 +271,11 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 		// Send info
 		e.score = result;
 		e.depth = Depth;
+		e.seldepth = SelDepth;
+		e.nodes = Nodes;
 		e.stats = Statistics;
 		e.time = elapsedMs;
-		e.nps = static_cast<int>(Statistics.Nodes * 1e9 / (currentTime - StartSearchTime).count());
+		e.nps = static_cast<int>(Nodes * 1e9 / (currentTime - StartSearchTime).count());
 		e.hashfull = TranspositionTable.GetHashfull();
 
 		// Obtaining PV line
@@ -339,7 +335,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 	if (!singularSearch) {
 		found = TranspositionTable.Probe(hash, ttEntry, level);
-		Statistics.TranspositionQueries += 1;
+		Statistics.TranspositionProbes += 1;
 		if (found) {
 			if (!pvNode) {
 				// The branch was already analyzed to the same or greater depth, so we can return the result if the score is alright
@@ -492,11 +488,11 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		// Push move
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
-		const uint64_t nodesBefore = Statistics.Nodes;
+		const uint64_t nodesBefore = Nodes;
 
 		position.Push(m);
 		TranspositionTable.Prefetch(position.Hash());
-		Statistics.Nodes += 1;
+		Nodes += 1;
 		int score = NoEval;
 		UpdateAccumulators(position, m, movedPiece, capturedPiece, level);
 
@@ -534,7 +530,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		position.Pop();
 
 		// Update node count table for the root
-		if (rootNode) RootNodeCounts[m.from][m.to] += Statistics.Nodes - nodesBefore;
+		if (rootNode) RootNodeCounts[m.from][m.to] += Nodes - nodesBefore;
 
 		// Process search results
 		if (score > bestScore) {
@@ -603,7 +599,7 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 
 	// Update statistics
 	Statistics.AlphaBetaCalls += 1;
-	if (level > Statistics.SelDepth) Statistics.SelDepth = level;
+	if (level > SelDepth) SelDepth = level;
 
 	// Update alpha-beta bounds, return alpha if no captures left
 	const int staticEval = Evaluate(position, level);
@@ -616,7 +612,7 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 	const uint64_t hash = position.Hash();
 	TranspositionEntry ttEntry;
 	const bool found = TranspositionTable.Probe(hash, ttEntry, level);
-	Statistics.TranspositionQueries += 1;
+	Statistics.TranspositionProbes += 1;
 	if (found) {
 		if (ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
 		Statistics.TranspositionHits += 1;
@@ -635,7 +631,7 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 		const auto& [m, order] = movePicker.get();
 		if (!position.IsLegalMove(m)) continue;
 		if (!StaticExchangeEval(position, m, 0)) continue; // Quiescence search SEE pruning (+39 elo)
-		Statistics.Nodes += 1;
+		Nodes += 1;
 		Statistics.QuiescenceNodes += 1;
 
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
@@ -671,7 +667,7 @@ int Search::Evaluate(const Position& position, const int level) {
 
 int Search::DrawEvaluation() const {
 	// Returns a small randomized score to avoid search getting stuck in threefold lines
-	return Statistics.Nodes % 4 - 2;
+	return Nodes % 4 - 2;
 }
 
 // Static exchange evaluation (SEE) ---------------------------------------------------------------

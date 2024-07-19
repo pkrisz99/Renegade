@@ -516,7 +516,7 @@ void Engine::HandleBench(const bool lengthy) {
 		Search.ResetState(false);
 		Position pos = Position(fen);
 		const Results r = Search.SearchMoves(pos, params, false);
-		nodes += r.stats.Nodes;
+		nodes += r.nodes;
 	}
 	const auto endTime = Clock::now();
 	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));

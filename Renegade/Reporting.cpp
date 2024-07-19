@@ -3,27 +3,28 @@
 // Result structure -------------------------------------------------------------------------------
 
 Results::Results() {
-	score = 0;
 	pv = std::vector<Move>();
-	time = 0;
-	nps = 0;
-	hashfull = 0;
+	stats = SearchStatistics{};
 }
 
-Results::Results(int s, std::vector<Move> p, int d, SearchStatistics st, int t, int speed, int h, int pl) {
-	score = s;
-	pv = p;
-	depth = d;
-	stats = st;
-	time = t;
-	nps = speed;
-	hashfull = h;
-	ply = pl;
+Results::Results(const int score, const int depth, const int seldepth, const uint64_t nodes, const int time,
+	const int nps, const int hashfull, const int ply, const std::vector<Move>& pv, const SearchStatistics& stats) {
+
+	// This constructor only exists to help with the order of parameters
+	this->score = score;
+	this->depth = depth;
+	this->seldepth = seldepth;
+	this->nodes = nodes;
+	this->time = time;
+	this->nps = nps;
+	this->hashfull = hashfull;
+	this->ply = ply;
+	this->pv = pv;
+	this->stats = stats;
 }
 
-Move Results::BestMove() {
-	if (pv.size() != 0) return pv.front();
-	else return Move();
+Move Results::BestMove() const {
+	return (pv.size() != 0) ? pv.front() : Move();
 }
 
 // Communicating the search results ---------------------------------------------------------------
@@ -73,7 +74,7 @@ void PrintInfo(const Results& e) {
 
 #if defined(_MSC_VER)
 	output = std::format("info depth {} seldepth {} score {}{} nodes {} nps {} time {} hashfull {} pv{}",
-		e.depth, e.stats.SelDepth, score, wdlOutput, e.stats.Nodes, e.nps, e.time, e.hashfull, pvString);
+		e.depth, e.seldepth, score, wdlOutput, e.nodes, e.nps, e.time, e.hashfull, pvString);
 
 #else
 	output = "info depth " + std::to_string(e.depth) + " seldepth " + std::to_string(e.stats.SelDepth)
@@ -92,11 +93,11 @@ void PrintPretty(const Results& e) {
 
 	// Basic search information:
 
-	const std::string outputDepth = std::format("{:2d}/{:2d}", e.depth, e.stats.SelDepth);
+	const std::string outputDepth = std::format("{:2d}/{:2d}", e.depth, e.seldepth);
 
 	const std::string outputNodes = [&] {
-		if (e.stats.Nodes < 1e9) return std::to_string(e.stats.Nodes);
-		return std::format("{:8.3f}", e.stats.Nodes / 1e9) + "b";
+		if (e.nodes < 1e9) return std::to_string(e.nodes);
+		return std::format("{:8.3f}", e.nodes / 1e9) + "b";
 	}();
 
 	const std::string outputTime = [&] {
