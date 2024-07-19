@@ -6,7 +6,7 @@
 class Engine
 {
 public:
-	void StartSearch(Position pos, SearchParams params);
+	void StartSearch(Position pos, SearchParams sp);
 	void StopSearch();
 	bool IsBusy() const;
 	void JoinThreads();
@@ -18,7 +18,9 @@ public:
 private:
 	Search Searcher;
 	std::thread SearchThread;
+
 	Position position;
+	SearchParams params;
 
 	//Transpositions TranspositionTable;
 };

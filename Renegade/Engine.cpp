@@ -1,7 +1,8 @@
 #include "Engine.h"
 
-void Engine::StartSearch(Position pos, SearchParams params) {
+void Engine::StartSearch(Position pos, SearchParams sp) {
 	position = pos;
+	params = sp;
 	SearchThread = std::thread([&]() {
 		Searcher.SearchMoves(position, params, true);
 	});
