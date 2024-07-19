@@ -1,5 +1,6 @@
 #pragma once
 #include "Datagen.h"
+#include "Engine.h"
 #include "Magics.h"
 #include "Neural.h"
 #include "Position.h"
@@ -25,8 +26,9 @@ public:
 	void HandleHelp() const;
 	void HandleCompiler() const;
 
-	Search Search;
-	std::thread SearchThread;
+	//Search Search;
+	//std::thread SearchThread;
+	Engine Engine{};
 	bool QuitAfterBench = false;
 
 #if defined(_MSC_VER)

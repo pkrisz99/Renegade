@@ -18,7 +18,7 @@
     <ClCompile Include="Renegade.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine.cpp">
+    <ClCompile Include="Interfacing.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Search.cpp">
@@ -57,12 +57,15 @@
     <ClCompile Include="Transpositions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Engine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Move.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine.h">
+    <ClInclude Include="Interfacing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Movepicker.h">
@@ -102,6 +105,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Transpositions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

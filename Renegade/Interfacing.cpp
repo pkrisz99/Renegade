@@ -5,7 +5,7 @@ Interface::Interface(int argc, char* argv[]) {
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
 	LoadDefaultNetwork();
-	Search.TranspositionTable.SetSize(Settings::Hash);
+	Engine.SetHashSize(Settings::Hash);
 
 	if ((argc == 2) && (std::string(argv[1]) == "bench")) {
 		HandleBench(false);
@@ -56,14 +56,13 @@ void Interface::Start() {
 		}
 
 		if (cmd == "ucinewgame") {
-			Search.ResetState(true);
+			Engine.Reset();
 			continue;
 		}
 
 		if (cmd == "stop" || cmd == "s") {
-			if (!Search.Aborting.load(std::memory_order_relaxed)) {
-				Search.Aborting.store(true, std::memory_order_relaxed);
-				SearchThread.join();
+			if (Engine.IsBusy()) {
+				Engine.StopSearch();
 			}
 			continue;
 		}
@@ -98,13 +97,13 @@ void Interface::Start() {
 
 			if (parts[2] == "hash") {
 				Settings::Hash = stoi(parts[4]);
-				Search.TranspositionTable.SetSize(Settings::Hash);
+				Engine.SetHashSize(Settings::Hash);
 				valid = true;
 			}
 			else if (parts[2] == "clear") {
 				ConvertToLowercase(parts[3]);
 				if (parts[3] == "hash") {
-					Search.ResetState(true);
+					Engine.Reset();
 					valid = true;
 				}
 			}
@@ -145,7 +144,7 @@ void Interface::Start() {
 		}
 
 		// Debug commands
-		if ((parts[0] == "debug") && (parts.size() > 1)) {
+		/*if ((parts[0] == "debug") && (parts.size() > 1)) {
 			if (parts[1] == "attackmap") {
 				position.RequestThreats();
 				DrawBoard(position, position.GetThreats());
@@ -211,7 +210,7 @@ void Interface::Start() {
 					cout << parts[i] << " -> " << static_cast<int>(SquareToNum(parts[i])) << endl;
 			}
 			continue;
-		}
+		}*/
 
 		// Custom commands
 		if (parts[0] == "help") {
@@ -239,7 +238,7 @@ void Interface::Start() {
 			continue;
 		}
 		if (parts[0] == "ch") {
-			Search.ResetState(true);
+			Engine.Reset();
 			cout << "Transposition table cleared." << endl;
 			continue;
 		}
@@ -248,12 +247,12 @@ void Interface::Start() {
 			continue;
 		}
 		if (parts[0] == "bighash") {
-			Search.TranspositionTable.SetSize(1024);
+			Engine.SetHashSize(1024);
 			cout << "Using big hash: 1024 MB" << endl;
 			continue;
 		}
 		if (parts[0] == "hugehash") {
-			Search.TranspositionTable.SetSize(4096);
+			Engine.SetHashSize(4096);
 			cout << "Using huge hash: 4096 MB" << endl;
 			continue;
 		}
@@ -272,7 +271,7 @@ void Interface::Start() {
 		// Position command
 		if (parts[0] == "position") {
 
-			if (!Search.Aborting.load(std::memory_order_relaxed)) {
+			if (Engine.IsBusy()) {
 				std::cerr << "info string Search is busy!" << endl;
 				continue;
 			}
@@ -318,18 +317,18 @@ void Interface::Start() {
 		// Go command
 		if (parts[0] == "go") {
 
-			if (!Search.Aborting.load(std::memory_order_relaxed)) {
+			if (Engine.IsBusy()) {
 				std::cerr << "info string Search is busy!" << endl;
 				continue;
 			}
-			if (SearchThread.joinable()) SearchThread.join();
+			Engine.JoinThreads();
 
-			if ((parts.size() == 3) && (parts[1] == "perft" || parts[1] == "perftdiv")) {
+			/*if ((parts.size() == 3) && (parts[1] == "perft" || parts[1] == "perftdiv")) {
 				const int depth = stoi(parts[2]);
 				const PerftType type = (parts[1] == "perftdiv") ? PerftType::PerftDiv : PerftType::Normal;
 				Search.Perft(position, depth, type);
 				continue;
-			}
+			}*/
 
 			params = SearchParams();
 			for (int i = 1; i < parts.size(); i++) {
@@ -348,10 +347,7 @@ void Interface::Start() {
 			}
 
 			// Starting the search thread
-			// old call: Search.SearchMoves(board, params, true);
-			SearchThread = std::thread([&]() {
-				Search.SearchMoves(position, params, true);
-			});
+			Engine.StartSearch(position, params);
 			continue;
 		}
 
@@ -501,7 +497,7 @@ void Interface::DrawBoard(const Position& pos, const uint64_t highlight) const {
 }
 
 void Interface::HandleBench(const bool lengthy) {
-	const int oldHashSize = Settings::Hash;
+	/*const int oldHashSize = Settings::Hash;
 	const bool oldChess960Setting = Settings::Chess960;
 	Settings::Chess960 = false;
 	uint64_t nodes = 0;
@@ -523,7 +519,7 @@ void Interface::HandleBench(const bool lengthy) {
 	cout << nodes << " nodes " << nps << " nps" << endl;
 	Search.ResetState(false);
 	Search.TranspositionTable.SetSize(oldHashSize); // also clears the transposition table
-	Settings::Chess960 = oldChess960Setting;
+	Settings::Chess960 = oldChess960Setting;*/
 }
 
 void Interface::HandleCompiler() const {
