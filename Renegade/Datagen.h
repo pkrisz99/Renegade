@@ -1,4 +1,4 @@
-#pragma once
+/*#pragma once
 #include <filesystem>
 #include <fstream>
 #include <thread>
@@ -41,3 +41,4 @@ public:
 
 };
 
+*/

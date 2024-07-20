@@ -39,6 +39,7 @@ void Search::ResetState(const bool clearTT) {
 
 // Perft methods ----------------------------------------------------------------------------------
 
+/*
 void Search::Perft(Position& position, const int depth, const PerftType type) const {
 	//Board b = board;
 	const bool startingPosition = position.Hash() == 0x463b96181691fc9c;
@@ -77,7 +78,7 @@ uint64_t Search::PerftRecursive(Position& position, const int depth, const int o
 			cout << " - " << m.move.ToString(Settings::Chess960) << " : " << r << endl;
 	}
 	return count;
-}
+}*/
 
 // Time management --------------------------------------------------------------------------------
 

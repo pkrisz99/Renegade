@@ -3,6 +3,13 @@
 void Engine::StartSearch(Position pos, SearchParams sp) {
 	position = pos;
 	params = sp;
+
+	// Age search
+
+	// Check if we have any legal moves at all
+
+	// Insta-move for one legal move (if certain conditions are met)
+
 	SearchThread = std::thread([&]() {
 		Searcher.SearchMoves(position, params, true);
 	});

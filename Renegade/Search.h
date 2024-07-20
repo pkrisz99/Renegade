@@ -25,7 +25,7 @@ public:
 	Search();
 	void ResetState(const bool clearTT);
 
-	void Perft(Position& position, const int depth, const PerftType type) const;
+	//void Perft(Position& position, const int depth, const PerftType type) const;
 	Results SearchMoves(Position& position, const SearchParams params, const bool display);
 	bool StaticExchangeEval(const Position& position, const Move& move, const int threshold) const;
 
@@ -37,7 +37,7 @@ private:
 	int SearchRecursive(Position& position, int depth, const int level, int alpha, int beta);
 	int SearchQuiescence(Position& position, const int level, int alpha, int beta);
 	int Evaluate(const Position& position, const int level);
-	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
+	//uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	bool ShouldAbort();
 	int DrawEvaluation() const;

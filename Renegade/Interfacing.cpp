@@ -67,7 +67,7 @@ void Interface::Start() {
 			continue;
 		}
 
-		if (cmd == "datagen") {
+		/*if (cmd == "datagen") {
 			Datagen datagen = Datagen();
 			datagen.Start();
 			continue;
@@ -82,7 +82,7 @@ void Interface::Start() {
 			Datagen datagen = Datagen();
 			datagen.MergeFiles();
 			continue;
-		}
+		}*/
 
 		if (cmd == "tunetext") {
 			Tune::GenerateString();
