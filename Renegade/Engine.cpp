@@ -11,7 +11,7 @@ void Engine::StartSearch(Position pos, SearchParams sp) {
 	// Insta-move for one legal move (if certain conditions are met)
 
 	SearchThread = std::thread([&]() {
-		Searcher.SearchMoves(position, params, true);
+		Searcher.StartSearch(position, params, true);
 	});
 }
 
@@ -40,5 +40,5 @@ void Engine::SetHashSize(const int megabytes) {
 }
 
 void Engine::Reset() {
-	Searcher.ResetState(true);
+	Searcher.ResetState();
 }
