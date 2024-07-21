@@ -15,7 +15,6 @@ void Transpositions::Store(const uint64_t hash, const int depth, int score, cons
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
 
 	if (quality >= Table[key].quality) { // (TranspositionTable[key].depth <= depth)
-		if (Table[key].hash == 0) EntryCount += 1;
 		Table[key].depth = depth;
 		if (Table[key].hash != storedHash || !bestMove.IsNull()) {
 			Table[key].packedMove = bestMove.Pack();
@@ -68,7 +67,6 @@ void Transpositions::IncreaseAge() {
 
 void Transpositions::SetSize(const int megabytes) {
 	assert(megabytes != 0);
-	EntryCount = 0;
 	TheoreticalEntryCount = static_cast<uint64_t>(megabytes) * 1024 * 1024 / sizeof(TranspositionEntry);
 	int bits = 0;
 	while ((1ull << bits) <= TheoreticalEntryCount) bits += 1;
@@ -83,19 +81,22 @@ void Transpositions::Clear() {
 	Table.reserve(HashFilter + 1);
 	for (uint64_t i = 0; i < HashFilter + 1; i++) Table.push_back(TranspositionEntry());
 	Table.shrink_to_fit();
-	EntryCount = 0;
 	Age = 0;
 }
 
 int Transpositions::GetHashfull() const {
-	return static_cast<int>(EntryCount * 1000 / (HashFilter + 1));
+	// Approximate by checking the usage of the first 1000 entries
+	int hashfull = 0;
+	for (int i = 0; i < 1000; i++) {
+		if (Table[i].hash != 0 || Table[i].quality != 0) hashfull += 1;
+	}
+	return hashfull;
 }
 
-void Transpositions::GetInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits, uint64_t& ttUsed) const {
+void Transpositions::GetInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits) const {
 	ttTheoretical = TheoreticalEntryCount;
 	ttUsable = HashFilter + 1;
 	ttBits = HashBits;
-	ttUsed = EntryCount;
 }
 
 bool TranspositionEntry::IsCutoffPermitted(const int searchDepth, const int alpha, const int beta) const {

@@ -5,6 +5,7 @@ namespace Settings {
     bool ShowWDL = ShowWDLDefault;
     bool UseUCI = false;
     bool Chess960 = Chess960Default;
+    int Threads = ThreadsDefault;
 }
 
 namespace Tune {

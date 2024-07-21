@@ -13,7 +13,7 @@
 // - some stuff are just plain cursed
 
 
-// Constructors and multithreading (sketchy!) ----------------------------------------- (send help)
+// Constructors and multithreading (sketchy!) -----------------------------------------------------
 
 Search::Search() {
 	constexpr double lmrMultiplier = 0.4;
@@ -26,9 +26,8 @@ Search::Search() {
 	SetThreadCount(1);
 }
 
-ThreadData::ThreadData(const int id) {
+ThreadData::ThreadData() {
 	Accumulators = std::make_unique<std::array<AccumulatorRepresentation, MaxDepth + 1>>();
-	threadId = id;
 }
 
 void Search::ResetState() {
@@ -42,8 +41,12 @@ void Search::SetThreadCount(const int threadCount) {
 	for (ThreadData& td : threads) {
 		if (td.thread.joinable()) td.thread.join();
 	}
+	threads.clear();
+	for (int i = 0; i < threadCount; i++) {
+		ThreadData& td = threads.emplace_back();
+		td.threadId = i;
+	}
 	State.store(SearchState::Idle, std::memory_order_relaxed);
-	for (int i = 0; i < threadCount; i++) threads.emplace_back(ThreadData(i));
 }
 
 void Search::StopSearch() {
@@ -99,7 +102,7 @@ void Search::StartSearch(Position& position, const SearchParams params, const bo
 	for (ThreadData& td : threads) {
 		td.thread = std::thread([&]() {
 			BusyThreads.fetch_add(1);
-			SearchDeepening(td, position, params, display);
+			SearchDeepening(td, position, params, td.IsMainThread());
 			BusyThreads.fetch_sub(1);
 			if (BusyThreads.load() == 0) State.store(SearchState::Idle, std::memory_order_relaxed);
 		});
@@ -315,14 +318,13 @@ Results Search::SearchDeepening(ThreadData& td, Position position, const SearchP
 		if ((td.Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
 		if (td.Depth >= MaxDepth) finished = true;
 		if ((td.Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
-		if (std::abs(result) == MateEval) finished = true; // Don't search if position is checkmate
 		if (State.load(std::memory_order_relaxed) == SearchState::Aborting) {
 			e.nodes = td.Nodes;
 			e.time = elapsedMs;
 			e.nps = static_cast<int>(td.Nodes * 1e9 / (currentTime - StartSearchTime).count());
 			e.hashfull = TranspositionTable.GetHashfull();
 			e.stats = td.Statistics;
-			if (display) PrintInfo(e);
+			if (display) Report(e);
 			break;
 		}
 
@@ -339,12 +341,31 @@ Results Search::SearchDeepening(ThreadData& td, Position position, const SearchP
 		// Obtaining PV line
 		e.pv.clear();
 		GeneratePvLine(td, e.pv);
-		if (display) PrintInfo(e);
+		if (display) Report(e);
 	}
 	if (display) PrintBestmove(e.BestMove());
 
 	td.History.ClearKillerAndCounterMoves();
 	return e;
+}
+
+void Search::Report(Results& r) {
+	Results copy = r;
+	uint64_t totalNodes = 0;
+	int highestSeldepth = 0;
+	int totalNps = 0;
+
+	for (ThreadData& td : threads) {
+		totalNodes += td.Nodes;
+		highestSeldepth = std::max(highestSeldepth, td.SelDepth);
+	}
+
+	copy.nodes = totalNodes;
+	copy.seldepth = highestSeldepth;
+	const auto currentTime = Clock::now();
+	copy.nps = static_cast<int>(totalNodes * 1e9 / (currentTime - StartSearchTime).count());
+
+	PrintInfo(copy);
 }
 
 // Recursively called during the alpha-beta search

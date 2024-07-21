@@ -20,7 +20,7 @@
 */
 
 struct alignas(64) ThreadData {
-	ThreadData(const int id);
+	ThreadData();
 
 	std::thread thread;
 	int threadId;
@@ -58,6 +58,7 @@ public:
 	bool IsSearching() const;
 	void SetHashSize(const int megabytes);
 	void ResetState();
+	void Report(Results& r);
 
 	//void Perft(Position& position, const int depth, const PerftType type) const;
 	void StartSearch(Position& position, const SearchParams params, const bool display);
