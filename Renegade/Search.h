@@ -20,7 +20,10 @@
 */
 
 struct alignas(64) ThreadData {
-	ThreadData();
+	ThreadData(const int id);
+
+	std::thread thread;
+	int threadId;
 
 	int Depth, SelDepth;
 	uint64_t Nodes;
@@ -40,31 +43,40 @@ struct alignas(64) ThreadData {
 	std::array<int, MaxDepth> DoubleExtensions;
 	std::array<Move, MaxDepth> ExcludedMoves;
 
+	inline bool IsMainThread() {
+		return threadId == 0;
+	}
+
 };
 
 class Search
 {
 public:
 	Search();
+	void StopSearch();
+	void SetThreadCount(const int threadCount);
+	bool IsSearching() const;
+	void SetHashSize(const int megabytes);
 	void ResetState();
 
 	//void Perft(Position& position, const int depth, const PerftType type) const;
-	Results StartSearch(Position& position, const SearchParams params, const bool display);
+	void StartSearch(Position& position, const SearchParams params, const bool display);
 	bool StaticExchangeEval(const Position& position, const Move& move, const int threshold) const;
 
 	std::atomic<SearchState> State = SearchState::Idle;
+	std::atomic<int> BusyThreads = 0;
 	bool DatagenMode = false;
 	Transpositions TranspositionTable;
 
 private:
-	Results SearchDeepening(ThreadData& td, Position& position, const SearchParams params, const bool display);
+	Results SearchDeepening(ThreadData& td, Position position, const SearchParams params, const bool display);
 	int SearchRecursive(ThreadData& td, Position& position, int depth, const int level, int alpha, int beta);
 	int SearchQuiescence(ThreadData& td, Position& position, const int level, int alpha, int beta);
 
 	int Evaluate(ThreadData& td, const Position& position, const int level);
 	//uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
-	bool ShouldAbort();
+	bool ShouldAbort(ThreadData& td);
 	int DrawEvaluation(const ThreadData& td) const;
 
 	void OrderMoves(const ThreadData& td, const Position& position, MoveList& ml, const int level, const Move& ttMove);
@@ -81,9 +93,8 @@ private:
 	void GeneratePvLine(ThreadData& td, std::vector<Move>& list) const;
 	void ResetPvTable(ThreadData& td);
 
-	ThreadData thread;
+	std::vector<ThreadData> threads;
 	SearchConstraints Constraints;
 	std::chrono::high_resolution_clock::time_point StartSearchTime;
 	std::array<std::array<int, 32>, 32> LMRTable;
-
 };

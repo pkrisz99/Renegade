@@ -1,27 +1,38 @@
 #pragma once
+#include "Datagen.h"
+#include "Magics.h"
+#include "Neural.h"
+#include "Position.h"
+#include "Reporting.h"
 #include "Search.h"
-#include "Utils.h"
+#include "Settings.h"
+#include <fstream>
+#include <iomanip>
+#include <random>
 #include <thread>
+#include <tuple>
+
+void GenerateMagicTables();
 
 class Engine
 {
 public:
-	void StartSearch(Position pos, SearchParams sp);
-	void StopSearch();
-	bool IsBusy() const;
-	void JoinThreads();
+	Engine(int argc, char* argv[]);
+	void Start();
+	void PrintHeader() const;
+	void DrawBoard(const Position &pos, const uint64_t highlight = 0) const;
+	void HandleBench(const bool lengthy);
+	void HandleHelp() const;
+	void HandleCompiler() const;
 
-	void ClearHash();
-	void SetHashSize(const int megabytes);
-	void Reset();
+	Search Searcher{};
+	bool QuitAfterBench = false;
 
-private:
-	Search Searcher;
-	std::thread SearchThread;
+#if defined(_MSC_VER)
+	const bool PrettySupport = true;
+#else
+	const bool PrettySupport = false;
+#endif
 
-	Position position;
-	SearchParams params;
-
-	//Transpositions TranspositionTable;
 };
 

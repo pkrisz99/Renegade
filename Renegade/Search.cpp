@@ -12,6 +12,9 @@
 // - elo gain estimates are very outdated
 // - some stuff are just plain cursed
 
+
+// Constructors and multithreading (sketchy!) ----------------------------------------- (send help)
+
 Search::Search() {
 	constexpr double lmrMultiplier = 0.4;
 	constexpr double lmrBase = 0.7;
@@ -20,17 +23,87 @@ Search::Search() {
 			LMRTable[i][j] = static_cast<int>(lmrMultiplier * std::log(i) * std::log(j) + lmrBase);
 		}
 	}
+	SetThreadCount(1);
 }
 
-ThreadData::ThreadData() {
+ThreadData::ThreadData(const int id) {
 	Accumulators = std::make_unique<std::array<AccumulatorRepresentation, MaxDepth + 1>>();
+	threadId = id;
 }
 
 void Search::ResetState() {
 	// Clear persistent data (e.g. when starting a new game)
 	TranspositionTable.Clear();
-	thread.History.ClearAll();
-	
+	for (ThreadData& td : threads) td.History.ClearAll();
+}
+
+void Search::SetThreadCount(const int threadCount) {
+	State.store(SearchState::Aborting, std::memory_order_relaxed);
+	for (ThreadData& td : threads) {
+		if (td.thread.joinable()) td.thread.join();
+	}
+	State.store(SearchState::Idle, std::memory_order_relaxed);
+	for (int i = 0; i < threadCount; i++) threads.emplace_back(ThreadData(i));
+}
+
+void Search::StopSearch() {
+	State.store(SearchState::Aborting, std::memory_order_relaxed);
+	for (ThreadData& td : threads) {
+		td.thread.join();
+	}
+	State.store(SearchState::Idle, std::memory_order_relaxed);
+}
+
+bool Search::IsSearching() const {
+	return State.load(std::memory_order_relaxed) != SearchState::Idle;
+}
+
+void Search::SetHashSize(const int megabytes) {
+	TranspositionTable.SetSize(megabytes);
+}
+
+void Search::StartSearch(Position& position, const SearchParams params, const bool display) {
+
+	// Search entry point
+	State.store(SearchState::Working, std::memory_order_relaxed);
+	StartSearchTime = Clock::now();
+	TranspositionTable.IncreaseAge();
+	Constraints = CalculateConstraints(params, position.Turn());
+
+	// Handle no legal moves
+	MoveList rootLegalMoves{};
+	position.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
+	if (rootLegalMoves.size() == 0) {
+		cout << "info string No legal move!" << endl;
+		cout << "bestmove 0000" << endl;
+		return;
+	}
+
+	// Insta-move when having one legal move during time control conditions
+	if (rootLegalMoves.size() == 1 && (params.wtime != 0 || params.btime != 0) && !DatagenMode) {
+		const int eval = NeuralEvaluate(position); // TODO: MATERIAL SCALING ALSO: TT HASHFULL FIX
+		cout << "info string Only one legal move!" << endl;
+		cout << "info depth 1 score cp " << ToCentipawns(eval, position.GetPly()) << " nodes 0" << endl;
+		const Move onlyMove = rootLegalMoves[0].move;
+		PrintBestmove(onlyMove);
+		State.store(SearchState::Idle, std::memory_order_relaxed);
+		return; // Results(eval, 1, 1, 0, 0, 0, 0, position.GetPly(), { onlyMove }, SearchStatistics());
+	}
+
+	// Join everything
+	for (ThreadData& td : threads) {
+		if (td.thread.joinable()) td.thread.join();
+	}
+
+	// Fire up the threads
+	for (ThreadData& td : threads) {
+		td.thread = std::thread([&]() {
+			BusyThreads.fetch_add(1);
+			SearchDeepening(td, position, params, display);
+			BusyThreads.fetch_sub(1);
+			if (BusyThreads.load() == 0) State.store(SearchState::Idle, std::memory_order_relaxed);
+		});
+	}
 }
 
 // Perft methods ----------------------------------------------------------------------------------
@@ -121,11 +194,11 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 	return constraints;
 }
 
-bool Search::ShouldAbort() {
+bool Search::ShouldAbort(ThreadData& td) {
 	// TODO:
-	ThreadData& td = thread;
-
 	if (State.load(std::memory_order_relaxed) == SearchState::Aborting) return true;
+	if (!td.IsMainThread()) return false;
+
 	if ((Constraints.MaxNodes != -1) && (td.Nodes >= Constraints.MaxNodes) && (td.Depth > 1)) {
 		State.store(SearchState::Aborting, std::memory_order_relaxed);
 		return true;
@@ -143,39 +216,7 @@ bool Search::ShouldAbort() {
 
 // Negamax search routine and handling ------------------------------------------------------------
 
-Results Search::StartSearch(Position& position, const SearchParams params, const bool display) {
-
-	// Search entry point
-	State.store(SearchState::Working, std::memory_order_relaxed);
-	StartSearchTime = Clock::now();
-	TranspositionTable.IncreaseAge();
-	Constraints = CalculateConstraints(params, position.Turn());
-
-	// Handle no legal moves
-	MoveList rootLegalMoves{};
-	position.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
-	if (rootLegalMoves.size() == 0) {
-		cout << "info string No legal move!" << endl;
-		cout << "bestmove 0000" << endl;
-	}
-
-	// Insta-move when having one legal move during time control conditions
-	if (rootLegalMoves.size() == 1 && (params.wtime != 0 || params.btime != 0) && !DatagenMode) {
-		const int eval = NeuralEvaluate(position); // TODO: MATERIAL SCALING
-		cout << "info string Only one legal move!" << endl;
-		cout << "info depth 1 score cp " << ToCentipawns(eval, position.GetPly()) << " nodes 0" << endl;
-		const Move onlyMove = rootLegalMoves[0].move;
-		PrintBestmove(onlyMove);
-		State.store(SearchState::Idle, std::memory_order_relaxed);
-		return Results(eval, 1, 1, 0, 0, 0, 0, position.GetPly(), { onlyMove }, SearchStatistics());
-	}
-
-	Results r = SearchDeepening(thread, position, params, display);
-	State.store(SearchState::Idle, std::memory_order_relaxed);
-	return r;
-}
-
-Results Search::SearchDeepening(ThreadData& td, Position& position, const SearchParams params, const bool display) {	
+Results Search::SearchDeepening(ThreadData& td, Position position, const SearchParams params, const bool display) {	
 
 	// Reset everything volatile (history and TT are persistent)
 	td.Depth = 0;
@@ -310,7 +351,7 @@ Results Search::SearchDeepening(ThreadData& td, Position& position, const Search
 int Search::SearchRecursive(ThreadData& td, Position& position, int depth, const int level, int alpha, int beta) {
 
 	// Check search limits
-	const bool aborting = ShouldAbort();
+	const bool aborting = ShouldAbort(td);
 	if (aborting) return NoEval;
 	InitPvLength(td, level);
 	if (level >= MaxDepth) return Evaluate(td, position, level);
@@ -609,7 +650,7 @@ int Search::SearchRecursive(ThreadData& td, Position& position, int depth, const
 int Search::SearchQuiescence(ThreadData& td, Position& position, const int level, int alpha, int beta) {
 
 	// Check search limits
-	const bool aborting = ShouldAbort();
+	const bool aborting = ShouldAbort(td);
 	if (aborting) return NoEval;
 
 	// Update statistics
