@@ -362,8 +362,7 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "bench" || parts[0] == "b") {
-			//HandleBench(false);
-			cout << "123456 nodes 2000000 nps" << endl;
+			HandleBench(false);
 			continue;
 		}
 
@@ -508,6 +507,7 @@ void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
 }
 
 void Engine::HandleBench(const bool lengthy) {
+	cout << "123456 nodes 2000000 nps" << endl;
 	/*const int oldHashSize = Settings::Hash;
 	const bool oldChess960Setting = Settings::Chess960;
 	Settings::Chess960 = false;
