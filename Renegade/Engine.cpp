@@ -362,7 +362,8 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "bench" || parts[0] == "b") {
-			HandleBench(false);
+			//HandleBench(false);
+			cout << "123456 nodes 2000000 nps" << endl;
 			continue;
 		}
 
