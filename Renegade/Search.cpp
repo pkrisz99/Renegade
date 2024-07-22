@@ -104,7 +104,10 @@ void Search::StartSearch(Position& position, const SearchParams params, const bo
 			BusyThreads.fetch_add(1);
 			SearchDeepening(td, position, params, td.IsMainThread());
 			BusyThreads.fetch_sub(1);
-			if (BusyThreads.load() == 0) State.store(SearchState::Idle, std::memory_order_relaxed);
+			if (BusyThreads.load() == 0) {
+				PrintBestmove(threads[0].LastResult.BestMove());
+				State.store(SearchState::Idle, std::memory_order_relaxed);
+			}
 		});
 	}
 }
@@ -341,9 +344,10 @@ Results Search::SearchDeepening(ThreadData& td, Position position, const SearchP
 		// Obtaining PV line
 		e.pv.clear();
 		GeneratePvLine(td, e.pv);
+		td.LastResult = e;
 		if (display) Report(e);
 	}
-	if (display) PrintBestmove(e.BestMove());
+	//if (display) PrintBestmove(e.BestMove());
 
 	td.History.ClearKillerAndCounterMoves();
 	return e;

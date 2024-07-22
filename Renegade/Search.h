@@ -24,6 +24,7 @@ struct alignas(64) ThreadData {
 
 	std::thread thread;
 	int threadId;
+	Results LastResult{};
 
 	int Depth, SelDepth;
 	uint64_t Nodes;
