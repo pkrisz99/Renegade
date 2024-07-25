@@ -660,9 +660,8 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 
 int Search::Evaluate(const Position& position, const int level) {
 	Statistics.Evaluations += 1;
-	const int gamePhase = position.GetGamePhase();
     const int evaluation = NeuralEvaluate((*Accumulators)[level], position.Turn(), GetOutputBucket(position.GetOccupancy()));
-	return evaluation * (52 + std::min(24, gamePhase)) / 64;
+	return evaluation;
 }
 
 int Search::DrawEvaluation() const {
