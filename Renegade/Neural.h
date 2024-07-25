@@ -8,7 +8,9 @@
 #include <memory>
 
 // This is the code for the NNUE evaluation
+
 // Renegade uses a horizontally mirrored perspective net with input buckets based on the king's position
+// and output buckets based on piece count.
 
 // The engine's neural network is trained purely on self-play
 // a king tropism-only evaluation was the starting point:
@@ -16,7 +18,7 @@
 
 // Network constants
 #ifndef NETWORK_NAME
-#define NETWORK_NAME "renegade-net-24.bin"
+#define NETWORK_NAME "renegade-net-25.bin"
 #endif
 
 constexpr int FeatureSize = 768;
@@ -36,13 +38,14 @@ constexpr std::array<int, 32> InputBucketMap = {
 	3, 3, 3, 3,
 	3, 3, 3, 3,
 };
+constexpr int OutputBucketCount = 8;
 
 
 struct alignas(64) NetworkRepresentation {
 	std::array<std::array<std::array<int16_t, HiddenSize>, FeatureSize>, InputBucketCount> FeatureWeights;
 	std::array<int16_t, HiddenSize> FeatureBias;
-	std::array<int16_t, HiddenSize * 2> OutputWeights;
-	int16_t OutputBias;
+	std::array<std::array<int16_t, HiddenSize * 2>, OutputBucketCount> OutputWeights;
+	std::array<int16_t, OutputBucketCount> OutputBias;
 };
 
 extern const NetworkRepresentation* Network;
@@ -65,6 +68,11 @@ inline int GetInputBucket(const uint8_t kingSq, const bool side) {
 	const uint8_t rank = GetSquareRank(kingSq ^ transform);
 	const uint8_t file = GetSquareFile(kingSq ^ transform) < 4 ? GetSquareFile(kingSq ^ transform) : (GetSquareFile(kingSq ^ transform) ^ 7);
 	return InputBucketMap[rank * 4 + file];
+}
+
+inline int GetOutputBucket(const uint64_t occupancy) {
+	constexpr int divisor = (32 + OutputBucketCount - 1) / OutputBucketCount;
+	return (Popcount(occupancy) - 2) / divisor;
 }
 
 inline bool IsRefreshRequired(const Move& kingMove, const bool side) {
@@ -134,4 +142,4 @@ void LoadDefaultNetwork();
 void LoadExternalNetwork(const std::string& filename);
 
 int NeuralEvaluate(const Position &position);
-int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn);
+int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn, const int outputBucket);

@@ -8,7 +8,7 @@ use bullet_lib::{
 
 macro_rules! net_id {
     () => {
-        "renegade-net-24"
+        "renegade-net-25"
     };
 }
 const NET_ID: &str = net_id!();
@@ -28,7 +28,7 @@ fn main() {
             3, 3, 3, 3,
             3, 3, 3, 3,
         ]))
-        .output_buckets(outputs::Single)
+        .output_buckets(outputs::MaterialCount::<8>)
         .feature_transformer(1024)
         .activate(Activation::SCReLU)
         .add_layer(1)
