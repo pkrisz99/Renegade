@@ -16,7 +16,7 @@
 
 // Network constants
 #ifndef NETWORK_NAME
-#define NETWORK_NAME "renegade-net-23-buckets.bin"
+#define NETWORK_NAME "renegade-net-24.bin"
 #endif
 
 constexpr int FeatureSize = 768;
@@ -25,7 +25,7 @@ constexpr int Scale = 400;
 constexpr int QA = 255;
 constexpr int QB = 64;
 
-
+constexpr int InputBucketCount = 4;
 constexpr std::array<int, 32> InputBucketMap = {
 	0, 0, 1, 1,
 	2, 2, 2, 2,
@@ -36,7 +36,7 @@ constexpr std::array<int, 32> InputBucketMap = {
 	3, 3, 3, 3,
 	3, 3, 3, 3,
 };
-constexpr int InputBucketCount = 4;
+
 
 struct alignas(64) NetworkRepresentation {
 	std::array<std::array<std::array<int16_t, HiddenSize>, FeatureSize>, InputBucketCount> FeatureWeights;
