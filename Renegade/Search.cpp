@@ -111,7 +111,7 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 		else {
 			// Time control with increment
 			maxTime = static_cast<int>(myTime * 0.25);
-			minTime = static_cast<int>(myTime * 0.019 + myInc * 0.7);
+			minTime = static_cast<int>(myTime * 0.023 + myInc * 0.7);
 		}
 
 		constraints.SearchTimeMax = maxTime;
