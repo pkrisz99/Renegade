@@ -8,7 +8,7 @@ use bullet_lib::{
 
 macro_rules! net_id {
     () => {
-        "renegade-net-24"
+        "renegade-net-25-buckets"
     };
 }
 const NET_ID: &str = net_id!();
@@ -16,17 +16,17 @@ const NET_ID: &str = net_id!();
 
 fn main() {
     let mut trainer = TrainerBuilder::default()
-	    .quantisations(&[255, 64])
+        .quantisations(&[255, 64])
         .optimiser(optimiser::AdamW)
         .input(inputs::ChessBucketsMirrored::new([
-            0, 0, 1, 1,
-            2, 2, 2, 2,
-            2, 2, 2, 2,
-            3, 3, 3, 3,
-            3, 3, 3, 3,
-            3, 3, 3, 3,
-            3, 3, 3, 3,
-            3, 3, 3, 3,
+            0, 1, 2, 3,
+            4, 4, 5, 5,
+            6, 6, 6, 6,
+            7, 7, 7, 7,
+            8, 8, 8, 8,
+            8, 8, 8, 8,
+            9, 9, 9, 9,
+            9, 9, 9, 9,
         ]))
         .output_buckets(outputs::Single)
         .feature_transformer(1024)
@@ -75,9 +75,6 @@ fn main() {
     trainer.run(&schedule, &settings);
 	
     for fen in [
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-        "rn3r2/pbppq1p1/1p2pN1k/4N3/3P4/3B4/PPP2PPP/R3K2R w KQ - 1 13",
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         "2r3k1/2P2pp1/3Np2p/8/7P/5qP1/5P1K/2Q5 b - - 2 42",
         "rnbqkb1r/pppppppp/8/3nP3/2P5/8/PP1P1PPP/RNBQKBNR b KQkq - 0 3",
