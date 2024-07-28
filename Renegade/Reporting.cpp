@@ -114,9 +114,13 @@ void PrintPretty(const Results& e) {
 		else return std::string("100");
 	}();
 
+	const std::string outputNps = [&] {
+		if (e.nps < 10'000'000) return std::format("{:>4d}knps", e.nps / 1000);
+		else return std::format("{:>4.1f}mnps", e.nps / 1e6);
+	}();
 
-	const std::string outputSearch = std::format(" {}{}  {}{:>9}  {:>7}  {:4d}knps  h={:>4}%  {}->",
-		Console::White, outputDepth, Console::Gray, outputNodes, outputTime, e.nps / 1000, outputHash, Console::White);
+	const std::string outputSearch = std::format(" {}{}  {}{:>9}  {:>7}  {}  h={:>4}%  {}->",
+		Console::White, outputDepth, Console::Gray, outputNodes, outputTime, outputNps, outputHash, Console::White);
 
 	// Evaluation and win-draw-loss:
 

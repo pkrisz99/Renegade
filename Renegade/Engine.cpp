@@ -7,7 +7,7 @@ Engine::Engine(int argc, char* argv[]) {
 	LoadDefaultNetwork();
 	Search.TranspositionTable.SetSize(Settings::Hash);
 
-	if ((argc == 2) && (std::string(argv[1]) == "bench")) {
+	if (argc == 2 && std::string(argv[1]) == "bench") {
 		HandleBench(false);
 		QuitAfterBench = true;
 	}
@@ -28,7 +28,7 @@ void Engine::Start() {
 	// Please be aware that this code is utterly terrible and a rewrite is long overdue
 	// I'll get to this one day
 
-	while (getline(cin, cmd)) {
+	while (std::getline(cin, cmd)) {
 
 		cmd = Trim(cmd);
 		if (cmd.size() == 0) continue;
@@ -145,7 +145,7 @@ void Engine::Start() {
 		}
 
 		// Debug commands
-		if ((parts[0] == "debug") && (parts.size() > 1)) {
+		if (parts[0] == "debug" && parts.size() > 1) {
 			if (parts[1] == "attackmap") {
 				position.RequestThreats();
 				DrawBoard(position, position.GetThreats());
@@ -183,32 +183,8 @@ void Engine::Start() {
 					cout << "- entry " << i << ": " << std::hex << position.Hashes[i] << std::dec << endl;
 				}
 			}
-			if (parts[1] == "hashalloc") {
-				uint64_t ttTheoretical, ttUsable, ttBits, ttUsed;
-				Search.TranspositionTable.GetInfo(ttTheoretical, ttUsable, ttBits, ttUsed);
-				cout << "Theoretical transposition size: " << ttTheoretical << endl;
-				cout << "Usable transposition size:      " << ttUsable << endl;
-				cout << "Usable bits:                    " << ttBits << endl;
-				cout << "Used transposition entry count: " << ttUsed << endl;
-				cout << "Bytes per entry:                " << sizeof(TranspositionEntry) << endl;
-
-			}
 			if (parts[1] == "isdraw") {
 				cout << "Is drawn? " << position.IsDrawn(true) << endl;
-			}
-			if (parts[1] == "see") {
-				const Move m = Move(stoi(parts[2]), stoi(parts[3]), stoi(parts[4]));
-				cout << "SEE: " << Search.StaticExchangeEval(position, m, stoi(parts[5])) << endl;
-
-				int threshold = -2000;
-				while (Search.StaticExchangeEval(position, m, threshold)) {
-					threshold += 1;
-				}
-				cout << "SEE toggle threshold: " << threshold << endl;
-			}
-			if (parts[1] == "sqtoi") {
-				for (int i = 2; i < parts.size(); i++)
-					cout << parts[i] << " -> " << static_cast<int>(SquareToNum(parts[i])) << endl;
 			}
 			continue;
 		}

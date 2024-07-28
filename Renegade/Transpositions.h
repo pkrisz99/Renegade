@@ -35,14 +35,10 @@ public:
 	void SetSize(const int megabytes);
 	void Clear();
 	int GetHashfull() const;
-	void GetInfo(uint64_t& ttTheoretical, uint64_t& ttUsable, uint64_t& ttBits, uint64_t& ttUsed) const;
 
 private:
 	std::vector<TranspositionEntry> Table;
 	uint64_t HashFilter;
-	int HashBits;
-	uint64_t EntryCount;
-	uint64_t TheoreticalEntryCount;
 	uint16_t Age;
 };
 
