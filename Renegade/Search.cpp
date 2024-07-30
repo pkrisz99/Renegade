@@ -495,7 +495,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 			int reduction = 0;
 
 			// Late-move reductions (+119 elo)
-			if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && depth >= 3) {
+			if ((legalMoveCount >= (pvNode ? 5 : 3)) && isQuiet && depth >= 3) {
 				
 				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 
