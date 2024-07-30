@@ -16,7 +16,7 @@
 
 // Network constants
 #ifndef NETWORK_NAME
-#define NETWORK_NAME "renegade-net-24.bin"
+#define NETWORK_NAME "renegade-net-25-factorized.bin"
 #endif
 
 constexpr int FeatureSize = 768;
@@ -25,16 +25,16 @@ constexpr int Scale = 400;
 constexpr int QA = 255;
 constexpr int QB = 64;
 
-constexpr int InputBucketCount = 4;
+constexpr int InputBucketCount = 10;
 constexpr std::array<int, 32> InputBucketMap = {
-	0, 0, 1, 1,
-	2, 2, 2, 2,
-	2, 2, 2, 2,
-	3, 3, 3, 3,
-	3, 3, 3, 3,
-	3, 3, 3, 3,
-	3, 3, 3, 3,
-	3, 3, 3, 3,
+	0, 1, 2, 3,
+	4, 4, 5, 5,
+	6, 6, 6, 6,
+	7, 7, 7, 7,
+	8, 8, 8, 8,
+	8, 8, 8, 8,
+	9, 9, 9, 9,
+	9, 9, 9, 9,
 };
 
 
