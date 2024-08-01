@@ -449,7 +449,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 			if (isQuiet && (order < 32678) && (alpha < MateThreshold) && futilityPrunable) break;
 
 			// Main search SEE pruning (+20 elo)
-			if (depth <= 5) {
+			if (true) { // lol
 				const int seeMargin = isQuiet ? (-50 * depth) : (-100 * depth);
 				if (!StaticExchangeEval(position, m, seeMargin)) continue;
 			}
