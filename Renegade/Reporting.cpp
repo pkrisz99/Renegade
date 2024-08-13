@@ -63,9 +63,7 @@ void PrintInfo(const Results& e) {
 	for (const Move& move : e.pv)
 		pvString += " " + move.ToString(Settings::Chess960);
 
-	std::string output{};
 	std::string wdlOutput{};
-
 	if (Settings::ShowWDL) {
 		const auto [w, l] = GetWDL(e.score, e.ply);
 		const int d = 1000 - w - l;
@@ -73,12 +71,12 @@ void PrintInfo(const Results& e) {
 	}
 
 #if defined(_MSC_VER)
-	output = std::format("info depth {} seldepth {} score {}{} nodes {} nps {} time {} hashfull {} pv{}",
+	const std::string output = std::format("info depth {} seldepth {} score {}{} nodes {} nps {} time {} hashfull {} pv{}",
 		e.depth, e.seldepth, score, wdlOutput, e.nodes, e.nps, e.time, e.hashfull, pvString);
 
 #else
-	output = "info depth " + std::to_string(e.depth) + " seldepth " + std::to_string(e.stats.SelDepth)
-		+ " score " + score + wdlOutput + " nodes " + std::to_string(e.stats.Nodes) + " nps " + std::to_string(e.nps)
+	const std::string output = "info depth " + std::to_string(e.depth) + " seldepth " + std::to_string(e.seldepth)
+		+ " score " + score + wdlOutput + " nodes " + std::to_string(e.nodes) + " nps " + std::to_string(e.nps)
 		+ " time " + std::to_string(e.time) + " hashfull " + std::to_string(e.hashfull)
 		+ " pv" + pvString;
 #endif
