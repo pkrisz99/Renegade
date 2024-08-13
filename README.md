@@ -4,7 +4,7 @@
 
 It is written in C++ from scratch, and values readability and simplicity. As the engine communicates through the UCI protocol, it can be connected to almost all chess user interfaces.  
 
-The engine is fairly strong, and regularly competes on Lichess over at https://lichess.org/@/RenegadeEngine, as well as in tournaments organized by the engine testing community.  
+The engine is fairly strong, and regularly competes in various tournaments organized by the engine testing community.  
 
 ## Features
 ### Board representation
@@ -18,13 +18,13 @@ The engine is fairly strong, and regularly competes on Lichess over at https://l
 
 ### Evaluation
 - Renegade makes use of modern NNUE (efficiently updatable neural network) technology for accurate position evaluation
-- Its neural network was trained entirely on self-play data, amounting to over 2.7 billion positions
-- The network architecture is a (768->1024)x2->1 perspective net with SCReLU activation 
+- Its neural network was trained entirely on [self-play data](https://www.kaggle.com/datasets/pkrisz/renegade-chess-engine-training-data), amounting to over 2.7 billion positions
+- The network architecture is a (768->1024)x2->1 perspective net with SCReLU activation
 
 ## Usage
-Renegade - like most chess engines - is a command line application implementing the UCI protocol. It should be used alongside a graphical user interface, such as [Cute Chess](https://github.com/cutechess/cutechess).  
+Renegade - like most chess engines - is a command line application implementing the UCI protocol. It should be used alongside a graphical user interface to be able to display the board and to enter moves more easily.
 
-As one might expect, Renegade can also be interacted with using the terminal. Most UCI commands are supported including limiting search to a specific depth, time limit or node count.
+For advanced users, the engine can also be interacted with using the terminal. Most UCI commands are supported, including limiting search to a specific depth, time limit or node count.
 
 Scores are scaled according to the estimated outcome of the game, an evaluation of 100 centipawns represents a 50% likelihood of winning.
 
@@ -51,10 +51,10 @@ The recommended compiler is Clang 16. It should be noted that the engine makes u
 Windows and Linux executables can be found for each release.
 
 ## Acknowledgments
-Getting this far would not have been possible without the members of the [Engine Programming Discord](https://github.com/EngineProgramming/engine-list), and the decades of prior research done into chess programming.  
+Getting this far would not have been possible without the members of the [Stockfish](https://github.com/official-stockfish/Stockfish) and [Engine Programming Discord](https://github.com/EngineProgramming/engine-list), and the decades of prior research done into chess programming.  
 
-In particular, Renegade makes use of many ideas from [Akimbo](https://github.com/jw1912/akimbo), [Ethereal](https://github.com/AndyGrant/Ethereal), [Stockfish](https://github.com/official-stockfish/Stockfish), [Stormphrax](https://github.com/Ciekce/Stormphrax), [Viridithas](https://github.com/cosmobobak/viridithas) and [Wahoo](https://github.com/spamdrew128/Wahoo). These are fantastic engines, and you are highly encouraged to check them out!  
+In particular, Renegade makes use of many ideas from [Akimbo](https://github.com/jw1912/akimbo), [Ethereal](https://github.com/AndyGrant/Ethereal), [Motor](https://github.com/martinnovaak/motor), [Stockfish](https://github.com/official-stockfish/Stockfish), [Stormphrax](https://github.com/Ciekce/Stormphrax), [Viridithas](https://github.com/cosmobobak/viridithas) and [Wahoo](https://github.com/spamdrew128/Wahoo). These are all fantastic engines, and you are highly encouraged to check them out!  
 
-The neural networks were trained with [bullet](https://github.com/jw1912/bullet), and win-draw-loss models have been calculated using [Stockfish's WDL tool](https://github.com/official-stockfish/WDL_model).  
+The neural networks were trained with [bullet](https://github.com/jw1912/bullet), and win-draw-loss models have been calculated using [Stockfish's WDL tool](https://github.com/official-stockfish/WDL_model). Testing changes requires playing a large number of games, and this is being managed using the [OpenBench testing framework](https://github.com/AndyGrant/OpenBench).  
 
 Additionally, I would also like to thank everyone who gave me feedback, and those who spent the time trying out and testing the engine!
