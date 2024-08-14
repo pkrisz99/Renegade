@@ -19,9 +19,13 @@ struct TranspositionEntry {
 	uint8_t scoreType = 0;
 	uint16_t packedMove = 0;
 
-	bool IsCutoffPermitted(const int searchDepth, const int alpha, const int beta) const;
+	inline bool IsCutoffPermitted(const int searchDepth, const int alpha, const int beta) const {
+		if (searchDepth > depth) return false;
+		return (scoreType == ScoreType::Exact)
+			|| ((scoreType == ScoreType::UpperBound) && (score <= alpha))
+			|| ((scoreType == ScoreType::LowerBound) && (score >= beta));
+	}
 };
-
 static_assert(sizeof(TranspositionEntry) == 16);
 
 class Transpositions

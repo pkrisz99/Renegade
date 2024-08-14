@@ -33,51 +33,7 @@ void Search::ResetStatistics() {
 
 void Search::ResetState(const bool clearTT) {
 	History.ClearAll();
-	ResetPvTable();
 	if (clearTT) TranspositionTable.Clear();
-}
-
-// Perft methods ----------------------------------------------------------------------------------
-
-void Search::Perft(Position& position, const int depth, const PerftType type) const {
-	const bool startingPosition = position.Hash() == 0x463b96181691fc9c;
-	constexpr std::array<uint64_t, 8> startingPerfts = { 1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860 };
-
-	const auto startTime = Clock::now();
-	const uint64_t r = PerftRecursive(position, depth, depth, type);
-	const auto endTime = Clock::now();
-
-	const float seconds = static_cast<float>((endTime - startTime).count() / 1e9);
-	const float speed = r / seconds / 1000000;
-	cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps | No bulk counting" << endl;
-	
-	if (startingPosition && depth < startingPerfts.size() && startingPerfts[depth] != r)
-		cout << "Uh-oh. (expected: " << startingPerfts[depth] << ")" << endl;
-}
-
-uint64_t Search::PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const {
-	MoveList moves{};
-	position.GenerateMoves(moves, MoveGen::All, Legality::Pseudolegal);
-
-	if (type == PerftType::PerftDiv && originalDepth == depth) cout << "Legal moves (" << moves.size() << "): " << endl;
-	uint64_t count = 0;
-	for (const auto& m : moves) {
-		if (!position.IsLegalMove(m.move)) continue;
-		uint64_t r;
-		if (depth == 1) {
-			r = 1;
-			count += 1;
-		}
-		else {
-			position.Push(m.move);
-			r = PerftRecursive(position, depth - 1, originalDepth, type);
-			position.Pop();
-			count += r;
-		}
-		if (originalDepth == depth && type == PerftType::PerftDiv)
-			cout << " - " << m.move.ToString(Settings::Chess960) << " : " << r << endl;
-	}
-	return count;
 }
 
 // Time management --------------------------------------------------------------------------------
@@ -100,24 +56,22 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 	const int myTime = turn ? params.wtime : params.btime;
 	const int myInc = turn ? params.winc : params.binc;
 	if (myTime != 0) {
+		int minTime, maxTime;
 
-		int maxTime;
-		int minTime;
 		if (params.movestogo > 0) {
 			// Repeating time control
-			maxTime = static_cast<int>(myTime / params.movestogo * 2.5);
 			minTime = static_cast<int>(myTime / params.movestogo * 0.5);
+			maxTime = static_cast<int>(myTime / params.movestogo * 2.5);
 			maxTime = std::min(maxTime, static_cast<int>(myTime * 0.8));
 		}
 		else {
 			// Time control with increment
-			maxTime = static_cast<int>(myTime * 0.25);
 			minTime = static_cast<int>(myTime * 0.023 + myInc * 0.7);
+			maxTime = static_cast<int>(myTime * 0.25);
 		}
 
+		constraints.SearchTimeMin = std::min(minTime, maxTime);
 		constraints.SearchTimeMax = maxTime;
-		constraints.SearchTimeMin = minTime;
-		if (constraints.SearchTimeMin > constraints.SearchTimeMax) constraints.SearchTimeMin = constraints.SearchTimeMax;
 		return constraints;
 	}
 
@@ -144,42 +98,59 @@ bool Search::ShouldAbort() {
 
 // Negamax search routine and handling ------------------------------------------------------------
 
-Results Search::SearchMoves(Position& position, const SearchParams params, const bool display) {
+Results Search::StartSearch(Position& position, const SearchParams params, const bool display) {
 
-	StartSearchTime = Clock::now();
 	Aborting.store(false, std::memory_order_relaxed);
-	int elapsedMs = 0;
-	ResetStatistics();
-	bool finished = false;
+	StartSearchTime = Clock::now();
 	TranspositionTable.IncreaseAge();
 
-	SetupAccumulators(position);
-	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
-	std::fill(CutoffCount.begin(), CutoffCount.end(), 0);
-	std::fill(DoubleExtensions.begin(), DoubleExtensions.end(), 0);
+	MoveList rootLegalMoves{};
+	position.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
 
-	// Early exit for only one legal move (no legal moves are handled separately)
-	if (!DatagenMode && (params.wtime != 0 || params.btime != 0)) {
-		MoveList rootLegalMoves{};
-		position.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
-		if (rootLegalMoves.size() == 1) {
-			const int eval = Evaluate(position, 0);
-			cout << "info string Only one legal move!" << endl;
-			cout << "info depth 1 score cp " << ToCentipawns(eval, position.GetPly()) << " nodes 0" << endl;
-			const Move onlyMove = rootLegalMoves[0].move;
-			PrintBestmove(onlyMove);
-			Aborting.store(true, std::memory_order_relaxed);
-			return Results(eval, 1, 1, 0, 0, 0, 0, position.GetPly(), { onlyMove }, SearchStatistics());
-		}
+	// Handle no legal moves
+	if (rootLegalMoves.size() == 0) {
+		cout << "info string No legal moves!" << endl;
+		PrintBestmove(NullMove);
+		Aborting.store(true, std::memory_order_relaxed);
+		return Results(NoEval, 0, 0, 0, 0, 0, 0, position.GetPly(), { NullMove }, SearchStatistics());
+	}
+
+	// Early exit for only one legal move
+	if (rootLegalMoves.size() == 1 && !DatagenMode && (params.wtime != 0 || params.btime != 0)) {
+		const int eval = Evaluate(position, 0);
+		cout << "info string Only one legal move!" << endl;
+		cout << "info depth 1 score cp " << ToCentipawns(eval, position.GetPly()) << " nodes 0" << endl;
+		const Move onlyMove = rootLegalMoves[0].move;
+		PrintBestmove(onlyMove);
+		Aborting.store(true, std::memory_order_relaxed);
+		return Results(eval, 1, 1, 0, 0, 0, 0, position.GetPly(), { onlyMove }, SearchStatistics());
 	}
 
 	Constraints = CalculateConstraints(params, position.Turn());
+	const Results results = SearchMoves(position, display);
+
+	Aborting.store(true, std::memory_order_relaxed);
+	return results;
+}
+
+Results Search::SearchMoves(Position& position, const bool display) {
+
+	// Reset before starting (takes a fraction of a millisecond)
+	ResetStatistics();
+	ResetPvTable();
+	std::fill(ExcludedMoves.begin(), ExcludedMoves.end(), EmptyMove);
+	std::fill(CutoffCount.begin(), CutoffCount.end(), 0);
+	std::fill(DoubleExtensions.begin(), DoubleExtensions.end(), 0);
 	std::memset(&RootNodeCounts, 0, sizeof(RootNodeCounts));
+	History.ClearKillerAndCounterMoves();
+	SetupAccumulators(position);
 
 	// Iterative deepening
 	Results e = Results();
 	e.ply = position.GetPly();
 	int result = NoEval;
+	bool finished = false;
+
 	while (!finished) {
 		ResetPvTable();
 		Depth += 1;
@@ -234,7 +205,7 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 
 		// Check search limits
 		const auto currentTime = Clock::now();
-		elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
+		const int elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
 
 		if (Constraints.SearchTimeMin != -1) {
 			const int originalSoftTimeLimit = Constraints.SearchTimeMin;
@@ -245,11 +216,9 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 			if (elapsedMs >= adjustedSoftTimeLimit) finished = true;
 		}
 
-
 		if ((Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
 		if (Depth >= MaxDepth) finished = true;
 		if ((Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
-		if (std::abs(result) == MateEval) finished = true; // Don't search if position is checkmate
 		if (Aborting.load(std::memory_order_relaxed)) {
 			e.nodes = Nodes;
 			e.time = elapsedMs;
@@ -275,11 +244,8 @@ Results Search::SearchMoves(Position& position, const SearchParams params, const
 		GeneratePvLine(e.pv);
 		if (display) PrintInfo(e);
 	}
-	if (display) PrintBestmove(e.BestMove());
 
-	History.ClearKillerAndCounterMoves();
-	ResetPvTable();
-	Aborting.store(true, std::memory_order_relaxed);
+	if (display) PrintBestmove(e.BestMove());
 	return e;
 }
 
@@ -861,10 +827,8 @@ void Search::GeneratePvLine(std::vector<Move>& list) const {
 }
 
 void Search::ResetPvTable() {
-	for (int i = 0; i < MaxDepth; i++) {
-		for (int j = 0; j < MaxDepth; j++) PvTable[i][j] = EmptyMove;
-		PvLength[i] = 0; // ?
-	}
+	std::memset(&PvTable, 0, sizeof(PvTable));
+	std::fill(PvLength.begin(), PvLength.end(), 0);
 }
 
 // Move ordering ----------------------------------------------------------------------------------
@@ -919,4 +883,47 @@ void Search::OrderMovesQ(const Position& position, MoveList& ml, const int level
 	for (auto& m : ml) {
 		m.orderScore = CalculateOrderScore(position, m.move, level, NullMove, false, false);
 	}
+}
+
+// Perft methods ----------------------------------------------------------------------------------
+
+void Search::Perft(Position& position, const int depth, const PerftType type) const {
+	const bool startingPosition = position.Hash() == 0x463b96181691fc9c;
+	constexpr std::array<uint64_t, 8> startingPerfts = { 1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860 };
+
+	const auto startTime = Clock::now();
+	const uint64_t r = PerftRecursive(position, depth, depth, type);
+	const auto endTime = Clock::now();
+
+	const float seconds = static_cast<float>((endTime - startTime).count() / 1e9);
+	const float speed = r / seconds / 1000000;
+	cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps | No bulk counting" << endl;
+
+	if (startingPosition && depth < startingPerfts.size() && startingPerfts[depth] != r)
+		cout << "Uh-oh. (expected: " << startingPerfts[depth] << ")" << endl;
+}
+
+uint64_t Search::PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const {
+	MoveList moves{};
+	position.GenerateMoves(moves, MoveGen::All, Legality::Pseudolegal);
+
+	if (type == PerftType::PerftDiv && originalDepth == depth) cout << "Legal moves (" << moves.size() << "): " << endl;
+	uint64_t count = 0;
+	for (const auto& m : moves) {
+		if (!position.IsLegalMove(m.move)) continue;
+		uint64_t r;
+		if (depth == 1) {
+			r = 1;
+			count += 1;
+		}
+		else {
+			position.Push(m.move);
+			r = PerftRecursive(position, depth - 1, originalDepth, type);
+			position.Pop();
+			count += r;
+		}
+		if (originalDepth == depth && type == PerftType::PerftDiv)
+			cout << " - " << m.move.ToString(Settings::Chess960) << " : " << r << endl;
+	}
+	return count;
 }

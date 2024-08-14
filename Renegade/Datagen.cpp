@@ -101,7 +101,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		if (failed) continue;
 
 		// 3. Verify evaluation if acceptable
-		results = Searcher1->SearchMoves(position, vParams, false);
+		results = Searcher1->StartSearch(position, vParams, false);
 		if (std::abs(results.score) > startingEvalLimit) failed = true;
 		if (failed) continue;
 		Searcher1->ResetState(true);
@@ -114,7 +114,7 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		while (true) {
 			// Search
 			Search* currentSearcher = (position.Turn() == Side::White) ? Searcher1 : Searcher2;
-			results = currentSearcher->SearchMoves(position, params, false);
+			results = currentSearcher->StartSearch(position, params, false);
 			const int whiteScore = results.score * (position.Turn() == Side::Black ? -1 : 1);
 
 			// Adjudicate
