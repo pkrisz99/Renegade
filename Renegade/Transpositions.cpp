@@ -92,11 +92,3 @@ int Transpositions::GetHashfull() const {
 	}
 	return hashfull;
 }
-
-bool TranspositionEntry::IsCutoffPermitted(const int searchDepth, const int alpha, const int beta) const {
-	if (searchDepth > depth) return false;
-
-	return (scoreType == ScoreType::Exact)
-		|| ((scoreType == ScoreType::UpperBound) && (score <= alpha))
-		|| ((scoreType == ScoreType::LowerBound) && (score >= beta));
-}

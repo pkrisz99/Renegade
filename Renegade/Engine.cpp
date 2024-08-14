@@ -60,13 +60,13 @@ void Engine::Start() {
 			continue;
 		}
 
-		if (cmd == "stop" || cmd == "s") {
+		/*if (cmd == "stop" || cmd == "s") {
 			if (!Search.Aborting.load(std::memory_order_relaxed)) {
 				Search.Aborting.store(true, std::memory_order_relaxed);
 				SearchThread.join();
 			}
 			continue;
-		}
+		}*/
 
 		if (cmd == "datagen") {
 			Datagen datagen = Datagen();
@@ -195,9 +195,7 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "draw" || parts[0] == "d") {
-			uint64_t bitboard = 0;
-			if (parts.size() > 1) bitboard = stoull(parts[1]);
-			DrawBoard(position, bitboard);
+			DrawBoard(position);
 			continue;
 		}
 		if (parts[0] == "eval") {
@@ -235,13 +233,14 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "frc") {
-			Settings::Chess960 = true;
-			cout << "-> Chess960 on" << endl;
-			continue;
-		}
-		if (parts[0] == "nofrc") {
-			Settings::Chess960 = false;
-			cout << "-> Chess960 off" << endl;
+			if (parts[1] == "on") {
+				Settings::Chess960 = true;
+				cout << "-> Chess960 on" << endl;
+			}
+			else if (parts[1] == "off") {
+				Settings::Chess960 = false;
+				cout << "-> Chess960 off" << endl;
+			}
 			continue;
 		}
 
@@ -273,11 +272,10 @@ void Engine::Start() {
 			}
 
 			if (parts[1] == "fen") {
-				std::string fen;
-				if (parts.size() >= 8)
-					fen = parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " " + parts[6] + " " + parts[7];
-				else
-					fen = parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " 0 1";
+				const std::string fen = [&] {
+					if (parts.size() >= 8) return parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " " + parts[6] + " " + parts[7];
+					else return parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " 0 1";
+				}();
 				position = Position(fen);
 
 				if ((parts.size() > 8) && (parts[8] == "moves")) {
@@ -294,11 +292,11 @@ void Engine::Start() {
 		// Go command
 		if (parts[0] == "go") {
 
-			if (!Search.Aborting.load(std::memory_order_relaxed)) {
+			/*if (!Search.Aborting.load(std::memory_order_relaxed)) {
 				std::cerr << "info string Search is busy!" << endl;
 				continue;
 			}
-			if (SearchThread.joinable()) SearchThread.join();
+			if (SearchThread.joinable()) SearchThread.join();*/
 
 			if ((parts.size() == 3) && (parts[1] == "perft" || parts[1] == "perftdiv")) {
 				const int depth = stoi(parts[2]);
@@ -324,10 +322,10 @@ void Engine::Start() {
 			}
 
 			// Starting the search thread
-			// old call: Search.SearchMoves(board, params, true);
-			SearchThread = std::thread([&]() {
-				Search.SearchMoves(position, params, true);
-			});
+			/*SearchThread = std::thread([&]() {
+				Search.StartSearch(position, params, true);
+			});*/
+			Search.StartSearch(position, params, true);
 			continue;
 		}
 
@@ -487,11 +485,11 @@ void Engine::HandleBench(const bool lengthy) {
 	const auto startTime = Clock::now();
 	
 	for (std::string fen : BenchmarkFENs) {
-		Settings::Chess960 = StartsWith(fen, "[frc]") ? true : false;
+		Settings::Chess960 = StartsWith(fen, "[frc]");
 		if (StartsWith(fen, "[frc]")) fen = fen.substr(6, fen.length() - 6);
 		Search.ResetState(false);
 		Position pos = Position(fen);
-		const Results r = Search.SearchMoves(pos, params, false);
+		const Results r = Search.StartSearch(pos, params, false);
 		nodes += r.nodes;
 	}
 	const auto endTime = Clock::now();
