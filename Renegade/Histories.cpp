@@ -1,14 +1,14 @@
 #include "Histories.h"
 
 Histories::Histories() {
-	ContinuationHistory = std::make_unique<Continuations>();
+	Continuations = std::make_unique<ContinuationTable>();
 	ClearAll();
 }
 
 void Histories::ClearAll() {
 	ClearKillerAndCounterMoves();
-	std::memset(&HistoryTables, 0, sizeof(HistoryTables));
-	std::memset(ContinuationHistory.get(), 0, sizeof(Continuations));
+	std::memset(&QuietHistory, 0, sizeof(ThreatHistoryTable));
+	std::memset(Continuations.get(), 0, sizeof(ContinuationTable));
 }
 
 void Histories::ClearKillerAndCounterMoves() {
@@ -18,7 +18,7 @@ void Histories::ClearKillerAndCounterMoves() {
 
 // Killer and countermoves ------------------------------------------------------------------------
 
-void Histories::AddKillerMove(const Move& move, const int level) {
+void Histories::SetKillerMove(const Move& move, const int level) {
 	if (level >= MaxDepth) return;
 	KillerMoves[level] = move;
 }
@@ -31,7 +31,7 @@ void Histories::ResetKillerForPly(const int level) {
 	KillerMoves[level] = EmptyMove;
 }
 
-void Histories::AddCountermove(const Move& previousMove, const Move& thisMove) {
+void Histories::SetCountermove(const Move& previousMove, const Move& thisMove) {
 	if (!previousMove.IsNull()) CounterMoves[previousMove.from][previousMove.to] = thisMove;
 }
 
@@ -47,14 +47,14 @@ void Histories::UpdateHistory(const Position& position, const Move& m, const uin
 	const bool side = ColorOfPiece(piece) == PieceColor::White;
 	const bool fromSquareAttacked = position.IsSquareThreatened(m.from);
 	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
-	UpdateHistoryValue(HistoryTables[piece][m.to][fromSquareAttacked][toSquareAttacked], delta);
+	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], delta);
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
 		const auto& [prevMove, prevPiece] = position.GetPreviousMove(ply);
 		if (prevPiece != Piece::None) {
-			int16_t& value = (*ContinuationHistory)[prevPiece][prevMove.to][piece][m.to];
+			int16_t& value = (*Continuations)[prevPiece][prevMove.to][piece][m.to];
 			UpdateHistoryValue(value, delta);
 		}
 	}
@@ -63,11 +63,11 @@ void Histories::UpdateHistory(const Position& position, const Move& m, const uin
 int Histories::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
-	int historyScore = HistoryTables[movedPiece][m.to][fromSquareThreatened][toSquareThreatened];
+	int historyScore = QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened];
 
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
-		historyScore += (*ContinuationHistory)[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
+		historyScore += (*Continuations)[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
 	}
 	return historyScore;
 }

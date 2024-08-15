@@ -146,9 +146,9 @@ Results Search::SearchMoves(Position& position, const bool display) {
 	SetupAccumulators(position);
 
 	// Iterative deepening
-	Results e = Results();
-	e.ply = position.GetPly();
-	int result = NoEval;
+	Results result = Results();
+	result.ply = position.GetPly();
+	int score = NoEval;
 	bool finished = false;
 
 	while (!finished) {
@@ -159,7 +159,7 @@ Results Search::SearchMoves(Position& position, const bool display) {
 		// Obtain score
 		if (Depth < 5) {
 			// Regular negamax for shallow depths
-			result = SearchRecursive(position, Depth, 0, NegativeInfinity, PositiveInfinity);
+			score = SearchRecursive(position, Depth, 0, NegativeInfinity, PositiveInfinity);
 		}
 		else {
 			// Aspiration windows
@@ -170,8 +170,8 @@ Results Search::SearchMoves(Position& position, const bool display) {
 				if (Aborting.load(std::memory_order_relaxed)) break;
 				int alpha, beta;
 				if (windowSize < 500) {
-					alpha = std::max(result - windowSize, NegativeInfinity);
-					beta = std::min(result + windowSize, PositiveInfinity);
+					alpha = std::max(score - windowSize, NegativeInfinity);
+					beta = std::min(score + windowSize, PositiveInfinity);
 				}
 				else {
 					alpha = NegativeInfinity;
@@ -180,18 +180,18 @@ Results Search::SearchMoves(Position& position, const bool display) {
 
 				//if (!settings.UciOutput) cout << "[" << alpha << ".." << beta << "] ";
 
-				result = SearchRecursive(position, searchDepth, 0, alpha, beta);
+				score = SearchRecursive(position, searchDepth, 0, alpha, beta);
 
-				if (result <= alpha) {
+				if (score <= alpha) {
 					alpha = std::max(alpha - windowSize, NegativeInfinity);
 					beta = (alpha + beta) / 2;
 					searchDepth = Depth;
 				}
-				else if (result >= beta) {
+				else if (score >= beta) {
 					beta = std::min(beta + windowSize, PositiveInfinity);
 					
 					// Reduce depth on fail-high
-					if (!IsMateScore(result) && (searchDepth > 1)) searchDepth -= 1;
+					if (!IsMateScore(score) && (searchDepth > 1)) searchDepth -= 1;
 				}
 				else {
 					// Success!
@@ -220,33 +220,32 @@ Results Search::SearchMoves(Position& position, const bool display) {
 		if (Depth >= MaxDepth) finished = true;
 		if ((Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
 		if (Aborting.load(std::memory_order_relaxed)) {
-			e.nodes = Nodes;
-			e.time = elapsedMs;
-			e.nps = static_cast<int>(Nodes * 1e9 / (currentTime - StartSearchTime).count());
-			e.hashfull = TranspositionTable.GetHashfull();
-			e.stats = Statistics;
-			if (display) PrintInfo(e);
+			result.nodes = Nodes;
+			result.time = elapsedMs;
+			result.nps = static_cast<int>(Nodes * 1e9 / (currentTime - StartSearchTime).count());
+			result.hashfull = TranspositionTable.GetHashfull();
+			result.stats = Statistics;
+			if (display) PrintInfo(result);
 			break;
 		}
 
 		// Send info
-		e.score = result;
-		e.depth = Depth;
-		e.seldepth = SelDepth;
-		e.nodes = Nodes;
-		e.stats = Statistics;
-		e.time = elapsedMs;
-		e.nps = static_cast<int>(Nodes * 1e9 / (currentTime - StartSearchTime).count());
-		e.hashfull = TranspositionTable.GetHashfull();
+		result.score = score;
+		result.depth = Depth;
+		result.seldepth = SelDepth;
+		result.nodes = Nodes;
+		result.stats = Statistics;
+		result.time = elapsedMs;
+		result.nps = static_cast<int>(Nodes * 1e9 / (currentTime - StartSearchTime).count());
+		result.hashfull = TranspositionTable.GetHashfull();
 
 		// Obtaining PV line
-		e.pv.clear();
-		GeneratePvLine(e.pv);
-		if (display) PrintInfo(e);
+		result.pv = GeneratePvLine();
+		if (display) PrintInfo(result);
 	}
 
-	if (display) PrintBestmove(e.BestMove());
-	return e;
+	if (display) PrintBestmove(result.BestMove());
+	return result;
 }
 
 // Recursively called during the alpha-beta search
@@ -510,8 +509,8 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 					// If a quiet move causes a fail-high, update move ordering tables
 					if (isQuiet) {
-						History.AddKillerMove(m, level);
-						if (level > 0) History.AddCountermove(position.GetPreviousMove(1).move, m);
+						History.SetKillerMove(m, level);
+						if (level > 0) History.SetCountermove(position.GetPreviousMove(1).move, m);
 						if (depth > 1) History.UpdateHistory(position, m, movedPiece, historyDelta, level);
 					}
 
@@ -818,12 +817,16 @@ void Search::UpdatePvTable(const Move& move, const int level) {
 	PvLength[level] = PvLength[level + 1];
 }
 
-void Search::GeneratePvLine(std::vector<Move>& list) const {
+std::vector<Move> Search::GeneratePvLine() const {
+	std::vector<Move> list;
+	list.reserve(PvLength[0]);
+
 	for (int i = 0; i < PvLength[0]; i++) {
 		const Move& m = PvTable[0][i];
 		if (m.IsEmpty()) break;
 		list.push_back(m);
 	}
+	return list;
 }
 
 void Search::ResetPvTable() {

@@ -57,7 +57,7 @@ private:
 	// PV table
 	void UpdatePvTable(const Move& move, const int level);
 	void InitPvLength(const int level);
-	void GeneratePvLine(std::vector<Move>& list) const;
+	std::vector<Move> GeneratePvLine() const;
 	void ResetPvTable();
 
 

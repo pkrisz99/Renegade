@@ -14,12 +14,12 @@ public:
 	void ClearKillerAndCounterMoves();
 
 	// Killer move heuristic:
-	void AddKillerMove(const Move& move, const int level);
+	void SetKillerMove(const Move& move, const int level);
 	bool IsKillerMove(const Move& move, const int level) const;
 	void ResetKillerForPly(const int level);
 
 	// Countermove heuristic:
-	void AddCountermove(const Move& previousMove, const Move& thisMove);
+	void SetCountermove(const Move& previousMove, const Move& thisMove);
 	bool IsCountermove(const Move& previousMove, const Move& thisMove) const;
 
 	// History heuristic (quiet moves):
@@ -33,13 +33,16 @@ private:
 		value += amount - gravity;
 	}
 
+	// Refutations:
 	std::array<Move, MaxDepth> KillerMoves;
 	std::array<std::array<Move, 64>, 64> CounterMoves;
 
-	using ThreatHistory = std::array<std::array<std::array<std::array<int16_t, 2>, 2>, 64>, 14>;
-	ThreatHistory HistoryTables;
+	// History:
+	using ThreatBuckets = std::array<std::array<int16_t, 2>, 2>;
+	using ThreatHistoryTable = std::array<std::array<ThreatBuckets, 64>, 14>;
+	using ContinuationTable = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
 
-	using Continuations = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
-	std::unique_ptr<Continuations> ContinuationHistory;
+	ThreatHistoryTable QuietHistory;
+	std::unique_ptr<ContinuationTable> Continuations;
 };
 

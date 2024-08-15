@@ -7,10 +7,10 @@ Transpositions::Transpositions() {
 void Transpositions::Store(const uint64_t hash, const int depth, int score, const int scoreType, const Move& bestMove, const int level) {
 
 	//assert(std::abs(score) > MateEval);
-	assert(HashFilter != 0);
+	assert(HashMask != 0);
 	if (std::abs(score) > MateEval) return;
 
-	const uint64_t key = hash & HashFilter;
+	const uint64_t key = hash & HashMask;
 	const uint16_t quality = Age * 2 + depth;
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
 
@@ -32,8 +32,8 @@ void Transpositions::Store(const uint64_t hash, const int depth, int score, cons
 }
 
 bool Transpositions::Probe(const uint64_t& hash, TranspositionEntry& entry, const int level) const {
-	assert(HashFilter != 0);
-	const uint64_t key = hash & HashFilter;
+	assert(HashMask != 0);
+	const uint64_t key = hash & HashMask;
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
 
 	if (Table[key].hash == storedHash) {
@@ -56,7 +56,7 @@ bool Transpositions::Probe(const uint64_t& hash, TranspositionEntry& entry, cons
 
 void Transpositions::Prefetch(const uint64_t hash) const {
 #if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
-	const uint64_t key = hash & HashFilter;
+	const uint64_t key = hash & HashMask;
 	__builtin_prefetch(&Table[key]);
 #endif
 }
@@ -71,14 +71,14 @@ void Transpositions::SetSize(const int megabytes) {
 	int bits = 0;
 	while ((1ull << bits) <= theoreticalEntryCount) bits += 1;
 	bits -= 1;
-	HashFilter = (1ull << bits) - 1;
+	HashMask = (1ull << bits) - 1;
 	Clear();
 }
 
 void Transpositions::Clear() {
 	Table.clear();
-	Table.reserve(HashFilter + 1);
-	for (uint64_t i = 0; i < HashFilter + 1; i++) Table.push_back(TranspositionEntry());
+	Table.reserve(HashMask + 1);
+	for (uint64_t i = 0; i < HashMask + 1; i++) Table.push_back(TranspositionEntry());
 	Table.shrink_to_fit();
 	Age = 0;
 }

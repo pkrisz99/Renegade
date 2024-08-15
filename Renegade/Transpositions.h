@@ -42,7 +42,7 @@ public:
 
 private:
 	std::vector<TranspositionEntry> Table;
-	uint64_t HashFilter;
+	uint64_t HashMask;
 	uint16_t Age;
 };
 
