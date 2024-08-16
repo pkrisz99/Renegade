@@ -2,6 +2,7 @@
 
 namespace Settings {
     int Hash = HashDefault;
+    int Threads = ThreadsDefault;
     bool ShowWDL = ShowWDLDefault;
     bool UseUCI = false;
     bool Chess960 = Chess960Default;

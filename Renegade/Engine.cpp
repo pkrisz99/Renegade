@@ -41,7 +41,7 @@ void Engine::Start() {
 			cout << "id author Krisztian Peocz" << '\n';
 			cout << "option name Clear Hash type button" << '\n';
 			cout << "option name Hash type spin default " << HashDefault << " min " << HashMin << " max " << HashMax << '\n';
-			cout << "option name Threads type spin default 1 min 1 max 1" << '\n';
+			cout << "option name Threads type spin default " << ThreadsDefault << " min " << ThreadsMin << " max " << ThreadsMax << '\n';
 			cout << "option name UCI_ShowWDL type check default " << (ShowWDLDefault ? "true" : "false") << '\n';
 			cout << "option name UCI_Chess960 type check default " << (Chess960Default ? "true" : "false") << '\n';
 			if (Tune::Active()) Tune::PrintOptions();
@@ -131,6 +131,9 @@ void Engine::Start() {
 				}
 			}
 			else if (parts[2] == "threads") {
+				Settings::Threads = stoi(parts[4]);
+				cout << Settings::Threads << endl;
+				// ...
 				valid = true;
 			}
 			else if (Tune::List.find(parts[2]) != Tune::List.end()) {
@@ -231,7 +234,6 @@ void Engine::Start() {
 			cout << "Using huge hash: 4096 MB" << endl;
 			continue;
 		}
-
 		if (parts[0] == "frc") {
 			if (parts[1] == "on") {
 				Settings::Chess960 = true;
@@ -241,6 +243,11 @@ void Engine::Start() {
 				Settings::Chess960 = false;
 				cout << "-> Chess960 off" << endl;
 			}
+			continue;
+		}
+		if (parts[0] == "th") {
+			Settings::Threads = stoi(parts[1]);
+			cout << "-> Set thread count to " << Settings::Threads << endl;
 			continue;
 		}
 

@@ -8,12 +8,16 @@
 
 constexpr int HashMin = 1;
 constexpr int HashDefault = 64;
-constexpr int HashMax = 4096;
+constexpr int HashMax = 65536;
+constexpr int ThreadsMin = 1;
+constexpr int ThreadsDefault = 1;
+constexpr int ThreadsMax = 1;
 constexpr bool Chess960Default = false;
 constexpr bool ShowWDLDefault = true;
 
 namespace Settings {
 	extern int Hash;
+	extern int Threads;
 	extern bool ShowWDL;
 	extern bool UseUCI;
 	extern bool Chess960;
