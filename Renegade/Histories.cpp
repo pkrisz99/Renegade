@@ -82,10 +82,12 @@ void Histories::UpdateCorrection(const Position& position, const int rawEval, co
 
     int32_t& value = MaterialCorrectionHistory[position.Turn()][material_key];
     value = ((256 - weight) * value + weight * diff) / 256;
-    value = std::clamp(value, -16'384, 16'384);
+    value = std::clamp(value, -8'192, 8'192);
 }
 
 int Histories::AdjustStaticEvaluation(const Position& position, const int rawEval) const {
+    if (std::abs(rawEval) > 10'000) return rawEval;
+
     const uint64_t material_key = position.GetMaterialKey() % 32768;
     return rawEval + MaterialCorrectionHistory[position.Turn()][material_key] / 256;
 }

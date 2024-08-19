@@ -314,7 +314,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 	if (!singularSearch) {
         rawEval = inCheck ? NoEval : Evaluate(position, level);
-		staticEval = inCheck ? NoEval : History.AdjustStaticEvaluation(position, rawEval);
+		staticEval = History.AdjustStaticEvaluation(position, rawEval);
 		eval = staticEval;
 
 		if ((ttEval != NoEval) && !inCheck) {  // inCheck is cosmetic
