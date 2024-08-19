@@ -127,7 +127,7 @@ public:
 	}
 
     inline uint64_t GetMaterialKey() const {
-        States.back().CalculateMaterialKey();
+        return States.back().CalculateMaterialKey();
     }
 
 	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;

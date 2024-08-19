@@ -27,8 +27,8 @@ public:
 	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
 
     // Static evaluation correction history:
-    void UpdateCorrection(const Position& position, const int16_t staticEval, const int16_t score, const int depth);
-    int AdjustStaticEvaluation(const Position& position, const int16_t staticEval) const;
+    void UpdateCorrection(const Position& position, const int staticEval, const int score, const int depth);
+    int AdjustStaticEvaluation(const Position& position, const int staticEval) const;
 
 private:
 
@@ -48,6 +48,6 @@ private:
 
 	ThreatHistoryTable QuietHistory;
 	std::unique_ptr<ContinuationTable> Continuations;
-    std::array<std::array<int32_t, 32768>, 2> MaterialCorrectionHistory;
+    std::array<std::array<int, 32768>, 2> MaterialCorrectionHistory;
 };
 

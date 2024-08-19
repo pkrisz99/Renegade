@@ -314,7 +314,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 
 	if (!singularSearch) {
         rawEval = inCheck ? NoEval : Evaluate(position, level);
-		staticEval = History.AdjustStaticEvaluation(position, rawEval);
+		staticEval = inCheck ? NoEval : History.AdjustStaticEvaluation(position, rawEval);
 		eval = staticEval;
 
 		if ((ttEval != NoEval) && !inCheck) {  // inCheck is cosmetic
@@ -552,7 +552,9 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
                    || (scoreType == ScoreType::UpperBound && bestScore < staticEval)
                    || (scoreType == ScoreType::LowerBound && bestScore > staticEval);
         }();
-        if (updateCorrection) History.UpdateCorrection(position, rawEval, bestScore, depth);
+        if (updateCorrection) {
+            History.UpdateCorrection(position, rawEval, bestScore, depth);
+        }
 
         TranspositionTable.Store(hash, depth, bestScore, scoreType, bestMove, level);
     }
