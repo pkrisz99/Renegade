@@ -308,11 +308,13 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && (std::abs(ttEval) < MateThreshold);
 	
 	// Obtain the evaluation of the position
+    int rawEval = NoEval;
 	int staticEval = NoEval;
 	int eval = NoEval;
 
 	if (!singularSearch) {
-		staticEval = inCheck ? NoEval : Evaluate(position, level);
+        rawEval = inCheck ? NoEval : Evaluate(position, level);
+		staticEval = History.AdjustStaticEvaluation(position, rawEval);
 		eval = staticEval;
 
 		if ((ttEval != NoEval) && !inCheck) {  // inCheck is cosmetic
@@ -542,8 +544,18 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 	}
 
 	// Return the best score (fail-soft)
-	if (!aborting && !singularSearch) TranspositionTable.Store(hash, depth, bestScore, scoreType, bestMove, level);
+	if (!aborting && !singularSearch) {
+        const bool updateCorrection = [&] {
+            if (inCheck) return false;
+            if (!bestMove.IsNull() && !position.IsMoveQuiet(bestMove)) return false;
+            return (scoreType == ScoreType::Exact)
+                   || (scoreType == ScoreType::UpperBound && bestScore < staticEval)
+                   || (scoreType == ScoreType::LowerBound && bestScore > staticEval);
+        }();
+        if (updateCorrection) History.UpdateCorrection(position, rawEval, bestScore, depth);
 
+        TranspositionTable.Store(hash, depth, bestScore, scoreType, bestMove, level);
+    }
 	return bestScore;
 }
 

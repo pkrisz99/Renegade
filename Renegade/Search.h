@@ -60,7 +60,6 @@ private:
 	std::vector<Move> GeneratePvLine() const;
 	void ResetPvTable();
 
-
 	int Depth, SelDepth;
 	uint64_t Nodes;
 	SearchStatistics Statistics;
