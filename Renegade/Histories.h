@@ -26,6 +26,10 @@ public:
 	void UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level);
 	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
 
+    // Static evaluation correction history:
+    void UpdateCorrection(const Position& position, const int staticEval, const int score, const int depth);
+    int AdjustStaticEvaluation(const Position& position, const int staticEval) const;
+
 private:
 
 	inline void UpdateHistoryValue(int16_t& value, const int amount) {
@@ -44,5 +48,6 @@ private:
 
 	ThreatHistoryTable QuietHistory;
 	std::unique_ptr<ContinuationTable> Continuations;
+    std::array<std::array<int, 32768>, 2> MaterialCorrectionHistory;
 };
 

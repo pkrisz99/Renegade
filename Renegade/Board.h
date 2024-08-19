@@ -95,6 +95,8 @@ struct Board {
 	uint64_t CalculateHash() const;
 	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
 
+    uint64_t CalculateMaterialKey() const;
+
 };
 
 static_assert(sizeof(Board) == 176);
