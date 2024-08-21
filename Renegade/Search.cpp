@@ -618,9 +618,7 @@ int Search::SearchQuiescence(Position& position, const int level, int alpha, int
 }
 
 int Search::Evaluate(const Position& position, const int level) {
-	const int gamePhase = position.GetGamePhase();
-    const int evaluation = NeuralEvaluate((*Accumulators)[level], position.Turn());
-	return evaluation * (52 + std::min(24, gamePhase)) / 64;
+	return NeuralEvaluate(position, (*Accumulators)[level]);
 }
 
 int Search::DrawEvaluation() const {
@@ -724,84 +722,15 @@ bool Search::StaticExchangeEval(const Position& position, const Move& move, cons
 	return turn != position.Turn();
 }
 
-// Accumulators for neural networks ---------------------------------------------------------------
+// Handle accumulators for neural networks --------------------------------------------------------
+// (the function names are very much awkward)
 
 void Search::SetupAccumulators(const Position& position) {
 	(*Accumulators)[0].Refresh(position);
 }
 
 void Search::UpdateAccumulators(const Position& pos, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
-	
-	// Case 1: Handling null moves - just copy it over
-	if (m.IsNull()) {
-		(*Accumulators)[level + 1] = (*Accumulators)[level];
-		return;
-	}
-
-	// Case 2: King moves - check if a refresh is necessary
-	if (TypeOfPiece(movedPiece) == PieceType::King) {
-		const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
-		if (IsRefreshRequired(m, side)) {
-			(*Accumulators)[level + 1].Refresh(pos);
-			return;
-		}
-	}
-
-	// Case 3: Copy the previous state over - normal incremental update
-	(*Accumulators)[level + 1] = (*Accumulators)[level];
-	AccumulatorRepresentation& Accumulator = (*Accumulators)[level + 1];
-	const uint8_t whiteKingSq = pos.WhiteKingSquare();
-	const uint8_t blackKingSq = pos.BlackKingSquare();
-
-	// No longer activate the previous position of the moved piece
-	Accumulator.RemoveFeature( FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq) );
-
-	// No longer activate the position of the captured piece (if any)
-	if (capturedPiece != Piece::None) {
-		Accumulator.RemoveFeature( FeatureIndexes(capturedPiece, m.to, whiteKingSq, blackKingSq));
-	}
-
-	// Activate the new position of the moved piece
-	if (!m.IsPromotion() && !m.IsCastling()) {
-		Accumulator.AddFeature( FeatureIndexes(movedPiece, m.to, whiteKingSq, blackKingSq));
-	}
-	else if (m.IsPromotion()) {
-		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		Accumulator.AddFeature( FeatureIndexes(promotionPiece, m.to, whiteKingSq, blackKingSq));
-	}
-
-	// Special cases
-	switch (m.flag) {
-		case MoveFlag::None: break;
-
-		case MoveFlag::ShortCastle:
-			if (ColorOfPiece(movedPiece) == PieceColor::White) {
-				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::G1, whiteKingSq, blackKingSq));
-				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::F1, whiteKingSq, blackKingSq));
-			}
-			else {
-				Accumulator.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::G8, whiteKingSq, blackKingSq));
-				Accumulator.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::F8, whiteKingSq, blackKingSq));
-			}
-			break;
-
-		case MoveFlag::LongCastle:
-			if (ColorOfPiece(movedPiece) == PieceColor::White) {
-				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::C1, whiteKingSq, blackKingSq));
-				Accumulator.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::D1, whiteKingSq, blackKingSq));
-			}
-			else {
-				Accumulator.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::C8, whiteKingSq, blackKingSq));
-				Accumulator.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::D8, whiteKingSq, blackKingSq));
-			}
-			break;
-
-		// Treat en passant
-		case MoveFlag::EnPassantPerformed:
-			if (movedPiece == Piece::WhitePawn) Accumulator.RemoveFeature( FeatureIndexes(Piece::BlackPawn, m.to - 8, whiteKingSq, blackKingSq));
-			else Accumulator.RemoveFeature( FeatureIndexes(Piece::WhitePawn, m.to + 8, whiteKingSq, blackKingSq));
-			break;
-	}
+	UpdateAccumulator(pos, (*Accumulators)[level], (*Accumulators)[level + 1], m, movedPiece, capturedPiece);
 }
 
 // PV table ---------------------------------------------------------------------------------------

@@ -130,8 +130,11 @@ struct alignas(64) AccumulatorRepresentation {
 
 };
 
+int NeuralEvaluate(const Position &position);
+int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc);
+
+void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& oldAcc, AccumulatorRepresentation& newAcc,
+	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
+
 void LoadDefaultNetwork();
 void LoadExternalNetwork(const std::string& filename);
-
-int NeuralEvaluate(const Position &position);
-int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn);

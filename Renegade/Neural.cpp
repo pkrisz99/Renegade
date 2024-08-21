@@ -21,7 +21,8 @@ std::unique_ptr<NetworkRepresentation> ExternalNetwork;
 
 // Evaluating the position ------------------------------------------------------------------------
 
-int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
+int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc) {
+	const bool turn = position.Turn();
 	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.White : acc.Black;
 	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.Black : acc.White;
 	int32_t output = 0;
@@ -76,14 +77,94 @@ int NeuralEvaluate(const AccumulatorRepresentation& acc, const bool turn) {
 #endif
 
 	constexpr int Q = QA * QB;
-	output = (output / QA + Network->OutputBias) * Scale / Q; // Square Clipped ReLU
+	output = (output / QA + Network->OutputBias) * Scale / Q; // for SCReLU
+
+	// Scale according to material
+	const int gamePhase = position.GetGamePhase();
+	output = output * (52 + std::min(24, gamePhase)) / 64;
+
 	return std::clamp(output, -MateThreshold + 1, MateThreshold - 1);
 }
 
 int NeuralEvaluate(const Position& position) {
 	AccumulatorRepresentation acc{};
 	acc.Refresh(position);
-	return NeuralEvaluate(acc, position.Turn());
+	return NeuralEvaluate(position, acc);
+}
+
+// Accumulator updates ----------------------------------------------------------------------------
+
+void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& oldAcc, AccumulatorRepresentation& newAcc,
+	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
+
+	// Case 1: Handling null moves - just copy it over
+	if (m.IsNull()) {
+		newAcc = oldAcc;
+		return;
+	}
+
+	// Case 2: King moves - check if a refresh is necessary
+	if (TypeOfPiece(movedPiece) == PieceType::King) {
+		const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
+		if (IsRefreshRequired(m, side)) {
+			newAcc.Refresh(pos);
+			return;
+		}
+	}
+
+	// Case 3: Copy the previous state over - normal incremental update
+	newAcc = oldAcc;
+	const uint8_t whiteKingSq = pos.WhiteKingSquare();
+	const uint8_t blackKingSq = pos.BlackKingSquare();
+
+	// No longer activate the previous position of the moved piece
+	newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
+
+	// No longer activate the position of the captured piece (if any)
+	if (capturedPiece != Piece::None) {
+		newAcc.RemoveFeature(FeatureIndexes(capturedPiece, m.to, whiteKingSq, blackKingSq));
+	}
+
+	// Activate the new position of the moved piece
+	if (!m.IsPromotion() && !m.IsCastling()) {
+		newAcc.AddFeature(FeatureIndexes(movedPiece, m.to, whiteKingSq, blackKingSq));
+	}
+	else if (m.IsPromotion()) {
+		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
+		newAcc.AddFeature(FeatureIndexes(promotionPiece, m.to, whiteKingSq, blackKingSq));
+	}
+
+	// Special cases
+	switch (m.flag) {
+	case MoveFlag::None: break;
+
+	case MoveFlag::ShortCastle:
+		if (ColorOfPiece(movedPiece) == PieceColor::White) {
+			newAcc.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::G1, whiteKingSq, blackKingSq));
+			newAcc.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::F1, whiteKingSq, blackKingSq));
+		}
+		else {
+			newAcc.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::G8, whiteKingSq, blackKingSq));
+			newAcc.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::F8, whiteKingSq, blackKingSq));
+		}
+		break;
+
+	case MoveFlag::LongCastle:
+		if (ColorOfPiece(movedPiece) == PieceColor::White) {
+			newAcc.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::C1, whiteKingSq, blackKingSq));
+			newAcc.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::D1, whiteKingSq, blackKingSq));
+		}
+		else {
+			newAcc.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::C8, whiteKingSq, blackKingSq));
+			newAcc.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::D8, whiteKingSq, blackKingSq));
+		}
+		break;
+
+	case MoveFlag::EnPassantPerformed:
+		if (movedPiece == Piece::WhitePawn) newAcc.RemoveFeature(FeatureIndexes(Piece::BlackPawn, m.to - 8, whiteKingSq, blackKingSq));
+		else newAcc.RemoveFeature(FeatureIndexes(Piece::WhitePawn, m.to + 8, whiteKingSq, blackKingSq));
+		break;
+	}
 }
 
 // Loading an external network (MSVC fallback) ----------------------------------------------------
