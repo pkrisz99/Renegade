@@ -19,7 +19,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.1.14";
+constexpr std::string_view Version = "dev 1.1.15";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -193,16 +193,6 @@ struct SearchConstraints {
 	int SearchTimeMin = -1;
 	int SearchTimeMax = -1;
 	int64_t SoftNodes = -1;
-};
-
-struct SearchStatistics {
-	uint64_t QuiescenceNodes = 0;
-	uint64_t AlphaBetaCalls = 0; // double counts when drops into QS
-	uint64_t Evaluations = 0;
-	uint64_t BetaCutoffs = 0;
-	uint64_t FirstMoveBetaCutoffs = 0;
-	uint64_t TranspositionProbes = 0;
-	uint64_t TranspositionHits = 0;
 };
 
 // Bitwise operations  ----------------------------------------------------------------------------

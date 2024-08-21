@@ -62,7 +62,6 @@ private:
 
 	int Depth, SelDepth;
 	uint64_t Nodes;
-	SearchStatistics Statistics;
 	SearchConstraints Constraints;
 	Histories History;
 	std::chrono::high_resolution_clock::time_point StartSearchTime;

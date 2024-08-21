@@ -13,11 +13,10 @@ struct Results {
 	int hashfull = 0;
 	int ply = 0;
 	std::vector<Move> pv;
-	SearchStatistics stats;
 
 	Results();
 	Results(const int score, const int depth, const int seldepth, const uint64_t nodes, const int time,
-		const int nps, const int hashfull, const int ply, const std::vector<Move>& pv, const SearchStatistics& stats);
+		const int nps, const int hashfull, const int ply, const std::vector<Move>& pv);
 	Move BestMove() const;
 };
 

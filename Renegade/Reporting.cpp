@@ -4,11 +4,10 @@
 
 Results::Results() {
 	pv = std::vector<Move>();
-	stats = SearchStatistics{};
 }
 
 Results::Results(const int score, const int depth, const int seldepth, const uint64_t nodes, const int time,
-	const int nps, const int hashfull, const int ply, const std::vector<Move>& pv, const SearchStatistics& stats) {
+	const int nps, const int hashfull, const int ply, const std::vector<Move>& pv) {
 
 	// This constructor only exists to help with the order of parameters
 	this->score = score;
@@ -20,7 +19,6 @@ Results::Results(const int score, const int depth, const int seldepth, const uin
 	this->hashfull = hashfull;
 	this->ply = ply;
 	this->pv = pv;
-	this->stats = stats;
 }
 
 Move Results::BestMove() const {
@@ -37,9 +35,9 @@ void PrintInfo(const Results& e) {
 
 	const int normalizedScore = ToCentipawns(e.score, e.ply);
 
-	std::string score;
+	std::string score{};
 	if (IsMateScore(e.score)) {
-		int movesToMate = (MateEval - std::abs(e.score) + 1) / 2;
+		const int movesToMate = (MateEval - std::abs(e.score) + 1) / 2;
 		if (e.score > 0) score = "mate " + std::to_string(movesToMate);
 		else score = "mate -" + std::to_string(movesToMate);
 	}
@@ -47,19 +45,7 @@ void PrintInfo(const Results& e) {
 		score = "cp " + std::to_string(normalizedScore);
 	}
 
-	/*
-	std::string extended;
-	if (settings.ExtendedOutput) {
-		extended += " evals " + std::to_string(e.stats.Evaluations);
-		extended += " qnodes " + std::to_string(e.stats.QuiescenceNodes);
-		// extended += " betacutoffs " + std::to_string(e.stats.BetaCutoffs)
-		// extended += " fmbc " + std::to_string(e.stats.FirstMoveBetaCutoffs);
-		if (e.stats.BetaCutoffs != 0) extended += " fmbcrate " + std::to_string(static_cast<int>(e.stats.FirstMoveBetaCutoffs * 1000 / e.stats.BetaCutoffs));
-		extended += " tthits " + std::to_string(e.stats.TranspositionHits);
-		if (e.stats.TranspositionQueries != 0) extended += " ttrate " + std::to_string(static_cast<int>(e.stats.TranspositionHits * 1000 / e.stats.TranspositionQueries));
-	}*/
-
-	std::string pvString;
+	std::string pvString{};
 	for (const Move& move : e.pv)
 		pvString += " " + move.ToString(Settings::Chess960);
 
