@@ -358,8 +358,9 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "nnue") {
-			cout << "Arch: " << FeatureSize << "->" << HiddenSize << "x2" << "->1 (SCReLU activation)" << endl;
-			cout << "Net name: " << NETWORK_NAME << endl;
+			cout << "-> Arch: (" << FeatureSize << "x" << InputBucketCount << "->" << HiddenSize << ")x2" << "->1  [SCReLU, horizontal mirrored]" << endl;
+			cout << "-> Net name: " << NETWORK_NAME << endl;
+			cout << "-> Net size: " << sizeof(NetworkRepresentation) << endl;
 			continue;
 		}
 
