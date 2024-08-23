@@ -6,17 +6,12 @@ use bullet_lib::{
     TrainerBuilder, TrainingSchedule, Loss, optimiser
 };
 
-macro_rules! net_id {
-    () => {
-        "renegade-net-24"
-    };
-}
-const NET_ID: &str = net_id!();
+const NET_ID: &str = "renegade-net-25-moredata";
 
 
 fn main() {
     let mut trainer = TrainerBuilder::default()
-	    .quantisations(&[255, 64])
+        .quantisations(&[255, 64])
         .optimiser(optimiser::AdamW)
         .input(inputs::ChessBucketsMirrored::new([
             0, 0, 1, 1,
@@ -32,8 +27,9 @@ fn main() {
         .feature_transformer(1024)
         .activate(Activation::SCReLU)
         .add_layer(1)
-        .build();  //trainer.load_from_checkpoint("checkpoints/testnet");
-	
+        .build();
+    //trainer.load_from_checkpoint("checkpoints/renegade-net-x-y");
+    
     let schedule = TrainingSchedule {
         net_id: NET_ID.to_string(),
         batch_size: 16384,
@@ -52,7 +48,7 @@ fn main() {
             step: 120,
         },
         loss_function: Loss::SigmoidMSE,
-        save_rate: 40,
+        save_rate: 20,
         optimiser_settings: optimiser::AdamWParams {
             decay: 0.01,
             beta1: 0.9,
@@ -61,23 +57,19 @@ fn main() {
             max_weight: 1.98,
         },
     };
-	
-	
+    
     let settings = LocalSettings {
         threads: 6,
         data_file_paths: vec![
-            "../nnue/data/240325_240421_240609_240622_240722_frc240513",
+            "../nnue/data/240325_240421_240609_240622_240722_240821_frc240513",
         ],
         test_set: None,
         output_directory: "checkpoints",
     };
 
     trainer.run(&schedule, &settings);
-	
+    
     for fen in [
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-        "rn3r2/pbppq1p1/1p2pN1k/4N3/3P4/3B4/PPP2PPP/R3K2R w KQ - 1 13",
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         "2r3k1/2P2pp1/3Np2p/8/7P/5qP1/5P1K/2Q5 b - - 2 42",
         "rnbqkb1r/pppppppp/8/3nP3/2P5/8/PP1P1PPP/RNBQKBNR b KQkq - 0 3",
