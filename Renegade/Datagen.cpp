@@ -100,6 +100,11 @@ void Datagen::SelfPlay(const std::string filename, const SearchParams params, co
 		}
 		if (failed) continue;
 
+		// Rarely, the last move will result in a checkmate position - filter these
+		MoveList moves{};
+		position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
+		if (moves.size() == 0) continue;
+
 		// 3. Verify evaluation if acceptable
 		results = Searcher1->StartSearch(position, vParams, false);
 		if (std::abs(results.score) > startingEvalLimit) failed = true;
