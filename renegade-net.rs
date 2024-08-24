@@ -6,7 +6,7 @@ use bullet_lib::{
     TrainerBuilder, TrainingSchedule, Loss, optimiser
 };
 
-const NET_ID: &str = "renegade-net-25-moredata";
+const NET_ID: &str = "renegade-net-26-morebuckets";
 
 
 fn main() {
@@ -14,14 +14,14 @@ fn main() {
         .quantisations(&[255, 64])
         .optimiser(optimiser::AdamW)
         .input(inputs::ChessBucketsMirrored::new([
-            0, 0, 1, 1,
-            2, 2, 2, 2,
-            2, 2, 2, 2,
-            3, 3, 3, 3,
-            3, 3, 3, 3,
-            3, 3, 3, 3,
-            3, 3, 3, 3,
-            3, 3, 3, 3,
+            0, 1, 2, 3,
+            4, 4, 5, 5,
+            6, 6, 6, 6,
+            7, 7, 7, 7,
+            8, 8, 8, 8,
+            8, 8, 8, 8,
+            9, 9, 9, 9,
+            9, 9, 9, 9,
         ]))
         .output_buckets(outputs::Single)
         .feature_transformer(1024)
