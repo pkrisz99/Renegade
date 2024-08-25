@@ -5,12 +5,9 @@ Engine::Engine(int argc, char* argv[]) {
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
 	LoadDefaultNetwork();
-	Search.TranspositionTable.SetSize(Settings::Hash);
+	SearchThreads.TranspositionTable.SetSize(Settings::Hash);
 
-	if (argc == 2 && std::string(argv[1]) == "bench") {
-		HandleBench(false);
-		QuitAfterBench = true;
-	}
+	if (argc == 2 && std::string(argv[1]) == "bench") QuitAfterBench = true;
 	else PrintHeader();
 }
 
@@ -20,13 +17,22 @@ void Engine::PrintHeader() const {
 
 // Start UCI protocol
 void Engine::Start() {
-	if (QuitAfterBench) return;
+
+	// Handle externally receiving bench
+	if (QuitAfterBench) {
+		HandleBench();
+		SearchThreads.StopThreads();
+		return;
+	}
+
 	Position position = Position(FEN::StartPos);
 	std::string cmd;
 	SearchParams params;
 
+	// Main program loop
+	
 	// Please be aware that this code is utterly terrible and a rewrite is long overdue
-	// I'll get to this one day
+	// I promise I'll get to this one day
 
 	while (std::getline(cin, cmd)) {
 
@@ -34,7 +40,9 @@ void Engine::Start() {
 		if (cmd.size() == 0) continue;
 		std::vector<std::string> parts = Split(cmd);
 
-		if (cmd == "quit") break;
+		if (cmd == "quit") {
+			break;
+		}
 
 		if (cmd == "uci") {
 			cout << "id name Renegade " << Version << '\n';
@@ -56,19 +64,18 @@ void Engine::Start() {
 		}
 
 		if (cmd == "ucinewgame") {
-			Search.ResetState(true);
+			SearchThreads.WaitUntilReady();
+			SearchThreads.ResetState(true);
 			continue;
 		}
 
-		/*if (cmd == "stop" || cmd == "s") {
-			if (!Search.Aborting.load(std::memory_order_relaxed)) {
-				Search.Aborting.store(true, std::memory_order_relaxed);
-				SearchThread.join();
-			}
+		if (cmd == "stop" || cmd == "s") {
+			SearchThreads.StopSearch();
+			SearchThreads.WaitUntilReady();
 			continue;
-		}*/
+		}
 
-		if (cmd == "datagen") {
+		/*if (cmd == "datagen") {
 			Datagen datagen = Datagen();
 			datagen.Start();
 			continue;
@@ -83,7 +90,7 @@ void Engine::Start() {
 			Datagen datagen = Datagen();
 			datagen.MergeFiles();
 			continue;
-		}
+		}*/
 
 		if (cmd == "tunetext") {
 			Tune::GenerateString();
@@ -98,13 +105,13 @@ void Engine::Start() {
 
 			if (parts[2] == "hash") {
 				Settings::Hash = stoi(parts[4]);
-				Search.TranspositionTable.SetSize(Settings::Hash);
+				SearchThreads.TranspositionTable.SetSize(Settings::Hash);
 				valid = true;
 			}
 			else if (parts[2] == "clear") {
 				ConvertToLowercase(parts[3]);
 				if (parts[3] == "hash") {
-					Search.ResetState(true);
+					SearchThreads.ResetState(true);
 					valid = true;
 				}
 			}
@@ -132,8 +139,7 @@ void Engine::Start() {
 			}
 			else if (parts[2] == "threads") {
 				Settings::Threads = stoi(parts[4]);
-				cout << Settings::Threads << endl;
-				// ...
+				SearchThreads.SetThreadCount(Settings::Threads);
 				valid = true;
 			}
 			else if (Tune::List.find(parts[2]) != Tune::List.end()) {
@@ -216,7 +222,7 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "ch") {
-			Search.ResetState(true);
+			SearchThreads.ResetState(true);
 			cout << "Transposition table cleared." << endl;
 			continue;
 		}
@@ -225,12 +231,14 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "bighash") {
-			Search.TranspositionTable.SetSize(1024);
+			Settings::Hash = 1024;
+			SearchThreads.TranspositionTable.SetSize(Settings::Hash);
 			cout << "Using big hash: 1024 MB" << endl;
 			continue;
 		}
 		if (parts[0] == "hugehash") {
-			Search.TranspositionTable.SetSize(4096);
+			Settings::Hash = 4096;
+			SearchThreads.TranspositionTable.SetSize(Settings::Hash);
 			cout << "Using huge hash: 4096 MB" << endl;
 			continue;
 		}
@@ -248,16 +256,19 @@ void Engine::Start() {
 		if (parts[0] == "th") {
 			Settings::Threads = stoi(parts[1]);
 			cout << "-> Set thread count to " << Settings::Threads << endl;
+			SearchThreads.SetThreadCount(Settings::Threads);
 			continue;
 		}
 
 		// Position command
 		if (parts[0] == "position") {
 
-			if (!Search.Aborting.load(std::memory_order_relaxed)) {
+			SearchThreads.WaitUntilReady();
+
+			/*if (!SearchThreads.Aborting.load(std::memory_order_relaxed)) {
 				std::cerr << "info string Search is busy!" << endl;
 				continue;
-			}
+			}*/
 
 			if ((parts[1] == "startpos") || (parts[1] == "kiwipete") || (parts[1] == "lasker") || (parts[1] == "frc")) {
 				if (parts[1] == "startpos") position = Position(FEN::StartPos);
@@ -299,18 +310,20 @@ void Engine::Start() {
 		// Go command
 		if (parts[0] == "go") {
 
+			SearchThreads.WaitUntilReady();
+
 			/*if (!Search.Aborting.load(std::memory_order_relaxed)) {
 				std::cerr << "info string Search is busy!" << endl;
 				continue;
 			}
 			if (SearchThread.joinable()) SearchThread.join();*/
 
-			if ((parts.size() == 3) && (parts[1] == "perft" || parts[1] == "perftdiv")) {
+			/*if ((parts.size() == 3) && (parts[1] == "perft" || parts[1] == "perftdiv")) {
 				const int depth = stoi(parts[2]);
 				const PerftType type = (parts[1] == "perftdiv") ? PerftType::PerftDiv : PerftType::Normal;
 				Search.Perft(position, depth, type);
 				continue;
-			}
+			}*/
 
 			params = SearchParams();
 			for (int i = 1; i < parts.size(); i++) {
@@ -332,17 +345,12 @@ void Engine::Start() {
 			/*SearchThread = std::thread([&]() {
 				Search.StartSearch(position, params, true);
 			});*/
-			Search.StartSearch(position, params, true);
+			SearchThreads.StartSearch(position, params, true);
 			continue;
 		}
 
 		if (parts[0] == "bench" || parts[0] == "b") {
-			HandleBench(false);
-			continue;
-		}
-
-		if (parts[0] == "longbench") {
-			HandleBench(true);
+			HandleBench();
 			continue;
 		}
 
@@ -368,6 +376,7 @@ void Engine::Start() {
 
 	}
 	cout << "Stopping engine." << endl;
+	SearchThreads.StopThreads();
 }
 
 void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
@@ -482,30 +491,9 @@ void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
 	cout << endl;
 }
 
-void Engine::HandleBench(const bool lengthy) {
-	const int oldHashSize = Settings::Hash;
-	const bool oldChess960Setting = Settings::Chess960;
-	Settings::Chess960 = false;
-	uint64_t nodes = 0;
-	SearchParams params;
-	params.depth = lengthy ? 21 : 14;
-	Search.TranspositionTable.SetSize(16);
-	const auto startTime = Clock::now();
-	
-	for (std::string fen : BenchmarkFENs) {
-		Settings::Chess960 = StartsWith(fen, "[frc]");
-		if (StartsWith(fen, "[frc]")) fen = fen.substr(6, fen.length() - 6);
-		Search.ResetState(false);
-		Position pos = Position(fen);
-		const Results r = Search.StartSearch(pos, params, false);
-		nodes += r.nodes;
-	}
-	const auto endTime = Clock::now();
-	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
-	cout << nodes << " nodes " << nps << " nps" << endl;
-	Search.ResetState(false);
-	Search.TranspositionTable.SetSize(oldHashSize); // also clears the transposition table
-	Settings::Chess960 = oldChess960Setting;
+void Engine::HandleBench() {
+	//cout << "123456 nodes 1200000 nps" << endl;
+	SearchThreads.SearchBench();
 }
 
 void Engine::HandleCompiler() const {

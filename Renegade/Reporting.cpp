@@ -99,7 +99,7 @@ void PrintPretty(const Results& e) {
 	}();
 
 	const std::string outputNps = [&] {
-		if (e.nps < 10'000'000) return std::format("{:>4d}knps", e.nps / 1000);
+		if (e.threads == 1) return std::format("{:>4d}knps", e.nps / 1000);
 		else return std::format("{:>4.1f}mnps", e.nps / 1e6);
 	}();
 

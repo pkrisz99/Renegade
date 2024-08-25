@@ -47,7 +47,7 @@ private:
 	using ContinuationTable = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
 
 	ThreatHistoryTable QuietHistory;
-	std::unique_ptr<ContinuationTable> Continuations;
+	ContinuationTable Continuations;
     std::array<std::array<int, 32768>, 2> MaterialCorrectionHistory;
 };
 
