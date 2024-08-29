@@ -421,7 +421,7 @@ int Search::SearchRecursive(Position& position, int depth, const int level, int 
 		if (singularCandidate && m == ttMove) {
 			const int singularMargin = depth * 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
-			const int singularDepth = (depth - 1) / 2;
+			const int singularDepth = (depth + 1) / 2;
 			ExcludedMoves[level] = m;
 			const int singularScore = SearchRecursive(position, singularDepth, level, singularBeta - 1, singularBeta);
 			ExcludedMoves[level] = EmptyMove;
