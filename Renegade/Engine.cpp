@@ -328,8 +328,16 @@ void Engine::Start() {
 			params = SearchParams();
 			for (int i = 1; i < parts.size(); i++) {
 				// This looks ugly, but I'll rewrite it
-				if (parts[i] == "wtime") { params.wtime = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "btime") { params.btime = stoi(parts[i + 1]); i++; }
+				if (parts[i] == "wtime") { 
+					const int t = stoi(parts[i + 1]);
+					params.wtime = (t > 0) ? t : 1;
+					i++;
+				}
+				if (parts[i] == "btime") { 
+					const int t = stoi(parts[i + 1]);
+					params.btime = (t > 0) ? t : 1;
+					i++;
+				}
 				if (parts[i] == "movestogo") { params.movestogo = stoi(parts[i + 1]); i++; }
 				if (parts[i] == "winc") { params.winc = stoi(parts[i + 1]); i++; }
 				if (parts[i] == "binc") { params.binc = stoi(parts[i + 1]); i++; }

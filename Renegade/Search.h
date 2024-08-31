@@ -22,7 +22,7 @@
 * SearchRecursive() is the main alpha-beta search, and SearchQuiescence() is called in leaf nodes.
 */
 
-class ThreadData {
+class alignas(64) ThreadData {
 public:
 	void ResetStatistics();
 
@@ -62,26 +62,38 @@ public:
 	struct LoopingLogic {
 	public:
 		inline void Step() {
-			Passthrough = true;
+			while (!Ready.load()) {};
+			Passthrough.store(true);
+			CondVar.notify_all();
+		}
+
+		inline void Exit() {
+			Exiting.store(true);
+			Passthrough.store(true);
 			CondVar.notify_all();
 		}
 
 		inline void Wait() {
-			Passthrough = false;
+			Passthrough.store(false);
+			Ready.store(true);
 			CondVar.notify_all();
 
 			std::unique_lock lock(Mutex);
 			CondVar.wait(lock, [&] {
-				return Passthrough;
+				return Passthrough.load();
 			});
 		}
 
-		bool Exiting = false;
+		inline bool IsExiting() const {
+			return Exiting.load();
+		}
+		std::atomic<bool> Ready = false;  // in very rare cases prevents the engine from locking up due to unfortunate timing of changing Passthrough (?)
 
 	private:
 		std::mutex Mutex;
 		std::condition_variable CondVar;
-		bool Passthrough = false;
+		std::atomic<bool> Passthrough = false;
+		std::atomic<bool> Exiting = false;
 	};
 
 	LoopingLogic Looping;

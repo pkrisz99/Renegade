@@ -53,8 +53,7 @@ void Search::StartThreads(const int threadCount) {
 void Search::StopThreads() {
 	StopSearch();
 	for (ThreadData& t : Threads) {
-		t.Looping.Exiting = true;
-		t.Looping.Step();
+		t.Looping.Exit();
 	}
 	for (ThreadData& t : Threads) t.Thread.join();
 	Threads.clear();
@@ -149,19 +148,20 @@ void Search::StartSearch(Position& position, const SearchParams params, const bo
 
 void Search::StopSearch() {
 	Aborting.store(true);
+	WaitUntilReady();
 }
 
 void Search::Loop(ThreadData& t) {
 	LoadedThreadCount.fetch_add(1);
 	while (true) {
 		t.Looping.Wait();
-		if (t.Looping.Exiting) return;
+		t.Looping.Ready.store(false);
+		if (t.Looping.IsExiting()) return;
 		else {
 			SearchMoves(t);
 			if (t.IsMainThread()) PrintBestmove(t.result.BestMove());
 		}
 		ActiveThreadCount.fetch_sub(1);
-		//cout << ActiveThreadCount << endl;
 	}
 }
 
@@ -214,7 +214,7 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 }
 
 bool Search::ShouldAbort(const ThreadData& t) {
-	if (Aborting.load(std::memory_order_relaxed)) return true;
+	if (Aborting.load(std::memory_order_relaxed) && (t.Depth > 1 || !t.IsMainThread())) return true;
 	if (!t.IsMainThread()) return false; // TODO: ensure limits when multithreaded
 
 	if ((Constraints.MaxNodes != -1) && (t.Nodes >= Constraints.MaxNodes) && (t.Depth > 1)) {
@@ -322,7 +322,7 @@ void Search::SearchMoves(ThreadData& t) {
 		if (t.Depth >= MaxDepth) finished = true;
 		if ((t.Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
 
-		if (Aborting.load(std::memory_order_relaxed) && !t.bench) {
+		if (Aborting.load(std::memory_order_relaxed) && !t.bench && t.Depth > 1) {
 			t.result.nodes = t.Nodes;
 			t.result.time = elapsedMs;
 			t.result.nps = static_cast<int>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
@@ -343,14 +343,14 @@ void Search::SearchMoves(ThreadData& t) {
 		// Obtaining PV line and displaying
 		t.result.pv = t.GeneratePvLine();
 		if (t.IsMainThread() && !t.bench) {
-			PrintInfo(SummarizeThreadInfo());
+			if (!finished) PrintInfo(SummarizeThreadInfo());
 		}
 	}
 
 	// Main thread should wait others finishing before displaying the final best move
 	if (t.IsMainThread() && !t.bench) {
 		Aborting.store(true);
-		while (ActiveThreadCount.load(std::memory_order_relaxed) > 1) {};
+		while (ActiveThreadCount.load() > 1) {};
 		PrintInfo(SummarizeThreadInfo());
 	}
 
