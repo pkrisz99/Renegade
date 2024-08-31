@@ -698,7 +698,8 @@ int Search::SearchQuiescence(ThreadData& t, Position& position, const int level,
 	if (level > t.SelDepth) t.SelDepth = level;
 
 	// Update alpha-beta bounds, return alpha if no captures left
-	const int staticEval = Evaluate(t, position, level);
+	const int rawEval = Evaluate(t, position, level);
+	const int staticEval = t.History.AdjustStaticEvaluation(position, rawEval);
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= MaxDepth) return staticEval;
