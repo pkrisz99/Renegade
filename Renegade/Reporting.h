@@ -13,6 +13,7 @@ struct Results {
 	int hashfull = 0;
 	int ply = 0;
 	std::vector<Move> pv;
+	int threads = 1;
 
 	Results();
 	Results(const int score, const int depth, const int seldepth, const uint64_t nodes, const int time,

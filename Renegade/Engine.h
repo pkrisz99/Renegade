@@ -21,11 +21,11 @@ public:
 	void Start();
 	void PrintHeader() const;
 	void DrawBoard(const Position &pos, const uint64_t highlight = 0) const;
-	void HandleBench(const bool lengthy);
+	void HandleBench();
 	void HandleHelp() const;
 	void HandleCompiler() const;
 
-	Search Search;
+	Search SearchThreads;
 	bool QuitAfterBench = false;
 
 #if defined(_MSC_VER)

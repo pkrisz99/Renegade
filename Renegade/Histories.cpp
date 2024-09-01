@@ -1,14 +1,13 @@
 #include "Histories.h"
 
 Histories::Histories() {
-	Continuations = std::make_unique<ContinuationTable>();
 	ClearAll();
 }
 
 void Histories::ClearAll() {
 	ClearKillerAndCounterMoves();
 	std::memset(&QuietHistory, 0, sizeof(ThreatHistoryTable));
-	std::memset(Continuations.get(), 0, sizeof(ContinuationTable));
+	std::memset(&Continuations, 0, sizeof(ContinuationTable));
     std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionHistory));
 }
 
@@ -55,7 +54,7 @@ void Histories::UpdateHistory(const Position& position, const Move& m, const uin
 		if (level < ply) break;
 		const auto& [prevMove, prevPiece] = position.GetPreviousMove(ply);
 		if (prevPiece != Piece::None) {
-			int16_t& value = (*Continuations)[prevPiece][prevMove.to][piece][m.to];
+			int16_t& value = Continuations[prevPiece][prevMove.to][piece][m.to];
 			UpdateHistoryValue(value, delta);
 		}
 	}
@@ -68,7 +67,7 @@ int Histories::GetHistoryScore(const Position& position, const Move& m, const ui
 
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
-		historyScore += (*Continuations)[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
+		historyScore += Continuations[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
 	}
 	return historyScore;
 }

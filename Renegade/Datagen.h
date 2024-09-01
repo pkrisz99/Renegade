@@ -1,4 +1,4 @@
-#pragma once
+/*#pragma once
 #include <filesystem>
 #include <fstream>
 #include <thread>
@@ -40,4 +40,4 @@ public:
 	const int minSavePly = 16;
 
 };
-
+*/
