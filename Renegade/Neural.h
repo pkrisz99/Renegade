@@ -20,7 +20,7 @@
 #endif
 
 constexpr int FeatureSize = 768;
-constexpr int HiddenSize = 1024;
+constexpr int HiddenSize = 1600;
 constexpr int Scale = 400;
 constexpr int QA = 255;
 constexpr int QB = 64;
