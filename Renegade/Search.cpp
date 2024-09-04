@@ -622,44 +622,22 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 		// Process search results
 		if (score > bestScore) {
 			bestScore = score;
+
 			if (!aborting && pvNode) t.UpdatePvTable(m, level);
 
-			// Fail-high
-			if (score >= beta) {
-				bestMove = m;
-				scoreType = ScoreType::LowerBound;
-
-				if (level != 0) t.CutoffCount[level - 1] += 1;
-
-				if (!aborting) {
-
-					const int16_t historyDelta = std::min(300 * (depth - 1), 2250);
-
-					// If a quiet move causes a fail-high, update move ordering tables
-					if (isQuiet) {
-						t.History.SetKillerMove(m, level);
-						if (level > 0) t.History.SetCountermove(position.GetPreviousMove(1).move, m);
-						if (depth > 1) t.History.UpdateHistory(position, m, movedPiece, historyDelta, level);
-					}
-
-					// Decrement history scores for all previously tried quiet moves
-					if (depth > 1) {
-						if (isQuiet) quietsTried.pop_back(); // don't decrement for the current quiet move
-						for (const Move& prevTriedMove : quietsTried) {
-							const uint8_t prevTriedPiece = position.GetPieceAt(prevTriedMove.from);
-							t.History.UpdateHistory(position, prevTriedMove, prevTriedPiece, -historyDelta, level);
-						}
-					}
-				}
-				break;
-			}
-			
 			// Raise alpha
 			if (score > alpha) {
 				bestMove = m;
 				scoreType = ScoreType::Exact;
 				alpha = score;
 			}
+
+			// Fail-high
+			if (score >= beta) {
+				scoreType = ScoreType::LowerBound;
+				break;
+			}
+			
 		}
 	}
 
@@ -669,7 +647,31 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 		return inCheck ? LosingMateScore(level) : 0;
 	}
 
-	// Return the best score (fail-soft)
+	// Update search history and statistics
+	if (bestScore >= beta && !aborting) {
+
+		if (level != 0) t.CutoffCount[level - 1] += 1;
+		const bool quietBestMove = position.IsMoveQuiet(bestMove);
+		const int16_t historyDelta = std::min(300 * (depth - 1), 2250);
+
+		// If a quiet move causes a fail-high, update move ordering tables
+		if (quietBestMove) {
+			t.History.SetKillerMove(bestMove, level);
+			if (level > 0) t.History.SetCountermove(position.GetPreviousMove(1).move, bestMove);
+			if (depth > 1) t.History.UpdateHistory(position, bestMove, position.GetPieceAt(bestMove.from), historyDelta, level);
+		}
+
+		// Decrement history scores for all previously tried quiet moves
+		if (depth > 1) {
+			if (quietBestMove) quietsTried.pop_back(); // don't decrement for the current quiet move
+			for (const Move& prevTriedMove : quietsTried) {
+				const uint8_t prevTriedPiece = position.GetPieceAt(prevTriedMove.from);
+				t.History.UpdateHistory(position, prevTriedMove, prevTriedPiece, -historyDelta, level);
+			}
+		}
+	}
+
+	// Update evaluation correction
 	if (!aborting && !singularSearch) {
         const bool updateCorrection = [&] {
             if (inCheck) return false;
@@ -678,12 +680,15 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
                    || (scoreType == ScoreType::UpperBound && bestScore < staticEval)
                    || (scoreType == ScoreType::LowerBound && bestScore > staticEval);
         }();
-        if (updateCorrection) {
-            t.History.UpdateCorrection(position, rawEval, bestScore, depth);
-        }
-
-        TranspositionTable.Store(hash, depth, bestScore, scoreType, bestMove, level);
+        if (updateCorrection) t.History.UpdateCorrection(position, rawEval, bestScore, depth);
     }
+
+	// Store node search results into the transposition table
+	if (!aborting && !singularSearch) {
+		TranspositionTable.Store(hash, depth, bestScore, scoreType, bestMove, level);
+	}
+
+	// Return the best score (fail-soft)
 	return bestScore;
 }
 
