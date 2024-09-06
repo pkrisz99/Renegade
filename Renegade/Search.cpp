@@ -935,12 +935,12 @@ int Search::CalculateOrderScore(const ThreadData& t, const Position& position, c
 	// Captures
 	if (!m.IsCastling()) {
 		if (!losingCapture) {
-			if (capturedPieceType != PieceType::None) return 600000 + values[capturedPieceType] * 8 - t.History.GetCaptureHistoryScore(position, m);
-			if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 8 - t.History.GetCaptureHistoryScore(position, m);
+			if (capturedPieceType != PieceType::None) return 600000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m);
+			if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 8 + t.History.GetCaptureHistoryScore(position, m);
 		}
 		else {
-			if (capturedPieceType != PieceType::None) return -200000 + values[capturedPieceType] * 8 - t.History.GetCaptureHistoryScore(position, m);
-			if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 8 - t.History.GetCaptureHistoryScore(position, m);
+			if (capturedPieceType != PieceType::None) return -200000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m);
+			if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 8 + t.History.GetCaptureHistoryScore(position, m);
 		}
 	}
 
