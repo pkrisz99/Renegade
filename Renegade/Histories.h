@@ -24,7 +24,9 @@ public:
 
 	// History heuristic (quiet moves):
 	void UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level);
+	void UpdateCaptureHistory(const Position& position, const Move& m, const int16_t delta);
 	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
+	int16_t GetCaptureHistoryScore(const Position& position, const Move& m) const;
 
     // Static evaluation correction history:
     void UpdateCorrection(const Position& position, const int staticEval, const int score, const int depth);
@@ -44,9 +46,11 @@ private:
 	// History:
 	using ThreatBuckets = std::array<std::array<int16_t, 2>, 2>;
 	using ThreatHistoryTable = std::array<std::array<ThreatBuckets, 64>, 14>;
+	using CaptureHistoryTable = std::array<std::array<std::array<int16_t, 14>, 64>, 14>;  // [attacking piece][square to][captured piece]
 	using ContinuationTable = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
 
 	ThreatHistoryTable QuietHistory;
+	CaptureHistoryTable CaptureHistory;
 	ContinuationTable Continuations;
     std::array<std::array<int, 32768>, 2> MaterialCorrectionHistory;
 };

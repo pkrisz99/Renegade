@@ -521,6 +521,8 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 	int bestScore = NegativeInfinity;
 
 	std::vector<Move> quietsTried;
+	std::vector<Move> capturesTried;
+	capturesTried.reserve(10); // <-- ???
 	quietsTried.reserve(30); // <-- ???
 
 	while (movePicker.hasNext()) {
@@ -529,7 +531,9 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 		if (!position.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
 		const bool isQuiet = position.IsMoveQuiet(m);
+
 		if (isQuiet) quietsTried.push_back(m);
+		else capturesTried.push_back(m);
 
 		// Moves loop pruning techniques
 		if (!pvNode && (bestScore > -MateThreshold) && (order < 90000) && !DatagenMode) {
@@ -660,13 +664,21 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 			if (level > 0) t.History.SetCountermove(position.GetPreviousMove(1).move, bestMove);
 			if (depth > 1) t.History.UpdateHistory(position, bestMove, position.GetPieceAt(bestMove.from), historyDelta, level);
 		}
+		else {
+			if (depth > 1) t.History.UpdateCaptureHistory(position, bestMove, historyDelta);
+		}
 
-		// Decrement history scores for all previously tried quiet moves
+		// Decrement history scores for all previously tried moves
 		if (depth > 1) {
-			if (quietBestMove) quietsTried.pop_back(); // don't decrement for the current quiet move
+			if (quietBestMove) quietsTried.pop_back(); // don't decrement for the current move
+			else capturesTried.pop_back();
+
 			for (const Move& prevTriedMove : quietsTried) {
 				const uint8_t prevTriedPiece = position.GetPieceAt(prevTriedMove.from);
 				t.History.UpdateHistory(position, prevTriedMove, prevTriedPiece, -historyDelta, level);
+			}
+			for (const Move& prevTriedMove : capturesTried) {
+				t.History.UpdateCaptureHistory(position, prevTriedMove, -historyDelta);
 			}
 		}
 	}
@@ -923,12 +935,12 @@ int Search::CalculateOrderScore(const ThreadData& t, const Position& position, c
 	// Captures
 	if (!m.IsCastling()) {
 		if (!losingCapture) {
-			if (capturedPieceType != PieceType::None) return 600000 + values[capturedPieceType] * 16 - values[attackingPieceType];
-			if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
+			if (capturedPieceType != PieceType::None) return 600000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m);
+			if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 8 + t.History.GetCaptureHistoryScore(position, m);
 		}
 		else {
-			if (capturedPieceType != PieceType::None) return -200000 + values[capturedPieceType] * 16 - values[attackingPieceType];
-			if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 16 - values[PieceType::Pawn];
+			if (capturedPieceType != PieceType::None) return -200000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m);
+			if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 8 + t.History.GetCaptureHistoryScore(position, m);
 		}
 	}
 
