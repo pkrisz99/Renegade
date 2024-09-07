@@ -441,7 +441,11 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 	int eval = NoEval;
 
 	if (!singularSearch) {
-        rawEval = inCheck ? NoEval : Evaluate(t, position, level);
+		rawEval = [&] {
+			if (inCheck) return static_cast<int16_t>(NoEval);
+			if (found) return ttEntry.rawEval;
+			return static_cast<int16_t>(Evaluate(t, position, level));
+		}();
 		staticEval = t.History.AdjustStaticEvaluation(position, rawEval);
 		eval = staticEval;
 
@@ -685,7 +689,7 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 
 	// Store node search results into the transposition table
 	if (!aborting && !singularSearch) {
-		TranspositionTable.Store(hash, depth, bestScore, scoreType, bestMove, level);
+		TranspositionTable.Store(hash, depth, bestScore, scoreType, rawEval, bestMove, level);
 	}
 
 	// Return the best score (fail-soft)
@@ -702,18 +706,22 @@ int Search::SearchQuiescence(ThreadData& t, Position& position, const int level,
 	// Update statistics
 	if (level > t.SelDepth) t.SelDepth = level;
 
-	// Update alpha-beta bounds, return alpha if no captures left
-	const int rawEval = Evaluate(t, position, level);
-	const int staticEval = t.History.AdjustStaticEvaluation(position, rawEval);
-	if (staticEval >= beta) return staticEval;
-	if (staticEval > alpha) alpha = staticEval;
-	if (level >= MaxDepth) return staticEval;
-	if (position.IsDrawn(false)) return DrawEvaluation(t); // maybe staticEval is more sound?
-
 	// Probe the transposition table
 	const uint64_t hash = position.Hash();
 	TranspositionEntry ttEntry;
 	const bool found = TranspositionTable.Probe(hash, ttEntry, level);
+
+	// Update alpha-beta bounds
+	const int rawEval = [&] {
+		if (found && !position.IsInCheck()) return ttEntry.rawEval;
+		return static_cast<int16_t>(Evaluate(t, position, level));
+	}();
+	const int staticEval = t.History.AdjustStaticEvaluation(position, rawEval);
+	if (staticEval >= beta) return staticEval;
+	if (staticEval > alpha) alpha = staticEval;
+	if (level >= MaxDepth) return staticEval;
+	if (position.IsDrawn(false)) return DrawEvaluation(t);
+	
 	if (found) {
 		if (ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
 	}
@@ -753,7 +761,7 @@ int Search::SearchQuiescence(ThreadData& t, Position& position, const int level,
 			}
 		}
 	}
-	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, EmptyMove, level);
+	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, EmptyMove, level);
 	return bestScore;
 }
 

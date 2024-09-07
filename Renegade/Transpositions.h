@@ -13,7 +13,8 @@ namespace ScoreType {
 
 struct TranspositionEntry {
 	uint32_t hash = 0;
-	int32_t score = 0;
+	int16_t score = 0;
+	int16_t rawEval = 0;
 	uint16_t quality = 0;
 	uint8_t depth = 0;
 	uint8_t scoreType = 0;
@@ -32,7 +33,7 @@ class Transpositions
 {
 public:
 	Transpositions();
-	void Store(const uint64_t hash, const int depth, int score, const int scoreType, const Move& bestMove, const int level);
+	void Store(const uint64_t hash, const int depth, const int16_t score, const int scoreType, const int16_t rawEval, const Move& bestMove, const int level);
 	bool Probe(const uint64_t& hash, TranspositionEntry& entry, const int level) const;
 	void Prefetch(const uint64_t hash) const;
 	void IncreaseAge();
