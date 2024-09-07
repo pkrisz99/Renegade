@@ -446,7 +446,7 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 			if (found) return ttEntry.rawEval;
 			return static_cast<int16_t>(Evaluate(t, position, level));
 		}();
-		staticEval = t.History.AdjustStaticEvaluation(position, rawEval);
+		staticEval = t.History.ApplyCorrection(position, rawEval);
 		eval = staticEval;
 
 		if ((ttEval != NoEval) && !inCheck) {  // inCheck is cosmetic
@@ -728,7 +728,7 @@ int Search::SearchQuiescence(ThreadData& t, Position& position, const int level,
 		if (found && !position.IsInCheck()) return ttEntry.rawEval;
 		return static_cast<int16_t>(Evaluate(t, position, level));
 	}();
-	const int staticEval = t.History.AdjustStaticEvaluation(position, rawEval);
+	const int staticEval = t.History.ApplyCorrection(position, rawEval);
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= MaxDepth) return staticEval;

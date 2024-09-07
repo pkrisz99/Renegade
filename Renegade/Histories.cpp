@@ -6,10 +6,10 @@ Histories::Histories() {
 
 void Histories::ClearAll() {
 	ClearKillerAndCounterMoves();
-	std::memset(&QuietHistory, 0, sizeof(ThreatHistoryTable));
+	std::memset(&QuietHistory, 0, sizeof(QuietHistoryTable));
 	std::memset(&CaptureHistory, 0, sizeof(CaptureHistoryTable));
-	std::memset(&Continuations, 0, sizeof(ContinuationTable));
-    std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionHistory));
+	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistoryTable));
+    std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionTable));
 }
 
 void Histories::ClearKillerAndCounterMoves() {
@@ -55,7 +55,7 @@ void Histories::UpdateHistory(const Position& position, const Move& m, const uin
 		if (level < ply) break;
 		const auto& [prevMove, prevPiece] = position.GetPreviousMove(ply);
 		if (prevPiece != Piece::None) {
-			int16_t& value = Continuations[prevPiece][prevMove.to][piece][m.to];
+			int16_t& value = ContinuationHistory[prevPiece][prevMove.to][piece][m.to];
 			UpdateHistoryValue(value, delta);
 		}
 	}
@@ -78,7 +78,7 @@ int Histories::GetHistoryScore(const Position& position, const Move& m, const ui
 
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
-		historyScore += Continuations[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
+		historyScore += ContinuationHistory[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
 	}
 	return historyScore;
 }
@@ -95,19 +95,21 @@ int16_t Histories::GetCaptureHistoryScore(const Position& position, const Move& 
 
 // Static evaluation correction history -----------------------------------------------------------
 
-void Histories::UpdateCorrection(const Position& position, const int rawEval, const int score, const int depth) {
-    const uint64_t material_key = position.GetMaterialKey() % 32768;
+void Histories::UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth) {
     const int diff = (score - rawEval) * 256;
     const int weight = std::min(16, depth + 1);
 
-    int32_t& value = MaterialCorrectionHistory[position.Turn()][material_key];
-    value = ((256 - weight) * value + weight * diff) / 256;
-    value = std::clamp(value, -12'288, 12'288);
+	const uint64_t materialKey = position.GetMaterialKey() % 32768;
+    int32_t& materialValue = MaterialCorrectionHistory[position.Turn()][materialKey];
+	materialValue = ((256 - weight) * materialValue + weight * diff) / 256;
+	materialValue = std::clamp(materialValue, -12'288, 12'288);
 }
 
-int Histories::AdjustStaticEvaluation(const Position& position, const int rawEval) const {
-    if (std::abs(rawEval) > 10'000) return rawEval;
+int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEval) const {
+    if (std::abs(rawEval) >= MateThreshold) return rawEval;
 
-    const uint64_t material_key = position.GetMaterialKey() % 32768;
-    return rawEval + MaterialCorrectionHistory[position.Turn()][material_key] / 256;
+    const uint64_t materialKey = position.GetMaterialKey() % 32768;
+	const int materialCorrection = MaterialCorrectionHistory[position.Turn()][materialKey] / 256;
+
+    return std::clamp(rawEval + materialCorrection, -MateThreshold + 1, MateThreshold - 1);
 }

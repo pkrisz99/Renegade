@@ -29,8 +29,8 @@ public:
 	int16_t GetCaptureHistoryScore(const Position& position, const Move& m) const;
 
     // Static evaluation correction history:
-    void UpdateCorrection(const Position& position, const int staticEval, const int score, const int depth);
-    int AdjustStaticEvaluation(const Position& position, const int staticEval) const;
+    void UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth);
+	int16_t ApplyCorrection(const Position& position, const int16_t rawEval) const;
 
 private:
 
@@ -43,15 +43,18 @@ private:
 	std::array<Move, MaxDepth> KillerMoves;
 	std::array<std::array<Move, 64>, 64> CounterMoves;
 
-	// History:
+	// Move ordering history:
 	using ThreatBuckets = std::array<std::array<int16_t, 2>, 2>;
-	using ThreatHistoryTable = std::array<std::array<ThreatBuckets, 64>, 14>;
+	using QuietHistoryTable = std::array<std::array<ThreatBuckets, 64>, 14>;
 	using CaptureHistoryTable = std::array<std::array<std::array<int16_t, 14>, 64>, 14>;  // [attacking piece][square to][captured piece]
-	using ContinuationTable = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
+	using ContinuationHistoryTable = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
 
-	ThreatHistoryTable QuietHistory;
+	QuietHistoryTable QuietHistory;
 	CaptureHistoryTable CaptureHistory;
-	ContinuationTable Continuations;
-    std::array<std::array<int, 32768>, 2> MaterialCorrectionHistory;
+	ContinuationHistoryTable ContinuationHistory;
+
+	// Correction history:
+	using MaterialCorrectionTable = std::array<std::array<int32_t, 32768>, 2>;
+	MaterialCorrectionTable MaterialCorrectionHistory;
 };
 
