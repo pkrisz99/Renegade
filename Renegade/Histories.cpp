@@ -7,6 +7,7 @@ Histories::Histories() {
 void Histories::ClearAll() {
 	ClearKillerAndCounterMoves();
 	std::memset(&QuietHistory, 0, sizeof(ThreatHistoryTable));
+	std::memset(&CaptureHistory, 0, sizeof(CaptureHistoryTable));
 	std::memset(&Continuations, 0, sizeof(ContinuationTable));
     std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionHistory));
 }
@@ -60,6 +61,16 @@ void Histories::UpdateHistory(const Position& position, const Move& m, const uin
 	}
 }
 
+void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int16_t delta) {
+	const uint8_t attackingPiece = position.GetPieceAt(m.from);
+	const uint8_t targetSquare = m.to;
+	const uint8_t capturedPiece = [&] {
+		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
+		else return (position.Turn() == Side::White) ? Piece::WhitePawn : Piece::BlackPawn;
+	}();
+	UpdateHistoryValue(CaptureHistory[attackingPiece][targetSquare][capturedPiece], delta);
+}
+
 int Histories::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
@@ -70,6 +81,16 @@ int Histories::GetHistoryScore(const Position& position, const Move& m, const ui
 		historyScore += Continuations[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
 	}
 	return historyScore;
+}
+
+int16_t Histories::GetCaptureHistoryScore(const Position& position, const Move& m) const {
+	const uint8_t attackingPiece = position.GetPieceAt(m.from);
+	const uint8_t targetSquare = m.to;
+	const uint8_t capturedPiece = [&] {
+		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
+		else return (position.Turn() == Side::White) ? Piece::WhitePawn : Piece::BlackPawn;
+	}();
+	return CaptureHistory[attackingPiece][targetSquare][capturedPiece];
 }
 
 // Static evaluation correction history -----------------------------------------------------------
