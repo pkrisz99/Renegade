@@ -597,7 +597,7 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 		int reduction = 0;
 		const int newDepth = depth - 1 + extension;
 
-		if ((legalMoveCount >= (pvNode ? 5 : 3)) && isQuiet && depth >= 3) {
+		if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && depth >= 3) {
 			// Late move -> reduce
 
 			reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
