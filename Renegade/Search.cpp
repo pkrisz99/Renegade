@@ -591,37 +591,37 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 		int score = NoEval;
 		UpdateAccumulators(t, position, m, movedPiece, capturedPiece, level);
 
-		if (legalMoveCount == 1) {
-			score = -SearchRecursive(t, position, depth - 1 + extension, level + 1, -beta, -alpha);
-		}
-		else {
-			int reduction = 0;
+		
+		// Late-move reductions, yoink version -- if passes redo this to be more in my style
 
-			// Late-move reductions (+119 elo)
-			if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && depth >= 3) {
-				
-				reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
+		int reduction = 0;
+		const int newDepth = depth - 1 + extension;
 
-				// Less reduction when in check
-				if (inCheck) reduction -= 1;
+		if ((legalMoveCount >= (pvNode ? 5 : 3)) && isQuiet && depth >= 3) {
+			// Late move -> reduce
 
-				// More reduction for non-PV nodes
-				if (!pvNode) reduction += 1;
+			reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
+			if (!pvNode) reduction += 1;
+			if (inCheck) reduction -= 1;
+			if (t.CutoffCount[level] < 4) reduction -= 1;
+			if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
 
-				// Less reduction when the next ply only had a few fail-highs
-				if (t.CutoffCount[level] < 4) reduction -= 1;
+			const int reducedDepth = std::clamp(newDepth - reduction, 0, newDepth);
+			score = -SearchRecursive(t, position, reducedDepth, level + 1, -alpha - 1, -alpha);
 
-				// Adjust based on history
-				if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
-
-				reduction = std::clamp(reduction, 0, depth - 1);
+			if (score > alpha && reducedDepth < newDepth) {
+				score = -SearchRecursive(t, position, newDepth, level + 1, -alpha - 1, -alpha);
 			}
-
-			// Principal variation search
-			score = -SearchRecursive(t, position, depth - 1 - reduction, level + 1, -alpha - 1, -alpha);
-			if (score > alpha && reduction > 0) score = -SearchRecursive(t, position, depth - 1, level + 1, -alpha - 1, -alpha);
-			if (score > alpha && score < beta) score = -SearchRecursive(t, position, depth - 1, level + 1, -beta, -alpha);
 		}
+		else if (!pvNode || legalMoveCount > 1) {
+			score = -SearchRecursive(t, position, newDepth, level + 1, -alpha - 1, -alpha);
+		}
+
+		if (pvNode && (legalMoveCount == 1 || score > alpha)) {
+			score = -SearchRecursive(t, position, newDepth, level + 1, -beta, -alpha);
+		}
+
+
 		position.Pop();
 
 		// Update node count table for the root
