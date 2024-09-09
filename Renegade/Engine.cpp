@@ -318,12 +318,12 @@ void Engine::Start() {
 			}
 			if (SearchThread.joinable()) SearchThread.join();*/
 
-			/*if ((parts.size() == 3) && (parts[1] == "perft" || parts[1] == "perftdiv")) {
+			if ((parts.size() == 3) && (parts[1] == "perft" || parts[1] == "perftdiv")) {
 				const int depth = stoi(parts[2]);
 				const PerftType type = (parts[1] == "perftdiv") ? PerftType::PerftDiv : PerftType::Normal;
-				Search.Perft(position, depth, type);
+				SearchThreads.Perft(position, depth, type);
 				continue;
-			}*/
+			}
 
 			params = SearchParams();
 			for (int i = 1; i < parts.size(); i++) {
@@ -350,9 +350,6 @@ void Engine::Start() {
 			}
 
 			// Starting the search thread
-			/*SearchThread = std::thread([&]() {
-				Search.StartSearch(position, params, true);
-			});*/
 			SearchThreads.StartSearch(position, params, true);
 			continue;
 		}
@@ -374,7 +371,7 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "nnue") {
-			cout << "-> Arch: (" << FeatureSize << "x" << InputBucketCount << "->" << HiddenSize << ")x2" << "->1  [SCReLU, horizontal mirrored]" << endl;
+			cout << "-> Arch: (" << FeatureSize << "x" << InputBucketCount << "->" << HiddenSize << ")x2" << "->1  [SCReLU, horizontally mirrored]" << endl;
 			cout << "-> Net name: " << NETWORK_NAME << endl;
 			cout << "-> Net size: " << sizeof(NetworkRepresentation) << endl;
 			continue;

@@ -114,7 +114,7 @@ public:
 	void SearchBench();
 	void WaitUntilReady() const;
 
-	//void Perft(Position& position, const int depth, const PerftType type) const;
+	void Perft(Position& position, const int depth, const PerftType type) const;
 
 	bool StaticExchangeEval(const Position& position, const Move& move, const int threshold) const;
 
@@ -134,7 +134,7 @@ private:
 	int SearchQuiescence(ThreadData& t, Position& position, const int level, int alpha, int beta);
 
 	int Evaluate(const ThreadData& t, const Position& position, const int level);
-	//uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
+	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	bool ShouldAbort(const ThreadData& t);
 	int DrawEvaluation(const ThreadData& t) const;

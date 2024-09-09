@@ -975,7 +975,7 @@ void Search::OrderMovesQ(const ThreadData& t, const Position& position, MoveList
 
 // Perft methods ----------------------------------------------------------------------------------
 
-/*
+
 void Search::Perft(Position& position, const int depth, const PerftType type) const {
 	const bool startingPosition = position.Hash() == 0x463b96181691fc9c;
 	constexpr std::array<uint64_t, 8> startingPerfts = { 1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860 };
@@ -1015,4 +1015,4 @@ uint64_t Search::PerftRecursive(Position& position, const int depth, const int o
 			cout << " - " << m.move.ToString(Settings::Chess960) << " : " << r << endl;
 	}
 	return count;
-}*/
+}
