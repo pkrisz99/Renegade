@@ -58,8 +58,8 @@ public:
 	}
 
 	inline bool IsInCheck() const {
-		if (Turn() == Side::White) return IsSquareAttacked(Side::Black, LsbSquare(WhiteKingBits()));
-		else return IsSquareAttacked(Side::White, LsbSquare(BlackKingBits()));
+		const uint8_t kingSq = (Turn() == Side::White) ? WhiteKingSquare() : BlackKingSquare();
+		return IsSquareThreatened(kingSq);
 	}
 
 	inline uint64_t Hash() const {
@@ -108,12 +108,6 @@ public:
 
 	inline bool IsPreviousMoveNull() const {
 		return Moves.size() != 0 && Moves.back().move == NullMove;
-	}
-
-	inline void RequestThreats() {
-		// This function has to be called before we use threats to calculate them
-		// Somewhat of a weird approach, but this doesn't require removing const from absolutely everywhere
-		Threats.back() = CalculateAttackedSquares(!Turn());
 	}
 
 	inline uint64_t GetThreats() const {
@@ -168,7 +162,6 @@ private:
 	template <bool side> void GenerateCastlingMoves(MoveList& moves) const;
 	template <bool side, int pieceType, MoveGen moveGen> void GenerateSlidingMoves(MoveList& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) const;
 
-	bool IsSquareAttacked(const bool attackingSide, const uint8_t square) const;
 	bool IsSquareAttacked(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const;
 	uint64_t CalculateAttackedSquares(const bool attackingSide) const;
 };

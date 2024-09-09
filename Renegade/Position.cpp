@@ -98,7 +98,7 @@ Position::Position(const std::string& fen) {
 	board.FullmoveClock = stoi(parts[5]);
 
 	Hashes.push_back(board.CalculateHash());
-	Threats.push_back(0ull);
+	Threats.push_back(CalculateAttackedSquares(!Turn()));
 }
 
 Position::Position(const int frcWhite, const int frcBlack) {
@@ -191,7 +191,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	board.FullmoveClock = 1;
 
 	Hashes.push_back(board.CalculateHash());
-	Threats.push_back(0ull);
+	Threats.push_back(CalculateAttackedSquares(!Turn()));
 }
 
 // Pushing moves ----------------------------------------------------------------------------------
@@ -207,7 +207,7 @@ void Position::Push(const Move& move) {
 
 	Hashes.push_back(board.CalculateHash());
 	Moves.push_back({ move, movedPiece });
-	Threats.push_back(0ull);
+	Threats.push_back(CalculateAttackedSquares(!Turn()));
 	assert(States.size() == Hashes.size() && States.size() - 1 == Moves.size() && States.size() == Threats.size());
 }
 
@@ -226,7 +226,7 @@ void Position::PushNullMove() {
 		Hashes.push_back(board.CalculateHash());
 	}
 	Moves.push_back({ NullMove, Piece::None });
-	Threats.push_back(0ull);
+	Threats.push_back(CalculateAttackedSquares(!Turn()));
 	return;
 }
 
@@ -444,7 +444,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & fakeOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = CalculateAttackedSquares(!side);
+			const uint64_t opponentAttacks = Threats.back();
 			const bool safe = !(opponentAttacks & rayBetweenKingAndG);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::ShortCastle));
 		}
@@ -462,7 +462,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & fakeOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = CalculateAttackedSquares(!side);
+			const uint64_t opponentAttacks = Threats.back();
 			const bool safe = !(opponentAttacks & rayBetweenKingAndC);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::LongCastle));
 		}
@@ -685,10 +685,6 @@ bool Position::IsSquareAttacked(const bool attackingSide, const uint8_t square, 
 		// Okay
 		return false;
 	}
-}
-
-bool Position::IsSquareAttacked(const bool attackingSide, const uint8_t square) const {
-	return IsSquareAttacked(attackingSide, square, GetOccupancy());
 }
 
 uint64_t Position::AttackersOfSquare(const bool attackingSide, const uint8_t square) const {

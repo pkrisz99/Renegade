@@ -507,7 +507,6 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 	if (!singularSearch) {
 		// Generating moves and ordering them
 		t.MoveListStack[level].reset();
-		position.RequestThreats();
 		position.GenerateMoves(t.MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
 		OrderMoves(t, position, t.MoveListStack[level], level, ttMove);
 
