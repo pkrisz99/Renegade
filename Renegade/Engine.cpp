@@ -156,7 +156,6 @@ void Engine::Start() {
 		// Debug commands
 		if (parts[0] == "debug" && parts.size() > 1) {
 			if (parts[1] == "attackmap") {
-				position.RequestThreats();
 				DrawBoard(position, position.GetThreats());
 			}
 			if (parts[1] == "pseudolegal") {
