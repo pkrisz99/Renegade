@@ -122,7 +122,19 @@ public:
 
     inline uint64_t GetMaterialKey() const {
         return States.back().CalculateMaterialKey();
-    }
+	}
+
+	inline uint64_t GetPawnKey() const {
+		auto murmur_hash_3 = [](uint64_t key) -> uint64_t {
+			key ^= key >> 33;
+			key *= 0xff51afd7ed558ccd;
+			key ^= key >> 33;
+			key *= 0xc4ceb9fe1a85ec53;
+			key ^= key >> 33;
+			return key;
+		};
+		return murmur_hash_3(WhitePawnBits()) ^ murmur_hash_3(BlackPawnBits() ^ Zobrist[780]);
+	}
 
 	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;
 
