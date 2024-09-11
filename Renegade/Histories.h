@@ -53,8 +53,10 @@ private:
 	CaptureHistoryTable CaptureHistory;
 	ContinuationHistoryTable ContinuationHistory;
 
-	// Correction history:
+	// Evaluation correction history:
 	using MaterialCorrectionTable = std::array<std::array<int32_t, 32768>, 2>;
+	using PawnsCorrectionTable = std::array<std::array<int32_t, 16384>, 2>;
 	MaterialCorrectionTable MaterialCorrectionHistory;
+	PawnsCorrectionTable PawnsCorrectionHistory;
 };
 
