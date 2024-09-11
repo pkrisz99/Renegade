@@ -253,28 +253,19 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 }
 
 uint64_t Board::CalculateMaterialKey() const {
-    auto murmur_hash_3 = [](uint64_t key) -> uint64_t {
-        key ^= key >> 33;
-        key *= 0xff51afd7ed558ccd;
-        key ^= key >> 33;
-        key *= 0xc4ceb9fe1a85ec53;
-        key ^= key >> 33;
-        return key;
-    };
-
     uint64_t material_key = 0;
 
-    material_key |= static_cast<uint64_t>(Popcount(this->WhitePawnBits));
-    material_key |= (static_cast<uint64_t>(Popcount(this->WhiteKnightBits)) << 6);
-    material_key |= (static_cast<uint64_t>(Popcount(this->WhiteBishopBits)) << 12);
-    material_key |= (static_cast<uint64_t>(Popcount(this->WhiteRookBits)) << 18);
-    material_key |= (static_cast<uint64_t>(Popcount(this->WhiteQueenBits)) << 24);
+    material_key |= static_cast<uint64_t>(Popcount(WhitePawnBits));
+    material_key |= (static_cast<uint64_t>(Popcount(WhiteKnightBits)) << 6);
+    material_key |= (static_cast<uint64_t>(Popcount(WhiteBishopBits)) << 12);
+    material_key |= (static_cast<uint64_t>(Popcount(WhiteRookBits)) << 18);
+    material_key |= (static_cast<uint64_t>(Popcount(WhiteQueenBits)) << 24);
 
-    material_key |= (static_cast<uint64_t>(Popcount(this->BlackPawnBits)) << 30);
-    material_key |= (static_cast<uint64_t>(Popcount(this->BlackKnightBits)) << 36);
-    material_key |= (static_cast<uint64_t>(Popcount(this->BlackBishopBits)) << 42);
-    material_key |= (static_cast<uint64_t>(Popcount(this->BlackRookBits)) << 48);
-    material_key |= (static_cast<uint64_t>(Popcount(this->BlackQueenBits)) << 54);
+    material_key |= (static_cast<uint64_t>(Popcount(BlackPawnBits)) << 30);
+    material_key |= (static_cast<uint64_t>(Popcount(BlackKnightBits)) << 36);
+    material_key |= (static_cast<uint64_t>(Popcount(BlackBishopBits)) << 42);
+    material_key |= (static_cast<uint64_t>(Popcount(BlackRookBits)) << 48);
+    material_key |= (static_cast<uint64_t>(Popcount(BlackQueenBits)) << 54);
 
-    return murmur_hash_3(material_key);
+    return MurmurHash3(material_key);
 }

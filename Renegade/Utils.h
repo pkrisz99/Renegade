@@ -19,7 +19,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.1.28";
+constexpr std::string_view Version = "dev 1.1.29";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -294,6 +294,15 @@ constexpr uint8_t Mirror(const uint8_t sq) {
 constexpr uint64_t SquareBit(const uint8_t sq) {
 	return 1ull << sq;
 }
+
+constexpr uint64_t MurmurHash3(uint64_t key) {
+	key ^= key >> 33;
+	key *= 0xff51afd7ed558ccd;
+	key ^= key >> 33;
+	key *= 0xc4ceb9fe1a85ec53;
+	key ^= key >> 33;
+	return key;
+};
 
 // String handling --------------------------------------------------------------------------------
 
