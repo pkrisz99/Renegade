@@ -130,7 +130,7 @@ private:
 	Results SummarizeThreadInfo() const;
 
 	void SearchMoves(ThreadData& t);
-	int SearchRecursive(ThreadData& t, Position& position, int depth, const int level, int alpha, int beta);
+	int SearchRecursive(ThreadData& t, Position& position, int depth, const int level, int alpha, int beta, const bool pvNode);
 	int SearchQuiescence(ThreadData& t, Position& position, const int level, int alpha, int beta);
 
 	int Evaluate(const ThreadData& t, const Position& position, const int level);
