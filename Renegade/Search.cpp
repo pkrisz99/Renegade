@@ -389,8 +389,8 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 	if (level >= MaxDepth) return Evaluate(t, position, level);
 
 	const bool rootNode = (level == 0);
-	//const bool pvNode = rootNode || (beta - alpha > 1);
 	assert(pvNode || beta - alpha == 1);
+	assert(level != 0 || pvNode);
 
 	// Mate distance pruning
 	if (!rootNode) {
