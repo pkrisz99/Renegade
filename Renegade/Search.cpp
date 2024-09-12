@@ -261,7 +261,7 @@ void Search::SearchMoves(ThreadData& t) {
 		// Obtain score
 		if (t.Depth < 5) {
 			// Regular negamax for shallow depths
-			score = SearchRecursive(t, t.RootPosition, t.Depth, 0, NegativeInfinity, PositiveInfinity, true);
+			score = SearchRecursive(t, t.RootPosition, t.Depth, 0, NegativeInfinity, PositiveInfinity, true, false);
 		}
 		else {
 			// Aspiration windows
@@ -282,7 +282,7 @@ void Search::SearchMoves(ThreadData& t) {
 
 				//if (!settings.UciOutput) cout << "[" << alpha << ".." << beta << "] ";
 
-				score = SearchRecursive(t, t.RootPosition, searchDepth, 0, alpha, beta, true);
+				score = SearchRecursive(t, t.RootPosition, searchDepth, 0, alpha, beta, true, false);
 
 				if (score <= alpha) {
 					alpha = std::max(alpha - windowSize, NegativeInfinity);
@@ -380,7 +380,7 @@ Results Search::SummarizeThreadInfo() const { 	// lambdafy these
 }
 
 // Recursively called during the alpha-beta search
-int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const int level, int alpha, int beta, const bool pvNode) {
+int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const int level, int alpha, int beta, const bool pvNode, const bool cutNode) {
 
 	// Check search limits
 	const bool aborting = ShouldAbort(t);
@@ -391,6 +391,7 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 	const bool rootNode = (level == 0);
 	assert(pvNode || beta - alpha == 1);
 	assert(level != 0 || pvNode);
+	assert(!pvNode || !cutNode);
 
 	// Mate distance pruning
 	if (!rootNode) {
@@ -484,7 +485,7 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 			}();
 			position.PushNullMove();
 			UpdateAccumulators(t, position, NullMove, 0, 0, level);
-			const int nmpScore = -SearchRecursive(t, position, depth - nmpReduction, level + 1, -beta, -beta + 1, false);
+			const int nmpScore = -SearchRecursive(t, position, depth - nmpReduction, level + 1, -beta, -beta + 1, false, !cutNode);
 			position.Pop();
 			if (nmpScore >= beta) {
 				return IsMateScore(nmpScore) ? beta : nmpScore;
@@ -565,7 +566,7 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
 			t.ExcludedMoves[level] = m;
-			const int singularScore = SearchRecursive(t, position, singularDepth, level, singularBeta - 1, singularBeta, false);
+			const int singularScore = SearchRecursive(t, position, singularDepth, level, singularBeta - 1, singularBeta, false, cutNode);
 			t.ExcludedMoves[level] = EmptyMove;
 				
 			if (singularScore < singularBeta) {
@@ -600,21 +601,22 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 			if (inCheck) reduction -= 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
+			if (cutNode) reduction += 1;
 			reduction = std::max(reduction, 0);
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
-			score = -SearchRecursive(t, position, reducedDepth, level + 1, -alpha - 1, -alpha, false);
+			score = -SearchRecursive(t, position, reducedDepth, level + 1, -alpha - 1, -alpha, false, true);
 
 			if (score > alpha && reducedDepth < depth - 1) {
-				score = -SearchRecursive(t, position, depth - 1, level + 1, -alpha - 1, -alpha, false);
+				score = -SearchRecursive(t, position, depth - 1, level + 1, -alpha - 1, -alpha, false, !cutNode);
 			}
 		}
 		else if (!pvNode || legalMoveCount > 1) {
-			score = -SearchRecursive(t, position, depth - 1 + extension, level + 1, -alpha - 1, -alpha, false);
+			score = -SearchRecursive(t, position, depth - 1 + extension, level + 1, -alpha - 1, -alpha, false, !cutNode);
 		}
 
 		if (pvNode && (legalMoveCount == 1 || score > alpha)) {
-			score = -SearchRecursive(t, position, depth - 1 + extension, level + 1, -beta, -alpha, true);
+			score = -SearchRecursive(t, position, depth - 1 + extension, level + 1, -beta, -alpha, true, false);
 		}
 
 		position.Pop();
