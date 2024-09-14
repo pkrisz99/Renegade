@@ -466,6 +466,7 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 
 	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
 	bool futilityPrunable = false;
+	const bool ttPV = pvNode || (found && ttEntry.prevPV);
 
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
@@ -597,7 +598,7 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 		if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && depth >= 3) {
 			
 			int reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
-			if (!pvNode) reduction += 1;
+			if (!ttPV) reduction += 1;
 			if (inCheck) reduction -= 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
@@ -698,7 +699,7 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 
 	// Store node search results into the transposition table
 	if (!aborting && !singularSearch) {
-		TranspositionTable.Store(hash, depth, bestScore, scoreType, rawEval, bestMove, level);
+		TranspositionTable.Store(hash, depth, bestScore, scoreType, rawEval, bestMove, ttPV, level);
 	}
 
 	// Return the best score (fail-soft)
@@ -770,7 +771,8 @@ int Search::SearchQuiescence(ThreadData& t, Position& position, const int level,
 			}
 		}
 	}
-	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, EmptyMove, level);
+	const bool ttPV = found && ttEntry.prevPV;
+	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, EmptyMove, ttPV, level);
 	return bestScore;
 }
 

@@ -4,7 +4,7 @@ Transpositions::Transpositions() {
 	SetSize(1); // set an initial size, it will be resized before using
 }
 
-void Transpositions::Store(const uint64_t hash, const int depth, const int16_t score, const int scoreType, const int16_t rawEval, const Move& bestMove, const int level) {
+void Transpositions::Store(const uint64_t hash, const int depth, const int16_t score, const int scoreType, const int16_t rawEval, const Move& bestMove, const bool prevPV, const int level) {
 
 	//assert(std::abs(score) > MateEval);
 	assert(HashMask != 0);
@@ -23,6 +23,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 		Table[key].hash = storedHash;
 		Table[key].quality = quality;
 		Table[key].rawEval = rawEval;
+		Table[key].prevPV = prevPV;
 
 		Table[key].score = [&] {
 			if (IsWinningMateScore(score)) return static_cast<int16_t>(score + level);
@@ -44,6 +45,7 @@ bool Transpositions::Probe(const uint64_t& hash, TranspositionEntry& entry, cons
 		entry.quality = Table[key].quality; // not needed
 		entry.hash = storedHash;
 		entry.rawEval = Table[key].rawEval;
+		entry.prevPV = Table[key].prevPV;
 
 		entry.score = [&] {
 			const int32_t score = Table[key].score;
