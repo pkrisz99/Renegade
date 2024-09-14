@@ -1,34 +1,26 @@
-/*#pragma once
+#pragma once
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <thread>
 #include "Position.h"
 #include "Search.h"
 #include "Settings.h"
 #include "Utils.h"
 
+struct DatagenSettings {
+	std::string filename{};
+	int threadCount = 0;
+	bool doFRC = false;
+};
+
 class Datagen
 {
 public:
-	Datagen();
-	void Start();
-	void SelfPlay(const std::string filename, const SearchParams params, const SearchParams vParams,
-		const int randomPlyBase, const int startingEvalLimit, const int threadId);
-	bool Filter(const Position& pos, const Move& move, const int eval) const;
-
-	std::string ToTextformat(const std::pair<std::string, int>& position, const GameState outcome) const;
-	// <fen> | <eval> | <wdl>
-	// eval: white pov in cp, wdl 1.0 = white win, 0.0 = black win
-	
-	void LowPlyFilter() const;
+	void Start(const std::optional<DatagenSettings> datagenSettings);
 	void MergeFiles() const;
 
-	uint64_t PositionsAccepted = 0;
-	uint64_t PositionsTotal = 0;
-	uint64_t Games = 0;
-	Clock::time_point StartTime;
-	int ThreadCount = 0;
-	bool DFRC = false;
+private:
 
 	// Datagen settings:
 	const int startingEvalLimit = 500;
@@ -39,5 +31,16 @@ public:
 	const int randomPlyBase = 10;
 	const int minSavePly = 16;
 
+	void SelfPlay(const std::string filename);
+	bool Filter(const Position& pos, const Move& move, const int eval) const;
+	std::string ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome) const;
+
+	std::atomic<uint64_t> PositionsAccepted = 0;
+	std::atomic<uint64_t> PositionsTotal = 0;
+	std::atomic<uint64_t> Games = 0;
+
+	Clock::time_point StartTime;
+	int ThreadCount = 0;
+	bool DFRC = false;
+
 };
-*/

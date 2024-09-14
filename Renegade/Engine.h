@@ -14,6 +14,8 @@
 
 void GenerateMagicTables();
 
+enum class EngineBehavior { Normal, Bench, Datagen };
+
 class Engine
 {
 public:
@@ -26,7 +28,7 @@ public:
 	void HandleCompiler() const;
 
 	Search SearchThreads;
-	bool QuitAfterBench = false;
+	EngineBehavior Behavior = EngineBehavior::Normal;
 
 #if defined(_MSC_VER)
 	const bool PrettySupport = true;
