@@ -11,6 +11,7 @@ void Histories::ClearAll() {
 	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistoryTable));
     std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionTable));
     std::memset(&PawnsCorrectionHistory, 0, sizeof(PawnsCorrectionTable));
+	std::memset(&MinorsCorrectionHistory, 0, sizeof(MinorsCorrectionTable));
 }
 
 void Histories::ClearKillerAndCounterMoves() {
@@ -103,12 +104,17 @@ void Histories::UpdateCorrection(const Position& position, const int16_t rawEval
 	const uint64_t materialKey = position.GetMaterialKey() % 32768;
     int32_t& materialValue = MaterialCorrectionHistory[position.Turn()][materialKey];
 	materialValue = ((256 - weight) * materialValue + weight * diff) / 256;
-	materialValue = std::clamp(materialValue, -6144, 6144);
+	materialValue = std::clamp(materialValue, -4608, 4608);
 
 	const uint64_t pawnKey = position.GetPawnKey() % 16384;
 	int32_t& pawnValue = PawnsCorrectionHistory[position.Turn()][pawnKey];
 	pawnValue = ((256 - weight) * pawnValue + weight * diff) / 256;
-	pawnValue = std::clamp(pawnValue, -6144, 6144);
+	pawnValue = std::clamp(pawnValue, -4608, 4608);
+
+	const uint64_t minorKey = position.GetMinorKey() % 32678;
+	int32_t& minorValue = MinorsCorrectionHistory[position.Turn()][minorKey];
+	minorValue = ((256 - weight) * minorValue + weight * diff) / 256;
+	minorValue = std::clamp(minorValue, -4608, 4608);
 }
 
 int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEval) const {
@@ -120,6 +126,9 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 	const uint64_t pawnKey = position.GetPawnKey() % 16384;
 	const int pawnCorrection = PawnsCorrectionHistory[position.Turn()][pawnKey] / 256;
 
-	const int correctedEval = rawEval + materialCorrection + pawnCorrection;
+	const uint64_t minorKey = position.GetMinorKey() % 32768;
+	const int minorCorrection = MinorsCorrectionHistory[position.Turn()][minorKey] / 256;
+
+	const int correctedEval = rawEval + materialCorrection + pawnCorrection + minorCorrection;
     return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
 }
