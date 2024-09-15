@@ -205,7 +205,7 @@ void Datagen::SelfPlay(const std::string filename) {
 		}
 
 		// 6. Update display
-		if (Games.load(std::memory_order_relaxed) % 50 == 0) {
+		if (Games.load(std::memory_order_relaxed) % 1000 == 0) {
 			const auto endTime = Clock::now();
 			const int seconds = static_cast<int>((endTime - StartTime).count() / 1e9);
 			const int speed1 = PositionsAccepted.load(std::memory_order_relaxed) * 3600 / std::max(seconds, 1);
@@ -214,8 +214,8 @@ void Datagen::SelfPlay(const std::string filename) {
 			const std::string display = "Games: " + std::to_string(Games.load(std::memory_order_relaxed))
 				+ "  |  Positions accepted: " + std::to_string(PositionsAccepted.load(std::memory_order_relaxed))
 				+ "  |  Runtime: " + std::to_string(seconds) + "s  |  "
-				+ std::to_string(speed1) + " per hour  (" + std::to_string(speed2) + "/s/th)  ";
-			cout << display << '\r';
+				+ std::to_string(speed1) + " per hour  (" + std::to_string(speed2) + "/s/th)";
+			cout << display << endl; // '\r';
 		}
 
 	}
