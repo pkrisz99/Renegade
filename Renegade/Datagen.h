@@ -10,7 +10,7 @@
 
 struct DatagenSettings {
 	std::string filename{};
-	int threadCount = 0;
+	unsigned int threadCount = 0;
 	bool doFRC = false;
 };
 

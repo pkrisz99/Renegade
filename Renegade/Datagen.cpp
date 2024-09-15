@@ -26,9 +26,9 @@ void Datagen::Start(const std::optional<DatagenSettings> datagenSettings) {
 		ThreadCount = datagenSettings.value().threadCount;
 		DFRC = datagenSettings.value().doFRC;
 		
-		cout << "Filename: " << Console::White << filename << Console::Yellow << endl;
-		cout << "Thread count: " << Console::White << ThreadCount << Console::Yellow << endl;
-		cout << "Doing DFRC: " << Console::White << DFRC << Console::Yellow << '\n' << endl;
+		cout << "Filename: " << Console::Yellow << filename << Console::White << endl;
+		cout << "Thread count: " << Console::Yellow << ThreadCount << Console::White << endl;
+		cout << "Doing DFRC: " << Console::Yellow << DFRC << Console::White << '\n' << endl;
 	}
 
 	Settings::Chess960 = DFRC;

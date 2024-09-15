@@ -29,7 +29,8 @@ void Engine::Start() {
 	// Handle externally receiving datagen
 	if (Behavior == EngineBehavior::Datagen) {
 		Datagen datagen = Datagen();
-		datagen.Start(std::nullopt);
+		const DatagenSettings settings = { "datagen", std::thread::hardware_concurrency(), false };
+		datagen.Start(settings);
 		return;
 	}
 
