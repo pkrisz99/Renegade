@@ -47,7 +47,7 @@ void Datagen::Start(const std::optional<DatagenSettings> datagenSettings) {
 
 	std::vector<std::thread> threads = std::vector<std::thread>();
 	for (int i = 0; i < ThreadCount; i++) {
-		const std::string filenameForThread = filename + "_" + std::to_string(i + 1);
+		std::string filenameForThread = filename + "_" + std::to_string(i + 1);
 		threads.emplace_back(&Datagen::SelfPlay, this, filenameForThread);
 	}
 	for (std::thread& t : threads) t.join();
@@ -94,7 +94,7 @@ void Datagen::SelfPlay(const std::string filename) {
 		Position position = [&] {
 			if (!DFRC) return Position(FEN::StartPos);
 			else {
-				const std::uniform_int_distribution<std::size_t> distribution(0, 959);
+				std::uniform_int_distribution<std::size_t> distribution(0, 959);
 				const int whiteFrcIndex = distribution(generator);
 				const int blackFrcIndex = distribution(generator);
 				return Position(whiteFrcIndex, blackFrcIndex);
@@ -110,7 +110,7 @@ void Datagen::SelfPlay(const std::string filename) {
 				failed = true;
 				break;
 			}
-			const std::uniform_int_distribution<std::size_t> distribution(0, moves.size() - 1);
+			std::uniform_int_distribution<std::size_t> distribution(0, moves.size() - 1);
 			position.Push(moves[distribution(generator)].move);
 		}
 		if (failed) continue;
