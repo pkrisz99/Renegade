@@ -53,7 +53,7 @@ public:
 	std::thread Thread;
 	int threadId;
 	Results result;
-	bool bench = false;
+	bool singlethreaded = false;
 
 	inline bool IsMainThread() const {
 		return threadId == 0;
@@ -111,7 +111,7 @@ public:
 	void StartSearch(Position& position, const SearchParams params, const bool display);
 	void StopSearch();
 	void Loop(ThreadData& t);
-	void SearchBench();
+	Results SearchSinglethreaded(const Position& pos, const SearchParams& params);
 	void WaitUntilReady() const;
 
 	void Perft(Position& position, const int depth, const PerftType type) const;

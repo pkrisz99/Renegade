@@ -52,12 +52,9 @@ void Search::StartThreads(const int threadCount) {
 
 void Search::StopThreads() {
 	StopSearch();
-	for (ThreadData& t : Threads) {
-		t.Looping.Exit();
-	}
+	for (ThreadData& t : Threads) t.Looping.Exit();
 	for (ThreadData& t : Threads) t.Thread.join();
 	Threads.clear();
-	//Threads.shrink_to_fit();
 }
 
 void Search::SetThreadCount(const int threadCount) {
@@ -65,47 +62,19 @@ void Search::SetThreadCount(const int threadCount) {
 	StartThreads(threadCount);
 }
 
-void Search::SearchBench() {
-	SetThreadCount(1);
-	Settings::Threads = 1;
-	
-	ThreadData& t = Threads.front();
-	t.bench = true;
-
-	const int oldHashSize = Settings::Hash;
-	const bool oldChess960Setting = Settings::Chess960;
-	Settings::Chess960 = false;
-	uint64_t nodes = 0;
-	SearchParams params{};
-	params.depth = 14; // lengthy ? 21 : 14;
-	TranspositionTable.SetSize(16);
+Results Search::SearchSinglethreaded(const Position& pos, const SearchParams& params) {
 	Aborting.store(false);
-	const auto startTime = Clock::now();
+	TranspositionTable.IncreaseAge();
+	ThreadData& t = Threads.front();
+	t.singlethreaded = true;
+	t.RootPosition = pos;
+	t.result = {};
+	t.ResetStatistics();
+	Constraints = CalculateConstraints(params, pos.Turn());
 
-	for (std::string fen : BenchmarkFENs) {
-		Settings::Chess960 = StartsWith(fen, "[frc]");
-		if (StartsWith(fen, "[frc]")) fen = fen.substr(6, fen.length() - 6);
-		ResetState(false);
-		Position pos = Position(fen);
-
-		// inner search part
-		t.RootPosition = pos;
-		t.result = {};
-		t.ResetStatistics();
-		TranspositionTable.IncreaseAge();
-		Constraints = CalculateConstraints(params, pos.Turn());
-		SearchMoves(t);
-		const Results r = t.result;
-		// over
-		nodes += r.nodes;
-	}
-	const auto endTime = Clock::now();
-	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
-	cout << nodes << " nodes " << nps << " nps" << endl;
-	ResetState(false);
-	TranspositionTable.SetSize(oldHashSize); // also clears the transposition table
-	Settings::Chess960 = oldChess960Setting;
-	t.bench = false;
+	SearchMoves(t);
+	t.singlethreaded = false;
+	return t.result;
 }
 
 void Search::StartSearch(Position& position, const SearchParams params, const bool display) {
@@ -322,7 +291,7 @@ void Search::SearchMoves(ThreadData& t) {
 		if (t.Depth >= MaxDepth) finished = true;
 		if ((t.Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
 
-		if (Aborting.load(std::memory_order_relaxed) && !t.bench && t.Depth > 1) {
+		if (Aborting.load(std::memory_order_relaxed) && !t.singlethreaded && t.Depth > 1) {
 			t.result.nodes = t.Nodes;
 			t.result.time = elapsedMs;
 			t.result.nps = static_cast<int>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
@@ -342,13 +311,13 @@ void Search::SearchMoves(ThreadData& t) {
 
 		// Obtaining PV line and displaying
 		t.result.pv = t.GeneratePvLine();
-		if (t.IsMainThread() && !t.bench) {
+		if (t.IsMainThread() && !t.singlethreaded) {
 			if (!finished) PrintInfo(SummarizeThreadInfo());
 		}
 	}
 
 	// Main thread should wait others finishing before displaying the final best move
-	if (t.IsMainThread() && !t.bench) {
+	if (t.IsMainThread() && !t.singlethreaded) {
 		Aborting.store(true);
 		while (ActiveThreadCount.load() > 1) {};
 		PrintInfo(SummarizeThreadInfo());

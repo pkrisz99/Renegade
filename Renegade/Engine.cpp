@@ -7,7 +7,8 @@ Engine::Engine(int argc, char* argv[]) {
 	LoadDefaultNetwork();
 	SearchThreads.TranspositionTable.SetSize(Settings::Hash);
 
-	if (argc == 2 && std::string(argv[1]) == "bench") QuitAfterBench = true;
+	if (argc == 2 && std::string(argv[1]) == "bench") Behavior = EngineBehavior::Bench;
+	else if (argc == 2 && std::string(argv[1]) == "datagen") Behavior = EngineBehavior::Datagen;
 	else PrintHeader();
 }
 
@@ -19,9 +20,16 @@ void Engine::PrintHeader() const {
 void Engine::Start() {
 
 	// Handle externally receiving bench
-	if (QuitAfterBench) {
+	if (Behavior == EngineBehavior::Bench) {
 		HandleBench();
 		SearchThreads.StopThreads();
+		return;
+	}
+
+	// Handle externally receiving datagen
+	if (Behavior == EngineBehavior::Datagen) {
+		Datagen datagen = Datagen();
+		datagen.Start(true);
 		return;
 	}
 
@@ -75,22 +83,17 @@ void Engine::Start() {
 			continue;
 		}
 
-		/*if (cmd == "datagen") {
+		if (cmd == "datagen") {
 			Datagen datagen = Datagen();
-			datagen.Start();
+			datagen.Start(false);
 			continue;
 		}
 
-		if (cmd == "filter") {
-			Datagen datagen = Datagen();
-			datagen.LowPlyFilter();
-			continue;
-		}
 		if (cmd == "merge") {
 			Datagen datagen = Datagen();
 			datagen.MergeFiles();
 			continue;
-		}*/
+		}
 
 		if (cmd == "tunetext") {
 			Tune::GenerateString();
@@ -496,8 +499,41 @@ void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
 }
 
 void Engine::HandleBench() {
-	//cout << "123456 nodes 1200000 nps" << endl;
-	SearchThreads.SearchBench();
+	const int oldHashSize = Settings::Hash;
+	const bool oldChess960Setting = Settings::Chess960;
+	const int oldThreadCount = Settings::Threads;
+	Settings::Threads = 1;
+	Settings::Hash = 16;
+	SearchThreads.TranspositionTable.SetSize(16);
+	SearchThreads.SetThreadCount(1);
+
+	uint64_t nodes = 0;
+	SearchParams params{};
+	params.depth = 14;
+	const auto startTime = Clock::now();
+
+	for (std::string fen : BenchmarkFENs) {
+		Settings::Chess960 = StartsWith(fen, "[frc]");
+		if (StartsWith(fen, "[frc]")) fen = fen.substr(6, fen.length() - 6);
+		SearchThreads.ResetState(false);
+		const Position pos = Position(fen);
+
+		const Results r = SearchThreads.SearchSinglethreaded(pos, params);
+		nodes += r.nodes;
+	}
+
+	const auto endTime = Clock::now();
+	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
+	cout << nodes << " nodes " << nps << " nps" << endl;
+
+	SearchThreads.ResetState(false);
+	Settings::Hash = oldHashSize;
+	SearchThreads.TranspositionTable.SetSize(oldHashSize); // also clears the transposition table
+	// Some issues with the following code, but only when starting from the command line:
+	// Settings::Threads = oldThreadCount;
+	// SearchThreads.SetThreadCount(oldThreadCount);
+	// possibly starting and shutting down a thread too quickly?
+	Settings::Chess960 = oldChess960Setting;
 }
 
 void Engine::HandleCompiler() const {
