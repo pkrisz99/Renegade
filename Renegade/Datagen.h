@@ -8,16 +8,10 @@
 #include "Settings.h"
 #include "Utils.h"
 
-struct DatagenSettings {
-	std::string filename{};
-	unsigned int threadCount = 0;
-	bool doFRC = false;
-};
-
 class Datagen
 {
 public:
-	void Start(const std::optional<DatagenSettings> datagenSettings);
+	void Start(const bool quickStart);
 	void MergeFiles() const;
 
 private:
@@ -30,6 +24,11 @@ private:
 	const int depthLimit = 20;
 	const int randomPlyBase = 10;
 	const int minSavePly = 16;
+
+	const int drawAdjEvalThreshold = 5;
+	const int drawAdjPlies = 15;
+	const int winAdjEvalThreshold = 2000;
+	const int winAdjEvalPlies = 5;
 
 	void SelfPlay(const std::string filename);
 	bool Filter(const Position& pos, const Move& move, const int eval) const;

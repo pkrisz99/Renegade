@@ -1,8 +1,9 @@
 #include "Datagen.h"
 
-void Datagen::Start(const std::optional<DatagenSettings> datagenSettings) {
+void Datagen::Start(const bool quickStart) {
 
-	// Note: the optional is supported here, but not yet elsewhere in the code
+	// Quick start is to provide a streamlined way to launch datagen from the command line using the default settings
+	// When launched from UCI, the settings has to be provided manually
 
 	Console::ClearScreen();
 	cout << Console::Highlight << " Renegade's datagen utility " << Console::White;
@@ -10,7 +11,7 @@ void Datagen::Start(const std::optional<DatagenSettings> datagenSettings) {
 
 	std::string filename;
 
-	if (!datagenSettings.has_value()) {
+	if (!quickStart) {
 		cout << "Filename? " << Console::Yellow;
 		cin >> filename;
 
@@ -22,13 +23,16 @@ void Datagen::Start(const std::optional<DatagenSettings> datagenSettings) {
 		cout << Console::White << endl;
 	}
 	else {
-		filename = datagenSettings.value().filename;
-		ThreadCount = datagenSettings.value().threadCount;
-		DFRC = datagenSettings.value().doFRC;
+		const auto time = std::chrono::system_clock::now().time_since_epoch();
+		const uint64_t timestamp = std::chrono::duration_cast<std::chrono::seconds>(time).count();
+		filename = "datagen_" + std::to_string(timestamp);
+		ThreadCount = std::thread::hardware_concurrency();
+		DFRC = false;
 		
-		cout << "Filename: " << Console::Yellow << filename << Console::White << endl;
-		cout << "Thread count: " << Console::Yellow << ThreadCount << Console::White << endl;
-		cout << "Doing DFRC: " << Console::Yellow << DFRC << Console::White << '\n' << endl;
+		cout << "Quick start details:" << endl;
+		cout << " - Filename: " << Console::Yellow << filename << Console::White << endl;
+		cout << " - Thread count: " << Console::Yellow << ThreadCount << Console::White << endl;
+		cout << " - Doing DFRC: " << Console::Yellow << DFRC << Console::White << '\n' << endl;
 	}
 
 	Settings::Chess960 = DFRC;
@@ -36,7 +40,7 @@ void Datagen::Start(const std::optional<DatagenSettings> datagenSettings) {
 	Settings::Threads = 1;
 	StartTime = Clock::now();
 
-	cout << "Datagen settings: " << endl;
+	cout << "Datagen settings:" << endl;
 	cout << " - " << Console::Yellow << randomPlyBase << Console::White << " or " << Console::Yellow << randomPlyBase + 1
 		<< Console::White << " plies of random rollout, then normal playout" << endl;
 	cout << " - Verification at depth " << Console::Yellow << verificationDepth << Console::White
@@ -138,23 +142,19 @@ void Datagen::SelfPlay(const std::string filename) {
 			const Move move = results.BestMove();
 			const int whiteScore = results.score * (position.Turn() == Side::Black ? -1 : 1);
 
-			// Adjudicate
-			if (std::abs(whiteScore) > 3000) {
+			// Adjudication
+			if (std::abs(whiteScore) > winAdjEvalThreshold) {
 				winAdjudicationCounter += 1;
-				drawAdjudicationCounter = 0;
-
-				if (winAdjudicationCounter >= 2) {
+				if (winAdjudicationCounter >= winAdjEvalPlies) {
 					outcome = (whiteScore > 0) ? GameState::WhiteVictory : GameState::BlackVictory;
 					break;
 				}
 			}
 			else winAdjudicationCounter = 0;
 
-			if (std::abs(whiteScore) < 5) {
+			if (std::abs(whiteScore) < drawAdjEvalThreshold) {
 				winAdjudicationCounter = 0;
-				drawAdjudicationCounter += 1;
-
-				if (drawAdjudicationCounter >= 15) {
+				if (drawAdjudicationCounter >= drawAdjPlies) {
 					outcome = GameState::Draw;
 					break;
 				}
@@ -212,7 +212,7 @@ void Datagen::SelfPlay(const std::string filename) {
 			const int speed2 = speed1 / 3600 / ThreadCount;
 
 			const std::string display = "Games: " + std::to_string(Games.load(std::memory_order_relaxed))
-				+ "  |  Positions accepted: " + std::to_string(PositionsAccepted.load(std::memory_order_relaxed))
+				+ "  |  Positions: " + std::to_string(PositionsAccepted.load(std::memory_order_relaxed))
 				+ "  |  Runtime: " + std::to_string(seconds) + "s  |  "
 				+ std::to_string(speed1) + " per hour  (" + std::to_string(speed2) + "/s/th)";
 			cout << display << endl; // '\r';
@@ -254,6 +254,10 @@ void Datagen::MergeFiles() const {
 	cout << "\nWhat is the base name of the generated files? ";
 	cin >> name;
 
+	uint64_t limit = -1;
+	cout << "How many positions maximum (-1 for no limit)? ";
+	cin >> limit;
+
 	// Iterate through files in directory
 	std::vector<std::string> found;
 	for (const auto& entry : std::filesystem::directory_iterator(path)) {
@@ -275,10 +279,12 @@ void Datagen::MergeFiles() const {
 		std::string line;
 
 		while (std::getline(ifs, line)) {
+			if (limit != -1 && counter >= limit) break;
 			counter += 1;
 			if (counter % 1'000'000 == 0) cout << ".";
 			output << line << endl;
 		}
+		if (limit != -1 && counter >= limit) break;
 
 		ifs.close();
 
