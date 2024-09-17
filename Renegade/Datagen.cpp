@@ -37,7 +37,7 @@ void Datagen::Start(const bool quickStart) {
 
 	// Load opening book
 	if (!DFRC) {
-		constexpr std::string_view book = "UHO_Lichess_4852_v1.epd";
+		const std::string book = "UHO_Lichess_4852_v1.epd";
 		std::ifstream bookFile(book);
 		std::string line;
 		while (std::getline(bookFile, line)) Openings.push_back(line);
