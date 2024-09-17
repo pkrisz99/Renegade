@@ -22,7 +22,7 @@ private:
 	const int softNodeLimit = 5000;
 	const int hardNodeLimit = 500000;
 	const int depthLimit = 20;
-	const int randomPlyBase = 10;
+	const int randomPlyBase = 2;
 	const int minSavePly = 16;
 
 	const int drawAdjEvalThreshold = 5;
@@ -43,5 +43,7 @@ private:
 	Clock::time_point StartTime;
 	int ThreadCount = 0;
 	bool DFRC = false;
+
+	std::vector<std::string> Openings;
 
 };
