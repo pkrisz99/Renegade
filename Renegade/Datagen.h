@@ -37,6 +37,8 @@ private:
 	std::atomic<uint64_t> PositionsAccepted = 0;
 	std::atomic<uint64_t> PositionsTotal = 0;
 	std::atomic<uint64_t> Games = 0;
+	std::atomic<uint64_t> Plies = 0;
+	std::atomic<uint64_t> Draws = 0;
 
 	Clock::time_point StartTime;
 	int ThreadCount = 0;

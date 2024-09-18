@@ -153,7 +153,7 @@ void Datagen::SelfPlay(const std::string filename) {
 			else winAdjudicationCounter = 0;
 
 			if (std::abs(whiteScore) < drawAdjEvalThreshold) {
-				winAdjudicationCounter = 0;
+				drawAdjudicationCounter += 1;
 				if (drawAdjudicationCounter >= drawAdjPlies) {
 					outcome = GameState::Draw;
 					break;
@@ -188,6 +188,8 @@ void Datagen::SelfPlay(const std::string filename) {
 		if (failed) continue;
 
 		Games.fetch_add(1, std::memory_order_relaxed);
+		Plies.fetch_add(position.GetPly(), std::memory_order_relaxed);
+		if (outcome == GameState::Draw) Draws.fetch_add(1, std::memory_order_relaxed);
 		gamesOnThread += 1;
 
 		// 5. Store the game to the memory, and periodically to the hard drive
@@ -205,16 +207,20 @@ void Datagen::SelfPlay(const std::string filename) {
 		}
 
 		// 6. Update display
-		if (Games.load(std::memory_order_relaxed) % 1000 == 0) {
+		if (Games.load(std::memory_order_relaxed) % 10 == 0) {
 			const auto endTime = Clock::now();
 			const int seconds = static_cast<int>((endTime - StartTime).count() / 1e9);
 			const int speed1 = PositionsAccepted.load(std::memory_order_relaxed) * 3600 / std::max(seconds, 1);
 			const int speed2 = speed1 / 3600 / ThreadCount;
+			const int drawRate = Draws.load(std::memory_order_relaxed) * 100 / Games.load(std::memory_order_relaxed);
+			const int avgPlies = Plies.load(std::memory_order_relaxed) / Games.load(std::memory_order_relaxed);
 
 			const std::string display = "Games: " + std::to_string(Games.load(std::memory_order_relaxed))
-				+ "  |  Positions: " + std::to_string(PositionsAccepted.load(std::memory_order_relaxed))
-				+ "  |  Runtime: " + std::to_string(seconds) + "s  |  "
-				+ std::to_string(speed1) + " per hour  (" + std::to_string(speed2) + "/s/th)";
+				+ " | Positions: " + std::to_string(PositionsAccepted.load(std::memory_order_relaxed))
+				+ " | Runtime: " + std::to_string(seconds) + "s"
+				+ " | Speed: " + std::to_string(speed1/1000) + "k/h (" + std::to_string(speed2) + "/s/th)"
+				+ " | Draws: " + std::to_string(drawRate) + "%"
+				+ " | Avg.plies: " + std::to_string(avgPlies);
 			cout << display << endl; // '\r';
 		}
 
