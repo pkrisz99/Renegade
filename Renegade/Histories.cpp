@@ -17,6 +17,7 @@ void Histories::ClearAll() {
 void Histories::ClearKillerAndCounterMoves() {
 	std::memset(&KillerMoves, 0, sizeof(KillerMoves));
 	std::memset(&CounterMoves, 0, sizeof(CounterMoves));
+	std::memset(&RootHistory, 0, sizeof(RootHistory));
 }
 
 // Killer and countermoves ------------------------------------------------------------------------
@@ -52,6 +53,11 @@ void Histories::UpdateHistory(const Position& position, const Move& m, const uin
 	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
 	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], delta);
 
+	// Root history (if root node)
+	if (level == 0) {
+		UpdateHistoryValue(RootHistory[m.from][m.to], delta);
+	}
+
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
@@ -63,20 +69,28 @@ void Histories::UpdateHistory(const Position& position, const Move& m, const uin
 	}
 }
 
-void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int16_t delta) {
+void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int16_t delta, const bool rootNode) {
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const uint8_t capturedPiece = [&] {
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
 		else return (position.Turn() == Side::White) ? Piece::WhitePawn : Piece::BlackPawn;
 	}();
+
 	UpdateHistoryValue(CaptureHistory[attackingPiece][targetSquare][capturedPiece], delta);
+	if (rootNode) UpdateHistoryValue(RootHistory[m.from][m.to], delta);
 }
 
 int Histories::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
-	int historyScore = QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened];
+
+	int historyScore = [&] {
+		const int quietHistoryScore = QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened];
+		if (level != 0) return quietHistoryScore;
+		const int rootHistoryScore = RootHistory[m.from][m.to];
+		return quietHistoryScore / 4 + rootHistoryScore;
+	}();
 
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
@@ -85,14 +99,17 @@ int Histories::GetHistoryScore(const Position& position, const Move& m, const ui
 	return historyScore;
 }
 
-int16_t Histories::GetCaptureHistoryScore(const Position& position, const Move& m) const {
+int16_t Histories::GetCaptureHistoryScore(const Position& position, const Move& m, const bool rootNode) const {
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const uint8_t capturedPiece = [&] {
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
 		else return (position.Turn() == Side::White) ? Piece::WhitePawn : Piece::BlackPawn;
 	}();
-	return CaptureHistory[attackingPiece][targetSquare][capturedPiece];
+	const int captureHistory = CaptureHistory[attackingPiece][targetSquare][capturedPiece];
+
+	if (!rootNode) return captureHistory;
+	else return captureHistory / 4 + RootHistory[m.from][m.to];
 }
 
 // Static evaluation correction history -----------------------------------------------------------

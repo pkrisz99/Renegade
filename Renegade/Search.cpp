@@ -635,7 +635,7 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 			if (depth > 1) t.History.UpdateHistory(position, bestMove, position.GetPieceAt(bestMove.from), historyDelta, level);
 		}
 		else {
-			if (depth > 1) t.History.UpdateCaptureHistory(position, bestMove, historyDelta);
+			if (depth > 1) t.History.UpdateCaptureHistory(position, bestMove, historyDelta, rootNode);
 		}
 
 		// Decrement history scores for all previously tried moves
@@ -648,7 +648,7 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 				t.History.UpdateHistory(position, prevTriedMove, prevTriedPiece, -historyDelta, level);
 			}
 			for (const Move& prevTriedMove : capturesTried) {
-				t.History.UpdateCaptureHistory(position, prevTriedMove, -historyDelta);
+				t.History.UpdateCaptureHistory(position, prevTriedMove, -historyDelta, rootNode);
 			}
 		}
 	}
@@ -909,12 +909,12 @@ int Search::CalculateOrderScore(const ThreadData& t, const Position& position, c
 	// Captures
 	if (!m.IsCastling()) {
 		if (!losingCapture) {
-			if (capturedPieceType != PieceType::None) return 600000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m);
-			if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 8 + t.History.GetCaptureHistoryScore(position, m);
+			if (capturedPieceType != PieceType::None) return 600000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m, level == 0);
+			if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 8 + t.History.GetCaptureHistoryScore(position, m, level == 0);
 		}
 		else {
-			if (capturedPieceType != PieceType::None) return -200000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m);
-			if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 8 + t.History.GetCaptureHistoryScore(position, m);
+			if (capturedPieceType != PieceType::None) return -200000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m, level == 0);
+			if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 8 + t.History.GetCaptureHistoryScore(position, m, level == 0);
 		}
 	}
 

@@ -24,9 +24,9 @@ public:
 
 	// History heuristic (quiet moves):
 	void UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level);
-	void UpdateCaptureHistory(const Position& position, const Move& m, const int16_t delta);
+	void UpdateCaptureHistory(const Position& position, const Move& m, const int16_t delta, const bool rootNode);
 	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
-	int16_t GetCaptureHistoryScore(const Position& position, const Move& m) const;
+	int16_t GetCaptureHistoryScore(const Position& position, const Move& m, const bool rootNode) const;
 
     // Static evaluation correction history:
     void UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth);
@@ -46,10 +46,12 @@ private:
 	// Move ordering history:
 	using ThreatBuckets = std::array<std::array<int16_t, 2>, 2>;
 	using QuietHistoryTable = std::array<std::array<ThreatBuckets, 64>, 14>;
+	using RootHistoryTable = std::array<std::array<int16_t, 64>, 64>;
 	using CaptureHistoryTable = std::array<std::array<std::array<int16_t, 14>, 64>, 14>;  // [attacking piece][square to][captured piece]
 	using ContinuationHistoryTable = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
 
 	QuietHistoryTable QuietHistory;
+	RootHistoryTable RootHistory;
 	CaptureHistoryTable CaptureHistory;
 	ContinuationHistoryTable ContinuationHistory;
 
