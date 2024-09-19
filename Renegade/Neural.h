@@ -16,25 +16,25 @@
 
 // Network constants
 #ifndef NETWORK_NAME
-#define NETWORK_NAME "renegade-net-25.bin"
+#define NETWORK_NAME "renegade-exp-normal-135.bin"
 #endif
 
 constexpr int FeatureSize = 768;
-constexpr int HiddenSize = 1024;
+constexpr int HiddenSize = 128;
 constexpr int Scale = 400;
 constexpr int QA = 255;
 constexpr int QB = 64;
 
-constexpr int InputBucketCount = 4;
+constexpr int InputBucketCount = 1;
 constexpr std::array<int, 32> InputBucketMap = {
-	0, 0, 1, 1,
-	2, 2, 2, 2,
-	2, 2, 2, 2,
-	3, 3, 3, 3,
-	3, 3, 3, 3,
-	3, 3, 3, 3,
-	3, 3, 3, 3,
-	3, 3, 3, 3,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
 };
 
 
@@ -52,8 +52,8 @@ inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq,
 	const uint8_t pieceType = TypeOfPiece(piece);
 	constexpr int colorOffset = 64 * 6;
 
-	const uint8_t whiteTransform = (GetSquareFile(whiteKingSq) < 4) ? 0 : 7;
-	const uint8_t blackTransform = (GetSquareFile(blackKingSq) < 4) ? 0 : 7;
+	const uint8_t whiteTransform = 0; //  (GetSquareFile(whiteKingSq) < 4) ? 0 : 7;
+	const uint8_t blackTransform = 0; // (GetSquareFile(blackKingSq) < 4) ? 0 : 7;
 
 	const int whiteFeatureIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + (sq ^ whiteTransform);
 	const int blackFeatureIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq ^ blackTransform);
