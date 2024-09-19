@@ -593,6 +593,9 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 		// Update node count table for the root
 		if (rootNode) t.RootNodeCounts[m.from][m.to] += t.Nodes - nodesBefore;
 
+		// Apply temperature for root nodes when needed
+		if (rootNode && Temperature != 0) score = RandomizeScore(score, hash, m);
+
 		// Process search results
 		if (score > bestScore) {
 			bestScore = score;

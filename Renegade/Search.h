@@ -126,6 +126,8 @@ public:
 	std::atomic<int> ActiveThreadCount = 0;
 	std::atomic<int> LoadedThreadCount = 0;
 
+	int Temperature = 0;
+
 private:
 	Results SummarizeThreadInfo() const;
 
@@ -148,6 +150,12 @@ private:
 	void SetupAccumulators(ThreadData& t, const Position& position);
 	void UpdateAccumulators(ThreadData& t, const Position& pos, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level);
 
+	inline int RandomizeScore(const int score, const uint64_t hash, const Move& m) const {
+		const uint64_t transformedHash = (hash ^ MurmurHash3(m.Pack())) % (Temperature * Temperature);
+		const int sign = ((hash >> 32) % 2 == 0) ? 1 : -1;
+		const int adjustment = std::sqrt(transformedHash) * sign;
+		return std::clamp(score + adjustment, -MateThreshold + 1, MateThreshold - 1);
+	}
 	
 	SearchConstraints Constraints;
 	std::chrono::high_resolution_clock::time_point StartSearchTime;

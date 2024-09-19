@@ -22,7 +22,6 @@ private:
 	const int softNodeLimit = 5000;
 	const int hardNodeLimit = 500000;
 	const int depthLimit = 20;
-	const int randomPlyBase = 2;
 	const int minSavePly = 16;
 
 	const int drawAdjEvalThreshold = 5;

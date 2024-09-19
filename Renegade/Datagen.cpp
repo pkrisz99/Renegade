@@ -54,9 +54,6 @@ void Datagen::Start(const bool quickStart) {
 	StartTime = Clock::now();
 
 	cout << "Datagen settings:" << endl;
-	if (!DFRC) cout << " - After the book exit do " << Console::Yellow << randomPlyBase << Console::White << " plies of random moves, then play normally" << endl;
-	else cout << " - " << Console::Yellow << randomPlyBase << Console::White << " or " << Console::Yellow << randomPlyBase + 1
-		<< Console::White << " plies of random rollout, then normal playout" << endl;
 	cout << " - Verification at depth " << Console::Yellow << verificationDepth << Console::White
 		<< " with a threshold of " << Console::Yellow << startingEvalLimit << Console::White << endl;
 	cout << " - Playing with a soft node limit of " << Console::Yellow << softNodeLimit << Console::White << endl;
@@ -101,12 +98,12 @@ void Datagen::SelfPlay(const std::string filename) {
 	std::vector<std::pair<std::string, int>> currentGame;
 	std::vector<std::string> unsavedLines;
 
-
 	while (true) {
 
 		bool failed = false;
 		int winAdjudicationCounter = 0;
 		int drawAdjudicationCounter = 0;
+		int temperature = 128;
 		GameState outcome = GameState();
 		currentGame.clear();
 
@@ -125,29 +122,6 @@ void Datagen::SelfPlay(const std::string filename) {
 			}
 		}();
 
-		// 2. Generate random moves from the start
-		const int randomPlies = [&] {
-			if (!DFRC) return randomPlyBase;
-			else return (gamesOnThread % 2 == 0) ? randomPlyBase : (randomPlyBase + 1);
-		}();
-
-		for (int i = 0; i < randomPlies; i++) {
-			MoveList moves{};
-			position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
-			if (moves.size() == 0) {
-				failed = true;
-				break;
-			}
-			std::uniform_int_distribution<std::size_t> distribution(0, moves.size() - 1);
-			position.Push(moves[distribution(generator)].move);
-		}
-		if (failed) continue;
-
-		// Rarely, the last move will result in a checkmate position - filter these
-		MoveList moves{};
-		position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
-		if (moves.size() == 0) continue;
-
 		// 3. Verify evaluation if acceptable
 		const Results verificationResults = SearcherV->SearchSinglethreaded(position, verificationParams);
 		SearcherV->ResetState(true);
@@ -157,11 +131,20 @@ void Datagen::SelfPlay(const std::string filename) {
 
 		Searcher1->ResetState(true);
 		Searcher2->ResetState(true);
+		std::uniform_int_distribution<std::size_t> distribution(0, 200);
+		SearchParams whiteParams = params;
+		whiteParams.softnodes += distribution(generator) - 100;
+		SearchParams blackParams = params;
+		blackParams.softnodes += distribution(generator) - 100;
 
 		// 4. Play out the game
 		while (true) {
+			Searcher1->Temperature = temperature;
+			Searcher2->Temperature = temperature;
+
 			// Search
 			Search* currentSearcher = (position.Turn() == Side::White) ? Searcher1 : Searcher2;
+			const SearchParams& currentParams = position.Turn() == Side::White ? whiteParams : blackParams;
 			const Results results = currentSearcher->SearchSinglethreaded(position, params);
 			const Move move = results.BestMove();
 			const int whiteScore = results.score * (position.Turn() == Side::Black ? -1 : 1);
@@ -207,6 +190,7 @@ void Datagen::SelfPlay(const std::string filename) {
 
 			outcome = position.GetGameState();
 			if (outcome != GameState::Playing) break;
+			temperature /= 2;
 		}
 
 		if (failed) continue;
