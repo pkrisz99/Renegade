@@ -394,7 +394,7 @@ int Search::SearchRecursive(ThreadData& t, Position& position, int depth, const 
 	if (!singularSearch) {
 		found = TranspositionTable.Probe(hash, ttEntry, level);
 		if (found) {
-			if (!pvNode) {
+			if (!pvNode && !inCheck) {
 				// The branch was already analyzed to the same or greater depth, so we can return the result if the score is alright
 				if (ttEntry.IsCutoffPermitted(depth, alpha, beta)) return ttEntry.score;
 			}
