@@ -455,7 +455,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			t.CurrentPosition.PushNullMove();
 			UpdateAccumulators(t, t.CurrentPosition, NullMove, 0, 0, level);
 			const int nmpScore = -SearchRecursive(t, depth - nmpReduction, level + 1, -beta, -beta + 1, false, !cutNode);
-			t.CurrentPosition.Pop();
+			t.CurrentPosition.PopMove();
 			if (nmpScore >= beta) {
 				return IsMateScore(nmpScore) ? beta : nmpScore;
 			}
@@ -588,7 +588,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			score = -SearchRecursive(t, depth - 1 + extension, level + 1, -beta, -alpha, true, false);
 		}
 
-		t.CurrentPosition.Pop();
+		t.CurrentPosition.PopMove();
 
 		// Update node count table for the root
 		if (rootNode) t.RootNodeCounts[m.from][m.to] += t.Nodes - nodesBefore;
@@ -725,7 +725,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 		TranspositionTable.Prefetch(t.CurrentPosition.Hash());
 		UpdateAccumulators(t, t.CurrentPosition, m, movedPiece, capturedPiece, level);
 		const int score = -SearchQuiescence(t, level + 1, -beta, -alpha);
-		t.CurrentPosition.Pop();
+		t.CurrentPosition.PopMove();
 
 		if (score > bestScore) {
 			bestScore = score;
@@ -979,7 +979,7 @@ uint64_t Search::PerftRecursive(Position& position, const int depth, const int o
 		else {
 			position.PushMove(m.move);
 			r = PerftRecursive(position, depth - 1, originalDepth, type);
-			position.Pop();
+			position.PopMove();
 			count += r;
 		}
 		if (originalDepth == depth && type == PerftType::PerftDiv)
