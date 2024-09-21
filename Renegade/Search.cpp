@@ -301,6 +301,7 @@ void Search::SearchMoves(ThreadData& t) {
 
 		// Save info
 		t.result.score = score;
+		t.result.UpdateBlendedScore(score);
 		t.result.depth = t.Depth;
 		t.result.seldepth = t.SelDepth;
 

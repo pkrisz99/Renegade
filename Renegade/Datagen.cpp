@@ -164,7 +164,7 @@ void Datagen::SelfPlay(const std::string filename) {
 			Search* currentSearcher = (position.Turn() == Side::White) ? Searcher1 : Searcher2;
 			const Results results = currentSearcher->SearchSinglethreaded(position, params);
 			const Move move = results.BestMove();
-			const int whiteScore = results.score * (position.Turn() == Side::Black ? -1 : 1);
+			const int whiteScore = results.blendedScore * (position.Turn() == Side::Black ? -1 : 1);
 
 			// Adjudication
 			if (std::abs(whiteScore) > winAdjEvalThreshold) {
@@ -199,7 +199,7 @@ void Datagen::SelfPlay(const std::string filename) {
 
 			// Check if position should be stored
 			PositionsTotal.fetch_add(1, std::memory_order_relaxed);
-			if (!Filter(position, move, results.score)) {
+			if (!Filter(position, move, results.blendedScore)) {
 				PositionsAccepted.fetch_add(1, std::memory_order_relaxed);
 				currentGame.push_back(std::pair(position.GetFEN(), whiteScore));
 			}
