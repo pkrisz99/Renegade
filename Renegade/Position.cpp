@@ -196,7 +196,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 
 // Pushing moves ----------------------------------------------------------------------------------
 
-void Position::Push(const Move& move) {
+void Position::PushMove(const Move& move) {
 	assert(!move.IsNull());
 
 	States.push_back(Board(CurrentState()));
@@ -289,12 +289,12 @@ bool Position::PushUCI(const std::string& str) {
 	// Make the move if valid
 	if (!valid) return false;
 	else {
-		Push(move);
+		PushMove(move);
 		return true;
 	}
 }
 
-void Position::Pop() {
+void Position::PopMove() {
 	States.pop_back();
 	Hashes.pop_back();
 	Moves.pop_back();

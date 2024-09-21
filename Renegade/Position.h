@@ -18,10 +18,10 @@ public:
 	Position() : Position(FEN::StartPos) {};
 	Position(const int frcWhite, const int frcBlack);
 
-	void Push(const Move& move);
+	void PushMove(const Move& move);
 	void PushNullMove();
 	bool PushUCI(const std::string& str);
-	void Pop();
+	void PopMove();
 
 	void GenerateMoves(MoveList& moves, const MoveGen moveGen, const Legality legality) const;
 	bool IsDrawn(const bool threefold) const;

@@ -115,7 +115,7 @@ void Datagen::SelfPlay(const std::string filename) {
 				break;
 			}
 			std::uniform_int_distribution<std::size_t> distribution(0, moves.size() - 1);
-			position.Push(moves[distribution(generator)].move);
+			position.PushMove(moves[distribution(generator)].move);
 		}
 		if (failed) continue;
 
@@ -179,7 +179,7 @@ void Datagen::SelfPlay(const std::string filename) {
 				PositionsAccepted.fetch_add(1, std::memory_order_relaxed);
 				currentGame.push_back(std::pair(position.GetFEN(), whiteScore));
 			}
-			position.Push(move);
+			position.PushMove(move);
 
 			outcome = position.GetGameState();
 			if (outcome != GameState::Playing) break;
