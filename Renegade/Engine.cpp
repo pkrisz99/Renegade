@@ -61,10 +61,10 @@ void Engine::Start() {
 		}
 
 		if (cmd == "stop" || cmd == "s") {
-			if (!Search.Aborting.load(std::memory_order_relaxed)) {
+			/*if (!Search.Aborting.load(std::memory_order_relaxed)) {
 				Search.Aborting.store(true, std::memory_order_relaxed);
 				SearchThread.join();
-			}
+			}*/
 			continue;
 		}
 
@@ -325,12 +325,6 @@ void Engine::Start() {
 		// Go command
 		if (parts[0] == "go") {
 
-			if (!Search.Aborting.load(std::memory_order_relaxed)) {
-				std::cerr << "info string Search is busy!" << endl;
-				continue;
-			}
-			if (SearchThread.joinable()) SearchThread.join();
-
 			if ((parts.size() == 3) && (parts[1] == "perft" || parts[1] == "perftdiv")) {
 				const int depth = stoi(parts[2]);
 				const PerftType type = (parts[1] == "perftdiv") ? PerftType::PerftDiv : PerftType::Normal;
@@ -355,10 +349,7 @@ void Engine::Start() {
 			}
 
 			// Starting the search thread
-			// old call: Search.SearchMoves(board, params, true);
-			SearchThread = std::thread([&]() {
-				Search.SearchMoves(position, params, true);
-			});
+			Search.SearchMoves(position, params, true);
 			continue;
 		}
 

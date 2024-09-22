@@ -27,7 +27,7 @@ public:
 	void HandleCompiler() const;
 
 	Search Search;
-	std::thread SearchThread;
+	//std::thread SearchThread;
 	bool QuitAfterBench = false;
 
 #if defined(_MSC_VER)
