@@ -94,6 +94,7 @@ void Datagen::SelfPlay(const std::string filename) {
 	params.depth = depthLimit;
 	SearchParams verificationParams = SearchParams();
 	verificationParams.depth = verificationDepth;
+	std::uniform_int_distribution<std::size_t> nodesDistribution(softNodeLimit - 100, softNodeLimit + 100);
 	
 	int gamesOnThread = 0;
 	std::mt19937 generator(std::random_device{}());
@@ -160,9 +161,12 @@ void Datagen::SelfPlay(const std::string filename) {
 
 		// 4. Play out the game
 		while (true) {
+
 			// Search
+			SearchParams currentParams = params;
+			currentParams.softnodes = nodesDistribution(generator);
 			Search* currentSearcher = (position.Turn() == Side::White) ? Searcher1 : Searcher2;
-			const Results results = currentSearcher->SearchSinglethreaded(position, params);
+			const Results results = currentSearcher->SearchSinglethreaded(position, currentParams);
 			const Move move = results.BestMove();
 			const int whiteScore = results.score * (position.Turn() == Side::Black ? -1 : 1);
 
