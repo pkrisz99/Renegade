@@ -139,7 +139,7 @@ void Datagen::SelfPlay(const std::string filename) {
 				break;
 			}
 			std::uniform_int_distribution<std::size_t> distribution(0, moves.size() - 1);
-			position.Push(moves[distribution(generator)].move);
+			position.PushMove(moves[distribution(generator)].move);
 		}
 		if (failed) continue;
 
@@ -203,7 +203,7 @@ void Datagen::SelfPlay(const std::string filename) {
 				PositionsAccepted.fetch_add(1, std::memory_order_relaxed);
 				currentGame.push_back(std::pair(position.GetFEN(), whiteScore));
 			}
-			position.Push(move);
+			position.PushMove(move);
 
 			outcome = position.GetGameState();
 			if (outcome != GameState::Playing) break;
@@ -224,14 +224,12 @@ void Datagen::SelfPlay(const std::string filename) {
 			std::ofstream file(filename, std::ios_base::app);
 			const std::ostream_iterator<std::string> output_iterator(file, "\n");
 			std::copy(std::begin(unsavedLines), std::end(unsavedLines), output_iterator);
-
-			for (const auto& line : unsavedLines) file << line << '\n';
 			file.close();
 			unsavedLines.clear();
 		}
 
 		// 6. Update display
-		if (Games.load(std::memory_order_relaxed) % 1000 == 0) {
+		if (Games.load(std::memory_order_relaxed) % 100 == 0) {
 			const auto endTime = Clock::now();
 			const int seconds = static_cast<int>((endTime - StartTime).count() / 1e9);
 			const int speed1 = PositionsAccepted.load(std::memory_order_relaxed) * 3600 / std::max(seconds, 1);
@@ -307,20 +305,32 @@ void Datagen::MergeFiles() const {
 	for (const auto& filename : found) {
 		std::ifstream ifs(filename);
 		std::string line;
+		cout << filename << ": ";
 
 		while (std::getline(ifs, line)) {
 			if (limit != -1 && counter >= limit) break;
 			counter += 1;
 			if (counter % 1'000'000 == 0) cout << ".";
-			output << line << endl;
+
+			// Basic check if the output was okay
+			const int pipeCount = std::ranges::count(line, '|');
+			if (pipeCount != 2) {
+				cout << "\n-> Malformed: '" << line << "'" << endl;
+			}
+
+			// To do: collect stats and display them
+
+			if (counter % 100 == 0) output << line << endl;
+			else output << line << '\n';
 		}
 		if (limit != -1 && counter >= limit) break;
 
 		ifs.close();
 
-		cout << filename << " -> processed: " << counter << endl;
+		cout << endl;
+		cout << " -> processed: " << counter << endl;
 	}
 
 	output.close();
-	cout << "\nComplete.\n" << endl;
+	cout << Console::Green << "\nCompleted.\n" << Console::White << endl;
 }
