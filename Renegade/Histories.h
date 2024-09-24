@@ -2,6 +2,7 @@
 #include "Move.h"
 #include "Position.h"
 #include "Utils.h"
+#include "Settings.h"
 #include <memory>
 
 class Histories

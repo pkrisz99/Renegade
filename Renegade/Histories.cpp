@@ -149,7 +149,7 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 
 void Histories::UpdateReductionHistory(const Position& pos, const uint8_t movedPiece, const Move& move, const int depth, const bool successful) {
 	const uint64_t pawnKey = pos.GetPreviousPawnKey() % 1024;
-	const int16_t bonus = std::min((5 - depth) * 500, 500) * (successful ? 1 : -8);
+	const int16_t bonus = std::min((Tune::redhist_maxdepth.value - depth) * Tune::redhist_mul.value, Tune::redhist_min.value) * (successful ? 1 : -Tune::redhist_negscale.value);
 	int16_t& value = ReductionHistory[pawnKey][movedPiece][move.to];
 	UpdateHistoryValue(value, bonus);
 	if (!successful) value = std::min(value, int16_t(-1));
