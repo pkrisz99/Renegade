@@ -64,7 +64,7 @@ private:
 	PawnsCorrectionTable PawnsCorrectionHistory;
 	FollowUpCorrectionTable FollowUpCorrectionHistory;
 
-	using ReductionTable = std::array<std::array<std::array<int16_t, 64>, 14>, 512>;
+	using ReductionTable = std::array<std::array<std::array<int16_t, 64>, 14>, 1024>;
 	ReductionTable ReductionHistory;
 };
 
