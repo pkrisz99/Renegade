@@ -579,11 +579,11 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			score = -SearchRecursive(t, reducedDepth, level + 1, -alpha - 1, -alpha, false, true);
 
 			if (score > alpha && reducedDepth < depth - 1) {
-				t.History.UpdateReductionHistory(t.CurrentPosition, movedPiece, m, depth, false);
+				t.History.UpdateReductionHistory(t.CurrentPosition, movedPiece, m, reduction, false);
 				score = -SearchRecursive(t, depth - 1, level + 1, -alpha - 1, -alpha, false, !cutNode);
 			}
 			else {
-				t.History.UpdateReductionHistory(t.CurrentPosition, movedPiece, m, depth, true);
+				t.History.UpdateReductionHistory(t.CurrentPosition, movedPiece, m, reduction, true);
 			}
 		}
 		else if (!pvNode || legalMoveCount > 1) {
