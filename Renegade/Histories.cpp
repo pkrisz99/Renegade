@@ -66,11 +66,13 @@ void Histories::UpdateHistory(const Position& position, const Move& m, const uin
 void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int16_t delta) {
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
+	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
+	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
 	const uint8_t capturedPiece = [&] {
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
 		else return (position.Turn() == Side::White) ? Piece::WhitePawn : Piece::BlackPawn;
 	}();
-	UpdateHistoryValue(CaptureHistory[attackingPiece][targetSquare][capturedPiece], delta);
+	UpdateHistoryValue(CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened], delta);
 }
 
 int Histories::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
@@ -88,11 +90,13 @@ int Histories::GetHistoryScore(const Position& position, const Move& m, const ui
 int16_t Histories::GetCaptureHistoryScore(const Position& position, const Move& m) const {
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
+	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
+	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
 	const uint8_t capturedPiece = [&] {
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
 		else return (position.Turn() == Side::White) ? Piece::WhitePawn : Piece::BlackPawn;
 	}();
-	return CaptureHistory[attackingPiece][targetSquare][capturedPiece];
+	return CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened];
 }
 
 // Static evaluation correction history -----------------------------------------------------------
