@@ -571,7 +571,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
 			if (cutNode) reduction += 1;
-			if (t.History.GetReductionHistory(t.CurrentPosition, movedPiece, m, depth) < 0) reduction -= 1;
+			if (t.History.GetReductionHistory(t.CurrentPosition, movedPiece, m) < 0) reduction -= 1;
 			//cout << t.History.GetReductionHistory(t.CurrentPosition, movedPiece, m, depth) << endl;
 			reduction = std::max(reduction, 0);
 

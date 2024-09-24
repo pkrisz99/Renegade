@@ -154,7 +154,7 @@ void Histories::UpdateReductionHistory(const Position& pos, const uint8_t movedP
 	UpdateHistoryValue(value, bonus);
 }
 
-int16_t Histories::GetReductionHistory(const Position& pos, const uint8_t movedPiece, const Move& move, const int depth) const {
+int16_t Histories::GetReductionHistory(const Position& pos, const uint8_t movedPiece, const Move& move) const {
 	const uint64_t pawnKey = pos.GetPreviousPawnKey() % 1024;
 	return ReductionHistory[pawnKey][movedPiece][move.to];
 }
