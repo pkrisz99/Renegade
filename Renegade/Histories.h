@@ -32,6 +32,9 @@ public:
     void UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth);
 	int16_t ApplyCorrection(const Position& position, const int16_t rawEval) const;
 
+	void UpdateReductionHistory(const Position& pos, const uint8_t movedPiece, const Move& move, const int depth, const bool successful);
+	int16_t GetReductionHistory(const Position& pos, const uint8_t movedPiece, const Move& move, const int depth) const;
+
 private:
 
 	inline void UpdateHistoryValue(int16_t& value, const int amount) {
@@ -60,5 +63,8 @@ private:
 	MaterialCorrectionTable MaterialCorrectionHistory;
 	PawnsCorrectionTable PawnsCorrectionHistory;
 	FollowUpCorrectionTable FollowUpCorrectionHistory;
+
+	using ReductionTable = std::array<std::array<std::array<int16_t, 64>, 14>, 512>;
+	ReductionTable ReductionHistory;
 };
 

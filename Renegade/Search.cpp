@@ -571,13 +571,19 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
 			if (cutNode) reduction += 1;
+			if (t.History.GetReductionHistory(t.CurrentPosition, movedPiece, m, depth) > 14000) reduction += 1;
+			//cout << t.History.GetReductionHistory(t.CurrentPosition, movedPiece, m, depth) << endl;
 			reduction = std::max(reduction, 0);
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
 			score = -SearchRecursive(t, reducedDepth, level + 1, -alpha - 1, -alpha, false, true);
 
 			if (score > alpha && reducedDepth < depth - 1) {
+				t.History.UpdateReductionHistory(t.CurrentPosition, movedPiece, m, depth, false);
 				score = -SearchRecursive(t, depth - 1, level + 1, -alpha - 1, -alpha, false, !cutNode);
+			}
+			else {
+				t.History.UpdateReductionHistory(t.CurrentPosition, movedPiece, m, depth, true);
 			}
 		}
 		else if (!pvNode || legalMoveCount > 1) {

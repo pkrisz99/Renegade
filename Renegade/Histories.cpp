@@ -12,6 +12,7 @@ void Histories::ClearAll() {
     std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionTable));
     std::memset(&PawnsCorrectionHistory, 0, sizeof(PawnsCorrectionTable));
     std::memset(&FollowUpCorrectionHistory, 0, sizeof(FollowUpCorrectionTable));
+    std::memset(&ReductionHistory, 0, sizeof(ReductionTable));
 }
 
 void Histories::ClearKillerAndCounterMoves() {
@@ -143,4 +144,17 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 
 	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection) * 2 / 3;
     return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
+}
+
+
+void Histories::UpdateReductionHistory(const Position& pos, const uint8_t movedPiece, const Move& move, const int depth, const bool successful) {
+	const uint64_t pawnKey = pos.GetPreviousPawnKey() % 512;
+	const int16_t bonus = std::min(depth * 300, 2250) * (successful ? 1 : -1);
+	int16_t& value = ReductionHistory[pawnKey][movedPiece][move.to];
+	UpdateHistoryValue(value, bonus);
+}
+
+int16_t Histories::GetReductionHistory(const Position& pos, const uint8_t movedPiece, const Move& move, const int depth) const {
+	const uint64_t pawnKey = pos.GetPreviousPawnKey() % 512;
+	return ReductionHistory[pawnKey][movedPiece][move.to];
 }
