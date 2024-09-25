@@ -546,7 +546,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 			else {
 				// Extension check failed
-				if (!pvNode && (singularBeta >= beta)) return singularBeta; // Multicut
+				if (!pvNode && (singularBeta >= beta)) return singularBeta; //
+                else if (cutNode) extension = -2;
 			}
 		}
 
