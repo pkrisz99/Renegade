@@ -152,7 +152,7 @@ void Histories::UpdateReductionHistory(const Position& pos, const uint8_t movedP
 	const int16_t bonus = std::min((Tune::redhist_maxdepth.value - depth) * Tune::redhist_mul.value, Tune::redhist_min.value) * (successful ? 1 : -Tune::redhist_negscale.value);
 	int16_t& value = ReductionHistory[pawnKey][movedPiece][move.to];
 	UpdateHistoryValue(value, bonus);
-	if (!successful) value = std::min(value, int16_t(-1));
+	if (!successful) value = std::min(value, int16_t(-Tune::redhist_reset.value));
 }
 
 int16_t Histories::GetReductionHistory(const Position& pos, const uint8_t movedPiece, const Move& move) const {

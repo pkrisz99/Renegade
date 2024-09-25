@@ -23,10 +23,11 @@ namespace Tune {
     Tunable see_search_th = Tunable{ "see_search_th", 0, 100, 0, 20 };
     Tunable see_qsearch_th = Tunable{ "see_qsearch_th", 0, 100, 0, 20 };*/
 
-    Tunable redhist_negscale = Tunable{ "redhist_negscale", 2, 16, 8, 4 };
-    Tunable redhist_maxdepth = Tunable{ "redhist_maxdepth", 2, 8, 5, 1 };
-    Tunable redhist_mul = Tunable{ "redhist_mul", 100, 1000, 500, 200 };
-    Tunable redhist_min = Tunable{ "redhist_min", 100, 1000, 500, 200 };
+    Tunable redhist_negscale = Tunable{ "redhist_negscale", 2, 16, 9, 3 };
+    Tunable redhist_maxdepth = Tunable{ "redhist_maxdepth", 2, 8, 4, 1 };
+    Tunable redhist_mul = Tunable{ "redhist_mul", 100, 1000, 400, 200 };
+    Tunable redhist_min = Tunable{ "redhist_min", 100, 1000, 600, 200 };
+    Tunable redhist_reset = Tunable{ "redhist_reset", 1, 10000, 1, 1500 };
 
     std::unordered_map<std::string_view, Tunable&> List = {
         /*
@@ -43,6 +44,7 @@ namespace Tune {
         {redhist_maxdepth.name, redhist_maxdepth},
         {redhist_mul.name, redhist_mul},
         {redhist_min.name, redhist_min},
+        {redhist_reset.name, redhist_reset},
     };
 
     // Helper functions:
