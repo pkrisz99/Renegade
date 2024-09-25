@@ -583,7 +583,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				score = -SearchRecursive(t, depth - 1, level + 1, -alpha - 1, -alpha, false, !cutNode);
 			}
 			else {
-				t.History.UpdateReductionHistory(t.CurrentPosition, movedPiece, m, reduction, true);
+				t.History.UpdateReductionHistory(t.CurrentPosition, movedPiece, m, reduction, score <= alpha);
 			}
 		}
 		else if (!pvNode || legalMoveCount > 1) {

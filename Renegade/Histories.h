@@ -33,7 +33,7 @@ public:
     void UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth);
 	int16_t ApplyCorrection(const Position& position, const int16_t rawEval) const;
 
-	void UpdateReductionHistory(const Position& pos, const uint8_t movedPiece, const Move& move, const int depth, const bool successful);
+	void UpdateReductionHistory(const Position& pos, const uint8_t movedPiece, const Move& move, const int reduction, const bool successful);
 	int16_t GetReductionHistory(const Position& pos, const uint8_t movedPiece, const Move& move) const;
 
 private:
