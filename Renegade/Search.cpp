@@ -396,7 +396,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (found) {
 			if (!pvNode) {
 				// The branch was already analyzed to the same or greater depth, so we can return the result if the score is alright
-				if (ttEntry.IsCutoffPermitted(depth, alpha, beta)) return ttEntry.score;
+				if (ttEntry.IsCutoffPermitted(depth, alpha, beta, inCheck)) return ttEntry.score;
 			}
 			ttEval = ttEntry.score;
 			ttMove = Move(ttEntry.packedMove);
@@ -689,10 +689,11 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	const uint64_t hash = t.CurrentPosition.Hash();
 	TranspositionEntry ttEntry;
 	const bool found = TranspositionTable.Probe(hash, ttEntry, level);
+	const bool inCheck = t.CurrentPosition.IsInCheck();
 
 	// Update alpha-beta bounds
 	const int rawEval = [&] {
-		if (found && !t.CurrentPosition.IsInCheck()) return ttEntry.rawEval;
+		if (found && !inCheck) return ttEntry.rawEval;
 		return static_cast<int16_t>(Evaluate(t, t.CurrentPosition, level));
 	}();
 	const int staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
@@ -702,7 +703,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (t.CurrentPosition.IsDrawn(false)) return DrawEvaluation(t);
 	
 	if (found) {
-		if (ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
+		if (ttEntry.IsCutoffPermitted(0, alpha, beta, inCheck)) return ttEntry.score;
 	}
 
 	// Generate noisy moves and order them

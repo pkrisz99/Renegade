@@ -20,11 +20,19 @@ struct TranspositionEntry {
 	uint8_t scoreType = 0;
 	uint16_t packedMove = 0;
 
-	inline bool IsCutoffPermitted(const int searchDepth, const int alpha, const int beta) const {
+	inline bool IsCutoffPermitted(const int searchDepth, const int alpha, const int beta, const bool inCheck) const {
 		if (searchDepth > depth) return false;
-		return (scoreType == ScoreType::Exact)
-			|| ((scoreType == ScoreType::UpperBound) && (score <= alpha))
-			|| ((scoreType == ScoreType::LowerBound) && (score >= beta));
+
+		if (!inCheck) {
+			return (scoreType == ScoreType::Exact)
+				|| ((scoreType == ScoreType::UpperBound) && (score <= alpha))
+				|| ((scoreType == ScoreType::LowerBound) && (score >= beta));
+		}
+		else {
+			return (scoreType == ScoreType::Exact)
+				|| ((scoreType == ScoreType::UpperBound) && (score + 10 <= alpha))
+				|| ((scoreType == ScoreType::LowerBound) && (score - 10 >= beta));
+		}
 	}
 };
 static_assert(sizeof(TranspositionEntry) == 16);
