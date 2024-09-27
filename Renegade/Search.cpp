@@ -934,7 +934,11 @@ int Search::CalculateOrderScore(const ThreadData& t, const Position& position, c
 
 void Search::OrderMoves(const ThreadData& t, const Position& position, MoveList& ml, const int level, const Move& ttMove) {
 	for (auto& m : ml) {
-		const bool losingCapture = position.IsMoveQuiet(m.move) ? false : !StaticExchangeEval(position, m.move, 0);
+		const bool losingCapture = [&] {
+			if (position.IsMoveQuiet(m.move)) return false;
+			const int16_t captureScore = (m.move.IsPromotion()) ? 0 : t.History.GetCaptureHistoryScore(position, m.move);
+			return !StaticExchangeEval(position, m.move, -captureScore / 50);
+		}();
 		m.orderScore = CalculateOrderScore(t, position, m.move, level, ttMove, losingCapture, true);
 	}
 }
