@@ -149,7 +149,7 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 
 void Histories::UpdateReductionHistory(const Position& pos, const uint8_t movedPiece, const Move& move, const int reduction, const bool successful) {
 	const uint64_t pawnKey = pos.GetPreviousPawnKey() % 1024;
-	std::array<int, 5> bonuses = { 1798, 1478, 1137, 855, 599 };
+	std::array<int, 5> bonuses = { 1752, 1446, 1075, 882, 601 };
 	const int weight = std::clamp(reduction, 0, 4); // 0, 1, 2, 3, 4+
 	const int bonus = bonuses[weight] * (successful ? 1 : -6);
 	int16_t& value = ReductionHistory[pawnKey][movedPiece][move.to];
