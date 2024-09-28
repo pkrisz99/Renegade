@@ -396,7 +396,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (found) {
 			if (!pvNode) {
 				// The branch was already analyzed to the same or greater depth, so we can return the result if the score is alright
-				if (ttEntry.IsCutoffPermitted(depth, alpha, beta)) return ttEntry.score;
+				if (ttEntry.IsCutoffPermitted(depth + inCheck, alpha, beta)) return ttEntry.score;
 			}
 			ttEval = ttEntry.score;
 			ttMove = Move(ttEntry.packedMove);
