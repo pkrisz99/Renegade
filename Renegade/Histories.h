@@ -46,7 +46,7 @@ private:
 	// Move ordering history:
 	using ThreatBuckets = std::array<std::array<int16_t, 2>, 2>;
 	using QuietHistoryTable = std::array<std::array<ThreatBuckets, 64>, 14>;
-	using CaptureHistoryTable = std::array<std::array<std::array<int16_t, 14>, 64>, 14>;  // [attacking piece][square to][captured piece]
+	using CaptureHistoryTable = std::array<std::array<std::array<ThreatBuckets, 14>, 64>, 14>;  // [attacking piece][square to][captured piece]
 	using ContinuationHistoryTable = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
 
 	QuietHistoryTable QuietHistory;

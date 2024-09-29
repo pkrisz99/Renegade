@@ -6,7 +6,7 @@ use bullet_lib::{
     TrainerBuilder, TrainingSchedule, Loss, optimiser
 };
 
-const NET_ID: &str = "renegade-net-25-moredata";
+const NET_ID: &str = "renegade-net-26";
 
 
 fn main() {
@@ -48,7 +48,7 @@ fn main() {
             step: 120,
         },
         loss_function: Loss::SigmoidMSE,
-        save_rate: 20,
+        save_rate: 10,
         optimiser_settings: optimiser::AdamWParams {
             decay: 0.01,
             beta1: 0.9,
@@ -61,7 +61,7 @@ fn main() {
     let settings = LocalSettings {
         threads: 6,
         data_file_paths: vec![
-            "../nnue/data/240325_240421_240609_240622_240722_240821_frc240513",
+            "../nnue/data/240609_240622_240722_240821_240928_frc240513",
         ],
         test_set: None,
         output_directory: "checkpoints",
