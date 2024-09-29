@@ -27,7 +27,7 @@ void Datagen::Start(const bool quickStart) {
 		const uint64_t timestamp = std::chrono::duration_cast<std::chrono::seconds>(time).count();
 		filename = "datagen_" + std::to_string(timestamp);
 		ThreadCount = std::thread::hardware_concurrency();
-		DFRC = false;
+		DFRC = true;
 		
 		cout << "Quick start details:" << endl;
 		cout << " - Filename: " << Console::Yellow << filename << Console::White << endl;
