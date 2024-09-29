@@ -1,29 +1,5 @@
 #include "Board.h"
 
-Board::Board(const Board& b) {
-	WhitePawnBits = b.WhitePawnBits;
-	WhiteKnightBits = b.WhiteKnightBits;
-	WhiteBishopBits = b.WhiteBishopBits;
-	WhiteRookBits = b.WhiteRookBits;
-	WhiteQueenBits = b.WhiteQueenBits;
-	WhiteKingBits = b.WhiteKingBits;
-	BlackPawnBits = b.BlackPawnBits;
-	BlackKnightBits = b.BlackKnightBits;
-	BlackBishopBits = b.BlackBishopBits;
-	BlackRookBits = b.BlackRookBits;
-	BlackQueenBits = b.BlackQueenBits;
-	BlackKingBits = b.BlackKingBits;
-	EnPassantSquare = b.EnPassantSquare;
-	WhiteRightToShortCastle = b.WhiteRightToShortCastle;
-	WhiteRightToLongCastle = b.WhiteRightToLongCastle;
-	BlackRightToShortCastle = b.BlackRightToShortCastle;
-	BlackRightToLongCastle = b.BlackRightToLongCastle;
-	Turn = b.Turn;
-	HalfmoveClock = b.HalfmoveClock;
-	FullmoveClock = b.FullmoveClock;
-	Mailbox = b.Mailbox;
-}
-
 uint64_t Board::CalculateHash() const {
 	uint64_t hash = 0;
 

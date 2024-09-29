@@ -19,7 +19,6 @@ struct Board {
 
 	Board() = default;
 	~Board() = default;
-	Board(const Board& b);
 
 	// Piece bitboards
 	uint64_t WhitePawnBits = 0;
