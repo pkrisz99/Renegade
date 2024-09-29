@@ -796,18 +796,7 @@ std::string Position::GetFEN() const {
 	}
 	result += ' ';
 
-	bool enPassantPossible = false;
-	if ((b.EnPassantSquare != -1) && (b.Turn == Side::White)) {
-		const bool fromRight = (((b.WhitePawnBits & ~File[0]) << 7) & SquareBit(b.EnPassantSquare));
-		const bool fromLeft = (((b.WhitePawnBits & ~File[7]) << 9) & SquareBit(b.EnPassantSquare));
-		if (fromLeft || fromRight) enPassantPossible = true;
-	}
-	if ((b.EnPassantSquare != -1) && (b.Turn == Side::Black)) {
-		const bool fromRight = (((b.BlackPawnBits & ~File[0]) >> 9) & SquareBit(b.EnPassantSquare));
-		const bool fromLeft = (((b.BlackPawnBits & ~File[7]) >> 7) & SquareBit(b.EnPassantSquare));
-		if (fromLeft || fromRight) enPassantPossible = true;
-	}
-	if (enPassantPossible) result += SquareStrings[b.EnPassantSquare];
+	if (b.EnPassantSquare != -1) result += SquareStrings[b.EnPassantSquare];
 	else result += '-';
 
 	result += ' ' + std::to_string(b.HalfmoveClock) + ' ' + std::to_string(b.FullmoveClock);
