@@ -94,12 +94,12 @@ uint64_t Board::CalculateHash() const {
 	if (EnPassantSquare != -1) {
 		bool hasPawn = false;
 		if (GetSquareFile(EnPassantSquare) != 0) {
-			if (Turn == Side::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 7);
-			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 9);
-		}
-		if ((GetSquareFile(EnPassantSquare) != 7) && !hasPawn) {
 			if (Turn == Side::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 9);
 			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 7);
+		}
+		if ((GetSquareFile(EnPassantSquare) != 7) && !hasPawn) {
+			if (Turn == Side::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 7);
+			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 9);
 		}
 		if (hasPawn) hash ^= Zobrist[772 + GetSquareFile(EnPassantSquare)];
 	}
