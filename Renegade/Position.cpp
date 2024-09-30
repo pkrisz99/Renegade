@@ -91,7 +91,19 @@ Position::Position(const std::string& fen) {
 	}
 
 	if (parts[3] != "-") {
-		board.EnPassantSquare = SquareToNum(parts[3]);
+		// There are two possible conventions, here we make sure to use the correct one
+		// So that "position startpos moves ..." and "position fen ..." yield the same hash for the same position
+		const uint8_t epSquare = SquareToNum(parts[3]);
+		if (board.Turn == Side::White) {
+			const bool pawnOnLeft = GetSquareFile(epSquare) != 0 && GetPieceAt(epSquare - 9) == Piece::WhitePawn;
+			const bool pawnOnRight = GetSquareFile(epSquare) != 7 && GetPieceAt(epSquare - 7) == Piece::WhitePawn;
+			if (pawnOnLeft || pawnOnRight) board.EnPassantSquare = epSquare;
+		}
+		else {
+			const bool pawnOnLeft = GetSquareFile(epSquare) != 0 && GetPieceAt(epSquare + 7) == Piece::BlackPawn;
+			const bool pawnOnRight = GetSquareFile(epSquare) != 7 && GetPieceAt(epSquare + 9) == Piece::BlackPawn;
+			if (pawnOnLeft || pawnOnRight) board.EnPassantSquare = epSquare;
+		}
 	}
 
 	board.HalfmoveClock = stoi(parts[4]);
@@ -796,6 +808,8 @@ std::string Position::GetFEN() const {
 	}
 	result += ' ';
 
+	// There are two versions of this: after a double push printing the target square unconditionally, or only when e.p. is a legal move
+	// Renegade does the latter
 	if (b.EnPassantSquare != -1) result += SquareStrings[b.EnPassantSquare];
 	else result += '-';
 
