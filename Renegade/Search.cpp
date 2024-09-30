@@ -417,7 +417,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (found) return ttEntry.rawEval;
 			return static_cast<int16_t>(Evaluate(t, t.CurrentPosition, level));
 		}();
-		staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
+		staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval, t.Accumulators[level]);
 		eval = staticEval;
 
 		if ((ttEval != NoEval) && !inCheck) {  // inCheck is cosmetic
@@ -663,7 +663,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
                    || (scoreType == ScoreType::UpperBound && bestScore < staticEval)
                    || (scoreType == ScoreType::LowerBound && bestScore > staticEval);
         }();
-        if (updateCorrection) t.History.UpdateCorrection(t.CurrentPosition, rawEval, bestScore, depth);
+        if (updateCorrection) t.History.UpdateCorrection(t.CurrentPosition, rawEval, bestScore, depth, t.Accumulators[level]);
     }
 
 	// Store node search results into the transposition table
@@ -695,7 +695,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 		if (found && !t.CurrentPosition.IsInCheck()) return ttEntry.rawEval;
 		return static_cast<int16_t>(Evaluate(t, t.CurrentPosition, level));
 	}();
-	const int staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
+	const int staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval, t.Accumulators[level]);
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= MaxDepth) return staticEval;

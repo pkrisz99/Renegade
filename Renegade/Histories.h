@@ -1,5 +1,6 @@
 #pragma once
 #include "Move.h"
+#include "Neural.h"
 #include "Position.h"
 #include "Utils.h"
 #include <memory>
@@ -29,8 +30,8 @@ public:
 	int16_t GetCaptureHistoryScore(const Position& position, const Move& m) const;
 
     // Static evaluation correction history:
-    void UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth);
-	int16_t ApplyCorrection(const Position& position, const int16_t rawEval) const;
+    void UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth, const AccumulatorRepresentation& acc);
+	int16_t ApplyCorrection(const Position& position, const int16_t rawEval, const AccumulatorRepresentation& acc) const;
 
 private:
 
@@ -57,8 +58,10 @@ private:
 	using MaterialCorrectionTable = std::array<std::array<int32_t, 32768>, 2>;
 	using PawnsCorrectionTable = std::array<std::array<int32_t, 16384>, 2>;
 	using FollowUpCorrectionTable = std::array<std::array<std::array<std::array<int32_t, 64>, 14>, 64>, 14>;
+	using AccumulatorCorrectionTable = std::array<std::array<int32_t, 131072>, 2>;
 	MaterialCorrectionTable MaterialCorrectionHistory;
 	PawnsCorrectionTable PawnsCorrectionHistory;
 	FollowUpCorrectionTable FollowUpCorrectionHistory;
+	AccumulatorCorrectionTable AccumulatorCorrectionHistory;
 };
 

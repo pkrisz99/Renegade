@@ -12,6 +12,7 @@ void Histories::ClearAll() {
     std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionTable));
     std::memset(&PawnsCorrectionHistory, 0, sizeof(PawnsCorrectionTable));
     std::memset(&FollowUpCorrectionHistory, 0, sizeof(FollowUpCorrectionTable));
+    std::memset(&AccumulatorCorrectionHistory, 0, sizeof(AccumulatorCorrectionTable));
 }
 
 void Histories::ClearKillerAndCounterMoves() {
@@ -101,7 +102,7 @@ int16_t Histories::GetCaptureHistoryScore(const Position& position, const Move& 
 
 // Static evaluation correction history -----------------------------------------------------------
 
-void Histories::UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth) {
+void Histories::UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth, const AccumulatorRepresentation& acc) {
     const int diff = (score - rawEval) * 256;
     const int weight = std::min(16, depth + 1);
 
@@ -115,6 +116,13 @@ void Histories::UpdateCorrection(const Position& position, const int16_t rawEval
 	pawnValue = ((256 - weight) * pawnValue + weight * diff) / 256;
 	pawnValue = std::clamp(pawnValue, -6144, 6144);
 
+	const uint64_t accKey1 = int64_t(acc.White[0]) | (int64_t(acc.White[1]) << 16) | (int64_t(acc.White[2]) << 32) | (int64_t(acc.White[3]) << 48);
+	const uint64_t accKey2 = int64_t(acc.Black[0]) | (int64_t(acc.Black[1]) << 16) | (int64_t(acc.Black[2]) << 32) | (int64_t(acc.Black[3]) << 48);
+	const uint64_t accKey = (MurmurHash3(accKey1) ^ MurmurHash3(accKey2)) % 131072;
+	int32_t& accValue = AccumulatorCorrectionHistory[position.Turn()][accKey];
+	accValue = ((256 - weight) * accValue + weight * diff) / 256;
+	accValue = std::clamp(accValue, -6144, 6144);
+
 	if (position.Moves.size() >= 2) {
 		const MoveAndPiece& prev1 = position.GetPreviousMove(1);
 		const MoveAndPiece& prev2 = position.GetPreviousMove(2);
@@ -124,7 +132,7 @@ void Histories::UpdateCorrection(const Position& position, const int16_t rawEval
 	}
 }
 
-int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEval) const {
+int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEval, const AccumulatorRepresentation& acc) const {
     if (std::abs(rawEval) >= MateThreshold) return rawEval;
 
     const uint64_t materialKey = position.GetMaterialKey() % 32768;
@@ -133,6 +141,10 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 	const uint64_t pawnKey = position.GetPawnKey() % 16384;
 	const int pawnCorrection = PawnsCorrectionHistory[position.Turn()][pawnKey] / 256;
 
+	const uint64_t accKey1 = int64_t(acc.White[0]) | (int64_t(acc.White[1]) << 16) | (int64_t(acc.White[2]) << 32) | (int64_t(acc.White[3]) << 48);
+	const uint64_t accKey2 = int64_t(acc.Black[0]) | (int64_t(acc.Black[1]) << 16) | (int64_t(acc.Black[2]) << 32) | (int64_t(acc.Black[3]) << 48);
+	const uint64_t accKey = (MurmurHash3(accKey1) ^ MurmurHash3(accKey2)) % 131072;
+	const int accCorrection = AccumulatorCorrectionHistory[position.Turn()][pawnKey] / 256;
 
 	const int lastMoveCorrection = [&] {
 		if (position.Moves.size() < 2) return 0;
@@ -141,6 +153,6 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 		return FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to] / 256;
 	}();
 
-	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection) * 2 / 3;
+	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection + accCorrection) / 2;
     return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
 }
