@@ -561,7 +561,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		t.Nodes += 1;
 		int score = NoEval;
 		UpdateAccumulators(t, t.CurrentPosition, m, movedPiece, capturedPiece, level);
-
+		bool deeper = false;
 		
 		// Late-move reductions & principal variation search
 		if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && depth >= 3) {
@@ -578,7 +578,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			score = -SearchRecursive(t, reducedDepth, level + 1, -alpha - 1, -alpha, false, true);
 
 			if (score > alpha && reducedDepth < depth - 1) {
-				score = -SearchRecursive(t, depth - 1, level + 1, -alpha - 1, -alpha, false, !cutNode);
+				deeper = score > (bestScore + 50 + depth * 5);
+				score = -SearchRecursive(t, depth - 1 + deeper, level + 1, -alpha - 1, -alpha, false, !cutNode);
 			}
 		}
 		else if (!pvNode || legalMoveCount > 1) {
@@ -586,7 +587,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		if (pvNode && (legalMoveCount == 1 || score > alpha)) {
-			score = -SearchRecursive(t, depth - 1 + extension, level + 1, -beta, -alpha, true, false);
+			score = -SearchRecursive(t, depth - 1 + extension + deeper, level + 1, -beta, -alpha, true, false);
 		}
 
 		t.CurrentPosition.PopMove();
