@@ -16,7 +16,7 @@
 
 // Network constants
 #ifndef NETWORK_NAME
-#define NETWORK_NAME "renegade-net-26.bin"
+#define NETWORK_NAME "renegade-net-27.bin"
 #endif
 
 constexpr int FeatureSize = 768;
@@ -36,14 +36,20 @@ constexpr std::array<int, 32> InputBucketMap = {
 	3, 3, 3, 3,
 	3, 3, 3, 3,
 };
+constexpr int OutputBucketCount = 8;
 
 
 struct alignas(64) NetworkRepresentation {
 	std::array<std::array<std::array<int16_t, HiddenSize>, FeatureSize>, InputBucketCount> FeatureWeights;
 	std::array<int16_t, HiddenSize> FeatureBias;
-	std::array<int16_t, HiddenSize * 2> OutputWeights;
-	int16_t OutputBias;
+	std::array<std::array<int16_t, HiddenSize * 2>, OutputBucketCount> OutputWeights;
+	std::array<int16_t, OutputBucketCount> OutputBias;
 };
+
+inline int GetOutputBucket(const uint64_t occupancy) {
+	constexpr int divisor = (32 + OutputBucketCount - 1) / OutputBucketCount;
+	return (Popcount(occupancy) - 2) / divisor;
+}
 
 extern const NetworkRepresentation* Network;
 
