@@ -1,29 +1,5 @@
 #include "Board.h"
 
-Board::Board(const Board& b) {
-	WhitePawnBits = b.WhitePawnBits;
-	WhiteKnightBits = b.WhiteKnightBits;
-	WhiteBishopBits = b.WhiteBishopBits;
-	WhiteRookBits = b.WhiteRookBits;
-	WhiteQueenBits = b.WhiteQueenBits;
-	WhiteKingBits = b.WhiteKingBits;
-	BlackPawnBits = b.BlackPawnBits;
-	BlackKnightBits = b.BlackKnightBits;
-	BlackBishopBits = b.BlackBishopBits;
-	BlackRookBits = b.BlackRookBits;
-	BlackQueenBits = b.BlackQueenBits;
-	BlackKingBits = b.BlackKingBits;
-	EnPassantSquare = b.EnPassantSquare;
-	WhiteRightToShortCastle = b.WhiteRightToShortCastle;
-	WhiteRightToLongCastle = b.WhiteRightToLongCastle;
-	BlackRightToShortCastle = b.BlackRightToShortCastle;
-	BlackRightToLongCastle = b.BlackRightToLongCastle;
-	Turn = b.Turn;
-	HalfmoveClock = b.HalfmoveClock;
-	FullmoveClock = b.FullmoveClock;
-	Mailbox = b.Mailbox;
-}
-
 uint64_t Board::CalculateHash() const {
 	uint64_t hash = 0;
 
@@ -92,16 +68,7 @@ uint64_t Board::CalculateHash() const {
 
 	// En passant
 	if (EnPassantSquare != -1) {
-		bool hasPawn = false;
-		if (GetSquareFile(EnPassantSquare) != 0) {
-			if (Turn == Side::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 7);
-			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 9);
-		}
-		if ((GetSquareFile(EnPassantSquare) != 7) && !hasPawn) {
-			if (Turn == Side::White) hasPawn = CheckBit(WhitePawnBits, EnPassantSquare - 9);
-			else hasPawn = CheckBit(BlackPawnBits, EnPassantSquare + 7);
-		}
-		if (hasPawn) hash ^= Zobrist[772 + GetSquareFile(EnPassantSquare)];
+		hash ^= Zobrist[772 + GetSquareFile(EnPassantSquare)];
 	}
 
 	if (Turn == Side::White) hash ^= Zobrist[780];
@@ -236,11 +203,18 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 	}
 
 	// Update en passant
+	EnPassantSquare = -1;
 	if (move.flag == MoveFlag::EnPassantPossible) {
-		EnPassantSquare = (Turn == Side::White) ? move.to - 8 : move.to + 8;
-	}
-	else {
-		EnPassantSquare = -1;
+		if (Turn == Side::White) {
+			const bool pawnOnLeft = GetSquareFile(move.to) != 0 && GetPieceAt(move.to - 1) == Piece::BlackPawn;
+			const bool pawnOnRight = GetSquareFile(move.to) != 7 && GetPieceAt(move.to + 1) == Piece::BlackPawn;
+			if (pawnOnLeft || pawnOnRight) EnPassantSquare = move.to - 8;
+		}
+		else {
+			const bool pawnOnLeft = GetSquareFile(move.to) != 0 && GetPieceAt(move.to - 1) == Piece::WhitePawn;
+			const bool pawnOnRight = GetSquareFile(move.to) != 7 && GetPieceAt(move.to + 1) == Piece::WhitePawn;
+			if (pawnOnLeft || pawnOnRight) EnPassantSquare = move.to + 8;
+		}
 	}
 
 	// Update counters
