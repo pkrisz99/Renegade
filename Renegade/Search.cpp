@@ -660,8 +660,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
             if (inCheck) return false;
             if (!bestMove.IsNull() && !t.CurrentPosition.IsMoveQuiet(bestMove)) return false;
             return (scoreType == ScoreType::Exact)
-                   || (scoreType == ScoreType::UpperBound && bestScore < staticEval)
-                   || (scoreType == ScoreType::LowerBound && bestScore > staticEval);
+                   || (scoreType == ScoreType::UpperBound && bestScore < rawEval)
+                   || (scoreType == ScoreType::LowerBound && bestScore > rawEval);
         }();
         if (updateCorrection) t.History.UpdateCorrection(t.CurrentPosition, rawEval, bestScore, depth);
     }
