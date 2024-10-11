@@ -9,10 +9,12 @@
 #include "Settings.h"
 #include "Utils.h"
 
+enum class DatagenLaunchMode { Ask, Normal, DFRC };
+
 class Datagen
 {
 public:
-	void Start(const bool quickStart);
+	void Start(const DatagenLaunchMode launchMode);
 	void MergeFiles() const;
 
 private:
@@ -23,7 +25,8 @@ private:
 	const int softNodeLimit = 5000;
 	const int hardNodeLimit = 500000;
 	const int depthLimit = 20;
-	const int randomPlyBase = 10;
+	const int randomPlyBaseNormal = 2;
+	const int randomPlyBaseDFRC = 4;
 	const int minSavePly = 16;
 
 	const int drawAdjEvalThreshold = 5;
@@ -44,5 +47,7 @@ private:
 	Clock::time_point StartTime;
 	int ThreadCount = 0;
 	bool DFRC = false;
+
+	std::vector<std::string> Openings;
 
 };

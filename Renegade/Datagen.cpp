@@ -1,8 +1,8 @@
 #include "Datagen.h"
 
-void Datagen::Start(const bool quickStart) {
+void Datagen::Start(const DatagenLaunchMode launchMode) {
 
-	// Quick start is to provide a streamlined way to launch datagen from the command line using the default settings
+	// There is a streamlined way to launch datagen (normal and dfrc) from the command line using the default settings
 	// When launched from UCI, the settings has to be provided manually
 
 	Console::ClearScreen();
@@ -11,7 +11,7 @@ void Datagen::Start(const bool quickStart) {
 
 	std::string filename;
 
-	if (!quickStart) {
+	if (launchMode == DatagenLaunchMode::Ask) {
 		cout << "Filename? " << Console::Yellow;
 		cin >> filename;
 
@@ -27,12 +27,25 @@ void Datagen::Start(const bool quickStart) {
 		const uint64_t timestamp = std::chrono::duration_cast<std::chrono::seconds>(time).count();
 		filename = "datagen_" + std::to_string(timestamp);
 		ThreadCount = std::thread::hardware_concurrency();
-		DFRC = false;
+		DFRC = launchMode == DatagenLaunchMode::DFRC;
 		
 		cout << "Quick start details:" << endl;
 		cout << " - Filename: " << Console::Yellow << filename << Console::White << endl;
 		cout << " - Thread count: " << Console::Yellow << ThreadCount << Console::White << endl;
 		cout << " - Doing DFRC: " << Console::Yellow << DFRC << Console::White << '\n' << endl;
+	}
+
+	// Load opening book
+	if (!DFRC) {
+		const std::string book = "UHO_Lichess_4852_v1.epd";
+		std::ifstream bookFile(book);
+		std::string line;
+		while (std::getline(bookFile, line)) Openings.push_back(line);
+
+		if (Openings.size() == 0) {
+			cout << Console::Red << "For non-DFRC datagen it is required to have the " << book << " book.\n" << Console::White << endl;
+			return;
+		}
 	}
 
 	Settings::Chess960 = DFRC;
@@ -41,13 +54,16 @@ void Datagen::Start(const bool quickStart) {
 	StartTime = Clock::now();
 
 	cout << "Datagen settings:" << endl;
-	cout << " - " << Console::Yellow << randomPlyBase << Console::White << " or " << Console::Yellow << randomPlyBase + 1
+	if (!DFRC) cout << " - After the book exit do " << Console::Yellow << randomPlyBaseNormal << Console::White << " plies of random moves, then play normally" << endl;
+	else cout << " - " << Console::Yellow << randomPlyBaseDFRC << Console::White << " or " << Console::Yellow << randomPlyBaseDFRC + 1
 		<< Console::White << " plies of random rollout, then normal playout" << endl;
 	cout << " - Verification at depth " << Console::Yellow << verificationDepth << Console::White
 		<< " with a threshold of " << Console::Yellow << startingEvalLimit << Console::White << endl;
 	cout << " - Playing with a soft node limit of " << Console::Yellow << softNodeLimit << Console::White << endl;
 	cout << " - Using DFRC starting positions: " << Console::Yellow << std::boolalpha << DFRC
-		<< std::noboolalpha << Console::White << "\n" << endl;
+		<< std::noboolalpha << Console::White << endl;
+	if (!DFRC) cout << " - The opening book has " << Console::Yellow << Openings.size() << Console::White << " lines" << endl;
+	cout << endl;
 
 	std::vector<std::thread> threads = std::vector<std::thread>();
 	for (int i = 0; i < ThreadCount; i++) {
@@ -78,6 +94,8 @@ void Datagen::SelfPlay(const std::string filename) {
 	params.depth = depthLimit;
 	SearchParams verificationParams = SearchParams();
 	verificationParams.depth = verificationDepth;
+	std::uniform_int_distribution<std::size_t> nodesDistribution(softNodeLimit - 100, softNodeLimit + 100);
+	const int randomPlyBase = DFRC ? randomPlyBaseDFRC : randomPlyBaseNormal;
 	
 	int gamesOnThread = 0;
 	std::mt19937 generator(std::random_device{}());
@@ -96,17 +114,25 @@ void Datagen::SelfPlay(const std::string filename) {
 
 		// 1. Reset state
 		Position position = [&] {
-			if (!DFRC) return Position(FEN::StartPos);
+			if (!DFRC) {
+				std::uniform_int_distribution<std::size_t> distribution(0, Openings.size() - 1);
+				const std::string opening = Openings[distribution(generator)];
+				return Position(opening);
+			}
 			else {
 				std::uniform_int_distribution<std::size_t> distribution(0, 959);
 				const int whiteFrcIndex = distribution(generator);
 				const int blackFrcIndex = distribution(generator);
 				return Position(whiteFrcIndex, blackFrcIndex);
 			}
-		}();		
+		}();
 
 		// 2. Generate random moves from the start
-		const int randomPlies = (gamesOnThread % 2 == 0) ? randomPlyBase : (randomPlyBase + 1);
+		const int randomPlies = [&] {
+			if (!DFRC) return randomPlyBase;
+			else return (gamesOnThread % 2 == 0) ? randomPlyBase : (randomPlyBase + 1);
+		}();
+
 		for (int i = 0; i < randomPlies; i++) {
 			MoveList moves{};
 			position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
@@ -136,9 +162,12 @@ void Datagen::SelfPlay(const std::string filename) {
 
 		// 4. Play out the game
 		while (true) {
+
 			// Search
+			SearchParams currentParams = params;
+			currentParams.softnodes = nodesDistribution(generator);
 			Search* currentSearcher = (position.Turn() == Side::White) ? Searcher1 : Searcher2;
-			const Results results = currentSearcher->SearchSinglethreaded(position, params);
+			const Results results = currentSearcher->SearchSinglethreaded(position, currentParams);
 			const Move move = results.BestMove();
 			const int whiteScore = results.score * (position.Turn() == Side::Black ? -1 : 1);
 

@@ -8,7 +8,8 @@ Engine::Engine(int argc, char* argv[]) {
 	SearchThreads.TranspositionTable.SetSize(Settings::Hash);
 
 	if (argc == 2 && std::string(argv[1]) == "bench") Behavior = EngineBehavior::Bench;
-	else if (argc == 2 && std::string(argv[1]) == "datagen") Behavior = EngineBehavior::Datagen;
+	else if (argc == 2 && std::string(argv[1]) == "datagen") Behavior = EngineBehavior::DatagenNormal;
+	else if (argc == 2 && std::string(argv[1]) == "dfrcdatagen") Behavior = EngineBehavior::DatagenDFRC;
 	else PrintHeader();
 }
 
@@ -27,9 +28,10 @@ void Engine::Start() {
 	}
 
 	// Handle externally receiving datagen
-	if (Behavior == EngineBehavior::Datagen) {
+	if (Behavior == EngineBehavior::DatagenNormal || Behavior == EngineBehavior::DatagenDFRC) {
 		Datagen datagen = Datagen();
-		datagen.Start(true);
+		const DatagenLaunchMode launchMode = (Behavior == EngineBehavior::DatagenNormal) ? DatagenLaunchMode::Normal : DatagenLaunchMode::DFRC;
+		datagen.Start(launchMode);
 		return;
 	}
 
@@ -85,7 +87,7 @@ void Engine::Start() {
 
 		if (cmd == "datagen") {
 			Datagen datagen = Datagen();
-			datagen.Start(false);
+			datagen.Start(DatagenLaunchMode::Ask);
 			continue;
 		}
 
