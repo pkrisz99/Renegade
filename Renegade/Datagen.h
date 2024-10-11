@@ -22,7 +22,7 @@ private:
 	// Datagen settings:
 	const int startingEvalLimit = 500;
 	const int verificationDepth = 10;
-	const int softNodeLimit = 5000;
+	const int softNodeLimit = 10000;
 	const int hardNodeLimit = 500000;
 	const int depthLimit = 20;
 	const int randomPlyBaseNormal = 2;
