@@ -54,8 +54,8 @@ void Datagen::Start(const DatagenLaunchMode launchMode) {
 	StartTime = Clock::now();
 
 	cout << "Datagen settings:" << endl;
-	if (!DFRC) cout << " - After the book exit do " << Console::Yellow << randomPlyBase << Console::White << " plies of random moves, then play normally" << endl;
-	else cout << " - " << Console::Yellow << randomPlyBase << Console::White << " or " << Console::Yellow << randomPlyBase + 1
+	if (!DFRC) cout << " - After the book exit do " << Console::Yellow << randomPlyBaseNormal << Console::White << " plies of random moves, then play normally" << endl;
+	else cout << " - " << Console::Yellow << randomPlyBaseDFRC << Console::White << " or " << Console::Yellow << randomPlyBaseDFRC + 1
 		<< Console::White << " plies of random rollout, then normal playout" << endl;
 	cout << " - Verification at depth " << Console::Yellow << verificationDepth << Console::White
 		<< " with a threshold of " << Console::Yellow << startingEvalLimit << Console::White << endl;
@@ -95,6 +95,7 @@ void Datagen::SelfPlay(const std::string filename) {
 	SearchParams verificationParams = SearchParams();
 	verificationParams.depth = verificationDepth;
 	std::uniform_int_distribution<std::size_t> nodesDistribution(softNodeLimit - 100, softNodeLimit + 100);
+	const int randomPlyBase = DFRC ? randomPlyBaseDFRC : randomPlyBaseNormal;
 	
 	int gamesOnThread = 0;
 	std::mt19937 generator(std::random_device{}());
