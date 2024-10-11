@@ -9,10 +9,12 @@
 #include "Settings.h"
 #include "Utils.h"
 
+enum class DatagenLaunchMode { Ask, Normal, DFRC };
+
 class Datagen
 {
 public:
-	void Start(const bool quickStart);
+	void Start(const DatagenLaunchMode launchMode);
 	void MergeFiles() const;
 
 private:

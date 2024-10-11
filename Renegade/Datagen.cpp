@@ -1,8 +1,8 @@
 #include "Datagen.h"
 
-void Datagen::Start(const bool quickStart) {
+void Datagen::Start(const DatagenLaunchMode launchMode) {
 
-	// Quick start is to provide a streamlined way to launch datagen from the command line using the default settings
+	// There is a streamlined way to launch datagen (normal and dfrc) from the command line using the default settings
 	// When launched from UCI, the settings has to be provided manually
 
 	Console::ClearScreen();
@@ -11,7 +11,7 @@ void Datagen::Start(const bool quickStart) {
 
 	std::string filename;
 
-	if (!quickStart) {
+	if (launchMode == DatagenLaunchMode::Ask) {
 		cout << "Filename? " << Console::Yellow;
 		cin >> filename;
 
@@ -27,7 +27,7 @@ void Datagen::Start(const bool quickStart) {
 		const uint64_t timestamp = std::chrono::duration_cast<std::chrono::seconds>(time).count();
 		filename = "datagen_" + std::to_string(timestamp);
 		ThreadCount = std::thread::hardware_concurrency();
-		DFRC = false;
+		DFRC = launchMode == DatagenLaunchMode::DFRC;
 		
 		cout << "Quick start details:" << endl;
 		cout << " - Filename: " << Console::Yellow << filename << Console::White << endl;

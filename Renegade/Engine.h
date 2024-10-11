@@ -14,7 +14,7 @@
 
 void GenerateMagicTables();
 
-enum class EngineBehavior { Normal, Bench, Datagen };
+enum class EngineBehavior { Normal, Bench, DatagenNormal, DatagenDFRC };
 
 class Engine
 {
