@@ -38,12 +38,7 @@ bool Transpositions::Probe(const uint64_t& hash, TranspositionEntry& entry, cons
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
 
 	if (Table[key].hash == storedHash) {
-		entry.depth = Table[key].depth;
-		entry.packedMove = Table[key].packedMove;
-		entry.scoreType = Table[key].scoreType;
-		entry.quality = Table[key].quality; // not needed
-		entry.hash = storedHash;
-		entry.rawEval = Table[key].rawEval;
+		entry = Table[key];
 
 		entry.score = [&] {
 			const int32_t score = Table[key].score;
