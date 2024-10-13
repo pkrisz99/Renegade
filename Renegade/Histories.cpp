@@ -7,6 +7,7 @@ Histories::Histories() {
 void Histories::ClearAll() {
 	ClearKillerAndCounterMoves();
 	std::memset(&QuietHistory, 0, sizeof(QuietHistoryTable));
+	std::memset(&QuietHistoryStructure, 0, sizeof(QuietHistoryStructureTable));
 	std::memset(&CaptureHistory, 0, sizeof(CaptureHistoryTable));
 	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistoryTable));
     std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionTable));
@@ -50,7 +51,11 @@ void Histories::UpdateHistory(const Position& position, const Move& m, const uin
 	const bool side = ColorOfPiece(piece) == PieceColor::White;
 	const bool fromSquareAttacked = position.IsSquareThreatened(m.from);
 	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
-	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], delta);
+	const uint16_t lastPawnKey = QuietHistoryStructure[piece][m.to][fromSquareAttacked][toSquareAttacked];
+	const uint16_t pawnKey = position.GetPawnKey() % 65536;
+	const bool pawnKeyChanged = lastPawnKey != pawnKey;
+	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], delta * (1 + pawnKeyChanged));
+	QuietHistoryStructure[piece][m.to][fromSquareAttacked][toSquareAttacked] = pawnKey;
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
