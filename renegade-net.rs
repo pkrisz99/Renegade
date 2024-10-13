@@ -6,7 +6,7 @@ use bullet_lib::{
     TrainerBuilder, TrainingSchedule, Loss, optimiser
 };
 
-const NET_ID: &str = "renegade-net-26";
+const NET_ID: &str = "renegade-net-28";
 
 
 fn main() {
@@ -61,7 +61,7 @@ fn main() {
     let settings = LocalSettings {
         threads: 6,
         data_file_paths: vec![
-            "../nnue/data/240609_240622_240722_240821_240928_frc240513",
+            "../nnue/data/240722_240821_240928_241010_frc241002",
         ],
         test_set: None,
         output_directory: "checkpoints",
