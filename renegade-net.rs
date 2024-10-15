@@ -6,7 +6,7 @@ use bullet_lib::{
     TrainerBuilder, TrainingSchedule, Loss, optimiser
 };
 
-const NET_ID: &str = "renegade-net-28";
+const NET_ID: &str = "renegade-net-29";
 
 
 fn main() {
@@ -24,7 +24,7 @@ fn main() {
             3, 3, 3, 3,
         ]))
         .output_buckets(outputs::Single)
-        .feature_transformer(1024)
+        .feature_transformer(1408)
         .activate(Activation::SCReLU)
         .add_layer(1)
         .build();
