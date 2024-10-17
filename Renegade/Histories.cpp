@@ -54,7 +54,10 @@ void Histories::UpdateHistory(const Position& position, const Move& m, const uin
 	const uint16_t lastPawnKey = QuietHistoryStructure[piece][m.to][fromSquareAttacked][toSquareAttacked];
 	const uint16_t pawnKey = position.GetPawnKey() % 65536;
 	const bool pawnKeyChanged = lastPawnKey != pawnKey;
-	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], delta + 300 * pawnKeyChanged);
+	int16_t hdelta = delta;
+	if (pawnKeyChanged) hdelta += (delta > 0) ? 300 : -300;
+
+	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], hdelta);
 	QuietHistoryStructure[piece][m.to][fromSquareAttacked][toSquareAttacked] = pawnKey;
 
 	// Continuation history
