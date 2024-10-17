@@ -49,9 +49,12 @@ private:
 	using CaptureHistoryTable = std::array<std::array<std::array<ThreatBuckets, 14>, 64>, 14>;  // [attacking piece][square to][captured piece]
 	using ContinuationHistoryTable = std::array<std::array<std::array<std::array<int16_t, 64>, 14>, 64>, 14>;
 
+	using QuietHistoryStructureTable = std::array<std::array<std::array<std::array<uint16_t, 2>, 2>, 64>, 14>;
+
 	QuietHistoryTable QuietHistory;
 	CaptureHistoryTable CaptureHistory;
 	ContinuationHistoryTable ContinuationHistory;
+	QuietHistoryStructureTable QuietHistoryStructure;
 
 	// Evaluation correction history:
 	using MaterialCorrectionTable = std::array<std::array<int32_t, 32768>, 2>;
