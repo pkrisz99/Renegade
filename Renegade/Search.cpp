@@ -632,7 +632,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// If a quiet move causes a fail-high, update move ordering tables
 		if (quietBestMove) {
 			t.History.SetKillerMove(bestMove, level);
-			if (level > 0) t.History.SetCountermove(t.CurrentPosition.GetPreviousMove(1).move, bestMove);
+			if (level > 0) t.History.SetCountermove(t.CurrentPosition.GetPawnKey(), t.CurrentPosition.GetPreviousMove(1).move, bestMove);
 			if (depth > 1) t.History.UpdateHistory(t.CurrentPosition, bestMove, t.CurrentPosition.GetPieceAt(bestMove.from), historyDelta, level);
 		}
 		else {
@@ -927,7 +927,8 @@ int Search::CalculateOrderScore(const ThreadData& t, const Position& position, c
 
 	// Quiet moves
 	const bool turn = position.Turn();
-	const int historyScore = t.History.GetHistoryScore(position, m, movedPiece, level);
+	int historyScore = t.History.GetHistoryScore(position, m, movedPiece, level);
+	if (t.History.IsSecondaryCountermove(position.GetPawnKey(), position.GetPreviousMove(1).move, m)) historyScore += 8192;
 
 	return historyScore;
 }

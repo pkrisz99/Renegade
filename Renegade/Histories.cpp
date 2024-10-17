@@ -6,6 +6,8 @@ Histories::Histories() {
 
 void Histories::ClearAll() {
 	ClearKillerAndCounterMoves();
+	std::memset(&SecondaryCounterMoves, 0, sizeof(SecondaryCounterMoves));
+
 	std::memset(&QuietHistory, 0, sizeof(QuietHistoryTable));
 	std::memset(&QuietHistoryStructure, 0, sizeof(QuietHistoryStructureTable));
 	std::memset(&CaptureHistory, 0, sizeof(CaptureHistoryTable));
@@ -35,12 +37,18 @@ void Histories::ResetKillerForPly(const int level) {
 	KillerMoves[level] = EmptyMove;
 }
 
-void Histories::SetCountermove(const Move& previousMove, const Move& thisMove) {
-	if (!previousMove.IsNull()) CounterMoves[previousMove.from][previousMove.to] = thisMove;
+void Histories::SetCountermove(const uint64_t pawnHash, const Move& previousMove, const Move& thisMove) {
+	if (previousMove.IsNull()) return;
+	CounterMoves[previousMove.from][previousMove.to] = thisMove;
+	SecondaryCounterMoves[pawnHash % 128][previousMove.from][previousMove.to] = thisMove;
 }
 
 bool Histories::IsCountermove(const Move& previousMove, const Move& thisMove) const {
 	return CounterMoves[previousMove.from][previousMove.to] == thisMove;
+}
+
+bool Histories::IsSecondaryCountermove(const uint64_t pawnHash, const Move& previousMove, const Move& thisMove) const {
+	return SecondaryCounterMoves[pawnHash % 128][previousMove.from][previousMove.to] == thisMove;
 }
 
 // History heuristic ------------------------------------------------------------------------------
