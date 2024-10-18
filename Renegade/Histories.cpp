@@ -35,12 +35,15 @@ void Histories::ResetKillerForPly(const int level) {
 	KillerMoves[level] = EmptyMove;
 }
 
-void Histories::SetCountermove(const Move& previousMove, const Move& thisMove) {
-	if (!previousMove.IsNull()) CounterMoves[previousMove.from][previousMove.to] = thisMove;
+void Histories::SetCountermove(const uint64_t pawnHash, const Move& previousMove, const Move& thisMove) {
+	if (previousMove.IsNull()) return;
+	CounterMoves[previousMove.from][previousMove.to].first = thisMove;
+	CounterMoves[previousMove.from][previousMove.to].second = pawnHash % 65536;
 }
 
-bool Histories::IsCountermove(const Move& previousMove, const Move& thisMove) const {
-	return CounterMoves[previousMove.from][previousMove.to] == thisMove;
+bool Histories::IsCountermove(const uint64_t pawnHash, const Move& previousMove, const Move& thisMove) const {
+	return CounterMoves[previousMove.from][previousMove.to].first == thisMove
+		&& CounterMoves[previousMove.from][previousMove.to].second == (pawnHash % 65536);
 }
 
 // History heuristic ------------------------------------------------------------------------------

@@ -142,7 +142,7 @@ private:
 	void OrderMoves(const ThreadData& t, const Position& position, MoveList& ml, const int level, const Move& ttMove);
 	void OrderMovesQ(const ThreadData& t, const Position& position, MoveList& ml, const int level);
 	int CalculateOrderScore(const ThreadData& t, const Position& position, const Move& m, const int level, const Move& ttMove,
-		const bool losingCapture, const bool useMoveStack) const;
+		const bool losingCapture, const bool useMoveStack, const uint64_t pawnHash) const;
 
 	// NNUE
 	void SetupAccumulators(ThreadData& t, const Position& position);

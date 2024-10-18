@@ -632,7 +632,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// If a quiet move causes a fail-high, update move ordering tables
 		if (quietBestMove) {
 			t.History.SetKillerMove(bestMove, level);
-			if (level > 0) t.History.SetCountermove(t.CurrentPosition.GetPreviousMove(1).move, bestMove);
+			if (level > 0) t.History.SetCountermove(t.CurrentPosition.GetPawnKey(), t.CurrentPosition.GetPreviousMove(1).move, bestMove);
 			if (depth > 1) t.History.UpdateHistory(t.CurrentPosition, bestMove, t.CurrentPosition.GetPieceAt(bestMove.from), historyDelta, level);
 		}
 		else {
@@ -894,7 +894,7 @@ void ThreadData::ResetPvTable() {
 // Move ordering ----------------------------------------------------------------------------------
 
 int Search::CalculateOrderScore(const ThreadData& t, const Position& position, const Move& m, const int level, const Move& ttMove,
-	const bool losingCapture, const bool useMoveStack) const {
+	const bool losingCapture, const bool useMoveStack, const uint64_t pawnHash) const {
 
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
 	const uint8_t attackingPieceType = TypeOfPiece(movedPiece);
@@ -923,7 +923,7 @@ int Search::CalculateOrderScore(const ThreadData& t, const Position& position, c
 	if (t.History.IsKillerMove(m, level)) return 100000;
 
 	// Countermove heuristic
-	if (level > 0 && useMoveStack && t.History.IsCountermove(position.GetPreviousMove(1).move, m)) return 99000;
+	if (level > 0 && useMoveStack && t.History.IsCountermove(pawnHash, position.GetPreviousMove(1).move, m)) return 99000;
 
 	// Quiet moves
 	const bool turn = position.Turn();
@@ -933,19 +933,20 @@ int Search::CalculateOrderScore(const ThreadData& t, const Position& position, c
 }
 
 void Search::OrderMoves(const ThreadData& t, const Position& position, MoveList& ml, const int level, const Move& ttMove) {
+	const uint64_t pawnHash = position.GetPawnKey();
 	for (auto& m : ml) {
 		const bool losingCapture = [&] {
 			if (position.IsMoveQuiet(m.move)) return false;
 			const int16_t captureScore = (m.move.IsPromotion()) ? 0 : t.History.GetCaptureHistoryScore(position, m.move);
 			return !StaticExchangeEval(position, m.move, -captureScore / 50);
 		}();
-		m.orderScore = CalculateOrderScore(t, position, m.move, level, ttMove, losingCapture, true);
+		m.orderScore = CalculateOrderScore(t, position, m.move, level, ttMove, losingCapture, true, pawnHash);
 	}
 }
 
 void Search::OrderMovesQ(const ThreadData& t, const Position& position, MoveList& ml, const int level) {
 	for (auto& m : ml) {
-		m.orderScore = CalculateOrderScore(t, position, m.move, level, NullMove, false, false);
+		m.orderScore = CalculateOrderScore(t, position, m.move, level, NullMove, false, false, 0);
 	}
 }
 
