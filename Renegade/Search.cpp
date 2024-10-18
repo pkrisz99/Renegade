@@ -928,7 +928,7 @@ int Search::CalculateOrderScore(const ThreadData& t, const Position& position, c
 	// Quiet moves
 	const bool turn = position.Turn();
 	int historyScore = t.History.GetHistoryScore(position, m, movedPiece, level);
-	if (t.History.IsSecondaryCountermove(position.GetPawnKey(), position.GetPreviousMove(1).move, m)) historyScore += 8192;
+	if (t.History.IsSecondaryCountermove(position.GetPawnKey(), position.GetPreviousMove(1).move, m)) historyScore += 4096;
 
 	return historyScore;
 }
