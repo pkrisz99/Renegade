@@ -461,6 +461,36 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 		}
 
+		// Probcut
+		const int probcutBeta = beta + 250;
+		if (depth > 4 && std::abs(beta) < MateThreshold && !(found && ttEntry.score < probcutBeta && ttEntry.depth > depth - 3)) {
+			MoveList probcutMoveList;
+			t.CurrentPosition.GenerateMoves(probcutMoveList, MoveGen::Noisy, Legality::Pseudolegal);
+			OrderMovesQ(t, t.CurrentPosition, probcutMoveList, level);
+			MovePicker probcutMovePicker(probcutMoveList);
+
+			while (probcutMovePicker.hasNext()) {
+				const auto& [m, order] = probcutMovePicker.get();
+
+				if (!t.CurrentPosition.IsLegalMove(m)) continue;
+				if (StaticExchangeEval(t.CurrentPosition, m, probcutBeta - staticEval)) continue;
+
+				const uint8_t movedPiece = t.CurrentPosition.GetPieceAt(m.from);
+				const uint8_t capturedPiece = t.CurrentPosition.GetPieceAt(m.to);
+				t.CurrentPosition.PushMove(m);
+				UpdateAccumulators(t, t.CurrentPosition, m, movedPiece, capturedPiece, level);
+
+				int probcutScore = -SearchQuiescence(t, level + 1, -probcutBeta, -probcutBeta + 1);
+				if (probcutScore > probcutBeta) probcutScore = -SearchRecursive(t, depth - 3, level + 1, -probcutBeta, -probcutBeta + 1, false, !cutNode);
+				t.CurrentPosition.PopMove();
+
+				if (probcutScore >= probcutBeta) {
+					if (!aborting) TranspositionTable.Store(hash, depth - 3, probcutScore, ScoreType::LowerBound, rawEval, m, level);
+					return probcutScore;
+				}
+			}
+		}
+
 		// Futility pruning (2024: +10 elo)
 		const int futilityMargin = 30 + depth * 100;
 		if (depth <= 5 && (std::abs(beta) < MateThreshold)) {
