@@ -491,6 +491,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	// Iterate through legal moves
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
+	int failLowCount = 0;
 	Move bestMove = EmptyMove;
 	int bestScore = NegativeInfinity;
 
@@ -566,7 +567,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Late-move reductions & principal variation search
 		if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && depth >= 3) {
 			
-			int reduction = LMRTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
+			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!pvNode) reduction += 1;
 			if (inCheck) reduction -= 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
@@ -593,6 +594,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Update node count table for the root
 		if (rootNode) t.RootNodeCounts[m.from][m.to] += t.Nodes - nodesBefore;
+
+		failLowCount += (score <= alpha);
 
 		// Process search results
 		if (score > bestScore) {
