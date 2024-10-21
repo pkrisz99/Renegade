@@ -213,6 +213,7 @@ void Search::SearchMoves(ThreadData& t) {
 	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), EmptyMove);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
 	std::fill(t.DoubleExtensions.begin(), t.DoubleExtensions.end(), 0);
+	std::fill(t.FutilityReductionsDone.begin(), t.FutilityReductionsDone.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
 	t.History.ClearKillerAndCounterMoves();
 	SetupAccumulators(t, t.CurrentPosition);
@@ -440,9 +441,13 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	if (!pvNode && !inCheck && !singularSearch) {
 
 		// Reverse futility pruning (+128 elo)
-		const int rfpMargin = depth * 90 - improving * 90;
+		const int rfpMargin = (depth + t.FutilityReductionsDone[level]) * 90 - improving * 90;
 		if ((depth <= 7) && (std::abs(beta) < MateThreshold)) {
 			if (eval - rfpMargin > beta) return eval;
+			else if (eval - (rfpMargin * 2 / 3) > beta) {
+				depth -= 1;
+				t.FutilityReductionsDone[level] += 1;
+			}
 		}
 
 		// Null-move pruning (+33 elo)
@@ -485,6 +490,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
 		if (level + 1 < MaxDepth) t.CutoffCount[level + 1] = 0;
 		if (level > 0) t.DoubleExtensions[level] = t.DoubleExtensions[level - 1];
+		if (level > 0) t.FutilityReductionsDone[level] = t.FutilityReductionsDone[level - 1];
 	}
 	MovePicker movePicker(t.MoveListStack[level]);
 

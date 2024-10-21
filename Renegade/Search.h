@@ -47,6 +47,7 @@ public:
 	std::array<int, MaxDepth> CutoffCount;
 	std::array<int, MaxDepth> DoubleExtensions;
 	std::array<Move, MaxDepth> ExcludedMoves;
+	std::array<int, MaxDepth> FutilityReductionsDone;
 
 	Position CurrentPosition;
 
