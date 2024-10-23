@@ -94,7 +94,7 @@ struct Board {
 	uint64_t CalculateHash() const;
 	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
 
-    uint64_t CalculateMaterialKey() const;
+	uint64_t CalculateMaterialKey() const;
 
 };
 

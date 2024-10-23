@@ -10,9 +10,9 @@ void Histories::ClearAll() {
 	std::memset(&QuietHistoryStructure, 0, sizeof(QuietHistoryStructureTable));
 	std::memset(&CaptureHistory, 0, sizeof(CaptureHistoryTable));
 	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistoryTable));
-    std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionTable));
-    std::memset(&PawnsCorrectionHistory, 0, sizeof(PawnsCorrectionTable));
-    std::memset(&FollowUpCorrectionHistory, 0, sizeof(FollowUpCorrectionTable));
+	std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionTable));
+	std::memset(&PawnsCorrectionHistory, 0, sizeof(PawnsCorrectionTable));
+	std::memset(&FollowUpCorrectionHistory, 0, sizeof(FollowUpCorrectionTable));
 }
 
 void Histories::ClearKillerAndCounterMoves() {
@@ -110,11 +110,11 @@ int16_t Histories::GetCaptureHistoryScore(const Position& position, const Move& 
 // Static evaluation correction history -----------------------------------------------------------
 
 void Histories::UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth) {
-    const int diff = (score - rawEval) * 256;
-    const int weight = std::min(16, depth + 1);
+	const int diff = (score - rawEval) * 256;
+	const int weight = std::min(16, depth + 1);
 
 	const uint64_t materialKey = position.GetMaterialKey() % 32768;
-    int32_t& materialValue = MaterialCorrectionHistory[position.Turn()][materialKey];
+	int32_t& materialValue = MaterialCorrectionHistory[position.Turn()][materialKey];
 	materialValue = ((256 - weight) * materialValue + weight * diff) / 256;
 	materialValue = std::clamp(materialValue, -6144, 6144);
 
@@ -133,9 +133,9 @@ void Histories::UpdateCorrection(const Position& position, const int16_t rawEval
 }
 
 int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEval) const {
-    if (std::abs(rawEval) >= MateThreshold) return rawEval;
+	if (std::abs(rawEval) >= MateThreshold) return rawEval;
 
-    const uint64_t materialKey = position.GetMaterialKey() % 32768;
+	const uint64_t materialKey = position.GetMaterialKey() % 32768;
 	const int materialCorrection = MaterialCorrectionHistory[position.Turn()][materialKey] / 256;
 
 	const uint64_t pawnKey = position.GetPawnKey() % 16384;
@@ -150,5 +150,5 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 	}();
 
 	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection) * 2 / 3;
-    return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
+	return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
 }

@@ -89,17 +89,16 @@ void Search::StartSearch(Position& position, const SearchParams params, const bo
 	if (rootLegalMoves.size() == 0) {
 		cout << "info string No legal moves!" << endl;
 		PrintBestmove(NullMove);
-		return; // Results(NoEval, 0, 0, 0, 0, 0, 0, position.GetPly(), { NullMove });
+		return;
 	}
 
 	// Early exit for only one legal move
 	if (rootLegalMoves.size() == 1 && !DatagenMode && (params.wtime != 0 || params.btime != 0)) {
-		const int eval = NeuralEvaluate(position);
-		cout << "info string Only one legal move!" << endl;
-		cout << "info depth 1 score cp " << ToCentipawns(eval, position.GetPly()) << " nodes 0" << endl;
 		const Move onlyMove = rootLegalMoves[0].move;
+		cout << "info string Only one legal move!" << endl;
+		cout << "info depth 1 nodes 0 pv " << onlyMove.ToString(Settings::Chess960) << endl;
 		PrintBestmove(onlyMove);
-		return; // Results(eval, 1, 1, 0, 0, 0, 0, position.GetPly(), { onlyMove });
+		return;
 	}
 
 	Constraints = CalculateConstraints(params, position.Turn());
@@ -407,7 +406,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && (std::abs(ttEval) < MateThreshold);
 	
 	// Obtain the evaluation of the position
-    int rawEval = NoEval;
+	int rawEval = NoEval;
 	int staticEval = NoEval;
 	int eval = NoEval;
 
@@ -548,7 +547,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			else {
 				// Extension check failed
 				if (!pvNode && (singularBeta >= beta)) return singularBeta; //
-                else if (cutNode) extension = -1;
+				else if (cutNode) extension = -1;
 			}
 		}
 
@@ -659,15 +658,15 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Update evaluation correction
 	if (!aborting && !singularSearch) {
-        const bool updateCorrection = [&] {
-            if (inCheck) return false;
-            if (!bestMove.IsNull() && !t.CurrentPosition.IsMoveQuiet(bestMove)) return false;
-            return (scoreType == ScoreType::Exact)
-                   || (scoreType == ScoreType::UpperBound && bestScore < staticEval)
-                   || (scoreType == ScoreType::LowerBound && bestScore > staticEval);
-        }();
-        if (updateCorrection) t.History.UpdateCorrection(t.CurrentPosition, rawEval, bestScore, depth);
-    }
+		const bool updateCorrection = [&] {
+			if (inCheck) return false;
+			if (!bestMove.IsNull() && !t.CurrentPosition.IsMoveQuiet(bestMove)) return false;
+			return (scoreType == ScoreType::Exact)
+				   || (scoreType == ScoreType::UpperBound && bestScore < staticEval)
+				   || (scoreType == ScoreType::LowerBound && bestScore > staticEval);
+		}();
+		if (updateCorrection) t.History.UpdateCorrection(t.CurrentPosition, rawEval, bestScore, depth);
+	}
 
 	// Store node search results into the transposition table
 	if (!aborting && !singularSearch) {
