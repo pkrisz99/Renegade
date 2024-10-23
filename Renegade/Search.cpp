@@ -406,7 +406,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && (std::abs(ttEval) < MateThreshold);
 	
 	// Obtain the evaluation of the position
-    int rawEval = NoEval;
+	int rawEval = NoEval;
 	int staticEval = NoEval;
 	int eval = NoEval;
 
@@ -547,7 +547,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			else {
 				// Extension check failed
 				if (!pvNode && (singularBeta >= beta)) return singularBeta; //
-                else if (cutNode) extension = -1;
+				else if (cutNode) extension = -1;
 			}
 		}
 
@@ -658,15 +658,15 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Update evaluation correction
 	if (!aborting && !singularSearch) {
-        const bool updateCorrection = [&] {
-            if (inCheck) return false;
-            if (!bestMove.IsNull() && !t.CurrentPosition.IsMoveQuiet(bestMove)) return false;
-            return (scoreType == ScoreType::Exact)
-                   || (scoreType == ScoreType::UpperBound && bestScore < staticEval)
-                   || (scoreType == ScoreType::LowerBound && bestScore > staticEval);
-        }();
-        if (updateCorrection) t.History.UpdateCorrection(t.CurrentPosition, rawEval, bestScore, depth);
-    }
+		const bool updateCorrection = [&] {
+			if (inCheck) return false;
+			if (!bestMove.IsNull() && !t.CurrentPosition.IsMoveQuiet(bestMove)) return false;
+			return (scoreType == ScoreType::Exact)
+				   || (scoreType == ScoreType::UpperBound && bestScore < staticEval)
+				   || (scoreType == ScoreType::LowerBound && bestScore > staticEval);
+		}();
+		if (updateCorrection) t.History.UpdateCorrection(t.CurrentPosition, rawEval, bestScore, depth);
+	}
 
 	// Store node search results into the transposition table
 	if (!aborting && !singularSearch) {

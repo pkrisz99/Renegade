@@ -28,8 +28,8 @@ public:
 	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
 	int16_t GetCaptureHistoryScore(const Position& position, const Move& m) const;
 
-    // Static evaluation correction history:
-    void UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth);
+	// Static evaluation correction history:
+	void UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth);
 	int16_t ApplyCorrection(const Position& position, const int16_t rawEval) const;
 
 private:

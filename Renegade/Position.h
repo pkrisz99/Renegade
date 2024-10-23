@@ -120,8 +120,8 @@ public:
 		return CheckBit(Threats.back(), sq);
 	}
 
-    inline uint64_t GetMaterialKey() const {
-        return States.back().CalculateMaterialKey();
+	inline uint64_t GetMaterialKey() const {
+		return States.back().CalculateMaterialKey();
 	}
 
 	inline uint64_t GetPawnKey() const {
