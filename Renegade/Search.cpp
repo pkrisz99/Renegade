@@ -693,16 +693,21 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	const bool found = TranspositionTable.Probe(hash, ttEntry, level);
 	if (!pvNode && found && ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
 
+	int staticEval = LosingMateScore(level);
+	int rawEval = NoEval;
+
 	// Update alpha-beta bounds
-	const int rawEval = [&] {
-		if (found && !t.CurrentPosition.IsInCheck()) return ttEntry.rawEval;
-		return static_cast<int16_t>(Evaluate(t, t.CurrentPosition, level));
-	}();
-	const int staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
-	if (staticEval >= beta) return staticEval;
-	if (staticEval > alpha) alpha = staticEval;
-	if (level >= MaxDepth) return staticEval;
-	if (t.CurrentPosition.IsDrawn(false)) return DrawEvaluation(t);
+	if (!t.CurrentPosition.IsInCheck()) {
+		rawEval = [&] {
+			if (found) return ttEntry.rawEval;
+			return static_cast<int16_t>(Evaluate(t, t.CurrentPosition, level));
+		}();
+		staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
+		if (staticEval >= beta) return staticEval;
+		if (staticEval > alpha) alpha = staticEval;
+		if (level >= MaxDepth) return staticEval;
+		if (t.CurrentPosition.IsDrawn(false)) return DrawEvaluation(t);
+	}
 
 	// Generate noisy moves and order them
 	t.MoveListStack[level].reset();
