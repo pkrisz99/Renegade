@@ -89,17 +89,16 @@ void Search::StartSearch(Position& position, const SearchParams params, const bo
 	if (rootLegalMoves.size() == 0) {
 		cout << "info string No legal moves!" << endl;
 		PrintBestmove(NullMove);
-		return; // Results(NoEval, 0, 0, 0, 0, 0, 0, position.GetPly(), { NullMove });
+		return;
 	}
 
 	// Early exit for only one legal move
 	if (rootLegalMoves.size() == 1 && !DatagenMode && (params.wtime != 0 || params.btime != 0)) {
-		const int eval = NeuralEvaluate(position);
-		cout << "info string Only one legal move!" << endl;
-		cout << "info depth 1 score cp " << ToCentipawns(eval, position.GetPly()) << " nodes 0" << endl;
 		const Move onlyMove = rootLegalMoves[0].move;
+		cout << "info string Only one legal move!" << endl;
+		cout << "info depth 1 nodes 0 pv " << onlyMove.ToString(Settings::Chess960) << endl;
 		PrintBestmove(onlyMove);
-		return; // Results(eval, 1, 1, 0, 0, 0, 0, position.GetPly(), { onlyMove });
+		return;
 	}
 
 	Constraints = CalculateConstraints(params, position.Turn());
