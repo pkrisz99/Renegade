@@ -378,7 +378,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Drop into quiescence search at depth 0
 	if (depth <= 0) {
-		return SearchQuiescence(t, level, alpha, beta);
+		return SearchQuiescence(t, level, alpha, beta, pvNode);
 	}
 
 	const Move excludedMove = t.ExcludedMoves[level];
@@ -679,7 +679,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 }
 
 // Quiescence search: for noisy moves only (captures, queen promotions)
-int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta) {
+int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta, const bool pvNode) {
 
 	// Check search limits
 	const bool aborting = ShouldAbort(t);
@@ -692,6 +692,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	const uint64_t hash = t.CurrentPosition.Hash();
 	TranspositionEntry ttEntry;
 	const bool found = TranspositionTable.Probe(hash, ttEntry, level);
+	if (!pvNode && found && ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
 
 	// Update alpha-beta bounds
 	const int rawEval = [&] {
@@ -703,10 +704,6 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= MaxDepth) return staticEval;
 	if (t.CurrentPosition.IsDrawn(false)) return DrawEvaluation(t);
-	
-	if (found) {
-		if (ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
-	}
 
 	// Generate noisy moves and order them
 	t.MoveListStack[level].reset();
@@ -728,7 +725,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 		t.CurrentPosition.PushMove(m);
 		TranspositionTable.Prefetch(t.CurrentPosition.Hash());
 		UpdateAccumulators(t, t.CurrentPosition, m, movedPiece, capturedPiece, level);
-		const int score = -SearchQuiescence(t, level + 1, -beta, -alpha);
+		const int score = -SearchQuiescence(t, level + 1, -beta, -alpha, pvNode);
 		t.CurrentPosition.PopMove();
 
 		if (score > bestScore) {

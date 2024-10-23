@@ -131,7 +131,7 @@ private:
 
 	void SearchMoves(ThreadData& t);
 	int SearchRecursive(ThreadData& t, int depth, const int level, int alpha, int beta, const bool pvNode, const bool cutNode);
-	int SearchQuiescence(ThreadData& t, const int level, int alpha, int beta);
+	int SearchQuiescence(ThreadData& t, const int level, int alpha, int beta, const bool pvNode);
 
 	int Evaluate(const ThreadData& t, const Position& position, const int level);
 	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
