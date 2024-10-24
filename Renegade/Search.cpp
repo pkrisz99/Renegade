@@ -684,8 +684,9 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	const bool aborting = ShouldAbort(t);
 	if (aborting) return NoEval;
 
-	// Update statistics
 	if (level > t.SelDepth) t.SelDepth = level;
+	if (t.CurrentPosition.IsDrawn(false)) return DrawEvaluation(t);
+	if (level >= MaxDepth) return Evaluate(t, t.CurrentPosition, level);
 
 	// Probe the transposition table
 	const uint64_t hash = t.CurrentPosition.Hash();
@@ -693,22 +694,23 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	const bool found = TranspositionTable.Probe(hash, ttEntry, level);
 	if (!pvNode && found && ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
 
-	int staticEval = LosingMateScore(level);
+	// Obtain evaluations
+	const bool inCheck = t.CurrentPosition.IsInCheck();
+	int staticEval = -MateEval;
 	int rawEval = NoEval;
 
-	// Update alpha-beta bounds
-	if (!t.CurrentPosition.IsInCheck()) {
+	if (!inCheck) {
 		rawEval = [&] {
 			if (found) return ttEntry.rawEval;
 			return static_cast<int16_t>(Evaluate(t, t.CurrentPosition, level));
 		}();
 		staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
-		if (staticEval >= beta) return staticEval;
-		if (staticEval > alpha) alpha = staticEval;
-		if (level >= MaxDepth) return staticEval;
-		if (t.CurrentPosition.IsDrawn(false)) return DrawEvaluation(t);
 	}
 
+	// Update alpha-beta bounds
+	if (staticEval >= beta) return staticEval;
+	if (staticEval > alpha) alpha = staticEval;
+	
 	// Generate noisy moves and order them
 	t.MoveListStack[level].reset();
 	t.CurrentPosition.GenerateMoves(t.MoveListStack[level], MoveGen::Noisy, Legality::Pseudolegal);
@@ -718,9 +720,12 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	// Search recursively
 	int bestScore = staticEval;
 	int scoreType = ScoreType::UpperBound;
+	int legalMoveCount = 0;
+
 	while (movePicker.hasNext()) {
 		const auto& [m, order] = movePicker.get();
 		if (!t.CurrentPosition.IsLegalMove(m)) continue;
+		legalMoveCount += 1;
 		if (!StaticExchangeEval(t.CurrentPosition, m, 0)) continue; // Quiescence search SEE pruning (+39 elo)
 		t.Nodes += 1;
 
@@ -744,6 +749,9 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 			}
 		}
 	}
+
+	if (legalMoveCount == 0 && inCheck) return LosingMateScore(level);
+
 	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, EmptyMove, level);
 	return bestScore;
 }
