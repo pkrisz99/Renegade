@@ -692,6 +692,8 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	TranspositionEntry ttEntry;
 	const bool found = TranspositionTable.Probe(hash, ttEntry, level);
 	if (!pvNode && found && ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
+	Move ttMove = EmptyMove;
+	if (found) ttMove = Move(ttEntry.packedMove);
 
 	// Update alpha-beta bounds
 	const int rawEval = [&] {
@@ -707,12 +709,14 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	// Generate noisy moves and order them
 	t.MoveListStack[level].reset();
 	t.CurrentPosition.GenerateMoves(t.MoveListStack[level], MoveGen::Noisy, Legality::Pseudolegal);
-	OrderMovesQ(t, t.CurrentPosition, t.MoveListStack[level], level);
+	OrderMovesQ(t, t.CurrentPosition, t.MoveListStack[level], level, ttMove);
 	MovePicker movePicker(t.MoveListStack[level]);
 
 	// Search recursively
 	int bestScore = staticEval;
+	Move bestMove = EmptyMove;
 	int scoreType = ScoreType::UpperBound;
+
 	while (movePicker.hasNext()) {
 		const auto& [m, order] = movePicker.get();
 		if (!t.CurrentPosition.IsLegalMove(m)) continue;
@@ -731,15 +735,17 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 			bestScore = score;
 			if (bestScore >= beta) {
 				scoreType = ScoreType::LowerBound;
+				bestMove = m;
 				break;
 			}
 			if (bestScore > alpha) {
 				alpha = bestScore;
+				bestMove = m;
 				scoreType = ScoreType::Exact;
 			}
 		}
 	}
-	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, EmptyMove, level);
+	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, bestMove, level);
 	return bestScore;
 }
 
@@ -942,9 +948,9 @@ void Search::OrderMoves(const ThreadData& t, const Position& position, MoveList&
 	}
 }
 
-void Search::OrderMovesQ(const ThreadData& t, const Position& position, MoveList& ml, const int level) {
+void Search::OrderMovesQ(const ThreadData& t, const Position& position, MoveList& ml, const int level, const Move& ttMove) {
 	for (auto& m : ml) {
-		m.orderScore = CalculateOrderScore(t, position, m.move, level, NullMove, false, false);
+		m.orderScore = CalculateOrderScore(t, position, m.move, level, ttMove, false, false);
 	}
 }
 

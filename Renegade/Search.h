@@ -140,7 +140,7 @@ private:
 	int DrawEvaluation(const ThreadData& t) const;
 
 	void OrderMoves(const ThreadData& t, const Position& position, MoveList& ml, const int level, const Move& ttMove);
-	void OrderMovesQ(const ThreadData& t, const Position& position, MoveList& ml, const int level);
+	void OrderMovesQ(const ThreadData& t, const Position& position, MoveList& ml, const int level, const Move& ttMove);
 	int CalculateOrderScore(const ThreadData& t, const Position& position, const Move& m, const int level, const Move& ttMove,
 		const bool losingCapture, const bool useMoveStack) const;
 
