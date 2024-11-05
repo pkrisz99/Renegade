@@ -1,18 +1,20 @@
 /// Training parameters used to create Renegade's networks
-/// bullet version used: 29d815e from July 12, 2024
+/// bullet version used: bd1c3ef from October 20, 2024
 
+#[allow(unused_imports)]
 use bullet_lib::{
-    inputs, outputs, lr, wdl, Activation, LocalSettings,
-    TrainerBuilder, TrainingSchedule, Loss, optimiser
+    inputs, loader, lr, optimiser, outputs,
+    testing::{Engine, OpenBenchCompliant, OpeningBook, TestSettings, TimeControl, UciOption},
+    wdl, Activation, LocalSettings, Loss, TrainerBuilder, TrainingSchedule, TrainingSteps,
 };
 
-const NET_ID: &str = "renegade-net-29";
+const NET_ID: &str = "renegade-net-30-morelayers";
 
 
 fn main() {
     let mut trainer = TrainerBuilder::default()
-        .quantisations(&[255, 64])
         .optimiser(optimiser::AdamW)
+        .loss_fn(Loss::SigmoidMSE)
         .input(inputs::ChessBucketsMirrored::new([
             0, 0, 1, 1,
             2, 2, 2, 2,
@@ -25,6 +27,11 @@ fn main() {
         ]))
         .output_buckets(outputs::Single)
         .feature_transformer(1408)
+        .activate(Activation::CReLU)
+        .add_pairwise_mul()
+        .add_layer(8)
+        .activate(Activation::SCReLU)
+        .add_layer(16)
         .activate(Activation::SCReLU)
         .add_layer(1)
         .build();
@@ -32,12 +39,13 @@ fn main() {
     
     let schedule = TrainingSchedule {
         net_id: NET_ID.to_string(),
-        batch_size: 16384,
         eval_scale: 400.0,
-        ft_regularisation: 0.0,
-        batches_per_superbatch: 6104,  // ~100 million positions
-        start_superbatch: 1,
-        end_superbatch: 520,
+        steps: TrainingSteps {
+            batch_size: 16384,
+            batches_per_superbatch: 6104, // ~100 million positions
+            start_superbatch: 1,
+            end_superbatch: 520,
+        },
         wdl_scheduler: wdl::LinearWDL {
             start: 0.2,
             end: 0.4,
@@ -47,27 +55,30 @@ fn main() {
             gamma: 0.3,
             step: 120,
         },
-        loss_function: Loss::SigmoidMSE,
         save_rate: 10,
-        optimiser_settings: optimiser::AdamWParams {
-            decay: 0.01,
-            beta1: 0.9,
-            beta2: 0.999,
-            min_weight: -1.98,
-            max_weight: 1.98,
-        },
     };
+    
+    let optimiser_params = optimiser::AdamWParams {
+        decay: 0.01,
+        beta1: 0.9,
+        beta2: 0.999,
+        min_weight: -1.98,
+        max_weight: 1.98
+    };
+    trainer.set_optimiser_params(optimiser_params);
     
     let settings = LocalSettings {
         threads: 6,
-        data_file_paths: vec![
-            "../nnue/data/240722_240821_240928_241010_frc241002",
-        ],
         test_set: None,
         output_directory: "checkpoints",
+        batch_queue_size: 512,
     };
+    
+    let data_loader = loader::DirectSequentialDataLoader::new(
+        &["../nnue/data/240722_240821_240928_241010_frc241002"]
+    );
 
-    trainer.run(&schedule, &settings);
+    trainer.run(&schedule, &settings, &data_loader);
     
     for fen in [
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
