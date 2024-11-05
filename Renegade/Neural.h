@@ -16,11 +16,14 @@
 
 // Network constants
 #ifndef NETWORK_NAME
-#define NETWORK_NAME "renegade-net-29.bin"
+#define NETWORK_NAME "renegade-net-30-mr-pw.bin"
 #endif
 
 constexpr int FeatureSize = 768;
-constexpr int HiddenSize = 1408;
+constexpr int L1Size = 1408;
+constexpr int L2Size = 8;
+constexpr int L3Size = 16;
+
 constexpr int Scale = 400;
 constexpr int QA = 255;
 constexpr int QB = 64;
@@ -38,14 +41,21 @@ constexpr std::array<int, 32> InputBucketMap = {
 };
 
 
-struct alignas(64) NetworkRepresentation {
-	std::array<std::array<std::array<int16_t, HiddenSize>, FeatureSize>, InputBucketCount> FeatureWeights;
-	std::array<int16_t, HiddenSize> FeatureBias;
-	std::array<int16_t, HiddenSize * 2> OutputWeights;
-	int16_t OutputBias;
+template <int alignment>
+struct alignas(alignment) NetworkRepresentation {
+	alignas(alignment) std::array<std::array<std::array<int16_t, L1Size>, FeatureSize>, InputBucketCount> FeatureWeights;
+	alignas(alignment) std::array<int16_t, L1Size> FeatureBias;
+	alignas(alignment) std::array<std::array<int16_t, L2Size>, L1Size> L1Weights;
+	alignas(alignment) std::array<float, L2Size> L1Biases;
+	alignas(alignment) std::array<std::array<float, L3Size>, L2Size> L2Weights;
+	alignas(alignment) std::array<float, L3Size> L2Biases;
+	alignas(alignment) std::array<float, L3Size> L3Weights;
+	float L3Bias;
 };
+using UnalignedNetworkRepresentation = NetworkRepresentation<0>;
+using AlignedNetworkRepresentation = NetworkRepresentation<64>;
 
-extern const NetworkRepresentation* Network;
+extern const AlignedNetworkRepresentation* Network;
 
 inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq, const uint8_t whiteKingSq, const uint8_t blackKingSq) {
 	const uint8_t pieceColor = ColorOfPiece(piece);
@@ -85,14 +95,14 @@ inline bool IsRefreshRequired(const Move& kingMove, const bool side) {
 
 struct alignas(64) AccumulatorRepresentation {
 
-	std::array<int16_t, HiddenSize> White;
-	std::array<int16_t, HiddenSize> Black;
+	std::array<int16_t, L1Size> White;
+	std::array<int16_t, L1Size> Black;
 	uint8_t WhiteBucket;
 	uint8_t BlackBucket;
 
 	void Reset() {
-		for (int i = 0; i < HiddenSize; i++) White[i] = Network->FeatureBias[i];
-		for (int i = 0; i < HiddenSize; i++) Black[i] = Network->FeatureBias[i];
+		for (int i = 0; i < L1Size; i++) White[i] = Network->FeatureBias[i];
+		for (int i = 0; i < L1Size; i++) Black[i] = Network->FeatureBias[i];
 		WhiteBucket = 0;
 		BlackBucket = 0;
 	}
@@ -114,13 +124,13 @@ struct alignas(64) AccumulatorRepresentation {
 	}
 
 	void AddFeature(const std::pair<int, int>& features) {
-		for (int i = 0; i < HiddenSize; i++) White[i] += Network->FeatureWeights[WhiteBucket][features.first][i];
-		for (int i = 0; i < HiddenSize; i++) Black[i] += Network->FeatureWeights[BlackBucket][features.second][i];
+		for (int i = 0; i < L1Size; i++) White[i] += Network->FeatureWeights[WhiteBucket][features.first][i];
+		for (int i = 0; i < L1Size; i++) Black[i] += Network->FeatureWeights[BlackBucket][features.second][i];
 	}
 
 	void RemoveFeature(const std::pair<int, int>& features) {
-		for (int i = 0; i < HiddenSize; i++) White[i] -= Network->FeatureWeights[WhiteBucket][features.first][i];
-		for (int i = 0; i < HiddenSize; i++) Black[i] -= Network->FeatureWeights[BlackBucket][features.second][i];
+		for (int i = 0; i < L1Size; i++) White[i] -= Network->FeatureWeights[WhiteBucket][features.first][i];
+		for (int i = 0; i < L1Size; i++) Black[i] -= Network->FeatureWeights[BlackBucket][features.second][i];
 	}
 
 	void SetActiveBucket(const bool side, const uint8_t bucket) {
