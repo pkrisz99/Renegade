@@ -27,24 +27,26 @@ int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& ac
 	const std::array<int16_t, L1Size>& hiddenOpponent = (turn == Side::White) ? acc.Black : acc.White;
 	int32_t output = 0;
 
-	alignas(64) std::array<float, L3Size> l2Out = Network->L2Biases;
-
-
 	// Clipped ReLU
-	auto CReLU = [](const int16_t value) {
+	auto qCReLU = [](const int16_t value) {
 		return std::clamp<int32_t>(value, 0, QA);
-		};
+	};
+
+	auto fSCReLU = [](const float value) {
+		const float x = std::clamp(value, 0.f, 1.f);
+		return x * x;
+	};
 
 	// Activate features, perform pairwise
 	alignas(64) std::array<int32_t, L1Size> ftOut = {};
 	for (int i = 0; i < L1Size / 2; i++) {
-		const auto l = CReLU(hiddenFriendly[i]);
-		const auto r = CReLU(hiddenFriendly[L1Size / 2 + i]);
+		const int32_t l = qCReLU(hiddenFriendly[i]);
+		const int32_t r = qCReLU(hiddenFriendly[L1Size / 2 + i]);
 		ftOut[i] = l * r;
 	}
 	for (int i = 0; i < L1Size / 2; i++) {
-		const auto l = CReLU(hiddenOpponent[i]);
-		const auto r = CReLU(hiddenOpponent[L1Size / 2 + i]);
+		const int32_t l = qCReLU(hiddenOpponent[i]);
+		const int32_t r = qCReLU(hiddenOpponent[L1Size / 2 + i]);
 		ftOut[i + L1Size / 2] = l * r;
 	}
 
@@ -58,36 +60,32 @@ int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& ac
 	}
 	constexpr float hmm = 1.f / static_cast<float>(QA * QA * QB);
 	for (int i = 0; i < L2Size; i++) {
-		auto x = std::fma(static_cast<float>(l1Sums[i]), hmm, Network->L1Biases[i]);
-		x = std::clamp(x, 0.f, 1.f);
-		l1Out[i] = x * x;
+		const float x = std::fma(static_cast<float>(l1Sums[i]), hmm, Network->L1Biases[i]);
+		l1Out[i] = fSCReLU(x);
 	}
 
 	// Propagate L2
 	std::array<float, L3Size> l2Sums = Network->L2Biases;
+	std::array<float, L3Size> l2Out = {};
 	for (int i = 0; i < L2Size; i++) {
 		for (int j = 0; j < L3Size; j++) {
 			l2Sums[j] = std::fma(l1Out[i], Network->L2Weights[i][j], l2Sums[j]);
 		}
 	}
-	for (int i = 0; i < L3Size; i++) {
-		auto x = std::clamp(l2Sums[i], 0.f, 1.f);
-		l2Out[i] = x * x;
-	}
+	for (int i = 0; i < L3Size; i++) l2Out[i] = fSCReLU(l2Sums[i]);
 
 	// Propagate L3
 	float l3Sums = 0.f;
 	for (int i = 0; i < L3Size; i++) {
 		l3Sums = std::fma(l2Out[i], Network->L3Weights[i], l3Sums);
 	}
-
 	float l3Out = l3Sums + Network->L3Bias;
 
 	output = l3Out * Scale;
 
 	// Scale according to material
-	const int gamePhase = position.GetGamePhase();
-	output = output * (52 + std::min(24, gamePhase)) / 64;
+	//const int gamePhase = position.GetGamePhase();
+	//output = output * (52 + std::min(24, gamePhase)) / 64;
 
 	return std::clamp(output, -MateThreshold + 1, MateThreshold - 1);
 }
