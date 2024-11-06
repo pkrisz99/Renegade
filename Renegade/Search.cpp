@@ -404,6 +404,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 8)
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && (std::abs(ttEval) < MateThreshold);
+	const bool ttPV = pvNode || ttEntry.ttPv;
 	
 	// Obtain the evaluation of the position
 	int rawEval = NoEval;
@@ -567,7 +568,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && depth >= 3) {
 			
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
-			if (!pvNode) reduction += 1;
+			if (!ttPV) reduction += 1;
 			if (inCheck) reduction -= 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
@@ -670,7 +671,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Store node search results into the transposition table
 	if (!aborting && !singularSearch) {
-		TranspositionTable.Store(hash, depth, bestScore, scoreType, rawEval, bestMove, level);
+		TranspositionTable.Store(hash, depth, bestScore, scoreType, rawEval, bestMove, level, ttPV);
 	}
 
 	// Return the best score (fail-soft)
@@ -694,6 +695,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (!pvNode && found && ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
 	Move ttMove = EmptyMove;
 	if (found) ttMove = Move(ttEntry.packedMove);
+	const bool ttPV = pvNode || ttEntry.ttPv;
 
 	// Update alpha-beta bounds
 	const int rawEval = [&] {
@@ -745,7 +747,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 			}
 		}
 	}
-	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, bestMove, level);
+	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, bestMove, level, ttPV);
 	return bestScore;
 }
 
