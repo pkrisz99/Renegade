@@ -195,6 +195,33 @@ struct SearchConstraints {
 	int64_t SoftNodes = -1;
 };
 
+struct NeuralLMRData {
+	int successfulReductionAmount;
+	bool triedReduction;
+	bool successfulReduction;
+
+	int baseReduction;
+	int moveCount;
+	int depth;
+	bool pvNode;
+	bool ttPV;
+	int historyScore;
+	bool isQuiet;
+	bool inCheck;
+	bool cutNode;
+	bool noisy;
+	bool goodNoisy;
+	bool badNoisy;
+	bool ttNoisy;
+	int cutoffCount;
+	int failLowCount;
+	int windowSize;
+	bool isKiller;
+	bool isCountermove;
+	int evalDiff1;
+	int evalDiff2;
+};
+
 // Bitwise operations  ----------------------------------------------------------------------------
 
 constexpr void SetBitTrue(uint64_t& number, const uint8_t place) {

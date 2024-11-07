@@ -126,6 +126,44 @@ public:
 	std::atomic<int> ActiveThreadCount = 0;
 	std::atomic<int> LoadedThreadCount = 0;
 
+	std::vector<NeuralLMRData> LMRData;
+
+	inline void DumpLMRData() {
+		std::ofstream file;
+		file.open("lmr_dump.csv");
+
+		file << "sucRedAmount, redTried, redSuc, baseRed, moveCount, depth, pvNode, ttPV, historyScore, isQuiet, inCheck, cutNode, noisy, goodNoisy, badNoisy, ttNoisy, ";
+		file << "cutoffCount, failLowCount, windowSize, isKiller, isCountermove, evalDiff1, evalDiff2" << endl;
+
+		for (const auto& p : LMRData) {
+			file << p.successfulReductionAmount << ", ";
+			file << p.triedReduction << ", ";
+			file << p.successfulReduction << ", ";
+			file << p.baseReduction << ", ";
+			file << p.moveCount << ", ";
+			file << p.depth << ", ";
+			file << p.pvNode << ", ";
+			file << p.ttPV << ", ";
+			file << p.historyScore << ", ";
+			file << p.isQuiet << ", ";
+			file << p.inCheck << ", ";
+			file << p.cutNode << ", ";
+			file << p.noisy << ", ";
+			file << p.goodNoisy << ", ";
+			file << p.badNoisy << ", ";
+			file << p.ttNoisy << ", ";
+			file << p.cutoffCount << ", ";
+			file << p.failLowCount << ", ";
+			file << p.windowSize << ", ";
+			file << p.isKiller << ", ";
+			file << p.isCountermove << ", ";
+			file << p.evalDiff1 << ", ";
+			file << p.evalDiff2 << endl;
+		}
+
+		file.close();
+	}
+
 private:
 	Results SummarizeThreadInfo() const;
 

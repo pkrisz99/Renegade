@@ -511,7 +511,7 @@ void Engine::HandleBench() {
 
 	uint64_t nodes = 0;
 	SearchParams params{};
-	params.depth = 14;
+	params.depth = 18;
 	const auto startTime = Clock::now();
 
 	for (std::string fen : BenchmarkFENs) {
@@ -524,9 +524,12 @@ void Engine::HandleBench() {
 		nodes += r.nodes;
 	}
 
+
 	const auto endTime = Clock::now();
 	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
 	cout << nodes << " nodes " << nps << " nps" << endl;
+
+	SearchThreads.DumpLMRData();
 
 	SearchThreads.ResetState(false);
 	Settings::Hash = oldHashSize;
