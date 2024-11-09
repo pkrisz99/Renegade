@@ -210,6 +210,7 @@ void Search::SearchMoves(ThreadData& t) {
 	t.ResetStatistics();
 	t.ResetPvTable();
 	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), EmptyMove);
+	std::fill(t.SuperSingular.begin(), t.SuperSingular.end(), false);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
 	std::fill(t.DoubleExtensions.begin(), t.DoubleExtensions.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
@@ -404,6 +405,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 8)
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && (std::abs(ttEval) < MateThreshold);
+	const bool ttPV = pvNode || ttEntry.ttPv;
 	
 	// Obtain the evaluation of the position
 	int rawEval = NoEval;
@@ -426,6 +428,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 		t.StaticEvalStack[level] = staticEval;
 		t.EvalStack[level] = eval;
+		t.SuperSingular[level] = false;
 	}
 	else {
 		staticEval = t.StaticEvalStack[level];
@@ -540,7 +543,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				
 			if (singularScore < singularBeta) {
 				// Successful extension
-				const bool doubleExtend = !pvNode && (singularScore < singularBeta - 30) && (t.DoubleExtensions[level] < 6);
+				const bool doubleExtend = (!pvNode && (singularScore < singularBeta - 30) && (t.DoubleExtensions[level] < 6)) || t.SuperSingular[level];
 				if (doubleExtend) t.DoubleExtensions[level] += 1;
 				extension = 1 + doubleExtend;
 			}
@@ -567,7 +570,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && depth >= 3) {
 			
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
-			if (!pvNode) reduction += 1;
+			if (!ttPV) reduction += 1;
 			if (inCheck) reduction -= 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
@@ -620,7 +623,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// There was no legal move --> return mate or stalemate score
 	if (legalMoveCount == 0) {
-		if (singularSearch) return alpha; // always extend if we have only one legal move
+		if (singularSearch) {
+			t.SuperSingular[level] = true;
+			return alpha; // always extend if we have only one legal move
+		}
 		return inCheck ? LosingMateScore(level) : 0;
 	}
 
@@ -670,7 +676,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Store node search results into the transposition table
 	if (!aborting && !singularSearch) {
-		TranspositionTable.Store(hash, depth, bestScore, scoreType, rawEval, bestMove, level);
+		TranspositionTable.Store(hash, depth, bestScore, scoreType, rawEval, bestMove, level, ttPV);
 	}
 
 	// Return the best score (fail-soft)
@@ -694,6 +700,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (!pvNode && found && ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
 	Move ttMove = EmptyMove;
 	if (found) ttMove = Move(ttEntry.packedMove);
+	const bool ttPV = pvNode || ttEntry.ttPv;
 
 	// Update alpha-beta bounds
 	const int rawEval = [&] {
@@ -745,7 +752,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 			}
 		}
 	}
-	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, bestMove, level);
+	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, bestMove, level, ttPV);
 	return bestScore;
 }
 
