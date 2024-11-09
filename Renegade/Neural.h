@@ -16,7 +16,7 @@
 
 // Network constants
 #ifndef NETWORK_NAME
-#define NETWORK_NAME "renegade-net-30-mr-pw.bin"
+#define NETWORK_NAME "raw.bin"
 #endif
 
 constexpr int FeatureSize = 768;
@@ -43,9 +43,9 @@ constexpr std::array<int, 32> InputBucketMap = {
 
 template <int alignment>
 struct alignas(alignment) NetworkRepresentation {
-	alignas(alignment) std::array<std::array<std::array<int16_t, L1Size>, FeatureSize>, InputBucketCount> FeatureWeights;
-	alignas(alignment) std::array<int16_t, L1Size> FeatureBias;
-	alignas(alignment) std::array<std::array<int16_t, L2Size>, L1Size> L1Weights;
+	alignas(alignment) std::array<std::array<std::array<float, L1Size>, FeatureSize>, InputBucketCount> FeatureWeights;
+	alignas(alignment) std::array<float, L1Size> FeatureBias;
+	alignas(alignment) std::array<std::array<float, L2Size>, L1Size> L1Weights;
 	alignas(alignment) std::array<float, L2Size> L1Biases;
 	alignas(alignment) std::array<std::array<float, L3Size>, L2Size> L2Weights;
 	alignas(alignment) std::array<float, L3Size> L2Biases;
@@ -95,8 +95,8 @@ inline bool IsRefreshRequired(const Move& kingMove, const bool side) {
 
 struct alignas(64) AccumulatorRepresentation {
 
-	std::array<int16_t, L1Size> White;
-	std::array<int16_t, L1Size> Black;
+	std::array<float, L1Size> White;
+	std::array<float, L1Size> Black;
 	uint8_t WhiteBucket;
 	uint8_t BlackBucket;
 

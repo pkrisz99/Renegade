@@ -23,13 +23,13 @@ std::unique_ptr<AlignedNetworkRepresentation> ExternalNetwork;
 
 int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc) {
 	const bool turn = position.Turn();
-	const std::array<int16_t, L1Size>& hiddenFriendly = (turn == Side::White) ? acc.White : acc.Black;
-	const std::array<int16_t, L1Size>& hiddenOpponent = (turn == Side::White) ? acc.Black : acc.White;
+	const std::array<float, L1Size>& hiddenFriendly = (turn == Side::White) ? acc.White : acc.Black;
+	const std::array<float, L1Size>& hiddenOpponent = (turn == Side::White) ? acc.Black : acc.White;
 	int32_t output = 0;
 
 	// Clipped ReLU
-	auto qCReLU = [](const int16_t value) {
-		return std::clamp<int32_t>(value, 0, QA);
+	auto qCReLU = [](const float value) {
+		return std::clamp<float>(value, 0.f, 1.f);
 	};
 
 	auto fSCReLU = [](const float value) {
@@ -38,29 +38,29 @@ int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& ac
 	};
 
 	// Activate features, perform pairwise
-	alignas(64) std::array<int32_t, L1Size> ftOut = {};
+	alignas(64) std::array<float, L1Size> ftOut = {};
 	for (int i = 0; i < L1Size / 2; i++) {
-		const int32_t l = qCReLU(hiddenFriendly[i]);
-		const int32_t r = qCReLU(hiddenFriendly[L1Size / 2 + i]);
+		const float l = qCReLU(hiddenFriendly[i]);
+		const float r = qCReLU(hiddenFriendly[L1Size / 2 + i]);
 		ftOut[i] = l * r;
 	}
 	for (int i = 0; i < L1Size / 2; i++) {
-		const int32_t l = qCReLU(hiddenOpponent[i]);
-		const int32_t r = qCReLU(hiddenOpponent[L1Size / 2 + i]);
+		const float l = qCReLU(hiddenOpponent[i]);
+		const float r = qCReLU(hiddenOpponent[L1Size / 2 + i]);
 		ftOut[i + L1Size / 2] = l * r;
 	}
 
 	// Propagate L1
-	std::array<int32_t, L2Size> l1Sums = {};
+	std::array<float, L2Size> l1Sums = {};
 	std::array<float, L2Size> l1Out = {};
 	for (int i = 0; i < L1Size; i++) {
 		for (int j = 0; j < L2Size; j++) {
 			l1Sums[j] += ftOut[i] * Network->L1Weights[i][j];
 		}
 	}
-	constexpr float hmm = 1.f / static_cast<float>(QA * QA * QB);
+	//constexpr float hmm = 1.f / static_cast<float>(QA * QA * QB);
 	for (int i = 0; i < L2Size; i++) {
-		const float x = std::fma(static_cast<float>(l1Sums[i]), hmm, Network->L1Biases[i]);
+		const float x = std::fma(static_cast<float>(l1Sums[i]), 1, Network->L1Biases[i]);
 		l1Out[i] = fSCReLU(x);
 	}
 

@@ -757,7 +757,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 }
 
 int Search::Evaluate(const ThreadData& t, const Position& position, const int level) {
-	return NeuralEvaluate(position, t.Accumulators[level]);
+	return NeuralEvaluate(position);
 }
 
 int Search::DrawEvaluation(const ThreadData& t) const {
@@ -869,7 +869,7 @@ void Search::SetupAccumulators(ThreadData& t, const Position& position) {
 }
 
 void Search::UpdateAccumulators(ThreadData& t, const Position& pos, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
-	UpdateAccumulator(pos, t.Accumulators[level], t.Accumulators[level + 1], m, movedPiece, capturedPiece);
+	//UpdateAccumulator(pos, t.Accumulators[level], t.Accumulators[level + 1], m, movedPiece, capturedPiece);
 }
 
 // PV table ---------------------------------------------------------------------------------------
