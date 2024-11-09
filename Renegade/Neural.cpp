@@ -185,7 +185,6 @@ void LoadExternalNetwork(const std::string& filename) {
 	ifs.read((char*)loaded.get(), sizeof(UnalignedNetworkRepresentation));
 
 	std::unique_ptr<AlignedNetworkRepresentation> aligned = std::make_unique<AlignedNetworkRepresentation>();
-
 	aligned->FeatureWeights = loaded->FeatureWeights;
 	aligned->FeatureBias = loaded->FeatureBias;
 	aligned->L1Weights = loaded->L1Weights;
@@ -206,16 +205,27 @@ void LoadExternalNetwork(const std::string& filename) {
 }
 
 void LoadDefaultNetwork() {
-	ExternalNetwork.reset();
-	LoadExternalNetwork(NETWORK_NAME);
 
-#if !!defined(_MSC_VER) || defined(__clang__)
+#if !defined(_MSC_VER) || defined(__clang__)
 	// Include binary in the executable file via incbin (good)
-	auto temp1 = reinterpret_cast<const UnalignedNetworkRepresentation*>(gDefaultNetworkData);
-	//Network = reinterpret_cast<const AlignedNetworkRepresentation*>(gDefaultNetworkData);
+	const auto loaded = reinterpret_cast<const UnalignedNetworkRepresentation*>(gDefaultNetworkData);
+	std::unique_ptr<AlignedNetworkRepresentation> aligned = std::make_unique<AlignedNetworkRepresentation>();
+	aligned->FeatureWeights = loaded->FeatureWeights;
+	aligned->FeatureBias = loaded->FeatureBias;
+	aligned->L1Weights = loaded->L1Weights;
+	aligned->L1Biases = loaded->L1Biases;
+	aligned->L2Weights = loaded->L2Weights;
+	aligned->L2Biases = loaded->L2Biases;
+	aligned->L3Weights = loaded->L3Weights;
+	aligned->L3Bias = loaded->L3Bias;
+
+	ExternalNetwork.reset();
+	std::swap(ExternalNetwork, aligned);
+	Network = ExternalNetwork.get();
 
 #else
 	// Load network file from disk at runtime (bad)
-	
+	ExternalNetwork.reset();
+	LoadExternalNetwork(NETWORK_NAME);
 #endif
 }
