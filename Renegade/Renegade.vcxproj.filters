@@ -104,5 +104,8 @@
     <ClInclude Include="Transpositions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="LmrNet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

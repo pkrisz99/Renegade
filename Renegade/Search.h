@@ -6,6 +6,7 @@
 #include "Reporting.h"
 #include "Transpositions.h"
 #include "Utils.h"
+#include "LmrNet.h"
 #include <atomic>
 #include <iomanip>
 #include <algorithm>
@@ -126,9 +127,9 @@ public:
 	std::atomic<int> ActiveThreadCount = 0;
 	std::atomic<int> LoadedThreadCount = 0;
 
-	std::vector<NeuralLMRData> LMRData;
+	//std::vector<NeuralLMRData> LMRData;
 
-	inline void DumpLMRData() {
+	/*inline void DumpLMRData() {
 		std::ofstream file;
 		file.open("lmr_dump.csv");
 
@@ -162,7 +163,7 @@ public:
 		}
 
 		file.close();
-	}
+	}*/
 
 private:
 	Results SummarizeThreadInfo() const;
@@ -190,5 +191,6 @@ private:
 	SearchConstraints Constraints;
 	std::chrono::high_resolution_clock::time_point StartSearchTime;
 	std::array<std::array<int, 32>, 32> LMRTable;
+	LMRNet LmrNet;
 
 };

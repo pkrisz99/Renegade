@@ -21,6 +21,7 @@ Search::Search() {
 		}
 	}
 	StartThreads(1);
+	LmrNet = InitLmrNet();
 }
 
 void ThreadData::ResetStatistics() {
@@ -573,15 +574,20 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		int successfulReductionAmount = 0;
 
 		if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && depth >= 3) {
+
+			const int historyScore = (std::abs(order) < 80000) ? order : 0;
+			const int evalDiff1 = staticEval - rawEval;
+			const int evalDiff2 = score - staticEval;
+			const int netReduction = LmrNet.Calculate(depth, legalMoveCount, pvNode, ttPV, cutNode, historyScore, evalDiff1, evalDiff2);
 			
-			baseReduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
+			/*baseReduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!ttPV) reduction += 1;
 			if (inCheck) reduction -= 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
-			if (cutNode) reduction += 1;
-			reduction = std::max(reduction, 0);
+			if (cutNode) reduction += 1;*/
+			int reduction = std::max(netReduction, 0);
 
 			triedReduction = true;
 			successfulReduction = true;
@@ -615,7 +621,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		const NeuralLMRData d = {
 			successfulReductionAmount, triedReduction, successfulReduction, baseReduction, legalMoveCount, depth, pvNode, ttPV, historyScore, isQuiet, inCheck, cutNode, noisy, goodNoisy, badNoisy, ttNoisy, t.CutoffCount[level], failLowCount, beta - alpha, isKiller, isCountermove, evalDiff1, evalDiff2,
 		};
-		if (legalMoveCount != 1) LMRData.push_back(d);
+		//if (legalMoveCount != 1) LMRData.push_back(d);
 
 		t.CurrentPosition.PopMove();
 

@@ -168,6 +168,7 @@
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Classical.h" />
     <ClInclude Include="Histories.h" />
+    <ClInclude Include="LmrNet.h" />
     <ClInclude Include="Magics.h" />
     <ClInclude Include="Move.h" />
     <ClInclude Include="Movepicker.h" />
