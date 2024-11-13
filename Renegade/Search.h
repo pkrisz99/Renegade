@@ -48,6 +48,7 @@ public:
 	std::array<int, MaxDepth> CutoffCount;
 	std::array<int, MaxDepth> DoubleExtensions;
 	std::array<Move, MaxDepth> ExcludedMoves;
+	std::array<bool, MaxDepth> SuperSingular;
 
 	Position CurrentPosition;
 

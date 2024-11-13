@@ -210,6 +210,7 @@ void Search::SearchMoves(ThreadData& t) {
 	t.ResetStatistics();
 	t.ResetPvTable();
 	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), EmptyMove);
+	std::fill(t.SuperSingular.begin(), t.SuperSingular.end(), false);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
 	std::fill(t.DoubleExtensions.begin(), t.DoubleExtensions.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
@@ -427,6 +428,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 		t.StaticEvalStack[level] = staticEval;
 		t.EvalStack[level] = eval;
+		t.SuperSingular[level] = false;
 	}
 	else {
 		staticEval = t.StaticEvalStack[level];
@@ -542,7 +544,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				
 			if (singularScore < singularBeta) {
 				// Successful extension
-				const bool doubleExtend = !pvNode && (singularScore < singularBeta - 30) && (t.DoubleExtensions[level] < 6);
+				const bool doubleExtend = (!pvNode && (singularScore < singularBeta - 30) && (t.DoubleExtensions[level] < 6)) || t.SuperSingular[level];
 				if (doubleExtend) t.DoubleExtensions[level] += 1;
 				extension = 1 + doubleExtend;
 			}
@@ -653,7 +655,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// There was no legal move --> return mate or stalemate score
 	if (legalMoveCount == 0) {
-		if (singularSearch) return alpha; // always extend if we have only one legal move
+		if (singularSearch) {
+			t.SuperSingular[level] = true;
+			return alpha; // always extend if we have only one legal move
+		}
 		return inCheck ? LosingMateScore(level) : 0;
 	}
 
