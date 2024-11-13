@@ -21,7 +21,6 @@ Search::Search() {
 		}
 	}
 	StartThreads(1);
-	LmrNet = InitLmrNet();
 }
 
 void ThreadData::ResetStatistics() {

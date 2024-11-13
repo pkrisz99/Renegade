@@ -191,6 +191,6 @@ private:
 	SearchConstraints Constraints;
 	std::chrono::high_resolution_clock::time_point StartSearchTime;
 	std::array<std::array<int, 32>, 32> LMRTable;
-	LMRNet LmrNet;
+	ReductionNet LmrNet{};
 
 };
