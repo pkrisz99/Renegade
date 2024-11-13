@@ -195,31 +195,14 @@ struct SearchConstraints {
 	int64_t SoftNodes = -1;
 };
 
-struct NeuralLMRData {
-	int successfulReductionAmount;
-	bool triedReduction;
-	bool successfulReduction;
-
-	int baseReduction;
-	int moveCount;
-	int depth;
-	bool pvNode;
-	bool ttPV;
-	int historyScore;
-	bool isQuiet;
-	bool inCheck;
-	bool cutNode;
-	bool noisy;
-	bool goodNoisy;
-	bool badNoisy;
-	bool ttNoisy;
-	int cutoffCount;
-	int failLowCount;
-	int windowSize;
-	bool isKiller;
-	bool isCountermove;
-	int evalDiff1;
-	int evalDiff2;
+struct CorrectionTrainingEntry {
+	// output:
+	int correctionAmount;
+	// input:
+	int rawEval;
+	int pawnHistory;
+	int materialHistory;
+	int followUpHistory;
 };
 
 // Bitwise operations  ----------------------------------------------------------------------------

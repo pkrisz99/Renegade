@@ -569,36 +569,20 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		
 		// Late-move reductions & principal variation search
 
-		int baseReduction = 0;
-		bool triedReduction = false;
-		bool successfulReduction = false;
-		int successfulReductionAmount = 0;
-
 		if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && depth >= 3) {
 
-			const int historyScore = (std::abs(order) < 80000) ? order : 0;
-			const int evalDiff1 = staticEval - rawEval;
-			const int evalDiff2 = score - staticEval;
-			const int netReduction = LmrNet.Calculate(depth, legalMoveCount, pvNode, ttPV, cutNode, historyScore, evalDiff1, evalDiff2);
-			
-			/*baseReduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!ttPV) reduction += 1;
 			if (inCheck) reduction -= 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
-			if (cutNode) reduction += 1;*/
-			int reduction = std::max(netReduction, 0);
+			if (cutNode) reduction += 1;
+			reduction = std::max(reduction, 0);
 
-			triedReduction = true;
-			successfulReduction = true;
-			successfulReductionAmount = reduction;
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
 			score = -SearchRecursive(t, reducedDepth, level + 1, -alpha - 1, -alpha, false, true);
 
 			if (score > alpha && reducedDepth < depth - 1) {
-				successfulReduction = false;
-				successfulReductionAmount = 0;
 				score = -SearchRecursive(t, depth - 1, level + 1, -alpha - 1, -alpha, false, !cutNode);
 			}
 		}
@@ -609,20 +593,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (pvNode && (legalMoveCount == 1 || score > alpha)) {
 			score = -SearchRecursive(t, depth - 1 + extension, level + 1, -beta, -alpha, true, false);
 		}
-
-		const int historyScore = (std::abs(order) < 80000) ? order : 0;
-		const bool isKiller = order == 100000;
-		const bool isCountermove = order == 99000;
-		const bool noisy = !isQuiet;
-		const bool goodNoisy = !isQuiet && order > 150000;
-		const bool badNoisy = !isQuiet && order < -90000;
-		const int evalDiff1 = staticEval - rawEval;
-		const int evalDiff2 = score - staticEval;
-		
-		const NeuralLMRData d = {
-			successfulReductionAmount, triedReduction, successfulReduction, baseReduction, legalMoveCount, depth, pvNode, ttPV, historyScore, isQuiet, inCheck, cutNode, noisy, goodNoisy, badNoisy, ttNoisy, t.CutoffCount[level], failLowCount, beta - alpha, isKiller, isCountermove, evalDiff1, evalDiff2,
-		};
-		//if (legalMoveCount != 1) LMRData.push_back(d);
 
 		t.CurrentPosition.PopMove();
 

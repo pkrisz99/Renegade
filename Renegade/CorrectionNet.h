@@ -2,21 +2,21 @@
 
 #include "Utils.h"
 
-constexpr int LmrInputSize = 8;
-constexpr int LmrL1 = 16;
-constexpr int LmrL2 = 8;
+constexpr int CorrInputSize = 4;
+constexpr int CorrL1 = 8;
+constexpr int CorrL2 = 4;
 
-struct ReductionNet {
+struct CorrectionNet {
 
 	// Network representation
-	std::array<std::array<float, LmrL1>, LmrInputSize> InputWeights;
-	std::array<float, LmrL1> InputBiases;
-	std::array<std::array<float, LmrL2>, LmrL1> L1Weights;
-	std::array<float, LmrL2> L1Biases;
-	std::array<float, LmrL2> L2Weights;
+	std::array<std::array<float, CorrL1>, CorrInputSize> InputWeights;
+	std::array<float, CorrL1> InputBiases;
+	std::array<std::array<float, CorrL2>, CorrL1> L1Weights;
+	std::array<float, CorrL2> L1Biases;
+	std::array<float, CorrL2> L2Weights;
 	float L2Bias;
 
-	float Propagate(const std::array<float, LmrInputSize>& inputs) {
+	float Propagate(const std::array<float, CorrInputSize>& inputs) {
 		
 		// Activation function
 		auto ReLU = [](const float value) {
@@ -24,26 +24,26 @@ struct ReductionNet {
 		};
 
 		// Propagate inputs -> L1
-		std::array<float, LmrL1> l1 = InputBiases;
-		for (int i = 0; i < LmrInputSize; i++) {
-			for (int j = 0; j < LmrL1; j++) {
+		std::array<float, CorrL1> l1 = InputBiases;
+		for (int i = 0; i < CorrInputSize; i++) {
+			for (int j = 0; j < CorrL1; j++) {
 				l1[j] = std::fma(InputWeights[i][j], inputs[i], l1[j]);
 			}
 		}
-		for (int i = 0; i < LmrL1; i++) l1[i] = ReLU(l1[i]);
+		for (int i = 0; i < CorrL1; i++) l1[i] = ReLU(l1[i]);
 
 		// Propagate L1 -> L2
-		std::array<float, LmrL2> l2 = L1Biases;
-		for (int i = 0; i < LmrL1; i++) {
-			for (int j = 0; j < LmrL2; j++) {
+		std::array<float, CorrL2> l2 = L1Biases;
+		for (int i = 0; i < CorrL1; i++) {
+			for (int j = 0; j < CorrL2; j++) {
 				l2[j] = std::fma(L1Weights[i][j], l1[i], l2[j]);
 			}
 		}
-		for (int i = 0; i < LmrL2; i++) l2[i] = ReLU(l2[i]);
+		for (int i = 0; i < CorrL2; i++) l2[i] = ReLU(l2[i]);
 
 		// Propagate L2 -> output
 		float out = L2Bias;
-		for (int i = 0; i < LmrL2; i++) {
+		for (int i = 0; i < CorrL2; i++) {
 			out = std::fma(L2Weights[i], l2[i], out);
 		}
 
@@ -58,15 +58,11 @@ struct ReductionNet {
 			};
 
 		// Transform inputs
-		const std::array<float, LmrInputSize> inputs = {
+		const std::array<float, CorrInputSize> inputs = {
 			std::log(static_cast<float>(depth)),
 			std::log(static_cast<float>(moveCount)),
 			static_cast<float>(pvNode), 
 			static_cast<float>(ttPV),
-			static_cast<float>(cutNode),
-			Sigmoid(static_cast<float>(historyScore) / 20000),
-			Sigmoid(static_cast<float>(ed1) / 32),
-			Sigmoid(static_cast<float>(ed2) / 128)
 		};
 
 		const float rawOutput = Propagate(inputs);
@@ -75,8 +71,8 @@ struct ReductionNet {
 		return finalOutput;
 	}
 
-	ReductionNet() {
-		InputWeights[0] = { -0.12621132, 0.0420413, -0.42842245, -0.3824608, -0.18468773, 0.008701138, 0.31022033, 0.48528546, 0.0038098497, 0.33955774, -0.45216945, -0.08430068, 0.32740533, 0.34141737, -0.012962025, 0.64011765 };
+	CorrectionNet() {
+		/*InputWeights[0] = {-0.12621132, 0.0420413, -0.42842245, -0.3824608, -0.18468773, 0.008701138, 0.31022033, 0.48528546, 0.0038098497, 0.33955774, -0.45216945, -0.08430068, 0.32740533, 0.34141737, -0.012962025, 0.64011765};
 		InputWeights[1] = { -0.022764523, 0.46062374, 0.40836772, 0.036495127, 0.3517091, 0.31511372, 0.17215735, -0.016030438, 0.16572753, -0.08904843, 0.016664643, -0.437689, 0.3716528, 0.020451825, 0.2988754, 0.020899666 };
 		InputWeights[2] = { -0.20226498, -0.07700773, -0.19258921, -0.16252166, 0.3203744, -0.07018031, -0.13196595, 0.07326679, -0.026161728, 0.078211695, -0.5060263, 0.4300381, 0.011668792, -0.19250214, 0.31135532, -0.3121627 };
 		InputWeights[3] = { -0.039349552, 0.011630787, 0.119308725, 0.104983546, -0.27460608, 0.04721462, -0.051589802, -0.33825797, -0.038614813, 0.39394575, 0.35629132, 0.080193356, 0.06694195, 0.17517899, -0.22736819, -0.2768108 };
@@ -112,6 +108,6 @@ struct ReductionNet {
 		L2Weights[5] = { 0.5097715 };
 		L2Weights[6] = { 0.7458742 };
 		L2Weights[7] = { 0.7691033 };
-		L2Bias = 0.012798162;
+		L2Bias = 0.012798162;*/
 	}
 };
