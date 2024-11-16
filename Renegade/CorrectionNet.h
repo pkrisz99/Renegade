@@ -70,7 +70,7 @@ struct CorrectionNet {
 		};
 
 		const float rawOutput = Propagate(inputs);
-		const int finalOutput = std::clamp(static_cast<int>(InverseSigmoid(rawOutput) * 16.f), -32, 32);
+		const int finalOutput = std::clamp(static_cast<int>(InverseSigmoid(rawOutput) * 16.f), -48, 48);
 
 		return finalOutput;
 	}
