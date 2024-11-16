@@ -195,16 +195,6 @@ struct SearchConstraints {
 	int64_t SoftNodes = -1;
 };
 
-struct CorrectionTrainingEntry {
-	// output:
-	int correctionAmount;
-	// input:
-	int rawEval;
-	int pawnHistory;
-	int materialHistory;
-	int followUpHistory;
-};
-
 // Bitwise operations  ----------------------------------------------------------------------------
 
 constexpr void SetBitTrue(uint64_t& number, const uint8_t place) {

@@ -128,25 +128,6 @@ public:
 	std::atomic<int> ActiveThreadCount = 0;
 	std::atomic<int> LoadedThreadCount = 0;
 
-	/*std::vector<CorrectionTrainingEntry> CorrectionTrainingData;
-
-	inline void DumpTrainingData() {
-		std::ofstream file;
-		file.open("training_dump.csv");
-
-		file << "correctionAmount,rawEval,pawnHistory,materialHistory,followUpHistory" << endl;
-
-		for (const auto& d : CorrectionTrainingData) {
-			file << d.correctionAmount << ",";
-			file << d.rawEval << ",";
-			file << d.pawnHistory << ",";
-			file << d.materialHistory << ",";
-			file << d.followUpHistory << endl;
-		}
-
-		file.close();
-	}*/
-
 private:
 	Results SummarizeThreadInfo() const;
 

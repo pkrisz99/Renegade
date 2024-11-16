@@ -2,6 +2,41 @@
 
 #include "Utils.h"
 
+struct CorrectionTrainingEntry {
+	// output:
+	int correctionAmount;
+	// input:
+	int rawEval;
+	int depth;
+	bool pvNode;
+	bool cutNode;
+	int pawnHistory;
+	int materialHistory;
+	int followUpHistory;
+};
+
+inline std::vector<CorrectionTrainingEntry> CorrectionTrainingData;
+
+static void DumpTrainingData() {
+	std::ofstream file;
+	file.open("training_dump.csv");
+
+	file << "correctionAmount,rawEval,depth,pvNode,cutNode,pawnHistory,materialHistory,followUpHistory" << endl;
+
+	for (const auto& d : CorrectionTrainingData) {
+		file << d.correctionAmount << ",";
+		file << d.rawEval << ",";
+		file << d.depth << ",";
+		file << d.pvNode << ",";
+		file << d.cutNode << ",";
+		file << d.pawnHistory << ",";
+		file << d.materialHistory << ",";
+		file << d.followUpHistory << endl;
+	}
+
+	file.close();
+}
+
 constexpr int CorrInputSize = 4;
 constexpr int CorrL1 = 8;
 constexpr int CorrL2 = 4;
