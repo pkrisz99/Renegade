@@ -31,6 +31,7 @@ public:
 	// Static evaluation correction history:
 	void UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth);
 	int16_t ApplyCorrection(const Position& position, const int16_t rawEval) const;
+	std::tuple<int, int, int> GetInternalCorrectionValues(const Position& position) const;
 
 private:
 

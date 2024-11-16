@@ -529,7 +529,7 @@ void Engine::HandleBench() {
 	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
 	cout << nodes << " nodes " << nps << " nps" << endl;
 
-	//SearchThreads.DumpLMRData();
+	//SearchThreads.DumpTrainingData();
 
 	SearchThreads.ResetState(false);
 	Settings::Hash = oldHashSize;

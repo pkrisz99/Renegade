@@ -6,7 +6,7 @@
 #include "Reporting.h"
 #include "Transpositions.h"
 #include "Utils.h"
-#include "LmrNet.h"
+#include "CorrectionNet.h"
 #include <atomic>
 #include <iomanip>
 #include <algorithm>
@@ -128,9 +128,9 @@ public:
 	std::atomic<int> ActiveThreadCount = 0;
 	std::atomic<int> LoadedThreadCount = 0;
 
-	std::vector<CorrectionTrainingEntry> CorrectionTrainingData;
+	/*std::vector<CorrectionTrainingEntry> CorrectionTrainingData;
 
-	/*inline void DumpTrainingData() {
+	inline void DumpTrainingData() {
 		std::ofstream file;
 		file.open("training_dump.csv");
 
@@ -173,6 +173,6 @@ private:
 	SearchConstraints Constraints;
 	std::chrono::high_resolution_clock::time_point StartSearchTime;
 	std::array<std::array<int, 32>, 32> LMRTable;
-	ReductionNet LmrNet{};
+	CorrectionNet CorrhistNet{};
 
 };

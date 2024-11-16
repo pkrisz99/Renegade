@@ -152,3 +152,21 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection) * 2 / 3;
 	return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
 }
+
+std::tuple<int, int, int> Histories::GetInternalCorrectionValues(const Position& position) const {
+
+	const uint64_t materialKey = position.GetMaterialKey() % 32768;
+	const int materialCorrection = MaterialCorrectionHistory[position.Turn()][materialKey] / 256;
+
+	const uint64_t pawnKey = position.GetPawnKey() % 16384;
+	const int pawnCorrection = PawnsCorrectionHistory[position.Turn()][pawnKey] / 256;
+
+	const int lastMoveCorrection = [&] {
+		if (position.Moves.size() < 2) return 0;
+		const MoveAndPiece& prev1 = position.GetPreviousMove(1);
+		const MoveAndPiece& prev2 = position.GetPreviousMove(2);
+		return FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to] / 256;
+		}();
+
+	return { pawnCorrection, materialCorrection, lastMoveCorrection };
+}
