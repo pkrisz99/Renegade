@@ -420,8 +420,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			return static_cast<int16_t>(Evaluate(t, t.CurrentPosition, level));
 		}();
 		const auto [a, b, c] = t.History.GetInternalCorrectionValues(t.CurrentPosition);
-		staticEval = rawEval + CorrhistNet.Calculate(rawEval, a, b, c);
-		//cout << CorrhistNet.Calculate(rawEval, a, b, c) << endl;
+		staticEval = rawEval + CorrhistNet.Calculate(rawEval, depth, pvNode, a, b, c);
 		//staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
 		eval = staticEval;
 
@@ -720,7 +719,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	}();
 	//const int staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
 	const auto [a, b, c] = t.History.GetInternalCorrectionValues(t.CurrentPosition);
-	const int staticEval = rawEval + CorrhistNet.Calculate(rawEval, a, b, c);
+	const int staticEval = rawEval + CorrhistNet.Calculate(rawEval, 0, pvNode, a, b, c);
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= MaxDepth) return staticEval;
