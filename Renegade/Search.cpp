@@ -419,7 +419,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (found) return ttEntry.rawEval;
 			return static_cast<int16_t>(Evaluate(t, t.CurrentPosition, level));
 		}();
-		//const auto [a, b, c] = t.History.GetInternalCorrectionValues(t.CurrentPosition);
+		correctionInts = t.History.GetInternalCorrectionValues(t.CurrentPosition);
+		const auto [a, b, c] = correctionInts;
 		//staticEval = rawEval + CorrhistNet.Calculate(rawEval, a, b, c);
 		//cout << CorrhistNet.Calculate(rawEval, a, b, c) << endl;
 		staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
