@@ -117,54 +117,69 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 	const uint8_t whiteKingSq = pos.WhiteKingSquare();
 	const uint8_t blackKingSq = pos.BlackKingSquare();
 
-	// No longer activate the previous position of the moved piece
-	newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
-
-	// No longer activate the position of the captured piece (if any)
-	if (capturedPiece != Piece::None) {
-		newAcc.RemoveFeature(FeatureIndexes(capturedPiece, m.to, whiteKingSq, blackKingSq));
-	}
-
-	// Activate the new position of the moved piece
-	if (!m.IsPromotion() && !m.IsCastling()) {
+	// (a) regular non-capture move
+	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
+		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
 		newAcc.AddFeature(FeatureIndexes(movedPiece, m.to, whiteKingSq, blackKingSq));
-	}
-	else if (m.IsPromotion()) {
-		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		newAcc.AddFeature(FeatureIndexes(promotionPiece, m.to, whiteKingSq, blackKingSq));
+		return;
 	}
 
-	// Special cases
-	switch (m.flag) {
-	case MoveFlag::None: break;
+	// (b) regular capture move
+	if (capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
+		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
+		newAcc.AddFeature(FeatureIndexes(movedPiece, m.to, whiteKingSq, blackKingSq));
+		newAcc.RemoveFeature(FeatureIndexes(capturedPiece, m.to, whiteKingSq, blackKingSq));
+		return;
+	}
 
-	case MoveFlag::ShortCastle:
+	// (c) castling
+	if (m.flag == MoveFlag::ShortCastle) {
+		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
 		if (ColorOfPiece(movedPiece) == PieceColor::White) {
+			newAcc.RemoveFeature(FeatureIndexes(Piece::WhiteRook, m.to, whiteKingSq, blackKingSq));
 			newAcc.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::G1, whiteKingSq, blackKingSq));
 			newAcc.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::F1, whiteKingSq, blackKingSq));
 		}
 		else {
+			newAcc.RemoveFeature(FeatureIndexes(Piece::BlackRook, m.to, whiteKingSq, blackKingSq));
 			newAcc.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::G8, whiteKingSq, blackKingSq));
 			newAcc.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::F8, whiteKingSq, blackKingSq));
 		}
-		break;
-
-	case MoveFlag::LongCastle:
+		return;
+	}
+	if (m.flag == MoveFlag::LongCastle) {
+		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
 		if (ColorOfPiece(movedPiece) == PieceColor::White) {
+			newAcc.RemoveFeature(FeatureIndexes(Piece::WhiteRook, m.to, whiteKingSq, blackKingSq));
 			newAcc.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::C1, whiteKingSq, blackKingSq));
 			newAcc.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::D1, whiteKingSq, blackKingSq));
 		}
 		else {
+			newAcc.RemoveFeature(FeatureIndexes(Piece::BlackRook, m.to, whiteKingSq, blackKingSq));
 			newAcc.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::C8, whiteKingSq, blackKingSq));
 			newAcc.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::D8, whiteKingSq, blackKingSq));
 		}
-		break;
+		return;
+	}
 
-	case MoveFlag::EnPassantPerformed:
+	// (d) promotion - with optional capture
+	if (m.IsPromotion()) {
+		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
+		newAcc.AddFeature(FeatureIndexes(promotionPiece, m.to, whiteKingSq, blackKingSq));
+		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
+		if (capturedPiece != Piece::None) newAcc.RemoveFeature(FeatureIndexes(capturedPiece, m.to, whiteKingSq, blackKingSq));
+		return;
+	}
+
+	// (e) en passant
+	if (m.flag == MoveFlag::EnPassantPerformed) {
+		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
+		newAcc.AddFeature(FeatureIndexes(movedPiece, m.to, whiteKingSq, blackKingSq));
 		if (movedPiece == Piece::WhitePawn) newAcc.RemoveFeature(FeatureIndexes(Piece::BlackPawn, m.to - 8, whiteKingSq, blackKingSq));
 		else newAcc.RemoveFeature(FeatureIndexes(Piece::WhitePawn, m.to + 8, whiteKingSq, blackKingSq));
-		break;
+		return;
 	}
+
 }
 
 // Loading an external network (MSVC fallback) ----------------------------------------------------
