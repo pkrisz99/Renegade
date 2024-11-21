@@ -133,41 +133,33 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 	}
 
 	// (c) castling
-	if (m.flag == MoveFlag::ShortCastle) {
+	if (m.IsCastling()) {
+		const bool side = ColorOfPiece(movedPiece) == PieceColor::White;
+		const bool shortCastle = m.flag == MoveFlag::ShortCastle;
+		const uint8_t rookPiece = side == Side::White ? Piece::WhiteRook : Piece::BlackRook;
+		const uint8_t newKingFile = shortCastle ? 6 : 2;
+		const uint8_t newRookFile = shortCastle ? 5 : 3;
+		const uint8_t newKingSquare = newKingFile + (side == Side::Black) * 56;
+		const uint8_t newRookSquare = newRookFile + (side == Side::Black) * 56;
 		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
-		if (ColorOfPiece(movedPiece) == PieceColor::White) {
-			newAcc.RemoveFeature(FeatureIndexes(Piece::WhiteRook, m.to, whiteKingSq, blackKingSq));
-			newAcc.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::G1, whiteKingSq, blackKingSq));
-			newAcc.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::F1, whiteKingSq, blackKingSq));
-		}
-		else {
-			newAcc.RemoveFeature(FeatureIndexes(Piece::BlackRook, m.to, whiteKingSq, blackKingSq));
-			newAcc.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::G8, whiteKingSq, blackKingSq));
-			newAcc.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::F8, whiteKingSq, blackKingSq));
-		}
-		return;
-	}
-	if (m.flag == MoveFlag::LongCastle) {
-		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
-		if (ColorOfPiece(movedPiece) == PieceColor::White) {
-			newAcc.RemoveFeature(FeatureIndexes(Piece::WhiteRook, m.to, whiteKingSq, blackKingSq));
-			newAcc.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::C1, whiteKingSq, blackKingSq));
-			newAcc.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::D1, whiteKingSq, blackKingSq));
-		}
-		else {
-			newAcc.RemoveFeature(FeatureIndexes(Piece::BlackRook, m.to, whiteKingSq, blackKingSq));
-			newAcc.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::C8, whiteKingSq, blackKingSq));
-			newAcc.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::D8, whiteKingSq, blackKingSq));
-		}
+		newAcc.RemoveFeature(FeatureIndexes(rookPiece, m.to, whiteKingSq, blackKingSq));
+		newAcc.AddFeature(FeatureIndexes(movedPiece, newKingSquare, whiteKingSq, blackKingSq));
+		newAcc.AddFeature(FeatureIndexes(rookPiece, newRookSquare, whiteKingSq, blackKingSq));
 		return;
 	}
 
 	// (d) promotion - with optional capture
 	if (m.IsPromotion()) {
 		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		newAcc.AddFeature(FeatureIndexes(promotionPiece, m.to, whiteKingSq, blackKingSq));
-		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
-		if (capturedPiece != Piece::None) newAcc.RemoveFeature(FeatureIndexes(capturedPiece, m.to, whiteKingSq, blackKingSq));
+		if (capturedPiece == Piece::None) {
+			newAcc.AddFeature(FeatureIndexes(promotionPiece, m.to, whiteKingSq, blackKingSq));
+			newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
+		}
+		else {
+			newAcc.AddFeature(FeatureIndexes(promotionPiece, m.to, whiteKingSq, blackKingSq));
+			newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
+			newAcc.RemoveFeature(FeatureIndexes(capturedPiece, m.to, whiteKingSq, blackKingSq));
+		}
 		return;
 	}
 
