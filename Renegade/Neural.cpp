@@ -120,16 +120,13 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 
 	// (a) regular non-capture move
 	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
-		newAcc.SubtractFeature(movedPiece, m.from);
-		newAcc.AddFeature(movedPiece, m.to);
+		newAcc.AddSubFeature(movedPiece, m.to,  movedPiece, m.from);
 		return;
 	}
 
 	// (b) regular capture move
 	if (capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
-		newAcc.SubtractFeature(movedPiece, m.from);
-		newAcc.AddFeature(movedPiece, m.to);
-		newAcc.SubtractFeature(capturedPiece, m.to);
+		newAcc.AddSubSubFeature(movedPiece, m.to,  movedPiece, m.from,  capturedPiece, m.to);
 		return;
 	}
 
@@ -142,32 +139,22 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 		const uint8_t newRookFile = shortCastle ? 5 : 3;
 		const uint8_t newKingSquare = newKingFile + (side == Side::Black) * 56;
 		const uint8_t newRookSquare = newRookFile + (side == Side::Black) * 56;
-		newAcc.SubtractFeature(movedPiece, m.from);
-		newAcc.SubtractFeature(rookPiece, m.to);
-		newAcc.AddFeature(movedPiece, newKingSquare);
-		newAcc.AddFeature(rookPiece, newRookSquare);
+		newAcc.AddSubFeature(movedPiece, newKingSquare,  movedPiece, m.from);
+		newAcc.AddSubFeature(rookPiece, newRookSquare,  rookPiece, m.to);
 		return;
 	}
 
 	// (d) promotion - with optional capture
 	if (m.IsPromotion()) {
 		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		if (capturedPiece == Piece::None) {
-			newAcc.AddFeature(promotionPiece, m.to);
-			newAcc.SubtractFeature(movedPiece, m.from);
-		}
-		else {
-			newAcc.AddFeature(promotionPiece, m.to);
-			newAcc.SubtractFeature(movedPiece, m.from);
-			newAcc.SubtractFeature(capturedPiece, m.to);
-		}
+		newAcc.AddSubFeature(promotionPiece, m.to,  movedPiece, m.from);
+		if (capturedPiece != Piece::None) newAcc.SubtractFeature(capturedPiece, m.to);
 		return;
 	}
 
 	// (e) en passant
 	if (m.flag == MoveFlag::EnPassantPerformed) {
-		newAcc.SubtractFeature(movedPiece, m.from);
-		newAcc.AddFeature(movedPiece, m.to);
+		newAcc.AddSubFeature(movedPiece, m.to,  movedPiece, m.from);
 		if (movedPiece == Piece::WhitePawn) newAcc.SubtractFeature(Piece::BlackPawn, m.to - 8);
 		else newAcc.SubtractFeature(Piece::WhitePawn, m.to + 8);
 		return;

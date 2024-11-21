@@ -115,6 +115,33 @@ struct alignas(64) AccumulatorRepresentation {
 		for (int i = 0; i < HiddenSize; i++) Black[i] -= Network->FeatureWeights[BlackBucket][features.second][i];
 	}
 
+	void AddSubFeature(const uint8_t piece1, const uint8_t sq1, const uint8_t piece2, const uint8_t sq2) {
+		const auto features1 = FeatureIndexes(piece1, sq1);
+		const auto features2 = FeatureIndexes(piece2, sq2);
+
+		for (int i = 0; i < HiddenSize; i++) White[i] +=
+			+ Network->FeatureWeights[WhiteBucket][features1.first][i]
+			- Network->FeatureWeights[WhiteBucket][features2.first][i];
+		for (int i = 0; i < HiddenSize; i++) Black[i] +=
+			+ Network->FeatureWeights[BlackBucket][features1.second][i]
+			- Network->FeatureWeights[BlackBucket][features2.second][i];
+	}
+
+	void AddSubSubFeature(const uint8_t piece1, const uint8_t sq1, const uint8_t piece2, const uint8_t sq2, const uint8_t piece3, const uint8_t sq3) {
+		const auto features1 = FeatureIndexes(piece1, sq1);
+		const auto features2 = FeatureIndexes(piece2, sq2);
+		const auto features3 = FeatureIndexes(piece3, sq3);
+
+		for (int i = 0; i < HiddenSize; i++) White[i] +=
+			+ Network->FeatureWeights[WhiteBucket][features1.first][i]
+			- Network->FeatureWeights[WhiteBucket][features2.first][i]
+			- Network->FeatureWeights[WhiteBucket][features3.first][i];
+		for (int i = 0; i < HiddenSize; i++) Black[i] +=
+			+ Network->FeatureWeights[BlackBucket][features1.second][i]
+			- Network->FeatureWeights[BlackBucket][features2.second][i]
+			- Network->FeatureWeights[BlackBucket][features3.second][i];
+	}
+
 	void SetKingSquare(const bool side, const uint8_t square) {
 		if (side == Side::White) WhiteKingSquare = square;
 		else BlackKingSquare = square;
