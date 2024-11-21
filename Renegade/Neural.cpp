@@ -120,13 +120,13 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 
 	// (a) regular non-capture move
 	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
-		newAcc.AddSubFeature(movedPiece, m.to,  movedPiece, m.from);
+		newAcc.SubAddFeature({ movedPiece, m.from }, { movedPiece, m.to });
 		return;
 	}
 
 	// (b) regular capture move
 	if (capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
-		newAcc.AddSubSubFeature(movedPiece, m.to,  movedPiece, m.from,  capturedPiece, m.to);
+		newAcc.SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { movedPiece, m.to });
 		return;
 	}
 
@@ -139,27 +139,26 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 		const uint8_t newRookFile = shortCastle ? 5 : 3;
 		const uint8_t newKingSquare = newKingFile + (side == Side::Black) * 56;
 		const uint8_t newRookSquare = newRookFile + (side == Side::Black) * 56;
-		newAcc.AddSubFeature(movedPiece, newKingSquare,  movedPiece, m.from);
-		newAcc.AddSubFeature(rookPiece, newRookSquare,  rookPiece, m.to);
+		newAcc.SubAddFeature({ movedPiece, m.from }, { movedPiece, newKingSquare });
+		newAcc.SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare });
 		return;
 	}
 
 	// (d) promotion - with optional capture
 	if (m.IsPromotion()) {
 		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		newAcc.AddSubFeature(promotionPiece, m.to,  movedPiece, m.from);
-		if (capturedPiece != Piece::None) newAcc.SubtractFeature(capturedPiece, m.to);
+		if (capturedPiece == Piece::None) newAcc.SubAddFeature({ movedPiece, m.from }, { promotionPiece, m.to });
+		else newAcc.SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { promotionPiece, m.to });
 		return;
 	}
 
 	// (e) en passant
 	if (m.flag == MoveFlag::EnPassantPerformed) {
-		newAcc.AddSubFeature(movedPiece, m.to,  movedPiece, m.from);
-		if (movedPiece == Piece::WhitePawn) newAcc.SubtractFeature(Piece::BlackPawn, m.to - 8);
-		else newAcc.SubtractFeature(Piece::WhitePawn, m.to + 8);
+		const uint8_t victimPiece = movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
+		const uint8_t victimSquare = movedPiece == Piece::WhitePawn ? (m.to - 8) : (m.to + 8);
+		newAcc.SubSubAddFeature({ movedPiece, m.from }, { victimPiece, victimSquare }, { movedPiece, m.to });
 		return;
 	}
-
 }
 
 // Loading an external network (MSVC fallback) ----------------------------------------------------
