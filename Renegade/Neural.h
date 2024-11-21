@@ -47,18 +47,7 @@ struct alignas(64) NetworkRepresentation {
 
 extern const NetworkRepresentation* Network;
 
-inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq, const uint8_t whiteKingSq, const uint8_t blackKingSq) {
-	const uint8_t pieceColor = ColorOfPiece(piece);
-	const uint8_t pieceType = TypeOfPiece(piece);
-	constexpr int colorOffset = 64 * 6;
 
-	const uint8_t whiteTransform = (GetSquareFile(whiteKingSq) < 4) ? 0 : 7;
-	const uint8_t blackTransform = (GetSquareFile(blackKingSq) < 4) ? 0 : 7;
-
-	const int whiteFeatureIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + (sq ^ whiteTransform);
-	const int blackFeatureIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq ^ blackTransform);
-	return { whiteFeatureIndex, blackFeatureIndex };
-}
 
 inline int GetInputBucket(const uint8_t kingSq, const bool side) {
 	const uint8_t transform = side == Side::White ? 0 : 56;
@@ -87,29 +76,30 @@ struct alignas(64) AccumulatorRepresentation {
 
 	std::array<int16_t, HiddenSize> White;
 	std::array<int16_t, HiddenSize> Black;
-	uint8_t WhiteBucket;
-	uint8_t BlackBucket;
+	uint8_t WhiteBucket, BlackBucket;
+	uint8_t WhiteKingSquare, BlackKingSquare;
 
 	void Reset() {
 		for (int i = 0; i < HiddenSize; i++) White[i] = Network->FeatureBias[i];
 		for (int i = 0; i < HiddenSize; i++) Black[i] = Network->FeatureBias[i];
 		WhiteBucket = 0;
 		BlackBucket = 0;
+		WhiteKingSquare = 0;
+		BlackKingSquare = 0;
 	}
 
 	void Refresh(const Position& pos) {
-		
 		Reset();
 		uint64_t bits = pos.GetOccupancy();
-		const uint8_t whiteKingSq = pos.WhiteKingSquare();
-		const uint8_t blackKingSq = pos.BlackKingSquare();
-		WhiteBucket = GetInputBucket(whiteKingSq, Side::White);
-		BlackBucket = GetInputBucket(blackKingSq, Side::Black);
+		WhiteKingSquare = pos.WhiteKingSquare();
+		BlackKingSquare = pos.BlackKingSquare();
+		WhiteBucket = GetInputBucket(WhiteKingSquare, Side::White);
+		BlackBucket = GetInputBucket(BlackKingSquare, Side::Black);
 
 		while (bits) {
 			const uint8_t sq = Popsquare(bits);
 			const uint8_t piece = pos.GetPieceAt(sq);
-			AddFeature(FeatureIndexes(piece, sq, whiteKingSq, blackKingSq));
+			AddFeature(FeatureIndexes(piece, sq));
 		}
 	}
 
@@ -123,9 +113,27 @@ struct alignas(64) AccumulatorRepresentation {
 		for (int i = 0; i < HiddenSize; i++) Black[i] -= Network->FeatureWeights[BlackBucket][features.second][i];
 	}
 
+	void SetKingSquare(const bool side, const uint8_t square) {
+		if (side == Side::White) WhiteKingSquare = square;
+		else BlackKingSquare = square;
+	}
+
 	void SetActiveBucket(const bool side, const uint8_t bucket) {
 		if (side == Side::White) WhiteBucket = bucket;
 		else BlackBucket = bucket;
+	}
+
+	inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq) {
+		const uint8_t pieceColor = ColorOfPiece(piece);
+		const uint8_t pieceType = TypeOfPiece(piece);
+		constexpr int colorOffset = 64 * 6;
+
+		const uint8_t whiteTransform = (GetSquareFile(WhiteKingSquare) < 4) ? 0 : 7;
+		const uint8_t blackTransform = (GetSquareFile(BlackKingSquare) < 4) ? 0 : 7;
+
+		const int whiteFeatureIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + (sq ^ whiteTransform);
+		const int blackFeatureIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq ^ blackTransform);
+		return { whiteFeatureIndex, blackFeatureIndex };
 	}
 
 };

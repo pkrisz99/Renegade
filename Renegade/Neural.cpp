@@ -110,6 +110,7 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 			newAcc.Refresh(pos);
 			return;
 		}
+		newAcc.SetKingSquare(side, m.to);
 	}
 
 	// Case 3: Copy the previous state over - normal incremental update
@@ -119,16 +120,16 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 
 	// (a) regular non-capture move
 	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
-		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
-		newAcc.AddFeature(FeatureIndexes(movedPiece, m.to, whiteKingSq, blackKingSq));
+		newAcc.RemoveFeature(newAcc.FeatureIndexes(movedPiece, m.from));
+		newAcc.AddFeature(newAcc.FeatureIndexes(movedPiece, m.to));
 		return;
 	}
 
 	// (b) regular capture move
 	if (capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
-		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
-		newAcc.AddFeature(FeatureIndexes(movedPiece, m.to, whiteKingSq, blackKingSq));
-		newAcc.RemoveFeature(FeatureIndexes(capturedPiece, m.to, whiteKingSq, blackKingSq));
+		newAcc.RemoveFeature(newAcc.FeatureIndexes(movedPiece, m.from));
+		newAcc.AddFeature(newAcc.FeatureIndexes(movedPiece, m.to));
+		newAcc.RemoveFeature(newAcc.FeatureIndexes(capturedPiece, m.to));
 		return;
 	}
 
@@ -141,10 +142,10 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 		const uint8_t newRookFile = shortCastle ? 5 : 3;
 		const uint8_t newKingSquare = newKingFile + (side == Side::Black) * 56;
 		const uint8_t newRookSquare = newRookFile + (side == Side::Black) * 56;
-		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
-		newAcc.RemoveFeature(FeatureIndexes(rookPiece, m.to, whiteKingSq, blackKingSq));
-		newAcc.AddFeature(FeatureIndexes(movedPiece, newKingSquare, whiteKingSq, blackKingSq));
-		newAcc.AddFeature(FeatureIndexes(rookPiece, newRookSquare, whiteKingSq, blackKingSq));
+		newAcc.RemoveFeature(newAcc.FeatureIndexes(movedPiece, m.from));
+		newAcc.RemoveFeature(newAcc.FeatureIndexes(rookPiece, m.to));
+		newAcc.AddFeature(newAcc.FeatureIndexes(movedPiece, newKingSquare));
+		newAcc.AddFeature(newAcc.FeatureIndexes(rookPiece, newRookSquare));
 		return;
 	}
 
@@ -152,23 +153,23 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 	if (m.IsPromotion()) {
 		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
 		if (capturedPiece == Piece::None) {
-			newAcc.AddFeature(FeatureIndexes(promotionPiece, m.to, whiteKingSq, blackKingSq));
-			newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
+			newAcc.AddFeature(newAcc.FeatureIndexes(promotionPiece, m.to));
+			newAcc.RemoveFeature(newAcc.FeatureIndexes(movedPiece, m.from));
 		}
 		else {
-			newAcc.AddFeature(FeatureIndexes(promotionPiece, m.to, whiteKingSq, blackKingSq));
-			newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
-			newAcc.RemoveFeature(FeatureIndexes(capturedPiece, m.to, whiteKingSq, blackKingSq));
+			newAcc.AddFeature(newAcc.FeatureIndexes(promotionPiece, m.to));
+			newAcc.RemoveFeature(newAcc.FeatureIndexes(movedPiece, m.from));
+			newAcc.RemoveFeature(newAcc.FeatureIndexes(capturedPiece, m.to));
 		}
 		return;
 	}
 
 	// (e) en passant
 	if (m.flag == MoveFlag::EnPassantPerformed) {
-		newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
-		newAcc.AddFeature(FeatureIndexes(movedPiece, m.to, whiteKingSq, blackKingSq));
-		if (movedPiece == Piece::WhitePawn) newAcc.RemoveFeature(FeatureIndexes(Piece::BlackPawn, m.to - 8, whiteKingSq, blackKingSq));
-		else newAcc.RemoveFeature(FeatureIndexes(Piece::WhitePawn, m.to + 8, whiteKingSq, blackKingSq));
+		newAcc.RemoveFeature(newAcc.FeatureIndexes(movedPiece, m.from));
+		newAcc.AddFeature(newAcc.FeatureIndexes(movedPiece, m.to));
+		if (movedPiece == Piece::WhitePawn) newAcc.RemoveFeature(newAcc.FeatureIndexes(Piece::BlackPawn, m.to - 8));
+		else newAcc.RemoveFeature(newAcc.FeatureIndexes(Piece::WhitePawn, m.to + 8));
 		return;
 	}
 
