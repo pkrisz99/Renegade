@@ -120,16 +120,16 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 
 	// (a) regular non-capture move
 	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
-		newAcc.RemoveFeature(newAcc.FeatureIndexes(movedPiece, m.from));
-		newAcc.AddFeature(newAcc.FeatureIndexes(movedPiece, m.to));
+		newAcc.SubtractFeature(movedPiece, m.from);
+		newAcc.AddFeature(movedPiece, m.to);
 		return;
 	}
 
 	// (b) regular capture move
 	if (capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
-		newAcc.RemoveFeature(newAcc.FeatureIndexes(movedPiece, m.from));
-		newAcc.AddFeature(newAcc.FeatureIndexes(movedPiece, m.to));
-		newAcc.RemoveFeature(newAcc.FeatureIndexes(capturedPiece, m.to));
+		newAcc.SubtractFeature(movedPiece, m.from);
+		newAcc.AddFeature(movedPiece, m.to);
+		newAcc.SubtractFeature(capturedPiece, m.to);
 		return;
 	}
 
@@ -142,10 +142,10 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 		const uint8_t newRookFile = shortCastle ? 5 : 3;
 		const uint8_t newKingSquare = newKingFile + (side == Side::Black) * 56;
 		const uint8_t newRookSquare = newRookFile + (side == Side::Black) * 56;
-		newAcc.RemoveFeature(newAcc.FeatureIndexes(movedPiece, m.from));
-		newAcc.RemoveFeature(newAcc.FeatureIndexes(rookPiece, m.to));
-		newAcc.AddFeature(newAcc.FeatureIndexes(movedPiece, newKingSquare));
-		newAcc.AddFeature(newAcc.FeatureIndexes(rookPiece, newRookSquare));
+		newAcc.SubtractFeature(movedPiece, m.from);
+		newAcc.SubtractFeature(rookPiece, m.to);
+		newAcc.AddFeature(movedPiece, newKingSquare);
+		newAcc.AddFeature(rookPiece, newRookSquare);
 		return;
 	}
 
@@ -153,23 +153,23 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 	if (m.IsPromotion()) {
 		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
 		if (capturedPiece == Piece::None) {
-			newAcc.AddFeature(newAcc.FeatureIndexes(promotionPiece, m.to));
-			newAcc.RemoveFeature(newAcc.FeatureIndexes(movedPiece, m.from));
+			newAcc.AddFeature(promotionPiece, m.to);
+			newAcc.SubtractFeature(movedPiece, m.from);
 		}
 		else {
-			newAcc.AddFeature(newAcc.FeatureIndexes(promotionPiece, m.to));
-			newAcc.RemoveFeature(newAcc.FeatureIndexes(movedPiece, m.from));
-			newAcc.RemoveFeature(newAcc.FeatureIndexes(capturedPiece, m.to));
+			newAcc.AddFeature(promotionPiece, m.to);
+			newAcc.SubtractFeature(movedPiece, m.from);
+			newAcc.SubtractFeature(capturedPiece, m.to);
 		}
 		return;
 	}
 
 	// (e) en passant
 	if (m.flag == MoveFlag::EnPassantPerformed) {
-		newAcc.RemoveFeature(newAcc.FeatureIndexes(movedPiece, m.from));
-		newAcc.AddFeature(newAcc.FeatureIndexes(movedPiece, m.to));
-		if (movedPiece == Piece::WhitePawn) newAcc.RemoveFeature(newAcc.FeatureIndexes(Piece::BlackPawn, m.to - 8));
-		else newAcc.RemoveFeature(newAcc.FeatureIndexes(Piece::WhitePawn, m.to + 8));
+		newAcc.SubtractFeature(movedPiece, m.from);
+		newAcc.AddFeature(movedPiece, m.to);
+		if (movedPiece == Piece::WhitePawn) newAcc.SubtractFeature(Piece::BlackPawn, m.to - 8);
+		else newAcc.SubtractFeature(Piece::WhitePawn, m.to + 8);
 		return;
 	}
 

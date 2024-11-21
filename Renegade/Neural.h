@@ -99,16 +99,18 @@ struct alignas(64) AccumulatorRepresentation {
 		while (bits) {
 			const uint8_t sq = Popsquare(bits);
 			const uint8_t piece = pos.GetPieceAt(sq);
-			AddFeature(FeatureIndexes(piece, sq));
+			AddFeature(piece, sq);
 		}
 	}
 
-	void AddFeature(const std::pair<int, int>& features) {
+	void AddFeature(const uint8_t piece, const uint8_t sq) {
+		const auto features = FeatureIndexes(piece, sq);
 		for (int i = 0; i < HiddenSize; i++) White[i] += Network->FeatureWeights[WhiteBucket][features.first][i];
 		for (int i = 0; i < HiddenSize; i++) Black[i] += Network->FeatureWeights[BlackBucket][features.second][i];
 	}
 
-	void RemoveFeature(const std::pair<int, int>& features) {
+	void SubtractFeature(const uint8_t piece, const uint8_t sq) {
+		const auto features = FeatureIndexes(piece, sq);
 		for (int i = 0; i < HiddenSize; i++) White[i] -= Network->FeatureWeights[WhiteBucket][features.first][i];
 		for (int i = 0; i < HiddenSize; i++) Black[i] -= Network->FeatureWeights[BlackBucket][features.second][i];
 	}
