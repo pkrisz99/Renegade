@@ -110,6 +110,7 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 			newAcc.Refresh(pos);
 			return;
 		}
+		newAcc.SetKingSquare(side, m.to);
 	}
 
 	// Case 3: Copy the previous state over - normal incremental update
@@ -117,53 +118,46 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 	const uint8_t whiteKingSq = pos.WhiteKingSquare();
 	const uint8_t blackKingSq = pos.BlackKingSquare();
 
-	// No longer activate the previous position of the moved piece
-	newAcc.RemoveFeature(FeatureIndexes(movedPiece, m.from, whiteKingSq, blackKingSq));
-
-	// No longer activate the position of the captured piece (if any)
-	if (capturedPiece != Piece::None) {
-		newAcc.RemoveFeature(FeatureIndexes(capturedPiece, m.to, whiteKingSq, blackKingSq));
+	// (a) regular non-capture move
+	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
+		newAcc.SubAddFeature({ movedPiece, m.from }, { movedPiece, m.to });
+		return;
 	}
 
-	// Activate the new position of the moved piece
-	if (!m.IsPromotion() && !m.IsCastling()) {
-		newAcc.AddFeature(FeatureIndexes(movedPiece, m.to, whiteKingSq, blackKingSq));
+	// (b) regular capture move
+	if (capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
+		newAcc.SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { movedPiece, m.to });
+		return;
 	}
-	else if (m.IsPromotion()) {
+
+	// (c) castling
+	if (m.IsCastling()) {
+		const bool side = ColorOfPiece(movedPiece) == PieceColor::White;
+		const bool shortCastle = m.flag == MoveFlag::ShortCastle;
+		const uint8_t rookPiece = side == Side::White ? Piece::WhiteRook : Piece::BlackRook;
+		const uint8_t newKingFile = shortCastle ? 6 : 2;
+		const uint8_t newRookFile = shortCastle ? 5 : 3;
+		const uint8_t newKingSquare = newKingFile + (side == Side::Black) * 56;
+		const uint8_t newRookSquare = newRookFile + (side == Side::Black) * 56;
+		newAcc.SubAddFeature({ movedPiece, m.from }, { movedPiece, newKingSquare });
+		newAcc.SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare });
+		return;
+	}
+
+	// (d) promotion - with optional capture
+	if (m.IsPromotion()) {
 		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		newAcc.AddFeature(FeatureIndexes(promotionPiece, m.to, whiteKingSq, blackKingSq));
+		if (capturedPiece == Piece::None) newAcc.SubAddFeature({ movedPiece, m.from }, { promotionPiece, m.to });
+		else newAcc.SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { promotionPiece, m.to });
+		return;
 	}
 
-	// Special cases
-	switch (m.flag) {
-	case MoveFlag::None: break;
-
-	case MoveFlag::ShortCastle:
-		if (ColorOfPiece(movedPiece) == PieceColor::White) {
-			newAcc.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::G1, whiteKingSq, blackKingSq));
-			newAcc.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::F1, whiteKingSq, blackKingSq));
-		}
-		else {
-			newAcc.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::G8, whiteKingSq, blackKingSq));
-			newAcc.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::F8, whiteKingSq, blackKingSq));
-		}
-		break;
-
-	case MoveFlag::LongCastle:
-		if (ColorOfPiece(movedPiece) == PieceColor::White) {
-			newAcc.AddFeature(FeatureIndexes(Piece::WhiteKing, Squares::C1, whiteKingSq, blackKingSq));
-			newAcc.AddFeature(FeatureIndexes(Piece::WhiteRook, Squares::D1, whiteKingSq, blackKingSq));
-		}
-		else {
-			newAcc.AddFeature(FeatureIndexes(Piece::BlackKing, Squares::C8, whiteKingSq, blackKingSq));
-			newAcc.AddFeature(FeatureIndexes(Piece::BlackRook, Squares::D8, whiteKingSq, blackKingSq));
-		}
-		break;
-
-	case MoveFlag::EnPassantPerformed:
-		if (movedPiece == Piece::WhitePawn) newAcc.RemoveFeature(FeatureIndexes(Piece::BlackPawn, m.to - 8, whiteKingSq, blackKingSq));
-		else newAcc.RemoveFeature(FeatureIndexes(Piece::WhitePawn, m.to + 8, whiteKingSq, blackKingSq));
-		break;
+	// (e) en passant
+	if (m.flag == MoveFlag::EnPassantPerformed) {
+		const uint8_t victimPiece = movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
+		const uint8_t victimSquare = movedPiece == Piece::WhitePawn ? (m.to - 8) : (m.to + 8);
+		newAcc.SubSubAddFeature({ movedPiece, m.from }, { victimPiece, victimSquare }, { movedPiece, m.to });
+		return;
 	}
 }
 
