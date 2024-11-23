@@ -120,7 +120,8 @@ struct alignas(64) AccumulatorRepresentation {
 
 	// Fused NNUE updates are generally a speedup, however it seems to depend on the exact machine:
 	// failed to gain when tested on cloud workers, even though there was around a ~5% nps increase
-	// locally. For this reason this code stays for now, but it requires further investigation.
+	// locally. For this reason this code stays for now, but it requires further investigation. Is
+	// it possible, that this optimization no longer gains due to better compilers getting better?
 
 	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2) {
 		const auto features1 = FeatureIndexes(f1.piece, f1.square);
