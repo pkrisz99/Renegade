@@ -161,13 +161,17 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 	}
 }
 
-// Loading an external network (MSVC fallback) ----------------------------------------------------
+// Loading the neural network ---------------------------------------------------------------------
 
-void LoadExternalNetwork(const std::string& filename) {
-
-	std::ifstream ifs(filename, std::ios::binary);
+void LoadDefaultNetwork() {
+#if !defined(_MSC_VER) || defined(__clang__)
+	// Include binary in the executable file via incbin (good)
+	Network = reinterpret_cast<const NetworkRepresentation*>(gDefaultNetworkData);
+#else
+	// Load network file from disk at runtime (bad)
+	std::ifstream ifs(NETWORK_NAME, std::ios::binary);
 	if (!ifs) {
-		cout << "Failed to load network: " << filename << endl;
+		cout << "Failed to load network: " << NETWORK_NAME << endl;
 		return;
 	}
 
@@ -176,20 +180,11 @@ void LoadExternalNetwork(const std::string& filename) {
 	std::swap(ExternalNetwork, loadedNetwork);
 	Network = ExternalNetwork.get();
 
+	// Check if startpos evaluation actually makes sense
 	const Position pos{};
 	const int startposEval = NeuralEvaluate(pos);
-	if (std::abs(startposEval) < 300 && startposEval != 0) cout << "Loaded '" << filename << "' external network probably successfully";
-	else cout << "Loaded '" << filename << "', but it stinks";
+	if (std::abs(startposEval) < 300 && startposEval != 0) cout << "Loaded '" << NETWORK_NAME << "' network from disk probably successfully";
+	else cout << "Loaded '" << NETWORK_NAME << "', but it stinks";
 	cout << " (startpos raw eval: " << startposEval << ")" << endl;
-}
-
-void LoadDefaultNetwork() {
-	ExternalNetwork.reset();
-#if !defined(_MSC_VER) || defined(__clang__)
-	// Include binary in the executable file via incbin (good)
-	Network = reinterpret_cast<const NetworkRepresentation*>(gDefaultNetworkData);
-#else
-	// Load network file from disk at runtime (bad)
-	LoadExternalNetwork(NETWORK_NAME);
 #endif
 }

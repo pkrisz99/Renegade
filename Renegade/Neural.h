@@ -15,9 +15,7 @@
 // for each piece: score += (15 - (manhattan distance to opponent's king)) * 6
 
 // Network constants
-#ifndef NETWORK_NAME
 #define NETWORK_NAME "renegade-net-29.bin"
-#endif
 
 constexpr int FeatureSize = 768;
 constexpr int HiddenSize = 1408;
@@ -175,11 +173,10 @@ struct alignas(64) AccumulatorRepresentation {
 
 };
 
-int NeuralEvaluate(const Position &position);
+int NeuralEvaluate(const Position& position);
 int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc);
 
 void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& oldAcc, AccumulatorRepresentation& newAcc,
 	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
 
 void LoadDefaultNetwork();
-void LoadExternalNetwork(const std::string& filename);
