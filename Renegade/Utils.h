@@ -8,9 +8,11 @@
 #include <cstring>
 #include <iostream>
 #include <iterator>
+#include <locale>
 #include <numeric>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <vector>
 
 using std::cout;
@@ -19,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.1.55";
+constexpr std::string_view Version = "dev 1.1.56";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -39,7 +41,7 @@ constexpr std::array<double, 4> bs = { -5.59848897, 45.67341221, -112.43672836, 
 static_assert(static_cast<int>(std::reduce(as.begin(), as.end())) == PawnNormalizationForMove32);
 
 std::pair<double, double> ModelWDLForPly(const int ply);
-std::pair<int, int> GetWDL(const int score, const int ply);
+std::tuple<int, int, int> GetWDL(const int score, const int ply);
 int ToCentipawns(const int score, const int ply);
 
 // Score range detection:
@@ -327,6 +329,18 @@ namespace Console {
 	static void ClearScreen() {
 		cout << "\033[2J\033[1;1H" << std::flush;
 	};
+
+	static std::string FormatInteger(const uint64_t number) {
+		struct FormattingPunct : std::numpunct<char> {
+			char do_thousands_sep() const override { return ','; }
+			std::string do_grouping() const override { return "\3"; }
+		};
+		std::locale formatLocale(std::locale::classic(), new FormattingPunct);
+		std::stringstream ss;
+		ss.imbue(formatLocale);
+		ss << number;
+		return ss.str();
+	}
 }
 
 static inline uint8_t SquareToNum(const std::string& sq) {

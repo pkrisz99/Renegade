@@ -51,8 +51,7 @@ void PrintInfo(const Results& e) {
 
 	std::string wdlOutput{};
 	if (Settings::ShowWDL) {
-		const auto [w, l] = GetWDL(e.score, e.ply);
-		const int d = 1000 - w - l;
+		const auto [w, d, l] = GetWDL(e.score, e.ply);
 		wdlOutput = " wdl " + std::to_string(w) + " " + std::to_string(d) + " " + std::to_string(l);
 	}
 
@@ -79,31 +78,23 @@ void PrintPretty(const Results& e) {
 
 	const std::string outputDepth = std::format("{:2d}/{:2d}", e.depth, e.seldepth);
 
-	const std::string outputNodes = [&] {
-		if (e.nodes < 1e9) return std::to_string(e.nodes);
-		return std::format("{:8.3f}", e.nodes / 1e9) + "b";
-	}();
+	const std::string outputNodes = Console::FormatInteger(e.nodes);
 
 	const std::string outputTime = [&] {
-		if (e.time < 60000) return std::to_string(e.time) + "ms";
-
-		int seconds = e.time / 1000;
-		int minutes = seconds / 60;
-		seconds = seconds - minutes * 60;
-		return std::format("{}m{:02d}s", minutes, seconds);
+		if (e.time < 60000) return std::format("{:>5.2f}s", e.time / 1000.0);
+		const int seconds = e.time / 1000;
+		const auto [m, s] = std::div(seconds, 60);
+		return std::format("{}m{:02d}s", m, s);
 	}();
 
-	const std::string outputHash = [&] {
-		if (e.hashfull != 1000) return std::format("{:4.1f}", e.hashfull / 10.0);
-		else return std::string("100");
-	}();
+	const std::string outputHash = std::format("{:>2d}", std::min(e.hashfull / 10, 99));
 
 	const std::string outputNps = [&] {
 		if (e.threads == 1) return std::format("{:>4d}knps", e.nps / 1000);
 		else return std::format("{:>4.1f}mnps", e.nps / 1e6);
 	}();
 
-	const std::string outputSearch = std::format(" {}{}  {}{:>9}  {:>7}  {}  h={:>4}%  {}->",
+	const std::string outputSearch = std::format(" {}{} {}{:>13} {:>7} {:>9}  h={}%  {}->",
 		Console::White, outputDepth, Console::Gray, outputNodes, outputTime, outputNps, outputHash, Console::White);
 
 	// Evaluation and win-draw-loss:
@@ -129,8 +120,7 @@ void PrintPretty(const Results& e) {
 		}
 	}();
 
-	const auto [modelW, modelL] = GetWDL(e.score, e.ply);
-	const int modelD = 1000 - modelW - modelL;
+	const auto [modelW, modelD, modelL] = GetWDL(e.score, e.ply);
 	constexpr double q = 10.0;
 	const int w = static_cast<int>(std::round(modelW / q));
 	const int d = static_cast<int>(std::round(modelD / q));
@@ -152,8 +142,8 @@ void PrintPretty(const Results& e) {
 			list += e.pv[i].ToString(Settings::Chess960) + " ";
 		}
 		list.pop_back();
-		if (pvMoveCount > movesShown) list += " (+" + std::to_string(pvMoveCount - movesShown) + ")";
-		return "  " + Console::White + "[" + list + "]";
+		if (pvMoveCount > movesShown) list += Console::Gray + " +" + std::to_string(pvMoveCount - movesShown) + Console::White;
+		return "  " + Console::White + list;
 	}();
 
 	// Putting it together, and printing to standard output:
