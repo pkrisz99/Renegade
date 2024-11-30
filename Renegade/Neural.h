@@ -80,40 +80,51 @@ struct alignas(64) AccumulatorRepresentation {
 	uint8_t WhiteBucket, BlackBucket;
 	uint8_t WhiteKingSquare, BlackKingSquare;
 
-	void Reset() {
-		for (int i = 0; i < HiddenSize; i++) White[i] = Network->FeatureBias[i];
-		for (int i = 0; i < HiddenSize; i++) Black[i] = Network->FeatureBias[i];
-		WhiteBucket = 0;
-		BlackBucket = 0;
-		WhiteKingSquare = 0;
-		BlackKingSquare = 0;
+	void RefreshBoth(const Position& pos) {
+		RefreshWhite(pos);
+		RefreshBlack(pos);
 	}
 
-	void Refresh(const Position& pos) {
-		Reset();
-		uint64_t bits = pos.GetOccupancy();
+	void RefreshWhite(const Position& pos) {
+		for (int i = 0; i < HiddenSize; i++) White[i] = Network->FeatureBias[i];
 		WhiteKingSquare = pos.WhiteKingSquare();
-		BlackKingSquare = pos.BlackKingSquare();
 		WhiteBucket = GetInputBucket(WhiteKingSquare, Side::White);
-		BlackBucket = GetInputBucket(BlackKingSquare, Side::Black);
-
+		
+		uint64_t bits = pos.GetOccupancy();
 		while (bits) {
 			const uint8_t sq = Popsquare(bits);
 			const uint8_t piece = pos.GetPieceAt(sq);
-			AddFeature(piece, sq);
+			AddFeatureWhite(piece, sq);
 		}
 	}
 
-	void AddFeature(const uint8_t piece, const uint8_t sq) {
+	void RefreshBlack(const Position& pos) {
+		for (int i = 0; i < HiddenSize; i++) Black[i] = Network->FeatureBias[i];
+		BlackKingSquare = pos.BlackKingSquare();
+		BlackBucket = GetInputBucket(BlackKingSquare, Side::Black);
+
+		uint64_t bits = pos.GetOccupancy();
+		while (bits) {
+			const uint8_t sq = Popsquare(bits);
+			const uint8_t piece = pos.GetPieceAt(sq);
+			AddFeatureBlack(piece, sq);
+		}
+	}
+
+	void AddFeatureWhite(const uint8_t piece, const uint8_t sq) {
+		const auto feature = FeatureIndexes(piece, sq).first;
+		for (int i = 0; i < HiddenSize; i++) White[i] += Network->FeatureWeights[WhiteBucket][feature][i];
+	}
+
+	void AddFeatureBlack(const uint8_t piece, const uint8_t sq) {
+		const auto feature = FeatureIndexes(piece, sq).second;
+		for (int i = 0; i < HiddenSize; i++) Black[i] += Network->FeatureWeights[BlackBucket][feature][i];
+	}
+
+	void AddFeatureBoth(const uint8_t piece, const uint8_t sq) {
 		const auto features = FeatureIndexes(piece, sq);
 		for (int i = 0; i < HiddenSize; i++) White[i] += Network->FeatureWeights[WhiteBucket][features.first][i];
 		for (int i = 0; i < HiddenSize; i++) Black[i] += Network->FeatureWeights[BlackBucket][features.second][i];
-	}
-
-	void SubtractFeature(const uint8_t piece, const uint8_t sq) {
-		const auto features = FeatureIndexes(piece, sq);
-		for (int i = 0; i < HiddenSize; i++) White[i] -= Network->FeatureWeights[WhiteBucket][features.first][i];
-		for (int i = 0; i < HiddenSize; i++) Black[i] -= Network->FeatureWeights[BlackBucket][features.second][i];
 	}
 
 	// Fused NNUE updates are generally a speedup, however it seems to depend on the exact machine:
@@ -121,31 +132,39 @@ struct alignas(64) AccumulatorRepresentation {
 	// locally. For this reason this code stays for now, but it requires further investigation. Is
 	// it possible, that this optimization no longer gains due to better compilers getting better?
 
-	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2) {
+	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const bool updateWhite, const bool updateBlack) {
 		const auto features1 = FeatureIndexes(f1.piece, f1.square);
 		const auto features2 = FeatureIndexes(f2.piece, f2.square);
 
-		for (int i = 0; i < HiddenSize; i++) White[i] +=
-			- Network->FeatureWeights[WhiteBucket][features1.first][i]
-			+ Network->FeatureWeights[WhiteBucket][features2.first][i];
-		for (int i = 0; i < HiddenSize; i++) Black[i] +=
-			- Network->FeatureWeights[BlackBucket][features1.second][i]
-			+ Network->FeatureWeights[BlackBucket][features2.second][i];
+		if (updateWhite) {
+			for (int i = 0; i < HiddenSize; i++) White[i] +=
+				- Network->FeatureWeights[WhiteBucket][features1.first][i]
+				+ Network->FeatureWeights[WhiteBucket][features2.first][i];
+		}
+		if (updateBlack) {
+			for (int i = 0; i < HiddenSize; i++) Black[i] +=
+				- Network->FeatureWeights[BlackBucket][features1.second][i]
+				+ Network->FeatureWeights[BlackBucket][features2.second][i];
+		}
 	}
 
-	void SubSubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3) {
+	void SubSubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3, const bool updateWhite, const bool updateBlack) {
 		const auto features1 = FeatureIndexes(f1.piece, f1.square);
 		const auto features2 = FeatureIndexes(f2.piece, f2.square);
 		const auto features3 = FeatureIndexes(f3.piece, f3.square);
 
-		for (int i = 0; i < HiddenSize; i++) White[i] +=
-			- Network->FeatureWeights[WhiteBucket][features1.first][i]
-			- Network->FeatureWeights[WhiteBucket][features2.first][i]
-			+ Network->FeatureWeights[WhiteBucket][features3.first][i];
-		for (int i = 0; i < HiddenSize; i++) Black[i] +=
-			- Network->FeatureWeights[BlackBucket][features1.second][i]
-			- Network->FeatureWeights[BlackBucket][features2.second][i]
-			+ Network->FeatureWeights[BlackBucket][features3.second][i];
+		if (updateWhite) {
+			for (int i = 0; i < HiddenSize; i++) White[i] +=
+				- Network->FeatureWeights[WhiteBucket][features1.first][i]
+				- Network->FeatureWeights[WhiteBucket][features2.first][i]
+				+ Network->FeatureWeights[WhiteBucket][features3.first][i];
+		}
+		if (updateBlack) {
+			for (int i = 0; i < HiddenSize; i++) Black[i] +=
+				- Network->FeatureWeights[BlackBucket][features1.second][i]
+				- Network->FeatureWeights[BlackBucket][features2.second][i]
+				+ Network->FeatureWeights[BlackBucket][features3.second][i];
+		}
 	}
 
 	void SetKingSquare(const bool side, const uint8_t square) {
@@ -171,12 +190,12 @@ struct alignas(64) AccumulatorRepresentation {
 		return { whiteFeatureIndex, blackFeatureIndex };
 	}
 
+	void UpdateFrom(const Position& pos, const AccumulatorRepresentation& oldAcc,
+		const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
+
 };
 
 int NeuralEvaluate(const Position& position);
 int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc);
-
-void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& oldAcc, AccumulatorRepresentation& newAcc,
-	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
 
 void LoadDefaultNetwork();
