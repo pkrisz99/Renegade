@@ -152,7 +152,7 @@ namespace FEN {
 	static const std::string Lasker = "rn3r2/pbppq1p1/1p2pN1k/4N3/3P4/3B4/PPP2PPP/R3K2R w KQ - 1 13"; // Lasker-Thomas, London 1912 (mate in 5 test position)
 }
 
-constexpr std::array<char, 14> PieceChars = { ' ', 'P', 'N', 'B', 'R', 'Q', 'K', '?', 'p', 'n', 'b', 'r', 'q', 'k' };
+constexpr std::array<char, 15> PieceChars = { ' ', 'P', 'N', 'B', 'R', 'Q', 'K', '?', '?', 'p', 'n', 'b', 'r', 'q', 'k' };
 
 const std::array<std::string, 64> SquareStrings = {
 	"a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
@@ -259,28 +259,12 @@ constexpr uint8_t GetSquareFile(const int square) {
 // The engine has its quirky way of representing pieces
 // Piece = PieceColor + PieceType
 
-constexpr std::array<uint8_t, 15> PieceTypeArray = {
-	PieceType::None,
-	PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen, PieceType::King,
-	PieceType::None, PieceColor::None,
-	PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen, PieceType::King,
-};
-
-constexpr std::array<uint8_t, 15> PieceColorArray = {
-	PieceColor::None,
-	PieceColor::White, PieceColor::White, PieceColor::White, PieceColor::White, PieceColor::White, PieceColor::White,
-	PieceColor::None, PieceColor::None,
-	PieceColor::Black, PieceColor::Black, PieceColor::Black, PieceColor::Black, PieceColor::Black, PieceColor::Black
-};
-
 constexpr uint8_t TypeOfPiece(const uint8_t piece) {
-	//return piece & 0b0111;  // 0: None, 1: Pawn, 2: Knight, ...
-	return PieceTypeArray[piece];  // 0: None, 1: Pawn, 2: Knight, ...
+	return piece & 0b0111;  // 0: None, 1: Pawn, 2: Knight, ...
 }
 
 constexpr uint8_t ColorOfPiece(const uint8_t piece) {
-	//return (piece != Piece::None) ? (piece >> 3 + 1) : 0;  // 0: None, 1: White, 2: Black
-	return PieceColorArray[piece];  // 0: None, 1: White, 2: Black
+	return (piece != Piece::None) ? (piece >> 3) + 1 : 0;  // 0: None, 1: White, 2: Black
 }
 
 constexpr uint8_t SideToPieceColor(const bool side) {
