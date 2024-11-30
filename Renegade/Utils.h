@@ -96,7 +96,7 @@ namespace PieceType {
 
 namespace Piece {
 	constexpr uint8_t WhitePieceOffset = 0;
-	constexpr uint8_t BlackPieceOffset = 7;
+	constexpr uint8_t BlackPieceOffset = 8;
 	constexpr uint8_t None = 0;
 	constexpr uint8_t WhitePawn = WhitePieceOffset + PieceType::Pawn;
 	constexpr uint8_t WhiteKnight = WhitePieceOffset + PieceType::Knight;
@@ -259,25 +259,27 @@ constexpr uint8_t GetSquareFile(const int square) {
 // The engine has its quirky way of representing pieces
 // Piece = PieceColor + PieceType
 
-constexpr std::array<uint8_t, 14> PieceTypeArray = {
+constexpr std::array<uint8_t, 15> PieceTypeArray = {
 	PieceType::None,
 	PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen, PieceType::King,
-	PieceType::None,
+	PieceType::None, PieceColor::None,
 	PieceType::Pawn, PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen, PieceType::King,
 };
 
-constexpr std::array<uint8_t, 14> PieceColorArray = {
+constexpr std::array<uint8_t, 15> PieceColorArray = {
 	PieceColor::None,
 	PieceColor::White, PieceColor::White, PieceColor::White, PieceColor::White, PieceColor::White, PieceColor::White,
-	PieceColor::None,
+	PieceColor::None, PieceColor::None,
 	PieceColor::Black, PieceColor::Black, PieceColor::Black, PieceColor::Black, PieceColor::Black, PieceColor::Black
 };
 
 constexpr uint8_t TypeOfPiece(const uint8_t piece) {
+	//return piece & 0b0111;  // 0: None, 1: Pawn, 2: Knight, ...
 	return PieceTypeArray[piece];  // 0: None, 1: Pawn, 2: Knight, ...
 }
 
 constexpr uint8_t ColorOfPiece(const uint8_t piece) {
+	//return (piece != Piece::None) ? (piece >> 3 + 1) : 0;  // 0: None, 1: White, 2: Black
 	return PieceColorArray[piece];  // 0: None, 1: White, 2: Black
 }
 
