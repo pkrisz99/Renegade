@@ -108,8 +108,6 @@ void AccumulatorRepresentation::UpdateFrom(const Position& pos, const Accumulato
 	const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
 	bool keepWhite = true;
 	bool keepBlack = true;
-	SkipIncrementalForWhite = false;
-	SkipIncrementalForBlack = false;
 
 	if (TypeOfPiece(movedPiece) == PieceType::King && IsRefreshRequired(m, side)) {
 		if (side == Side::White) keepWhite = false;
@@ -120,10 +118,8 @@ void AccumulatorRepresentation::UpdateFrom(const Position& pos, const Accumulato
 		White = oldAcc.White;
 		WhiteBucket = oldAcc.WhiteBucket;
 		WhiteKingSquare = pos.WhiteKingSquare();
-		SkipIncrementalForWhite = false;
 	}
 	else {
-		SkipIncrementalForWhite = true;
 		RefreshWhite(pos);
 	}
 
@@ -131,10 +127,8 @@ void AccumulatorRepresentation::UpdateFrom(const Position& pos, const Accumulato
 		Black = oldAcc.Black;
 		BlackBucket = oldAcc.BlackBucket;
 		BlackKingSquare = pos.BlackKingSquare();
-		SkipIncrementalForBlack = false;
 	}
 	else {
-		SkipIncrementalForBlack = true;
 		RefreshBlack(pos);
 	}
 
@@ -142,13 +136,13 @@ void AccumulatorRepresentation::UpdateFrom(const Position& pos, const Accumulato
 	
 	// (a) regular non-capture move
 	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
-		SubAddFeature({ movedPiece, m.from }, { movedPiece, m.to });
+		SubAddFeature({ movedPiece, m.from }, { movedPiece, m.to }, keepWhite, keepBlack);;
 		return;
 	}
 
 	// (b) regular capture move
 	if (capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
-		SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { movedPiece, m.to });
+		SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { movedPiece, m.to }, keepWhite, keepBlack);
 		return;
 	}
 
@@ -161,16 +155,16 @@ void AccumulatorRepresentation::UpdateFrom(const Position& pos, const Accumulato
 		const uint8_t newRookFile = shortCastle ? 5 : 3;
 		const uint8_t newKingSquare = newKingFile + (side == Side::Black) * 56;
 		const uint8_t newRookSquare = newRookFile + (side == Side::Black) * 56;
-		SubAddFeature({ movedPiece, m.from }, { movedPiece, newKingSquare });
-		SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare });
+		SubAddFeature({ movedPiece, m.from }, { movedPiece, newKingSquare }, keepWhite, keepBlack);
+		SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare }, keepWhite, keepBlack);
 		return;
 	}
 
 	// (d) promotion - with optional capture
 	if (m.IsPromotion()) {
 		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		if (capturedPiece == Piece::None) SubAddFeature({ movedPiece, m.from }, { promotionPiece, m.to });
-		else SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { promotionPiece, m.to });
+		if (capturedPiece == Piece::None) SubAddFeature({ movedPiece, m.from }, { promotionPiece, m.to }, keepWhite, keepBlack);
+		else SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { promotionPiece, m.to }, keepWhite, keepBlack);
 		return;
 	}
 
@@ -178,7 +172,7 @@ void AccumulatorRepresentation::UpdateFrom(const Position& pos, const Accumulato
 	if (m.flag == MoveFlag::EnPassantPerformed) {
 		const uint8_t victimPiece = movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
 		const uint8_t victimSquare = movedPiece == Piece::WhitePawn ? (m.to - 8) : (m.to + 8);
-		SubSubAddFeature({ movedPiece, m.from }, { victimPiece, victimSquare }, { movedPiece, m.to });
+		SubSubAddFeature({ movedPiece, m.from }, { victimPiece, victimSquare }, { movedPiece, m.to }, keepWhite, keepBlack);
 		return;
 	}
 }

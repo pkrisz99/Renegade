@@ -79,7 +79,6 @@ struct alignas(64) AccumulatorRepresentation {
 	std::array<int16_t, HiddenSize> Black;
 	uint8_t WhiteBucket, BlackBucket;
 	uint8_t WhiteKingSquare, BlackKingSquare;
-	bool SkipIncrementalForWhite, SkipIncrementalForBlack;
 
 	void RefreshBoth(const Position& pos) {
 		RefreshWhite(pos);
@@ -128,45 +127,39 @@ struct alignas(64) AccumulatorRepresentation {
 		for (int i = 0; i < HiddenSize; i++) Black[i] += Network->FeatureWeights[BlackBucket][features.second][i];
 	}
 
-	void SubtractFeature(const uint8_t piece, const uint8_t sq) {
-		const auto features = FeatureIndexes(piece, sq);
-		for (int i = 0; i < HiddenSize; i++) White[i] -= Network->FeatureWeights[WhiteBucket][features.first][i];
-		for (int i = 0; i < HiddenSize; i++) Black[i] -= Network->FeatureWeights[BlackBucket][features.second][i];
-	}
-
 	// Fused NNUE updates are generally a speedup, however it seems to depend on the exact machine:
 	// failed to gain when tested on cloud workers, even though there was around a ~5% nps increase
 	// locally. For this reason this code stays for now, but it requires further investigation. Is
 	// it possible, that this optimization no longer gains due to better compilers getting better?
 
-	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2) {
+	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const bool updateWhite, const bool updateBlack) {
 		const auto features1 = FeatureIndexes(f1.piece, f1.square);
 		const auto features2 = FeatureIndexes(f2.piece, f2.square);
 
-		if (!SkipIncrementalForWhite) {
+		if (updateWhite) {
 			for (int i = 0; i < HiddenSize; i++) White[i] +=
 				- Network->FeatureWeights[WhiteBucket][features1.first][i]
 				+ Network->FeatureWeights[WhiteBucket][features2.first][i];
 		}
-		if (!SkipIncrementalForBlack) {
+		if (updateBlack) {
 			for (int i = 0; i < HiddenSize; i++) Black[i] +=
 				- Network->FeatureWeights[BlackBucket][features1.second][i]
 				+ Network->FeatureWeights[BlackBucket][features2.second][i];
 		}
 	}
 
-	void SubSubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3) {
+	void SubSubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3, const bool updateWhite, const bool updateBlack) {
 		const auto features1 = FeatureIndexes(f1.piece, f1.square);
 		const auto features2 = FeatureIndexes(f2.piece, f2.square);
 		const auto features3 = FeatureIndexes(f3.piece, f3.square);
 
-		if (!SkipIncrementalForWhite) {
+		if (updateWhite) {
 			for (int i = 0; i < HiddenSize; i++) White[i] +=
 				- Network->FeatureWeights[WhiteBucket][features1.first][i]
 				- Network->FeatureWeights[WhiteBucket][features2.first][i]
 				+ Network->FeatureWeights[WhiteBucket][features3.first][i];
 		}
-		if (!SkipIncrementalForBlack) {
+		if (updateBlack) {
 			for (int i = 0; i < HiddenSize; i++) Black[i] +=
 				- Network->FeatureWeights[BlackBucket][features1.second][i]
 				- Network->FeatureWeights[BlackBucket][features2.second][i]
