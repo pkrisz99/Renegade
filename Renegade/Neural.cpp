@@ -97,49 +97,49 @@ int NeuralEvaluate(const Position& position) {
 void AccumulatorRepresentation::UpdateFrom(const Position& pos, const AccumulatorRepresentation& oldAcc,
 	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
 
-	// Case 1: Handling null moves - just copy it over
+	// 1. For null-moves nothing changes, we just copy over everything
 	if (m.IsNull()) {
 		*this = oldAcc;
 		return;
 	}
 
-	// Case 2: King moves - check if a refresh is necessary
+	// 2. Determine if we require a refresh (which only can be needed when the king moves)
+
+	const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
+	bool keepWhite = true;
+	bool keepBlack = true;
 	SkipIncrementalForWhite = false;
 	SkipIncrementalForBlack = false;
-	bool refreshRequired = false;
-	const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
-	if (TypeOfPiece(movedPiece) == PieceType::King) {
-		SetKingSquare(side, m.to);
-		refreshRequired = IsRefreshRequired(m, side);
+
+	if (TypeOfPiece(movedPiece) == PieceType::King && IsRefreshRequired(m, side)) {
+		if (side == Side::White) keepWhite = false;
+		else keepBlack = false;
 	}
 
-	if (refreshRequired) {
-		if (side == Side::White) {
-			Black = oldAcc.Black;
-			BlackBucket = oldAcc.BlackBucket;
-			BlackKingSquare = oldAcc.BlackKingSquare;
-			SkipIncrementalForWhite = true;
-			RefreshWhite(pos);
-		}
-		else {
-			White = oldAcc.White;
-			WhiteBucket = oldAcc.WhiteBucket;
-			WhiteKingSquare = oldAcc.WhiteKingSquare;
-			SkipIncrementalForBlack = true;
-			RefreshBlack(pos);
-		}
+	if (keepWhite) {
+		White = oldAcc.White;
+		WhiteBucket = oldAcc.WhiteBucket;
+		WhiteKingSquare = pos.WhiteKingSquare();
+		SkipIncrementalForWhite = false;
 	}
 	else {
-		White = oldAcc.White;
-		Black = oldAcc.Black;
-		WhiteBucket = oldAcc.WhiteBucket;
-		BlackBucket = oldAcc.BlackBucket;
-		WhiteKingSquare = pos.WhiteKingSquare();
-		BlackKingSquare = pos.BlackKingSquare();
-		SkipIncrementalForWhite = false;
-		SkipIncrementalForBlack = false;
+		SkipIncrementalForWhite = true;
+		RefreshWhite(pos);
 	}
 
+	if (keepBlack) {
+		Black = oldAcc.Black;
+		BlackBucket = oldAcc.BlackBucket;
+		BlackKingSquare = pos.BlackKingSquare();
+		SkipIncrementalForBlack = false;
+	}
+	else {
+		SkipIncrementalForBlack = true;
+		RefreshBlack(pos);
+	}
+
+	// 3. Perform incremental updates
+	
 	// (a) regular non-capture move
 	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
 		SubAddFeature({ movedPiece, m.from }, { movedPiece, m.to });
