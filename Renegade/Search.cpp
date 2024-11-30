@@ -869,7 +869,7 @@ void Search::SetupAccumulators(ThreadData& t, const Position& position) {
 }
 
 void Search::UpdateAccumulators(ThreadData& t, const Position& pos, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
-	UpdateAccumulator(pos, t.Accumulators[level], t.Accumulators[level + 1], m, movedPiece, capturedPiece);
+	t.Accumulators[level + 1].UpdateFrom(pos, t.Accumulators[level], m, movedPiece, capturedPiece);
 }
 
 // PV table ---------------------------------------------------------------------------------------

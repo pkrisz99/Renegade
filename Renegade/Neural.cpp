@@ -94,61 +94,61 @@ int NeuralEvaluate(const Position& position) {
 
 // Accumulator updates ----------------------------------------------------------------------------
 
-void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& oldAcc, AccumulatorRepresentation& newAcc,
+void AccumulatorRepresentation::UpdateFrom(const Position& pos, const AccumulatorRepresentation& oldAcc,
 	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
 
 	// Case 1: Handling null moves - just copy it over
 	if (m.IsNull()) {
-		newAcc = oldAcc;
+		*this = oldAcc;
 		return;
 	}
 
 	// Case 2: King moves - check if a refresh is necessary
-	newAcc.SkipIncrementalForWhite = false;
-	newAcc.SkipIncrementalForBlack = false;
+	SkipIncrementalForWhite = false;
+	SkipIncrementalForBlack = false;
 	bool refreshRequired = false;
 	const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
 	if (TypeOfPiece(movedPiece) == PieceType::King) {
-		newAcc.SetKingSquare(side, m.to);
+		SetKingSquare(side, m.to);
 		refreshRequired = IsRefreshRequired(m, side);
 	}
 
 	if (refreshRequired) {
 		if (side == Side::White) {
-			newAcc.Black = oldAcc.Black;
-			newAcc.BlackBucket = oldAcc.BlackBucket;
-			newAcc.BlackKingSquare = oldAcc.BlackKingSquare;
-			newAcc.SkipIncrementalForWhite = true;
-			newAcc.RefreshWhite(pos);
+			Black = oldAcc.Black;
+			BlackBucket = oldAcc.BlackBucket;
+			BlackKingSquare = oldAcc.BlackKingSquare;
+			SkipIncrementalForWhite = true;
+			RefreshWhite(pos);
 		}
 		else {
-			newAcc.White = oldAcc.White;
-			newAcc.WhiteBucket = oldAcc.WhiteBucket;
-			newAcc.WhiteKingSquare = oldAcc.WhiteKingSquare;
-			newAcc.SkipIncrementalForBlack = true;
-			newAcc.RefreshBlack(pos);
+			White = oldAcc.White;
+			WhiteBucket = oldAcc.WhiteBucket;
+			WhiteKingSquare = oldAcc.WhiteKingSquare;
+			SkipIncrementalForBlack = true;
+			RefreshBlack(pos);
 		}
 	}
 	else {
-		newAcc.White = oldAcc.White;
-		newAcc.Black = oldAcc.Black;
-		newAcc.WhiteBucket = oldAcc.WhiteBucket;
-		newAcc.BlackBucket = oldAcc.BlackBucket;
-		newAcc.WhiteKingSquare = pos.WhiteKingSquare();
-		newAcc.BlackKingSquare = pos.BlackKingSquare();
-		newAcc.SkipIncrementalForWhite = false;
-		newAcc.SkipIncrementalForBlack = false;
+		White = oldAcc.White;
+		Black = oldAcc.Black;
+		WhiteBucket = oldAcc.WhiteBucket;
+		BlackBucket = oldAcc.BlackBucket;
+		WhiteKingSquare = pos.WhiteKingSquare();
+		BlackKingSquare = pos.BlackKingSquare();
+		SkipIncrementalForWhite = false;
+		SkipIncrementalForBlack = false;
 	}
 
 	// (a) regular non-capture move
 	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
-		newAcc.SubAddFeature({ movedPiece, m.from }, { movedPiece, m.to });
+		SubAddFeature({ movedPiece, m.from }, { movedPiece, m.to });
 		return;
 	}
 
 	// (b) regular capture move
 	if (capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
-		newAcc.SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { movedPiece, m.to });
+		SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { movedPiece, m.to });
 		return;
 	}
 
@@ -161,16 +161,16 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 		const uint8_t newRookFile = shortCastle ? 5 : 3;
 		const uint8_t newKingSquare = newKingFile + (side == Side::Black) * 56;
 		const uint8_t newRookSquare = newRookFile + (side == Side::Black) * 56;
-		newAcc.SubAddFeature({ movedPiece, m.from }, { movedPiece, newKingSquare });
-		newAcc.SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare });
+		SubAddFeature({ movedPiece, m.from }, { movedPiece, newKingSquare });
+		SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare });
 		return;
 	}
 
 	// (d) promotion - with optional capture
 	if (m.IsPromotion()) {
 		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		if (capturedPiece == Piece::None) newAcc.SubAddFeature({ movedPiece, m.from }, { promotionPiece, m.to });
-		else newAcc.SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { promotionPiece, m.to });
+		if (capturedPiece == Piece::None) SubAddFeature({ movedPiece, m.from }, { promotionPiece, m.to });
+		else SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { promotionPiece, m.to });
 		return;
 	}
 
@@ -178,7 +178,7 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 	if (m.flag == MoveFlag::EnPassantPerformed) {
 		const uint8_t victimPiece = movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
 		const uint8_t victimSquare = movedPiece == Piece::WhitePawn ? (m.to - 8) : (m.to + 8);
-		newAcc.SubSubAddFeature({ movedPiece, m.from }, { victimPiece, victimSquare }, { movedPiece, m.to });
+		SubSubAddFeature({ movedPiece, m.from }, { victimPiece, victimSquare }, { movedPiece, m.to });
 		return;
 	}
 }

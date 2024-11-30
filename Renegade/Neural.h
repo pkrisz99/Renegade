@@ -197,12 +197,12 @@ struct alignas(64) AccumulatorRepresentation {
 		return { whiteFeatureIndex, blackFeatureIndex };
 	}
 
+	void UpdateFrom(const Position& pos, const AccumulatorRepresentation& oldAcc,
+		const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
+
 };
 
 int NeuralEvaluate(const Position& position);
 int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc);
-
-void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& oldAcc, AccumulatorRepresentation& newAcc,
-	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
 
 void LoadDefaultNetwork();
