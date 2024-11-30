@@ -88,7 +88,7 @@ int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& ac
 
 int NeuralEvaluate(const Position& position) {
 	AccumulatorRepresentation acc{};
-	acc.Refresh(position);
+	acc.RefreshBoth(position);
 	return NeuralEvaluate(position, acc);
 }
 
@@ -104,19 +104,41 @@ void UpdateAccumulator(const Position& pos, const AccumulatorRepresentation& old
 	}
 
 	// Case 2: King moves - check if a refresh is necessary
+	newAcc.SkipIncrementalForWhite = false;
+	newAcc.SkipIncrementalForBlack = false;
+	bool refreshRequired = false;
+	const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
 	if (TypeOfPiece(movedPiece) == PieceType::King) {
-		const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
-		if (IsRefreshRequired(m, side)) {
-			newAcc.Refresh(pos);
-			return;
-		}
 		newAcc.SetKingSquare(side, m.to);
+		refreshRequired = IsRefreshRequired(m, side);
 	}
 
-	// Case 3: Copy the previous state over - normal incremental update
-	newAcc = oldAcc;
-	const uint8_t whiteKingSq = pos.WhiteKingSquare();
-	const uint8_t blackKingSq = pos.BlackKingSquare();
+	if (refreshRequired) {
+		if (side == Side::White) {
+			newAcc.Black = oldAcc.Black;
+			newAcc.BlackBucket = oldAcc.BlackBucket;
+			newAcc.BlackKingSquare = oldAcc.BlackKingSquare;
+			newAcc.SkipIncrementalForWhite = true;
+			newAcc.RefreshWhite(pos);
+		}
+		else {
+			newAcc.White = oldAcc.White;
+			newAcc.WhiteBucket = oldAcc.WhiteBucket;
+			newAcc.WhiteKingSquare = oldAcc.WhiteKingSquare;
+			newAcc.SkipIncrementalForBlack = true;
+			newAcc.RefreshBlack(pos);
+		}
+	}
+	else {
+		newAcc.White = oldAcc.White;
+		newAcc.Black = oldAcc.Black;
+		newAcc.WhiteBucket = oldAcc.WhiteBucket;
+		newAcc.BlackBucket = oldAcc.BlackBucket;
+		newAcc.WhiteKingSquare = pos.WhiteKingSquare();
+		newAcc.BlackKingSquare = pos.BlackKingSquare();
+		newAcc.SkipIncrementalForWhite = false;
+		newAcc.SkipIncrementalForBlack = false;
+	}
 
 	// (a) regular non-capture move
 	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {

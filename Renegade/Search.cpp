@@ -865,7 +865,7 @@ bool Search::StaticExchangeEval(const Position& position, const Move& move, cons
 // (the function names are very much awkward)
 
 void Search::SetupAccumulators(ThreadData& t, const Position& position) {
-	t.Accumulators[0].Refresh(position);
+	t.Accumulators[0].RefreshBoth(position);
 }
 
 void Search::UpdateAccumulators(ThreadData& t, const Position& pos, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
