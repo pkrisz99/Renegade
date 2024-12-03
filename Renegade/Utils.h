@@ -264,7 +264,7 @@ constexpr uint8_t TypeOfPiece(const uint8_t piece) {
 }
 
 constexpr uint8_t ColorOfPiece(const uint8_t piece) {
-	return (piece != Piece::None) ? (piece >> 3) + 1 : 0;  // 0: None, 1: White, 2: Black
+	return (piece > 0) + (piece > 8);  // 0: None, 1: White, 2: Black
 }
 
 constexpr uint8_t SideToPieceColor(const bool side) {
