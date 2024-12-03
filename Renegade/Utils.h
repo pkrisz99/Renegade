@@ -267,11 +267,6 @@ constexpr uint8_t ColorOfPiece(const uint8_t piece) {
 	return (piece != Piece::None) ? (piece >> 3) + 1 : 0;  // 0: None, 1: White, 2: Black
 }
 
-constexpr uint8_t CompactPiece(const uint8_t piece) {
-	// For reducing the memory footprint of various history tables
-	return piece - (piece > 8) * 2;
-}
-
 constexpr uint8_t SideToPieceColor(const bool side) {
 	return (side == Side::White) ? PieceColor::White : PieceColor::Black;
 }

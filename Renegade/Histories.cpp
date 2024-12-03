@@ -51,21 +51,21 @@ void Histories::UpdateHistory(const Position& position, const Move& m, const uin
 	const bool side = ColorOfPiece(piece) == PieceColor::White;
 	const bool fromSquareAttacked = position.IsSquareThreatened(m.from);
 	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
-	const uint16_t lastPawnKey = QuietHistoryStructure[CompactPiece(piece)][m.to][fromSquareAttacked][toSquareAttacked];
+	const uint16_t lastPawnKey = QuietHistoryStructure[piece][m.to][fromSquareAttacked][toSquareAttacked];
 	const uint16_t pawnKey = position.GetPawnKey() % 65536;
 	const bool pawnKeyChanged = lastPawnKey != pawnKey;
 	int16_t hdelta = delta;
 	if (pawnKeyChanged) hdelta += (delta > 0) ? 300 : -300;
 
-	UpdateHistoryValue(QuietHistory[CompactPiece(piece)][m.to][fromSquareAttacked][toSquareAttacked], hdelta);
-	QuietHistoryStructure[CompactPiece(piece)][m.to][fromSquareAttacked][toSquareAttacked] = pawnKey;
+	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], hdelta);
+	QuietHistoryStructure[piece][m.to][fromSquareAttacked][toSquareAttacked] = pawnKey;
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
 		const auto& [prevMove, prevPiece] = position.GetPreviousMove(ply);
 		if (prevPiece != Piece::None) {
-			int16_t& value = ContinuationHistory[CompactPiece(prevPiece)][prevMove.to][CompactPiece(piece)][m.to];
+			int16_t& value = ContinuationHistory[prevPiece][prevMove.to][piece][m.to];
 			UpdateHistoryValue(value, delta);
 		}
 	}
@@ -80,17 +80,17 @@ void Histories::UpdateCaptureHistory(const Position& position, const Move& m, co
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
 		else return (position.Turn() == Side::White) ? Piece::WhitePawn : Piece::BlackPawn;
 	}();
-	UpdateHistoryValue(CaptureHistory[CompactPiece(attackingPiece)][targetSquare][CompactPiece(capturedPiece)][fromSquareThreatened][toSquareThreatened], delta);
+	UpdateHistoryValue(CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened], delta);
 }
 
 int Histories::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
-	int historyScore = QuietHistory[CompactPiece(movedPiece)][m.to][fromSquareThreatened][toSquareThreatened];
+	int historyScore = QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened];
 
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
-		historyScore += ContinuationHistory[CompactPiece(position.GetPreviousMove(ply).piece)][position.GetPreviousMove(ply).move.to][CompactPiece(movedPiece)][m.to];
+		historyScore += ContinuationHistory[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
 	}
 	return historyScore;
 }
@@ -104,7 +104,7 @@ int16_t Histories::GetCaptureHistoryScore(const Position& position, const Move& 
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
 		else return (position.Turn() == Side::White) ? Piece::WhitePawn : Piece::BlackPawn;
 	}();
-	return CaptureHistory[CompactPiece(attackingPiece)][targetSquare][CompactPiece(capturedPiece)][fromSquareThreatened][toSquareThreatened];
+	return CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened];
 }
 
 // Static evaluation correction history -----------------------------------------------------------
@@ -126,7 +126,7 @@ void Histories::UpdateCorrection(const Position& position, const int16_t rawEval
 	if (position.Moves.size() >= 2) {
 		const MoveAndPiece& prev1 = position.GetPreviousMove(1);
 		const MoveAndPiece& prev2 = position.GetPreviousMove(2);
-		int32_t& followUpValue = FollowUpCorrectionHistory[CompactPiece(prev2.piece)][prev2.move.to][CompactPiece(prev1.piece)][prev1.move.to];
+		int32_t& followUpValue = FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to];
 		followUpValue = ((256 - weight) * followUpValue + weight * diff) / 256;
 		followUpValue = std::clamp(followUpValue, -6144, 6144);
 	}
@@ -146,7 +146,7 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 		if (position.Moves.size() < 2) return 0;
 		const MoveAndPiece& prev1 = position.GetPreviousMove(1);
 		const MoveAndPiece& prev2 = position.GetPreviousMove(2);
-		return FollowUpCorrectionHistory[CompactPiece(prev2.piece)][prev2.move.to][CompactPiece(prev1.piece)][prev1.move.to] / 256;
+		return FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to] / 256;
 	}();
 
 	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection) * 2 / 3;
