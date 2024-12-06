@@ -42,7 +42,14 @@ private:
 	std::atomic<uint64_t> PositionsTotal = 0;
 	std::atomic<uint64_t> Games = 0;
 	std::atomic<uint64_t> Plies = 0;
+	
+	std::atomic<uint64_t> Searches = 0;
+	std::atomic<uint64_t> Depths = 0;
+	std::atomic<uint64_t> Nodes = 0;
+
+	std::atomic<uint64_t> WhiteWins = 0;
 	std::atomic<uint64_t> Draws = 0;
+	std::atomic<uint64_t> BlackWins = 0;
 
 	Clock::time_point StartTime;
 	int ThreadCount = 0;

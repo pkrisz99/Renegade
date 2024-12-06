@@ -1,5 +1,11 @@
 #include "Datagen.h"
 
+static std::string FormatRuntime(const int seconds) {
+	const auto [minutes, s] = std::div(seconds, 60);
+	const auto [h, m] = std::div(minutes, 60);
+	return std::format("{}:{:02d}:{:02d}", h, m, s);
+}
+
 void Datagen::Start(const DatagenLaunchMode launchMode) {
 
 	// There is a streamlined way to launch datagen (normal and dfrc) from the command line using the default settings
@@ -35,7 +41,7 @@ void Datagen::Start(const DatagenLaunchMode launchMode) {
 		cout << " - Doing DFRC: " << Console::Yellow << DFRC << Console::White << '\n' << endl;
 	}
 
-	// Load opening book
+	// Load opening book - using these seem to improve net strength
 	if (!DFRC) {
 		const std::string book = "UHO_Lichess_4852_v1.epd";
 		std::ifstream bookFile(book);
@@ -192,18 +198,21 @@ void Datagen::SelfPlay(const std::string filename) {
 
 			if (position.GetPly() > 600) {
 				failed = true;
-				//cout << "\nGame too long: " << board.GetFEN() << endl;
 				break;
 			}
 
 			if (move.IsNull()) {
 				failed = true;
-				cout << "\nGot null-move for " << position.GetFEN() << " with eval of " << results.score << endl;
+				cout << Console::Yellow << "Got null-move for " << position.GetFEN() << " with eval of " << results.score << Console::White << endl;
 				break;
 			}
 
 			// Check if position should be stored
 			PositionsTotal.fetch_add(1, std::memory_order_relaxed);
+			Searches.fetch_add(1, std::memory_order_relaxed);
+			Depths.fetch_add(results.depth, std::memory_order_relaxed);
+			Nodes.fetch_add(results.nodes, std::memory_order_relaxed);
+			
 			if (!Filter(position, move, results.score)) {
 				PositionsAccepted.fetch_add(1, std::memory_order_relaxed);
 				currentGame.push_back(std::pair(position.GetFEN(), whiteScore));
@@ -216,11 +225,14 @@ void Datagen::SelfPlay(const std::string filename) {
 
 		if (failed) continue;
 
+		gamesOnThread += 1;
 		Games.fetch_add(1, std::memory_order_relaxed);
 		Plies.fetch_add(position.GetPly(), std::memory_order_relaxed);
-		if (outcome == GameState::Draw) Draws.fetch_add(1, std::memory_order_relaxed);
-		gamesOnThread += 1;
 
+		if (outcome == GameState::WhiteVictory) WhiteWins.fetch_add(1, std::memory_order_relaxed);
+		else if (outcome == GameState::Draw) Draws.fetch_add(1, std::memory_order_relaxed);
+		else if (outcome == GameState::BlackVictory) BlackWins.fetch_add(1, std::memory_order_relaxed);
+		
 		// 5. Store the game to the memory, and periodically to the hard drive
 		for (const auto& [fen, whiteScore] : currentGame) {
 			unsavedLines.push_back(ToTextformat(fen, whiteScore, outcome));
@@ -234,21 +246,38 @@ void Datagen::SelfPlay(const std::string filename) {
 		}
 
 		// 6. Update display
-		if (Games.load(std::memory_order_relaxed) % 100 == 0) {
+		const int games = Games.load(std::memory_order_relaxed);
+		if (games % 100 == 0) {
 			const auto endTime = Clock::now();
 			const int seconds = static_cast<int>((endTime - StartTime).count() / 1e9);
 			const int speed1 = PositionsAccepted.load(std::memory_order_relaxed) * 3600 / std::max(seconds, 1);
 			const int speed2 = speed1 / 3600 / ThreadCount;
-			const int drawRate = Draws.load(std::memory_order_relaxed) * 100 / Games.load(std::memory_order_relaxed);
-			const int avgPlies = Plies.load(std::memory_order_relaxed) / Games.load(std::memory_order_relaxed);
 
-			const std::string display = "Games: " + std::to_string(Games.load(std::memory_order_relaxed))
-				+ " | Positions: " + std::to_string(PositionsAccepted.load(std::memory_order_relaxed))
-				+ " | Runtime: " + std::to_string(seconds) + "s"
-				+ " | Speed: " + std::to_string(speed1/1000) + "k/h (" + std::to_string(speed2) + "/s/th)"
-				+ " | Draws: " + std::to_string(drawRate) + "%"
-				+ " | Avg.plies: " + std::to_string(avgPlies);
-			cout << display << endl; // '\r';
+			const std::string display = "Games: " + Console::FormatInteger(games)
+				+ " | Positions: " + Console::FormatInteger(PositionsAccepted.load(std::memory_order_relaxed))
+				+ " | Runtime: " + FormatRuntime(seconds)
+				+ " | Speed: " + std::to_string(speed1 / 1000) + "k/h " + std::to_string(speed2) + "/s/th";
+			cout << display << endl;
+
+			if (games % 1000 == 0) {
+				const float whiteWinRate = WhiteWins.load(std::memory_order_relaxed) * 100.f / games;
+				const float drawRate = Draws.load(std::memory_order_relaxed) * 100.f / games;
+				const float blackWinRate = BlackWins.load(std::memory_order_relaxed) * 100.f / games;
+				const float avgPlies = static_cast<float>(Plies.load(std::memory_order_relaxed)) / games;
+				const int searches = Searches.load(std::memory_order_relaxed);
+				const int avgNodes = Nodes.load(std::memory_order_relaxed) / searches;
+				const float avgDepths = static_cast<float>(Depths.load(std::memory_order_relaxed)) / searches;
+
+				const std::string outcomeString = std::format("Outcomes: {:.1f}% - {:.1f}% - {:.1f}%", whiteWinRate, drawRate, blackWinRate);
+				const std::string lengthString = std::format("Avg. game length: {:.1f} plies", avgPlies);
+				const std::string depthString = std::format("Avg. depth: {:.2f}", avgDepths);
+				const std::string nodesString = std::format("Avg. nodes: {}", avgNodes);
+
+				cout << Console::Gray;
+				cout << std::format(" -> {:32}  -> {:32}\n", outcomeString, lengthString);
+				cout << std::format(" -> {:32}  -> {:32}\n", depthString, nodesString);
+				cout << Console::White << std::flush;
+			}
 		}
 
 	}
