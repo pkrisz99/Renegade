@@ -10,9 +10,9 @@ extern uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
 extern uint64_t GetConnectingRay(const uint8_t from, const uint64_t to);
 
 // Attack lookup tables (generated at runtime)
-static std::array<std::array<uint64_t, 4096>, 64> RookAttacks;
-static std::array<std::array<uint64_t, 512>, 64> BishopAttacks;
-static std::array<std::array<uint64_t, 64>, 64> ConnectingRays;
+static MultiArray<uint64_t, 64, 4096> RookAttacks;
+static MultiArray<uint64_t, 64, 512> BishopAttacks;
+static MultiArray<uint64_t, 64, 64> ConnectingRays;
 
 // Pregenerated random magic numbers
 // Think of: https://xkcd.com/221/

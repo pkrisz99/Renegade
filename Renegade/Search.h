@@ -30,10 +30,10 @@ public:
 	int Depth = 0, SelDepth = 0;
 	uint64_t Nodes = 0;
 	Histories History;
-	std::array<std::array<Move, MaxDepth + 1>, MaxDepth + 1> PvTable;
+	MultiArray<Move, MaxDepth + 1, MaxDepth + 1> PvTable;
 	std::array<int, MaxDepth + 1> PvLength;
 	std::array<AccumulatorRepresentation, MaxDepth + 1> Accumulators;
-	std::array<std::array<uint64_t, 64>, 64> RootNodeCounts;
+	MultiArray<uint64_t, 64, 64> RootNodeCounts;
 
 	// PV table
 	void UpdatePvTable(const Move& move, const int level);
@@ -153,6 +153,6 @@ private:
 	
 	SearchConstraints Constraints;
 	std::chrono::high_resolution_clock::time_point StartSearchTime;
-	std::array<std::array<int, 32>, 32> LMRTable;
+	MultiArray<int, 32, 32> LMRTable;
 
 };

@@ -21,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.1.59";
+constexpr std::string_view Version = "dev 1.1.60";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -334,6 +334,26 @@ static inline uint8_t SquareToNum(const std::string& sq) {
 	const uint8_t rank = sq[1] - '1';
 	return Square(rank, file);
 }
+
+// Multidimensional array shenanigans -------------------------------------------------------------
+// Replace this with 'std::mdarray' if I live long enough to see the absolutely glacial speed of
+// C++ standards development and adaptation get there...
+
+namespace Internal {
+
+	template<typename T, std::size_t N, std::size_t... Ns>
+	struct MultiDimensionalArrayStruct {
+		using type = std::array<typename MultiDimensionalArrayStruct<T, Ns...>::type, N>;
+	};
+
+	template<typename T, std::size_t N>
+	struct MultiDimensionalArrayStruct<T, N> {
+		using type = std::array<T, N>;
+	};
+}
+
+template<typename T, std::size_t... Ns>
+using MultiArray = typename Internal::MultiDimensionalArrayStruct<T, Ns...>::type;
 
 // Precomputed arrays -----------------------------------------------------------------------------
 

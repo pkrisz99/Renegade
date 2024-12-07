@@ -41,15 +41,14 @@ private:
 
 	// Refutations:
 	std::array<Move, MaxDepth> KillerMoves;
-	std::array<std::array<Move, 64>, 64> CounterMoves;
+	MultiArray<Move, 64, 64> CounterMoves;
 
 	// Move ordering history:
-	using ThreatBuckets = std::array<std::array<int16_t, 2>, 2>;
-	using QuietHistoryTable = std::array<std::array<ThreatBuckets, 64>, 15>;
-	using CaptureHistoryTable = std::array<std::array<std::array<ThreatBuckets, 15>, 64>, 15>;  // [attacking piece][square to][captured piece]
-	using ContinuationHistoryTable = std::array<std::array<std::array<std::array<int16_t, 64>, 15>, 64>, 15>;
+	using QuietHistoryTable = MultiArray<int16_t, 15, 64, 2, 2>;
+	using CaptureHistoryTable = MultiArray<int16_t, 15, 64, 15, 2, 2>; // [attacking piece][square to][captured piece]
+	using ContinuationHistoryTable = MultiArray<int16_t, 15, 64, 15, 64>;
 
-	using QuietHistoryStructureTable = std::array<std::array<std::array<std::array<uint16_t, 2>, 2>, 64>, 15>;
+	using QuietHistoryStructureTable = MultiArray<uint16_t, 15, 64, 2, 2>;
 
 	QuietHistoryTable QuietHistory;
 	CaptureHistoryTable CaptureHistory;
@@ -57,9 +56,9 @@ private:
 	QuietHistoryStructureTable QuietHistoryStructure;
 
 	// Evaluation correction history:
-	using MaterialCorrectionTable = std::array<std::array<int32_t, 32768>, 2>;
-	using PawnsCorrectionTable = std::array<std::array<int32_t, 16384>, 2>;
-	using FollowUpCorrectionTable = std::array<std::array<std::array<std::array<int32_t, 64>, 15>, 64>, 15>;
+	using MaterialCorrectionTable = MultiArray<int32_t, 2, 32768>;
+	using PawnsCorrectionTable = MultiArray<int32_t, 2, 16384>;
+	using FollowUpCorrectionTable = MultiArray<int32_t, 15, 64, 15, 64>;
 	MaterialCorrectionTable MaterialCorrectionHistory;
 	PawnsCorrectionTable PawnsCorrectionHistory;
 	FollowUpCorrectionTable FollowUpCorrectionHistory;

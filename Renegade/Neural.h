@@ -37,7 +37,7 @@ constexpr std::array<int, 32> InputBucketMap = {
 
 
 struct alignas(64) NetworkRepresentation {
-	std::array<std::array<std::array<int16_t, HiddenSize>, FeatureSize>, InputBucketCount> FeatureWeights;
+	MultiArray<int16_t, InputBucketCount, FeatureSize, HiddenSize> FeatureWeights;
 	std::array<int16_t, HiddenSize> FeatureBias;
 	std::array<int16_t, HiddenSize * 2> OutputWeights;
 	int16_t OutputBias;
