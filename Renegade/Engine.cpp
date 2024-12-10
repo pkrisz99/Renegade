@@ -29,9 +29,8 @@ void Engine::Start() {
 
 	// Handle externally receiving datagen
 	if (Behavior == EngineBehavior::DatagenNormal || Behavior == EngineBehavior::DatagenDFRC) {
-		Datagen datagen = Datagen();
 		const DatagenLaunchMode launchMode = (Behavior == EngineBehavior::DatagenNormal) ? DatagenLaunchMode::Normal : DatagenLaunchMode::DFRC;
-		datagen.Start(launchMode);
+		StartDatagen(launchMode);
 		return;
 	}
 
@@ -86,15 +85,13 @@ void Engine::Start() {
 		}
 
 		if (cmd == "datagen") {
-			Datagen datagen = Datagen();
-			datagen.Start(DatagenLaunchMode::Ask);
-			continue;
+			StartDatagen(DatagenLaunchMode::Ask);
+			return;
 		}
 
 		if (cmd == "merge") {
-			Datagen datagen = Datagen();
-			datagen.MergeFiles();
-			continue;
+			MergeDatagenFiles();
+			return;
 		}
 
 		if (cmd == "tunetext") {

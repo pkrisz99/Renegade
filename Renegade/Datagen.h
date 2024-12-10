@@ -9,52 +9,23 @@
 #include "Settings.h"
 #include "Utils.h"
 
+
+// Datagen settings:
+constexpr int startingEvalLimit = 500;
+constexpr int verificationDepth = 10;
+constexpr int softNodeLimit = 5000;
+constexpr int hardNodeLimit = 500000;
+constexpr int depthLimit = 20;
+constexpr int randomPlyBaseNormal = 2;
+constexpr int randomPlyBaseDFRC = 4;
+constexpr int minSavePly = 16;
+
+constexpr int drawAdjEvalThreshold = 5;
+constexpr int drawAdjPlies = 15;
+constexpr int winAdjEvalThreshold = 2000;
+constexpr int winAdjEvalPlies = 5;
+
 enum class DatagenLaunchMode { Ask, Normal, DFRC };
 
-class Datagen
-{
-public:
-	void Start(const DatagenLaunchMode launchMode);
-	void MergeFiles() const;
-
-private:
-
-	// Datagen settings:
-	const int startingEvalLimit = 500;
-	const int verificationDepth = 10;
-	const int softNodeLimit = 5000;
-	const int hardNodeLimit = 500000;
-	const int depthLimit = 20;
-	const int randomPlyBaseNormal = 2;
-	const int randomPlyBaseDFRC = 4;
-	const int minSavePly = 16;
-
-	const int drawAdjEvalThreshold = 5;
-	const int drawAdjPlies = 15;
-	const int winAdjEvalThreshold = 2000;
-	const int winAdjEvalPlies = 5;
-
-	void SelfPlay(const std::string filename);
-	bool Filter(const Position& pos, const Move& move, const int eval) const;
-	std::string ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome) const;
-
-	std::atomic<uint64_t> PositionsAccepted = 0;
-	std::atomic<uint64_t> PositionsTotal = 0;
-	std::atomic<uint64_t> Games = 0;
-	std::atomic<uint64_t> Plies = 0;
-	
-	std::atomic<uint64_t> Searches = 0;
-	std::atomic<uint64_t> Depths = 0;
-	std::atomic<uint64_t> Nodes = 0;
-
-	std::atomic<uint64_t> WhiteWins = 0;
-	std::atomic<uint64_t> Draws = 0;
-	std::atomic<uint64_t> BlackWins = 0;
-
-	Clock::time_point StartTime;
-	int ThreadCount = 0;
-	bool DFRC = false;
-
-	std::vector<std::string> Openings;
-
-};
+void MergeDatagenFiles();
+void StartDatagen(const DatagenLaunchMode launchMode);

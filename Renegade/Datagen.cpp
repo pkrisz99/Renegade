@@ -1,20 +1,65 @@
 #include "Datagen.h"
 
+static void SetTitle(const std::string title) {
+	Console::ClearScreen();
+	cout << Console::Highlight << " " << title << " " << Console::White;
+	cout << " [" << Version << "]\n" << endl;
+}
+
+static void PressEnterToExit() {
+	cout << "Press enter to exit." << endl;
+	cin.ignore();
+	cin.get();
+}
+
+// Self-play datagen ------------------------------------------------------------------------------ 
+
+void SelfPlay(const std::string filename);  // main loop per thread, forward declaring this
+
+std::atomic<uint64_t> PositionsAccepted = 0, PositionsTotal = 0;
+std::atomic<uint64_t> Games = 0, Plies = 0, Searches = 0, Depths = 0, Nodes = 0;
+std::atomic<uint64_t> WhiteWins = 0, Draws = 0, BlackWins = 0;
+Clock::time_point StartTime;
+int ThreadCount = 0;
+bool DFRC = false;
+std::vector<std::string> Openings{};
+
 static std::string FormatRuntime(const int seconds) {
 	const auto [minutes, s] = std::div(seconds, 60);
 	const auto [h, m] = std::div(minutes, 60);
 	return std::format("{}:{:02d}:{:02d}", h, m, s);
 }
 
-void Datagen::Start(const DatagenLaunchMode launchMode) {
+static bool Filter(const Position& pos, const Move& move, const int eval) {
+	if (std::abs(eval) > MateThreshold) return true;
+	if (pos.GetPly() < minSavePly) return true;
+	if (DFRC && move.IsCastling()) return true;
+	if (!pos.IsMoveQuiet(move)) return true;
+	if (pos.IsInCheck()) return true;
+	return false;
+}
+
+static std::string ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome) {
+	// Format: <fen> | <eval> | <wdl>
+	// eval: white pov in cp, wdl 1.0 = white win, 0.0 = black win
+
+	const std::string outcomeStr = [&] {
+		switch (outcome) {
+		case GameState::WhiteVictory: return "1.0";
+		case GameState::BlackVictory: return "0.0";
+		case GameState::Draw: return "0.5";
+		default: return "???";
+		}
+		}();
+	return fen + " | " + std::to_string(whiteScore) + " | " + outcomeStr;
+}
+
+void StartDatagen(const DatagenLaunchMode launchMode) {
 
 	// There is a streamlined way to launch datagen (normal and dfrc) from the command line using the default settings
 	// When launched from UCI, the settings has to be provided manually
 
-	Console::ClearScreen();
-	cout << Console::Highlight << " Renegade's datagen utility " << Console::White;
-	cout << " [" << Version << "]\n" << endl;
-
+	SetTitle("Renegade's datagen utility");
 	std::string filename;
 
 	if (launchMode == DatagenLaunchMode::Ask) {
@@ -49,7 +94,8 @@ void Datagen::Start(const DatagenLaunchMode launchMode) {
 		while (std::getline(bookFile, line)) Openings.push_back(line);
 
 		if (Openings.size() == 0) {
-			cout << Console::Red << "For non-DFRC datagen it is required to have the " << book << " book.\n" << Console::White << endl;
+			cout << Console::Red << "For non-DFRC datagen it is required to have the " << book << " book." << Console::White << endl;
+			PressEnterToExit();
 			return;
 		}
 	}
@@ -68,18 +114,18 @@ void Datagen::Start(const DatagenLaunchMode launchMode) {
 	cout << " - Playing with a soft node limit of " << Console::Yellow << softNodeLimit << Console::White << endl;
 	cout << " - Using DFRC starting positions: " << Console::Yellow << std::boolalpha << DFRC
 		<< std::noboolalpha << Console::White << endl;
-	if (!DFRC) cout << " - The opening book has " << Console::Yellow << Openings.size() << Console::White << " lines" << endl;
+	if (!DFRC) cout << " - The opening book has " << Console::Yellow << Console::FormatInteger(Openings.size()) << Console::White << " lines" << endl;
 	cout << endl;
 
 	std::vector<std::thread> threads = std::vector<std::thread>();
 	for (int i = 0; i < ThreadCount; i++) {
 		std::string filenameForThread = filename + "_" + std::to_string(i + 1);
-		threads.emplace_back(&Datagen::SelfPlay, this, filenameForThread);
+		threads.emplace_back(&SelfPlay, filenameForThread);
 	}
 	for (std::thread& t : threads) t.join();
 }
 
-void Datagen::SelfPlay(const std::string filename) {
+void SelfPlay(const std::string filename) {
 
 	Search* Searcher1 = new Search;
 	Search* Searcher2 = new Search;
@@ -106,8 +152,8 @@ void Datagen::SelfPlay(const std::string filename) {
 	int gamesOnThread = 0;
 	std::mt19937 generator(std::random_device{}());
 
-	std::vector<std::pair<std::string, int>> currentGame;
-	std::vector<std::string> unsavedLines;
+	std::vector<std::pair<std::string, int>> currentGame{};
+	std::vector<std::string> unsavedLines{};
 
 
 	while (true) {
@@ -283,41 +329,19 @@ void Datagen::SelfPlay(const std::string filename) {
 	}
 }
 
-bool Datagen::Filter(const Position& pos, const Move& move, const int eval) const {
-	if (std::abs(eval) > MateThreshold) return true;
-	if (pos.GetPly() < minSavePly) return true;
-	if (DFRC && move.IsCastling()) return true;
-	if (!pos.IsMoveQuiet(move)) return true;
-	if (pos.IsInCheck()) return true;
-	return false;
-}
+// File merging tool ------------------------------------------------------------------------------
 
-std::string Datagen::ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome) const {
-	// Format: <fen> | <eval> | <wdl>
-	// eval: white pov in cp, wdl 1.0 = white win, 0.0 = black win
-
-	const std::string outcomeStr = [&] {
-		switch (outcome) {
-		case GameState::WhiteVictory: return "1.0";
-		case GameState::BlackVictory: return "0.0";
-		case GameState::Draw: return "0.5";
-		default: return "???";
-		}
-	}();
-	return fen + " | " + std::to_string(whiteScore) + " | " + outcomeStr;
-}
-
-void Datagen::MergeFiles() const {
-	cout << "\nRenegade's file merging utility for datagen\n";
+static void MergeDatagenFiles() {
+	SetTitle("Renegade's file merging utility for datagen");
 	const std::filesystem::path path = std::filesystem::current_path();
-	cout << "Current folder: " << path << endl;
+	cout << "Current folder: " << Console::Yellow << path.string() << Console::White << endl;
 
 	std::string name;
-	cout << "\nWhat is the base name of the generated files? ";
+	cout << "\nWhat is the base name of the generated files? " << Console::Yellow;
 	cin >> name;
 
 	uint64_t limit = -1;
-	cout << "How many positions maximum (-1 for no limit)? ";
+	cout << Console::White << "How many positions maximum (-1 for no limit)? " << Console::Yellow;
 	cin >> limit;
 
 	// Iterate through files in directory
@@ -328,7 +352,7 @@ void Datagen::MergeFiles() const {
 			found.push_back(filename.string());
 		}
 	}
-	cout << "Found " << found.size() << " files\n" << endl;
+	cout << Console::White << "\nFound " << Console::Yellow << found.size() << Console::White << " files\n" << endl;
 
 	// Write file
 	const std::string mergedName = name + "_merged";
@@ -362,9 +386,10 @@ void Datagen::MergeFiles() const {
 		ifs.close();
 
 		cout << endl;
-		cout << " -> processed: " << counter << endl;
+		cout << " -> processed: " << Console::FormatInteger(counter) << endl;
 	}
 
 	output.close();
-	cout << Console::Green << "\nCompleted.\n" << Console::White << endl;
+	cout << Console::Green << "\nCompleted." << Console::White << endl;
+	PressEnterToExit();
 }
