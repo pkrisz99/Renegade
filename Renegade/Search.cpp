@@ -415,9 +415,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	if (!singularSearch) {
 		rawEval = [&] {
 			if (inCheck) return static_cast<int16_t>(NoEval);
-			if (found) return ttEntry.rawEval;
+			if (found && ttEntry.rawEval != NoEval) return ttEntry.rawEval;
 			return static_cast<int16_t>(Evaluate(t, t.CurrentPosition, level));
 		}();
+		if (!found && !aborting) TranspositionTable.Store(hash, 0, NoEval, ScoreType::None, rawEval, EmptyMove, level, ttPV);
 		staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
 		eval = staticEval;
 
@@ -704,9 +705,12 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 	// Update alpha-beta bounds
 	const int rawEval = [&] {
-		if (found && !t.CurrentPosition.IsInCheck()) return ttEntry.rawEval;
+		if (found && ttEntry.rawEval != NoEval) return ttEntry.rawEval;
 		return static_cast<int16_t>(Evaluate(t, t.CurrentPosition, level));
 	}();
+	if (!found && !aborting) {
+		TranspositionTable.Store(hash, 0, NoEval, ScoreType::None, rawEval, EmptyMove, level, ttPV);
+	}
 	const int staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;

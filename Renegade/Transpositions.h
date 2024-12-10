@@ -6,9 +6,10 @@
 #include <memory>
 
 namespace ScoreType {
-	constexpr int Exact = 0;
-	constexpr int UpperBound = 1; // Alpha (fail-low)
-	constexpr int LowerBound = 2; // Beta (fail-high)
+	constexpr int None = 0;
+	constexpr int Exact = 1;
+	constexpr int UpperBound = 2; // Alpha (fail-low)
+	constexpr int LowerBound = 3; // Beta (fail-high)
 };
 
 struct TranspositionEntry {
