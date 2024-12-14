@@ -29,8 +29,8 @@ void Engine::Start() {
 
 	// Handle externally receiving datagen
 	if (Behavior == EngineBehavior::DatagenNormal || Behavior == EngineBehavior::DatagenDFRC) {
-		const DatagenLaunchMode launchMode = (Behavior == EngineBehavior::DatagenNormal) ? DatagenLaunchMode::Normal : DatagenLaunchMode::DFRC;
-		StartDatagen(launchMode);
+		//const DatagenLaunchMode launchMode = (Behavior == EngineBehavior::DatagenNormal) ? DatagenLaunchMode::Normal : DatagenLaunchMode::DFRC;
+		//StartDatagen(launchMode);
 		return;
 	}
 
@@ -85,12 +85,12 @@ void Engine::Start() {
 		}
 
 		if (cmd == "datagen") {
-			StartDatagen(DatagenLaunchMode::Ask);
+			//StartDatagen(DatagenLaunchMode::Ask);
 			return;
 		}
 
 		if (cmd == "merge") {
-			MergeDatagenFiles();
+			//MergeDatagenFiles();
 			return;
 		}
 
