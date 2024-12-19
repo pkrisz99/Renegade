@@ -377,7 +377,7 @@ struct StaticVector {
 
 	inline T& operator[](const std::size_t index) {
 		assert(index < count);
-		return moves[index];
+		return items[index];
 	}
 
 	inline std::size_t size() {
@@ -400,7 +400,7 @@ struct StaticVector {
 		return items.begin() + static_cast<std::ptrdiff_t>(count);
 	}
 
-private:
+protected:
 	std::array<T, capacity> items{};
 	std::size_t count = 0;
 };

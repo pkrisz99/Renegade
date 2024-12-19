@@ -132,52 +132,23 @@ struct ScoredMove {
 	int orderScore;
 };
 
-struct MoveList {
-	std::array<ScoredMove, MaxMoveCount> moves{};
-	int count = 0;
+struct MoveList : StaticVector<ScoredMove, MaxMoveCount> {
 
 	inline void pushUnscored(const Move& move) {
 		assert(count < MaxMoveCount);
-		moves[count] = { move, 0 };
+		items[count] = { move, 0 };
 		count += 1;
 	}
 
 	inline void pushScored(const Move& move, const int score) {
 		assert(count < MaxMoveCount);
-		moves[count] = { move, score };
+		items[count] = { move, score };
 		count += 1;
-	}
-
-	inline ScoredMove& operator[](const std::size_t index) {
-		return moves[index];
 	}
 
 	inline void setScore(const std::size_t index, const int score) {
 		assert(count > index);
-		moves[index].orderScore = score;
+		items[index].orderScore = score;
 	}
 
-	inline auto begin() const {
-		return moves.begin();
-	}
-
-	inline auto end() const {
-		return moves.begin() + static_cast<std::ptrdiff_t>(count);
-	}
-
-	inline auto begin() {
-		return moves.begin();
-	}
-
-	inline auto end() {
-		return moves.begin() + static_cast<std::ptrdiff_t>(count);
-	}
-
-	inline std::size_t size() const {
-		return count;
-	}
-
-	inline void reset() {
-		count = 0;
-	}
 };

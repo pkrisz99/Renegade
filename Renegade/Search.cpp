@@ -479,7 +479,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	// (in singular search we've already done these)
 	if (!singularSearch) {
 		// Generating moves and ordering them
-		t.MoveListStack[level].reset();
+		t.MoveListStack[level].clear();
 		t.CurrentPosition.GenerateMoves(t.MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
 		OrderMoves(t, t.CurrentPosition, t.MoveListStack[level], level, ttMove);
 
@@ -497,8 +497,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	Move bestMove = EmptyMove;
 	int bestScore = NegativeInfinity;
 
-	StaticVector<Move, 256> quietsTried;
-	StaticVector<Move, 256> capturesTried;
+	StaticVector<Move, MaxMoveCount> quietsTried;
+	StaticVector<Move, MaxMoveCount> capturesTried;
 
 	while (movePicker.hasNext()) {
 		const auto& [m, order] = movePicker.get();
@@ -712,7 +712,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (t.CurrentPosition.IsDrawn(false)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them
-	t.MoveListStack[level].reset();
+	t.MoveListStack[level].clear();
 	t.CurrentPosition.GenerateMoves(t.MoveListStack[level], MoveGen::Noisy, Legality::Pseudolegal);
 	OrderMovesQ(t, t.CurrentPosition, t.MoveListStack[level], level, ttMove);
 	MovePicker movePicker(t.MoveListStack[level]);
