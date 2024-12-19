@@ -1,4 +1,4 @@
-#pragma once
+/*#pragma once
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -29,3 +29,4 @@ enum class DatagenLaunchMode { Ask, Normal, DFRC };
 
 void MergeDatagenFiles();
 void StartDatagen(const DatagenLaunchMode launchMode);
+*/
