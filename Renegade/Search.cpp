@@ -497,10 +497,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	Move bestMove = EmptyMove;
 	int bestScore = NegativeInfinity;
 
-	std::vector<Move> quietsTried;
-	std::vector<Move> capturesTried;
-	capturesTried.reserve(10); // <-- ???
-	quietsTried.reserve(30); // <-- ???
+	StaticVector<Move, 256> quietsTried;
+	StaticVector<Move, 256> capturesTried;
 
 	while (movePicker.hasNext()) {
 		const auto& [m, order] = movePicker.get();
@@ -509,8 +507,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		legalMoveCount += 1;
 		const bool isQuiet = t.CurrentPosition.IsMoveQuiet(m);
 
-		if (isQuiet) quietsTried.push_back(m);
-		else capturesTried.push_back(m);
+		if (isQuiet) quietsTried.push(m);
+		else capturesTried.push(m);
 
 		// Moves loop pruning techniques
 		if (!pvNode && (bestScore > -MateThreshold) && (order < 90000) && !DatagenMode) {
@@ -649,8 +647,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Decrement history scores for all previously tried moves
 		if (depth > 1) {
-			if (quietBestMove) quietsTried.pop_back(); // don't decrement for the current move
-			else capturesTried.pop_back();
+			if (quietBestMove) quietsTried.pop(); // don't decrement for the current move
+			else capturesTried.pop();
 
 			for (const Move& prevTriedMove : quietsTried) {
 				const uint8_t prevTriedPiece = t.CurrentPosition.GetPieceAt(prevTriedMove.from);

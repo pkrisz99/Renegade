@@ -355,6 +355,56 @@ namespace Internal {
 template<typename T, std::size_t... Ns>
 using MultiArray = typename Internal::MultiDimensionalArrayStruct<T, Ns...>::type;
 
+// Static vectors ---------------------------------------------------------------------------------
+// To avoid allocating memory in hot code paths
+
+template<typename T, std::size_t capacity>
+struct StaticVector {
+	inline void push(const T& item) {
+		assert(count < capacity);
+		items[count] = item;
+		count += 1;
+	}
+
+	inline void pop() {
+		assert(count != 0);
+		count -= 1;
+	}
+
+	inline void clear() {
+		count = 0;
+	}
+
+	inline T& operator[](const std::size_t index) {
+		assert(index < count);
+		return moves[index];
+	}
+
+	inline std::size_t size() {
+		return count;
+	}
+
+	inline auto begin() const {
+		return items.begin();
+	}
+
+	inline auto end() const {
+		return items.begin() + static_cast<std::ptrdiff_t>(count);
+	}
+
+	inline auto begin() {
+		return items.begin();
+	}
+
+	inline auto end() {
+		return items.begin() + static_cast<std::ptrdiff_t>(count);
+	}
+
+private:
+	std::array<T, capacity> items{};
+	std::size_t count = 0;
+};
+
 // Precomputed arrays -----------------------------------------------------------------------------
 
 constexpr std::array<uint64_t, 64> KingMoveBits = {
