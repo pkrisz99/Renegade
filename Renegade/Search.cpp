@@ -479,7 +479,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	// (in singular search we've already done these)
 	if (!singularSearch) {
 		// Generating moves and ordering them
-		t.MoveListStack[level].reset();
+		t.MoveListStack[level].clear();
 		t.CurrentPosition.GenerateMoves(t.MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
 		OrderMoves(t, t.CurrentPosition, t.MoveListStack[level], level, ttMove);
 
@@ -497,10 +497,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	Move bestMove = EmptyMove;
 	int bestScore = NegativeInfinity;
 
-	std::vector<Move> quietsTried;
-	std::vector<Move> capturesTried;
-	capturesTried.reserve(10); // <-- ???
-	quietsTried.reserve(30); // <-- ???
+	StaticVector<Move, MaxMoveCount> quietsTried;
+	StaticVector<Move, MaxMoveCount> capturesTried;
 
 	while (movePicker.hasNext()) {
 		const auto& [m, order] = movePicker.get();
@@ -509,8 +507,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		legalMoveCount += 1;
 		const bool isQuiet = t.CurrentPosition.IsMoveQuiet(m);
 
-		if (isQuiet) quietsTried.push_back(m);
-		else capturesTried.push_back(m);
+		if (isQuiet) quietsTried.push(m);
+		else capturesTried.push(m);
 
 		// Moves loop pruning techniques
 		if (!pvNode && (bestScore > -MateThreshold) && (order < 90000) && !DatagenMode) {
@@ -649,8 +647,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Decrement history scores for all previously tried moves
 		if (depth > 1) {
-			if (quietBestMove) quietsTried.pop_back(); // don't decrement for the current move
-			else capturesTried.pop_back();
+			if (quietBestMove) quietsTried.pop(); // don't decrement for the current move
+			else capturesTried.pop();
 
 			for (const Move& prevTriedMove : quietsTried) {
 				const uint8_t prevTriedPiece = t.CurrentPosition.GetPieceAt(prevTriedMove.from);
@@ -714,7 +712,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (t.CurrentPosition.IsDrawn(false)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them
-	t.MoveListStack[level].reset();
+	t.MoveListStack[level].clear();
 	t.CurrentPosition.GenerateMoves(t.MoveListStack[level], MoveGen::Noisy, Legality::Pseudolegal);
 	OrderMovesQ(t, t.CurrentPosition, t.MoveListStack[level], level, ttMove);
 	MovePicker movePicker(t.MoveListStack[level]);
