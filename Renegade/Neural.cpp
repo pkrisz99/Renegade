@@ -21,7 +21,7 @@ std::unique_ptr<NetworkRepresentation> ExternalNetwork;
 
 // Evaluating the position ------------------------------------------------------------------------
 
-int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc) {
+int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc) {
 	const bool turn = position.Turn();
 	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.White : acc.Black;
 	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.Black : acc.White;
@@ -86,7 +86,7 @@ int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& ac
 	return std::clamp(output, -MateThreshold + 1, MateThreshold - 1);
 }
 
-int NeuralEvaluate(const Position& position) {
+int16_t NeuralEvaluate(const Position& position) {
 	AccumulatorRepresentation acc{};
 	acc.RefreshBoth(position);
 	return NeuralEvaluate(position, acc);

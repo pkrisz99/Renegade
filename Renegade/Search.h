@@ -129,13 +129,13 @@ public:
 	std::atomic<int> LoadedThreadCount = 0;
 
 private:
-	Results SummarizeThreadInfo() const;
+	Results AggregateThreadResults() const;
 
 	void SearchMoves(ThreadData& t);
 	int SearchRecursive(ThreadData& t, int depth, const int level, int alpha, int beta, const bool pvNode, const bool cutNode);
 	int SearchQuiescence(ThreadData& t, const int level, int alpha, int beta, const bool pvNode);
 
-	int Evaluate(const ThreadData& t, const Position& position, const int level);
+	int16_t Evaluate(const ThreadData& t, const Position& position, const int level);
 	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	bool ShouldAbort(const ThreadData& t);
@@ -147,8 +147,8 @@ private:
 		const bool losingCapture, const bool useMoveStack) const;
 
 	// NNUE
-	void SetupAccumulators(ThreadData& t, const Position& position);
-	void UpdateAccumulators(ThreadData& t, const Position& pos, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level);
+	void SetupAccumulators(ThreadData& t);
+	void UpdateAccumulators(ThreadData& t, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level);
 
 	
 	SearchConstraints Constraints;

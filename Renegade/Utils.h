@@ -21,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.1.63";
+constexpr std::string_view Version = "dev 1.1.64";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -40,7 +40,6 @@ constexpr std::array<double, 4> as = { -0.57292811, -5.66866770, 84.83978005, 19
 constexpr std::array<double, 4> bs = { -5.59848897, 45.67341221, -112.43672836, 159.70989134 };
 static_assert(static_cast<int>(std::reduce(as.begin(), as.end())) == PawnNormalizationForMove32);
 
-std::pair<double, double> ModelWDLForPly(const int ply);
 std::tuple<int, int, int> GetWDL(const int score, const int ply);
 int ToCentipawns(const int score, const int ply);
 
@@ -213,34 +212,24 @@ constexpr bool CheckBit(const uint64_t& number, const uint8_t place) {
 
 constexpr int Popcount(const uint64_t& number) {
 	return std::popcount(number);
-	// return static_cast<int>(__popcnt64(number));
 }
 
 constexpr int Lzcount(const uint64_t& number) {
 	return std::countl_zero(number);
-	// return static_cast<int>(__lzcnt64(number));
 }
 
 constexpr int Popsquare(uint64_t& number) {
 	const int place = std::countr_zero(number);
 	number &= (number - 1);
 	return place;
-
-	/*
-	const int place = static_cast<int>(_tzcnt_u64(number));
-	number = _blsr_u64(number);
-	return place;
-	*/
 }
 
 constexpr int LsbSquare(const uint64_t number) {
 	return static_cast<int>(std::countr_zero(number));
-	// return static_cast<int>(_tzcnt_u64(number));
 }
 
 constexpr int MsbSquare(const uint64_t number) {
 	return static_cast<int>(63 - std::countl_zero(number));
-	// return static_cast<int>(_tzcnt_u64(number));
 }
 
 // Board helper functions -------------------------------------------------------------------------

@@ -215,7 +215,7 @@ void Search::SearchMoves(ThreadData& t) {
 	std::fill(t.DoubleExtensions.begin(), t.DoubleExtensions.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
 	t.History.ClearKillerAndCounterMoves();
-	SetupAccumulators(t, t.CurrentPosition);
+	SetupAccumulators(t);
 
 	// Iterative deepening
 	t.result.ply = t.CurrentPosition.GetPly();
@@ -312,7 +312,7 @@ void Search::SearchMoves(ThreadData& t) {
 		// Obtaining PV line and displaying
 		t.result.pv = t.GeneratePvLine();
 		if (t.IsMainThread() && !t.singlethreaded) {
-			if (!finished) PrintInfo(SummarizeThreadInfo());
+			if (!finished) PrintInfo(AggregateThreadResults());
 		}
 	}
 
@@ -320,12 +320,12 @@ void Search::SearchMoves(ThreadData& t) {
 	if (t.IsMainThread() && !t.singlethreaded) {
 		Aborting.store(true);
 		while (ActiveThreadCount.load() > 1) {};
-		PrintInfo(SummarizeThreadInfo());
+		PrintInfo(AggregateThreadResults());
 	}
 
 }
 
-Results Search::SummarizeThreadInfo() const { 	// lambdafy these
+Results Search::AggregateThreadResults() const {  // lambdafy these
 	Results sumResult{};
 
 	// Main thread
@@ -333,7 +333,6 @@ Results Search::SummarizeThreadInfo() const { 	// lambdafy these
 	sumResult.score = Threads.front().result.score;
 	sumResult.ply = Threads.front().result.ply;
 
-	// Aggregated
 	for (const ThreadData& t : Threads) sumResult.seldepth = std::max(sumResult.seldepth, t.SelDepth);
 	for (const ThreadData& t : Threads) sumResult.nodes += t.Nodes;
 	sumResult.hashfull = TranspositionTable.GetHashfull();
@@ -351,16 +350,17 @@ Results Search::SummarizeThreadInfo() const { 	// lambdafy these
 // Recursively called during the alpha-beta search
 int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha, int beta, const bool pvNode, const bool cutNode) {
 
+	Position& position = t.CurrentPosition;
+	const bool rootNode = (level == 0);
+	assert(pvNode || beta - alpha == 1);
+	assert(!(rootNode && !pvNode));
+	assert(!pvNode || !cutNode);
+
 	// Check search limits
 	const bool aborting = ShouldAbort(t);
 	if (aborting) return NoEval;
 	t.InitPvLength(level);
-	if (level >= MaxDepth) return Evaluate(t, t.CurrentPosition, level);
-
-	const bool rootNode = (level == 0);
-	assert(pvNode || beta - alpha == 1);
-	assert(level != 0 || pvNode);
-	assert(!pvNode || !cutNode);
+	if (level >= MaxDepth) return Evaluate(t, position, level);
 
 	// Mate distance pruning
 	if (!rootNode) {
@@ -370,10 +370,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	// Check for draws
-	if (!rootNode && t.CurrentPosition.IsDrawn(false)) return DrawEvaluation(t);
+	if (!rootNode && position.IsDrawn(false)) return DrawEvaluation(t);
 
 	// Check extensions
-	const bool inCheck = t.CurrentPosition.IsInCheck();
+	const bool inCheck = position.IsInCheck();
 	if (!rootNode && inCheck) depth += 1;
 
 	// Drop into quiescence search at depth 0
@@ -389,7 +389,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	int ttEval = NoEval;
 	Move ttMove = EmptyMove;
 	bool found = false;
-	const uint64_t hash = t.CurrentPosition.Hash();
+	const uint64_t hash = position.Hash();
 
 	if (!singularSearch) {
 		found = TranspositionTable.Probe(hash, ttEntry, level);
@@ -416,9 +416,9 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		rawEval = [&] {
 			if (inCheck) return static_cast<int16_t>(NoEval);
 			if (found) return ttEntry.rawEval;
-			return static_cast<int16_t>(Evaluate(t, t.CurrentPosition, level));
+			return static_cast<int16_t>(Evaluate(t, position, level));
 		}();
-		staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
+		staticEval = t.History.ApplyCorrection(position, rawEval);
 		eval = staticEval;
 
 		if ((ttEval != NoEval) && !inCheck) {  // inCheck is cosmetic
@@ -448,16 +448,16 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		// Null-move pruning (+33 elo)
-		if (depth >= 3 && !t.CurrentPosition.IsPreviousMoveNull() && eval >= beta && t.CurrentPosition.HasNonPawnMaterial()) {
-			TranspositionTable.Prefetch(t.CurrentPosition.Hash() ^ Zobrist[780]);
+		if (depth >= 3 && !position.IsPreviousMoveNull() && eval >= beta && position.ZugzwangUnlikely()) {
+			TranspositionTable.Prefetch(position.Hash() ^ Zobrist[780]);
 			const int nmpReduction = [&] {
 				const int defaultReduction = 3 + depth / 3 + std::min((eval - beta) / 200, 3);
 				return std::min(defaultReduction, depth);
 			}();
-			t.CurrentPosition.PushNullMove();
-			UpdateAccumulators(t, t.CurrentPosition, NullMove, 0, 0, level);
+			position.PushNullMove();
+			UpdateAccumulators(t, NullMove, 0, 0, level);
 			const int nmpScore = -SearchRecursive(t, depth - nmpReduction, level + 1, -beta, -beta + 1, false, !cutNode);
-			t.CurrentPosition.PopMove();
+			position.PopMove();
 			if (nmpScore >= beta) {
 				return IsMateScore(nmpScore) ? beta : nmpScore;
 			}
@@ -480,8 +480,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	if (!singularSearch) {
 		// Generating moves and ordering them
 		t.MoveListStack[level].clear();
-		t.CurrentPosition.GenerateMoves(t.MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
-		OrderMoves(t, t.CurrentPosition, t.MoveListStack[level], level, ttMove);
+		position.GenerateMoves(t.MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
+		OrderMoves(t, position, t.MoveListStack[level], level, ttMove);
 
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
@@ -503,9 +503,9 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	while (movePicker.hasNext()) {
 		const auto& [m, order] = movePicker.get();
 		if (m == excludedMove) continue;
-		if (!t.CurrentPosition.IsLegalMove(m)) continue;
+		if (!position.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
-		const bool isQuiet = t.CurrentPosition.IsMoveQuiet(m);
+		const bool isQuiet = position.IsMoveQuiet(m);
 
 		if (isQuiet) quietsTried.push(m);
 		else capturesTried.push(m);
@@ -525,7 +525,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			// Main search SEE pruning (+20 elo)
 			if (depth <= 5) {
 				const int seeMargin = isQuiet ? (-50 * depth) : (-100 * depth);
-				if (!StaticExchangeEval(t.CurrentPosition, m, seeMargin)) continue;
+				if (!StaticExchangeEval(position, m, seeMargin)) continue;
 			}
 		}
 
@@ -553,15 +553,15 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		// Push move
-		const uint8_t movedPiece = t.CurrentPosition.GetPieceAt(m.from);
-		const uint8_t capturedPiece = t.CurrentPosition.GetPieceAt(m.to);
+		const uint8_t movedPiece = position.GetPieceAt(m.from);
+		const uint8_t capturedPiece = position.GetPieceAt(m.to);
 		const uint64_t nodesBefore = t.Nodes;
 
-		t.CurrentPosition.PushMove(m);
-		TranspositionTable.Prefetch(t.CurrentPosition.Hash());
+		position.PushMove(m);
+		TranspositionTable.Prefetch(position.Hash());
 		t.Nodes += 1;
 		int score = NoEval;
-		UpdateAccumulators(t, t.CurrentPosition, m, movedPiece, capturedPiece, level);
+		UpdateAccumulators(t, m, movedPiece, capturedPiece, level);
 
 		
 		// Late-move reductions & principal variation search
@@ -590,7 +590,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			score = -SearchRecursive(t, depth - 1 + extension, level + 1, -beta, -alpha, true, false);
 		}
 
-		t.CurrentPosition.PopMove();
+		position.PopMove();
 
 		// Update node count table for the root
 		if (rootNode) t.RootNodeCounts[m.from][m.to] += t.Nodes - nodesBefore;
@@ -632,17 +632,17 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	if (bestScore >= beta && !aborting) {
 
 		if (level != 0) t.CutoffCount[level - 1] += 1;
-		const bool quietBestMove = t.CurrentPosition.IsMoveQuiet(bestMove);
+		const bool quietBestMove = position.IsMoveQuiet(bestMove);
 		const int16_t historyDelta = std::min(300 * (depth - 1), 2250);
 
 		// If a quiet move causes a fail-high, update move ordering tables
 		if (quietBestMove) {
 			t.History.SetKillerMove(bestMove, level);
-			if (level > 0) t.History.SetCountermove(t.CurrentPosition.GetPreviousMove(1).move, bestMove);
-			if (depth > 1) t.History.UpdateHistory(t.CurrentPosition, bestMove, t.CurrentPosition.GetPieceAt(bestMove.from), historyDelta, level);
+			if (level > 0) t.History.SetCountermove(position.GetPreviousMove(1).move, bestMove);
+			if (depth > 1) t.History.UpdateHistory(position, bestMove, position.GetPieceAt(bestMove.from), historyDelta, level);
 		}
 		else {
-			if (depth > 1) t.History.UpdateCaptureHistory(t.CurrentPosition, bestMove, historyDelta);
+			if (depth > 1) t.History.UpdateCaptureHistory(position, bestMove, historyDelta);
 		}
 
 		// Decrement history scores for all previously tried moves
@@ -651,11 +651,11 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			else capturesTried.pop();
 
 			for (const Move& prevTriedMove : quietsTried) {
-				const uint8_t prevTriedPiece = t.CurrentPosition.GetPieceAt(prevTriedMove.from);
-				t.History.UpdateHistory(t.CurrentPosition, prevTriedMove, prevTriedPiece, -historyDelta, level);
+				const uint8_t prevTriedPiece = position.GetPieceAt(prevTriedMove.from);
+				t.History.UpdateHistory(position, prevTriedMove, prevTriedPiece, -historyDelta, level);
 			}
 			for (const Move& prevTriedMove : capturesTried) {
-				t.History.UpdateCaptureHistory(t.CurrentPosition, prevTriedMove, -historyDelta);
+				t.History.UpdateCaptureHistory(position, prevTriedMove, -historyDelta);
 			}
 		}
 	}
@@ -664,12 +664,12 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	if (!aborting && !singularSearch) {
 		const bool updateCorrection = [&] {
 			if (inCheck) return false;
-			if (!bestMove.IsNull() && !t.CurrentPosition.IsMoveQuiet(bestMove)) return false;
+			if (!bestMove.IsNull() && !position.IsMoveQuiet(bestMove)) return false;
 			return (scoreType == ScoreType::Exact)
 				   || (scoreType == ScoreType::UpperBound && bestScore < staticEval)
 				   || (scoreType == ScoreType::LowerBound && bestScore > staticEval);
 		}();
-		if (updateCorrection) t.History.UpdateCorrection(t.CurrentPosition, rawEval, bestScore, depth);
+		if (updateCorrection) t.History.UpdateCorrection(position, rawEval, bestScore, depth);
 	}
 
 	// Store node search results into the transposition table
@@ -684,6 +684,9 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 // Quiescence search: for noisy moves only (captures, queen promotions)
 int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta, const bool pvNode) {
 
+	Position& position = t.CurrentPosition;
+	assert(pvNode || beta - alpha == 1);
+
 	// Check search limits
 	const bool aborting = ShouldAbort(t);
 	if (aborting) return NoEval;
@@ -692,7 +695,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (level > t.SelDepth) t.SelDepth = level;
 
 	// Probe the transposition table
-	const uint64_t hash = t.CurrentPosition.Hash();
+	const uint64_t hash = position.Hash();
 	TranspositionEntry ttEntry;
 	const bool found = TranspositionTable.Probe(hash, ttEntry, level);
 	if (!pvNode && found && ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
@@ -702,19 +705,19 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 	// Update alpha-beta bounds
 	const int rawEval = [&] {
-		if (found && !t.CurrentPosition.IsInCheck()) return ttEntry.rawEval;
-		return static_cast<int16_t>(Evaluate(t, t.CurrentPosition, level));
+		if (found && !position.IsInCheck()) return ttEntry.rawEval;
+		return static_cast<int16_t>(Evaluate(t, position, level));
 	}();
-	const int staticEval = t.History.ApplyCorrection(t.CurrentPosition, rawEval);
+	const int staticEval = t.History.ApplyCorrection(position, rawEval);
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= MaxDepth) return staticEval;
-	if (t.CurrentPosition.IsDrawn(false)) return DrawEvaluation(t);
+	if (position.IsDrawn(false)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them
 	t.MoveListStack[level].clear();
-	t.CurrentPosition.GenerateMoves(t.MoveListStack[level], MoveGen::Noisy, Legality::Pseudolegal);
-	OrderMovesQ(t, t.CurrentPosition, t.MoveListStack[level], level, ttMove);
+	position.GenerateMoves(t.MoveListStack[level], MoveGen::Noisy, Legality::Pseudolegal);
+	OrderMovesQ(t, position, t.MoveListStack[level], level, ttMove);
 	MovePicker movePicker(t.MoveListStack[level]);
 
 	// Search recursively
@@ -724,17 +727,17 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 	while (movePicker.hasNext()) {
 		const auto& [m, order] = movePicker.get();
-		if (!t.CurrentPosition.IsLegalMove(m)) continue;
-		if (!StaticExchangeEval(t.CurrentPosition, m, 0)) continue; // Quiescence search SEE pruning (+39 elo)
+		if (!position.IsLegalMove(m)) continue;
+		if (!StaticExchangeEval(position, m, 0)) continue; // Quiescence search SEE pruning (+39 elo)
 		t.Nodes += 1;
 
-		const uint8_t movedPiece = t.CurrentPosition.GetPieceAt(m.from);
-		const uint8_t capturedPiece = t.CurrentPosition.GetPieceAt(m.to);
-		t.CurrentPosition.PushMove(m);
-		TranspositionTable.Prefetch(t.CurrentPosition.Hash());
-		UpdateAccumulators(t, t.CurrentPosition, m, movedPiece, capturedPiece, level);
+		const uint8_t movedPiece = position.GetPieceAt(m.from);
+		const uint8_t capturedPiece = position.GetPieceAt(m.to);
+		position.PushMove(m);
+		TranspositionTable.Prefetch(position.Hash());
+		UpdateAccumulators(t, m, movedPiece, capturedPiece, level);
 		const int score = -SearchQuiescence(t, level + 1, -beta, -alpha, pvNode);
-		t.CurrentPosition.PopMove();
+		position.PopMove();
 
 		if (score > bestScore) {
 			bestScore = score;
@@ -754,7 +757,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	return bestScore;
 }
 
-int Search::Evaluate(const ThreadData& t, const Position& position, const int level) {
+int16_t Search::Evaluate(const ThreadData& t, const Position& position, const int level) {
 	return NeuralEvaluate(position, t.Accumulators[level]);
 }
 
@@ -862,12 +865,12 @@ bool Search::StaticExchangeEval(const Position& position, const Move& move, cons
 // Handle accumulators for neural networks --------------------------------------------------------
 // (the function names are very much awkward)
 
-void Search::SetupAccumulators(ThreadData& t, const Position& position) {
-	t.Accumulators[0].RefreshBoth(position);
+void Search::SetupAccumulators(ThreadData& t) {
+	t.Accumulators[0].RefreshBoth(t.CurrentPosition);
 }
 
-void Search::UpdateAccumulators(ThreadData& t, const Position& pos, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
-	t.Accumulators[level + 1].UpdateFrom(pos, t.Accumulators[level], m, movedPiece, capturedPiece);
+void Search::UpdateAccumulators(ThreadData& t, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
+	t.Accumulators[level + 1].UpdateFrom(t.CurrentPosition, t.Accumulators[level], m, movedPiece, capturedPiece);
 }
 
 // PV table ---------------------------------------------------------------------------------------

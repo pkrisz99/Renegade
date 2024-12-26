@@ -71,10 +71,10 @@ public:
 		return (b.FullmoveClock - 1) * 2 + (b.Turn == Side::White ? 0 : 1);
 	}
 
-	inline bool HasNonPawnMaterial() const {
+	inline bool ZugzwangUnlikely() const {
 		const Board& b = States.back();
-		if (b.Turn == Side::White) return (b.WhiteKnightBits | b.WhiteBishopBits | b.WhiteRookBits | b.WhiteQueenBits) != 0;
-		else return (b.BlackKnightBits | b.BlackBishopBits | b.BlackRookBits | b.BlackQueenBits) != 0;
+		if (b.Turn == Side::White) return (b.WhiteKnightBits | b.WhiteBishopBits | b.WhiteRookBits | b.WhiteQueenBits) != 0ull;
+		else return (b.BlackKnightBits | b.BlackBishopBits | b.BlackRookBits | b.BlackQueenBits) != 0ull;
 	}
 
 	inline int GetGamePhase() const {

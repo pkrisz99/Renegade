@@ -121,10 +121,9 @@ void PrintPretty(const Results& e) {
 	}();
 
 	const auto [modelW, modelD, modelL] = GetWDL(e.score, e.ply);
-	constexpr double q = 10.0;
-	const int w = static_cast<int>(std::round(modelW / q));
-	const int d = static_cast<int>(std::round(modelD / q));
-	const int l = static_cast<int>(std::round(modelL / q));
+	const int w = static_cast<int>(std::round(modelW / 10.0));
+	const int d = static_cast<int>(std::round(modelD / 10.0));
+	const int l = static_cast<int>(std::round(modelL / 10.0));
 	const std::string outputWdl = std::format("  {}{:<8}", 
 		Console::Gray, std::to_string(w) + "-" + std::to_string(d) + "-" + std::to_string(l));
 

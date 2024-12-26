@@ -195,7 +195,7 @@ struct alignas(64) AccumulatorRepresentation {
 
 };
 
-int NeuralEvaluate(const Position& position);
-int NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc);
+int16_t NeuralEvaluate(const Position& position);
+int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc);
 
 void LoadDefaultNetwork();
