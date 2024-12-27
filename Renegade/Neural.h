@@ -50,6 +50,11 @@ struct PieceAndSquare {
 	uint8_t piece, square;
 };
 
+struct AccumulatorRepresentation;
+int16_t NeuralEvaluate(const Position& position);
+int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc);
+void LoadDefaultNetwork();
+
 inline int GetInputBucket(const uint8_t kingSq, const bool side) {
 	const uint8_t transform = side == Side::White ? 0 : 56;
 	const uint8_t rank = GetSquareRank(kingSq ^ transform);
@@ -79,6 +84,9 @@ struct alignas(64) AccumulatorRepresentation {
 	std::array<int16_t, HiddenSize> Black;
 	uint8_t WhiteBucket, BlackBucket;
 	uint8_t WhiteKingSquare, BlackKingSquare;
+	Move move;
+	uint8_t movedPiece, capturedPiece;
+
 
 	void RefreshBoth(const Position& pos) {
 		RefreshWhite(pos);
@@ -195,7 +203,31 @@ struct alignas(64) AccumulatorRepresentation {
 
 };
 
-int16_t NeuralEvaluate(const Position& position);
-int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc);
+struct EvaluationState {
+	std::array<AccumulatorRepresentation, MaxDepth> AccumulatorStack;
+	int CurrentIndex;
 
-void LoadDefaultNetwork();
+	inline void PushState(const Position& pos, const Move move, const uint8_t movedPiece, const uint8_t capturedPiece) {
+		CurrentIndex += 1;
+		AccumulatorRepresentation& current = AccumulatorStack[CurrentIndex];
+		current.move = move;
+		current.movedPiece = movedPiece;
+		current.capturedPiece = capturedPiece;
+
+		current.UpdateFrom(pos, AccumulatorStack[CurrentIndex - 1], move, movedPiece, capturedPiece);
+	}
+
+	inline void PopState() {
+		CurrentIndex -= 1;
+		assert(CurrentIndex >= 0);
+	}
+
+	inline void Reset(const Position& pos) {
+		CurrentIndex = 0;
+		AccumulatorStack[0].RefreshBoth(pos);
+	}
+
+	inline int16_t Evaluate(const Position& pos) {
+		return NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
+	}
+};

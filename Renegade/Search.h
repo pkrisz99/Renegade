@@ -32,7 +32,7 @@ public:
 	Histories History;
 	MultiArray<Move, MaxDepth + 1, MaxDepth + 1> PvTable;
 	std::array<int, MaxDepth + 1> PvLength;
-	std::array<AccumulatorRepresentation, MaxDepth + 1> Accumulators;
+	EvaluationState EvalState;
 	MultiArray<uint64_t, 64, 64> RootNodeCounts;
 
 	// PV table
@@ -135,7 +135,7 @@ private:
 	int SearchRecursive(ThreadData& t, int depth, const int level, int alpha, int beta, const bool pvNode, const bool cutNode);
 	int SearchQuiescence(ThreadData& t, const int level, int alpha, int beta, const bool pvNode);
 
-	int16_t Evaluate(const ThreadData& t, const Position& position, const int level);
+	int16_t Evaluate(ThreadData& t, const Position& position, const int level);
 	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	bool ShouldAbort(const ThreadData& t);
@@ -145,10 +145,6 @@ private:
 	void OrderMovesQ(const ThreadData& t, const Position& position, MoveList& ml, const int level, const Move& ttMove);
 	int CalculateOrderScore(const ThreadData& t, const Position& position, const Move& m, const int level, const Move& ttMove,
 		const bool losingCapture, const bool useMoveStack) const;
-
-	// NNUE
-	void SetupAccumulators(ThreadData& t);
-	void UpdateAccumulators(ThreadData& t, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level);
 
 	
 	SearchConstraints Constraints;

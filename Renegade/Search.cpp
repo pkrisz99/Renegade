@@ -215,7 +215,7 @@ void Search::SearchMoves(ThreadData& t) {
 	std::fill(t.DoubleExtensions.begin(), t.DoubleExtensions.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
 	t.History.ClearKillerAndCounterMoves();
-	SetupAccumulators(t);
+	t.EvalState.Reset(t.CurrentPosition);
 
 	// Iterative deepening
 	t.result.ply = t.CurrentPosition.GetPly();
@@ -455,9 +455,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				return std::min(defaultReduction, depth);
 			}();
 			position.PushNullMove();
-			UpdateAccumulators(t, NullMove, 0, 0, level);
+			t.EvalState.PushState(position, NullMove, 0, 0);
 			const int nmpScore = -SearchRecursive(t, depth - nmpReduction, level + 1, -beta, -beta + 1, false, !cutNode);
 			position.PopMove();
+			t.EvalState.PopState();
 			if (nmpScore >= beta) {
 				return IsMateScore(nmpScore) ? beta : nmpScore;
 			}
@@ -561,7 +562,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		TranspositionTable.Prefetch(position.Hash());
 		t.Nodes += 1;
 		int score = NoEval;
-		UpdateAccumulators(t, m, movedPiece, capturedPiece, level);
+		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
 
 		
 		// Late-move reductions & principal variation search
@@ -591,6 +592,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		position.PopMove();
+		t.EvalState.PopState();
 
 		// Update node count table for the root
 		if (rootNode) t.RootNodeCounts[m.from][m.to] += t.Nodes - nodesBefore;
@@ -735,9 +737,10 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
 		position.PushMove(m);
 		TranspositionTable.Prefetch(position.Hash());
-		UpdateAccumulators(t, m, movedPiece, capturedPiece, level);
+		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
 		const int score = -SearchQuiescence(t, level + 1, -beta, -alpha, pvNode);
 		position.PopMove();
+		t.EvalState.PopState();
 
 		if (score > bestScore) {
 			bestScore = score;
@@ -757,8 +760,8 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	return bestScore;
 }
 
-int16_t Search::Evaluate(const ThreadData& t, const Position& position, const int level) {
-	return NeuralEvaluate(position, t.Accumulators[level]);
+int16_t Search::Evaluate(ThreadData& t, const Position& position, const int level) {
+	return t.EvalState.Evaluate(position);
 }
 
 int Search::DrawEvaluation(const ThreadData& t) const {
@@ -860,17 +863,6 @@ bool Search::StaticExchangeEval(const Position& position, const Move& move, cons
 
 	// If after the exchange it's our opponent's turn, that means we won
 	return turn != position.Turn();
-}
-
-// Handle accumulators for neural networks --------------------------------------------------------
-// (the function names are very much awkward)
-
-void Search::SetupAccumulators(ThreadData& t) {
-	t.Accumulators[0].RefreshBoth(t.CurrentPosition);
-}
-
-void Search::UpdateAccumulators(ThreadData& t, const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece, const int level) {
-	t.Accumulators[level + 1].UpdateFrom(t.CurrentPosition, t.Accumulators[level], m, movedPiece, capturedPiece);
 }
 
 // PV table ---------------------------------------------------------------------------------------
