@@ -191,7 +191,16 @@ void AccumulatorRepresentation::UpdateIncrementally(const Board& b, const bool s
 	
 	// 1. For null-moves nothing changes, we just copy over everything
 	if (m.IsNull()) {
-		*this = oldAcc;
+		if (side == Side::White) {
+			this->White = oldAcc.White;
+			this->WhiteKingSquare = oldAcc.WhiteKingSquare;
+			this->WhiteBucket = oldAcc.WhiteBucket;
+		}
+		else {
+			this->Black = oldAcc.Black;
+			this->BlackKingSquare = oldAcc.BlackKingSquare;
+			this->BlackBucket = oldAcc.BlackBucket;
+		}
 		this->move = NullMove;
 		this->movedPiece = Piece::None;
 		this->capturedPiece = Piece::None;

@@ -219,8 +219,12 @@ struct EvaluationState {
 		current.move = move;
 		current.movedPiece = movedPiece;
 		current.capturedPiece = capturedPiece;
-
-		//current.UpdateFrom(pos.States[CurrentIndex], AccumulatorStack[CurrentIndex - 1], move, movedPiece, capturedPiece);
+		current.BlackGood = false;
+		current.WhiteGood = false;
+		current.WhiteKingSquare = pos.WhiteKingSquare();
+		current.BlackKingSquare = pos.BlackKingSquare();
+		current.WhiteBucket = GetInputBucket(current.WhiteKingSquare, Side::White);
+		current.BlackBucket = GetInputBucket(current.BlackKingSquare, Side::Black);
 	}
 
 	inline void PopState() {
