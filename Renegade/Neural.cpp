@@ -97,6 +97,9 @@ int16_t NeuralEvaluate(const Position& position) {
 void AccumulatorRepresentation::UpdateFrom(const Board& b, const AccumulatorRepresentation& oldAcc,
 	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
 
+	WhiteGood = true;
+	BlackGood = true;
+
 	// 1. For null-moves nothing changes, we just copy over everything
 	if (m.IsNull()) {
 		*this = oldAcc;

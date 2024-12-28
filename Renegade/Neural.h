@@ -105,6 +105,7 @@ struct alignas(64) AccumulatorRepresentation {
 			const uint8_t piece = b.GetPieceAt(sq); //pos.GetPieceAt(sq);
 			AddFeatureWhite(piece, sq);
 		}
+		WhiteGood = true;
 	}
 
 	void RefreshBlack(const Board& b) {
@@ -118,6 +119,7 @@ struct alignas(64) AccumulatorRepresentation {
 			const uint8_t piece = b.GetPieceAt(sq); // pos.GetPieceAt(sq);
 			AddFeatureBlack(piece, sq);
 		}
+		BlackGood = true;
 	}
 
 	void AddFeatureWhite(const uint8_t piece, const uint8_t sq) {
@@ -226,27 +228,26 @@ struct EvaluationState {
 	inline void Reset(const Position& pos) {
 		CurrentIndex = 0;
 		AccumulatorStack[0].RefreshBoth(pos);
-		AccumulatorStack[0].WhiteGood = true;
-		AccumulatorStack[0].BlackGood = true;
 	}
 
 	inline int16_t Evaluate(const Position& pos) {
 
 		// 1. Update all waiting
 
-		/*if (!AccumulatorStack[CurrentIndex].WhiteGood) {
+		if (!AccumulatorStack[CurrentIndex].WhiteGood) {
 
-			const bool efficientlyUpdateable = [&] {
+			/*const bool efficientlyUpdateable = [&] {
 				for (int i = CurrentIndex - 1; i >= 0; i--) {
 					AccumulatorRepresentation& current = AccumulatorStack[i];
 					// TODO
 					if (current.WhiteGood) return true;
 				}
 				assert(false);
-			}();
+			}();*/
 
-			if (efficientlyUpdateable) {
-				// Apply updates
+			if (true /*efficientlyUpdateable*/) {
+				// Apply all updates incrementally up to the current point
+
 				const int latestUpdated = [&] {
 					for (int i = CurrentIndex - 1; i >= 0; i--) {
 						if (AccumulatorStack[i].WhiteGood) return i;
@@ -255,7 +256,7 @@ struct EvaluationState {
 				}();
 
 				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
-					AccumulatorStack[i].UpdateFrom(pos.., AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
+					AccumulatorStack[i].UpdateFrom(pos.States[i], AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
 				}
 			}
 			else {
@@ -264,8 +265,24 @@ struct EvaluationState {
 		}
 
 		if (!AccumulatorStack[CurrentIndex].BlackGood) {
-			// Update white
-		}*/
+			if (true /*efficientlyUpdateable*/) {
+				// Apply all updates incrementally up to the current point
+
+				const int latestUpdated = [&] {
+					for (int i = CurrentIndex - 1; i >= 0; i--) {
+						if (AccumulatorStack[i].BlackGood) return i;
+					}
+					assert(false);
+					}();
+
+				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
+					AccumulatorStack[i].UpdateFrom(pos.States[i], AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
+				}
+			}
+			else {
+				//
+			}
+		}
 
 
 		return NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
