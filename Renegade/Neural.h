@@ -280,8 +280,8 @@ struct EvaluationState {
 		if (!AccumulatorStack[CurrentIndex].BlackGood) {
 
 			// Determine whether we can incrementally update this
-			const bool efficientlyUpdateable = false; [&] {
-				for (int i = CurrentIndex - 1; i >= 0; i--) {
+			const bool efficientlyUpdateable = [&] {
+				for (int i = CurrentIndex; i >= 0; i--) {
 					AccumulatorRepresentation& current = AccumulatorStack[i];
 					if (current.BlackGood) return true;
 					if (current.movedPiece == Piece::BlackKing && IsRefreshRequired(current.move, Side::Black)) return false;
