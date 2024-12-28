@@ -272,8 +272,28 @@ struct EvaluationState {
 				}
 			}
 			else {
+
+				const int latestUpdated = [&] {
+					for (int i = CurrentIndex - 1; i >= 0; i--) {
+						if (AccumulatorStack[i].WhiteGood) return i;
+					}
+					assert(false);
+					}();
+				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
+					if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
+						AccumulatorStack[i].RefreshWhite(pos.States[i]);
+					}
+					else {
+						AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
+					}
+				}
+
+
+
+
+
 				// Recalculate only this
-				AccumulatorStack[CurrentIndex].RefreshWhite(pos.CurrentState());
+				//AccumulatorStack[CurrentIndex].RefreshWhite(pos.CurrentState());
 			}
 		}
 
@@ -304,8 +324,20 @@ struct EvaluationState {
 				}
 			}
 			else {
-				// Recalculate only this
-				AccumulatorStack[CurrentIndex].RefreshBlack(pos.CurrentState());
+				const int latestUpdated = [&] {
+					for (int i = CurrentIndex - 1; i >= 0; i--) {
+						if (AccumulatorStack[i].BlackGood) return i;
+					}
+					assert(false);
+					}();
+				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
+					if (AccumulatorStack[i].movedPiece == Piece::BlackKing && IsRefreshRequired(AccumulatorStack[i].move, Side::Black)) {
+						AccumulatorStack[i].RefreshBlack(pos.States[i]);
+					}
+					else {
+						AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
+					}
+				}
 			}
 		}
 
