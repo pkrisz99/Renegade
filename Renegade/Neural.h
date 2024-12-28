@@ -86,35 +86,36 @@ struct alignas(64) AccumulatorRepresentation {
 	uint8_t WhiteKingSquare, BlackKingSquare;
 	Move move;
 	uint8_t movedPiece, capturedPiece;
+	bool WhiteGood, BlackGood;
 
 
 	void RefreshBoth(const Position& pos) {
-		RefreshWhite(pos);
-		RefreshBlack(pos);
+		RefreshWhite(pos.CurrentState());
+		RefreshBlack(pos.CurrentState());
 	}
 
-	void RefreshWhite(const Position& pos) {
+	void RefreshWhite(const Board& b) {
 		for (int i = 0; i < HiddenSize; i++) White[i] = Network->FeatureBias[i];
-		WhiteKingSquare = pos.WhiteKingSquare();
+		WhiteKingSquare = LsbSquare(b.WhiteKingBits); //pos.WhiteKingSquare();
 		WhiteBucket = GetInputBucket(WhiteKingSquare, Side::White);
 		
-		uint64_t bits = pos.GetOccupancy();
+		uint64_t bits = b.GetOccupancy(); // pos.GetOccupancy();
 		while (bits) {
 			const uint8_t sq = Popsquare(bits);
-			const uint8_t piece = pos.GetPieceAt(sq);
+			const uint8_t piece = b.GetPieceAt(sq); //pos.GetPieceAt(sq);
 			AddFeatureWhite(piece, sq);
 		}
 	}
 
-	void RefreshBlack(const Position& pos) {
+	void RefreshBlack(const Board& b) {
 		for (int i = 0; i < HiddenSize; i++) Black[i] = Network->FeatureBias[i];
-		BlackKingSquare = pos.BlackKingSquare();
+		BlackKingSquare = LsbSquare(b.BlackKingBits); //pos.BlackKingSquare();
 		BlackBucket = GetInputBucket(BlackKingSquare, Side::Black);
 
-		uint64_t bits = pos.GetOccupancy();
+		uint64_t bits = b.GetOccupancy(); // pos.GetOccupancy();
 		while (bits) {
 			const uint8_t sq = Popsquare(bits);
-			const uint8_t piece = pos.GetPieceAt(sq);
+			const uint8_t piece = b.GetPieceAt(sq); // pos.GetPieceAt(sq);
 			AddFeatureBlack(piece, sq);
 		}
 	}
@@ -198,7 +199,7 @@ struct alignas(64) AccumulatorRepresentation {
 		return { whiteFeatureIndex, blackFeatureIndex };
 	}
 
-	void UpdateFrom(const Position& pos, const AccumulatorRepresentation& oldAcc,
+	void UpdateFrom(const Board& b, const AccumulatorRepresentation& oldAcc,
 		const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
 
 };
@@ -214,7 +215,7 @@ struct EvaluationState {
 		current.movedPiece = movedPiece;
 		current.capturedPiece = capturedPiece;
 
-		current.UpdateFrom(pos, AccumulatorStack[CurrentIndex - 1], move, movedPiece, capturedPiece);
+		current.UpdateFrom(pos.States[CurrentIndex], AccumulatorStack[CurrentIndex - 1], move, movedPiece, capturedPiece);
 	}
 
 	inline void PopState() {
@@ -225,9 +226,48 @@ struct EvaluationState {
 	inline void Reset(const Position& pos) {
 		CurrentIndex = 0;
 		AccumulatorStack[0].RefreshBoth(pos);
+		AccumulatorStack[0].WhiteGood = true;
+		AccumulatorStack[0].BlackGood = true;
 	}
 
 	inline int16_t Evaluate(const Position& pos) {
+
+		// 1. Update all waiting
+
+		/*if (!AccumulatorStack[CurrentIndex].WhiteGood) {
+
+			const bool efficientlyUpdateable = [&] {
+				for (int i = CurrentIndex - 1; i >= 0; i--) {
+					AccumulatorRepresentation& current = AccumulatorStack[i];
+					// TODO
+					if (current.WhiteGood) return true;
+				}
+				assert(false);
+			}();
+
+			if (efficientlyUpdateable) {
+				// Apply updates
+				const int latestUpdated = [&] {
+					for (int i = CurrentIndex - 1; i >= 0; i--) {
+						if (AccumulatorStack[i].WhiteGood) return i;
+					}
+					assert(false);
+				}();
+
+				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
+					AccumulatorStack[i].UpdateFrom(pos.., AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
+				}
+			}
+			else {
+				//
+			}
+		}
+
+		if (!AccumulatorStack[CurrentIndex].BlackGood) {
+			// Update white
+		}*/
+
+
 		return NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
 	}
 };

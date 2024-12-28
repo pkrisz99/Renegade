@@ -94,7 +94,7 @@ int16_t NeuralEvaluate(const Position& position) {
 
 // Accumulator updates ----------------------------------------------------------------------------
 
-void AccumulatorRepresentation::UpdateFrom(const Position& pos, const AccumulatorRepresentation& oldAcc,
+void AccumulatorRepresentation::UpdateFrom(const Board& b, const AccumulatorRepresentation& oldAcc,
 	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
 
 	// 1. For null-moves nothing changes, we just copy over everything
@@ -117,19 +117,19 @@ void AccumulatorRepresentation::UpdateFrom(const Position& pos, const Accumulato
 	if (keepWhite) {
 		White = oldAcc.White;
 		WhiteBucket = oldAcc.WhiteBucket;
-		WhiteKingSquare = pos.WhiteKingSquare();
+		WhiteKingSquare = LsbSquare(b.WhiteKingBits);  //pos.WhiteKingSquare();
 	}
 	else {
-		RefreshWhite(pos);
+		RefreshWhite(b);
 	}
 
 	if (keepBlack) {
 		Black = oldAcc.Black;
 		BlackBucket = oldAcc.BlackBucket;
-		BlackKingSquare = pos.BlackKingSquare();
+		BlackKingSquare = LsbSquare(b.BlackKingBits); //pos.BlackKingSquare();
 	}
 	else {
-		RefreshBlack(pos);
+		RefreshBlack(b);
 	}
 
 	// 3. Perform incremental updates
