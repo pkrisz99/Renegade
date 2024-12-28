@@ -94,93 +94,6 @@ int16_t NeuralEvaluate(const Position& position) {
 
 // Accumulator updates ----------------------------------------------------------------------------
 
-/*void AccumulatorRepresentation::UpdateFrom(const Board& b, const AccumulatorRepresentation& oldAcc,
-	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
-
-	WhiteGood = true;
-	BlackGood = true;
-
-	// 1. For null-moves nothing changes, we just copy over everything
-	if (m.IsNull()) {
-		*this = oldAcc;
-		return;
-	}
-
-	// 2. Determine if we require a refresh (which only can be needed when the king moves)
-
-	const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
-	bool keepWhite = true;
-	bool keepBlack = true;
-
-	if (TypeOfPiece(movedPiece) == PieceType::King && IsRefreshRequired(m, side)) {
-		if (side == Side::White) keepWhite = false;
-		else keepBlack = false;
-	}
-
-	if (keepWhite) {
-		White = oldAcc.White;
-		WhiteBucket = oldAcc.WhiteBucket;
-		WhiteKingSquare = LsbSquare(b.WhiteKingBits);  //pos.WhiteKingSquare();
-	}
-	else {
-		RefreshWhite(b);
-	}
-
-	if (keepBlack) {
-		Black = oldAcc.Black;
-		BlackBucket = oldAcc.BlackBucket;
-		BlackKingSquare = LsbSquare(b.BlackKingBits); //pos.BlackKingSquare();
-	}
-	else {
-		RefreshBlack(b);
-	}
-
-	// 3. Perform incremental updates
-	
-	// (a) regular non-capture move
-	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
-		SubAddFeature({ movedPiece, m.from }, { movedPiece, m.to }, keepWhite, keepBlack);;
-		return;
-	}
-
-	// (b) regular capture move
-	if (capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
-		SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { movedPiece, m.to }, keepWhite, keepBlack);
-		return;
-	}
-
-	// (c) castling
-	if (m.IsCastling()) {
-		const bool side = ColorOfPiece(movedPiece) == PieceColor::White;
-		const bool shortCastle = m.flag == MoveFlag::ShortCastle;
-		const uint8_t rookPiece = side == Side::White ? Piece::WhiteRook : Piece::BlackRook;
-		const uint8_t newKingFile = shortCastle ? 6 : 2;
-		const uint8_t newRookFile = shortCastle ? 5 : 3;
-		const uint8_t newKingSquare = newKingFile + (side == Side::Black) * 56;
-		const uint8_t newRookSquare = newRookFile + (side == Side::Black) * 56;
-		SubAddFeature({ movedPiece, m.from }, { movedPiece, newKingSquare }, keepWhite, keepBlack);
-		SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare }, keepWhite, keepBlack);
-		return;
-	}
-
-	// (d) promotion - with optional capture
-	if (m.IsPromotion()) {
-		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		if (capturedPiece == Piece::None) SubAddFeature({ movedPiece, m.from }, { promotionPiece, m.to }, keepWhite, keepBlack);
-		else SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { promotionPiece, m.to }, keepWhite, keepBlack);
-		return;
-	}
-
-	// (e) en passant
-	if (m.flag == MoveFlag::EnPassantPerformed) {
-		const uint8_t victimPiece = movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
-		const uint8_t victimSquare = movedPiece == Piece::WhitePawn ? (m.to - 8) : (m.to + 8);
-		SubSubAddFeature({ movedPiece, m.from }, { victimPiece, victimSquare }, { movedPiece, m.to }, keepWhite, keepBlack);
-		return;
-	}
-}*/
-
-
 void AccumulatorRepresentation::UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc,
 	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
 
@@ -211,17 +124,8 @@ void AccumulatorRepresentation::UpdateIncrementally(const bool side, const Accum
 	assert(capturedPiece == this->capturedPiece);
 	assert(m == this->move);
 
-	if (side == Side::White) {
-		this->White = oldAcc.White;
-		//this->WhiteBucket = oldAcc.WhiteBucket;
-		//this->WhiteKingSquare = oldAcc.WhiteKingSquare; // LOL HIGHLY TERRIBLE AND IT'S A LIE
-
-	}
-	else {
-		this->Black = oldAcc.Black;
-		//this->BlackBucket = oldAcc.BlackBucket;
-		//this->BlackKingSquare = oldAcc.BlackKingSquare; // LOL HIGHLY TERRIBLE AND IT'S A LIE
-	}
+	if (side == Side::White) this->White = oldAcc.White;
+	else this->Black = oldAcc.Black;
 
 	// (a) regular non-capture move
 	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {

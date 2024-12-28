@@ -96,13 +96,13 @@ struct alignas(64) AccumulatorRepresentation {
 
 	void RefreshWhite(const Board& b) {
 		for (int i = 0; i < HiddenSize; i++) White[i] = Network->FeatureBias[i];
-		WhiteKingSquare = LsbSquare(b.WhiteKingBits); //pos.WhiteKingSquare();
+		WhiteKingSquare = LsbSquare(b.WhiteKingBits);
 		WhiteBucket = GetInputBucket(WhiteKingSquare, Side::White);
 		
-		uint64_t bits = b.GetOccupancy(); // pos.GetOccupancy();
+		uint64_t bits = b.GetOccupancy();
 		while (bits) {
 			const uint8_t sq = Popsquare(bits);
-			const uint8_t piece = b.GetPieceAt(sq); //pos.GetPieceAt(sq);
+			const uint8_t piece = b.GetPieceAt(sq);
 			AddFeatureWhite(piece, sq);
 		}
 		WhiteGood = true;
@@ -110,13 +110,13 @@ struct alignas(64) AccumulatorRepresentation {
 
 	void RefreshBlack(const Board& b) {
 		for (int i = 0; i < HiddenSize; i++) Black[i] = Network->FeatureBias[i];
-		BlackKingSquare = LsbSquare(b.BlackKingBits); //pos.BlackKingSquare();
+		BlackKingSquare = LsbSquare(b.BlackKingBits);
 		BlackBucket = GetInputBucket(BlackKingSquare, Side::Black);
 
-		uint64_t bits = b.GetOccupancy(); // pos.GetOccupancy();
+		uint64_t bits = b.GetOccupancy();
 		while (bits) {
 			const uint8_t sq = Popsquare(bits);
-			const uint8_t piece = b.GetPieceAt(sq); // pos.GetPieceAt(sq);
+			const uint8_t piece = b.GetPieceAt(sq);
 			AddFeatureBlack(piece, sq);
 		}
 		BlackGood = true;
@@ -201,9 +201,6 @@ struct alignas(64) AccumulatorRepresentation {
 		return { whiteFeatureIndex, blackFeatureIndex };
 	}
 
-	//void UpdateFrom(const Board& b, const AccumulatorRepresentation& oldAcc,
-	//	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
-
 	void UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc,
 		const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
 
@@ -245,98 +242,38 @@ struct EvaluationState {
 
 		if (!AccumulatorStack[CurrentIndex].WhiteGood) {
 
-			// Determine whether we can incrementally update this
-			const bool efficientlyUpdateable = [&] {
-				for (int i = CurrentIndex; i >= 0; i--) {
-					AccumulatorRepresentation& current = AccumulatorStack[i];
-					if (current.WhiteGood) return true;
-					if (current.movedPiece == Piece::WhiteKing && IsRefreshRequired(current.move, Side::White)) return false;
+			const int latestUpdated = [&] {
+				for (int i = CurrentIndex - 1; i >= 0; i--) {
+					if (AccumulatorStack[i].WhiteGood) return i;
 				}
 				assert(false);
 			}();
 
-			if (efficientlyUpdateable) {
-				// Apply all waiting updates incrementally up to the current point
-
-				const int latestUpdated = [&] {
-					for (int i = CurrentIndex - 1; i >= 0; i--) {
-						if (AccumulatorStack[i].WhiteGood) return i;
-					}
-					assert(false);
-				}();
-
-				//cout << "/";
-				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
-					//cout << ".";
+			for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
+				if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
+					AccumulatorStack[i].RefreshWhite(pos.States[i]);
+				}
+				else {
 					AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
 				}
-			}
-			else {
-
-				const int latestUpdated = [&] {
-					for (int i = CurrentIndex - 1; i >= 0; i--) {
-						if (AccumulatorStack[i].WhiteGood) return i;
-					}
-					assert(false);
-					}();
-				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
-					if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
-						AccumulatorStack[i].RefreshWhite(pos.States[i]);
-					}
-					else {
-						AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
-					}
-				}
-
-
-
-
-
-				// Recalculate only this
-				//AccumulatorStack[CurrentIndex].RefreshWhite(pos.CurrentState());
 			}
 		}
 
 		if (!AccumulatorStack[CurrentIndex].BlackGood) {
 
-			// Determine whether we can incrementally update this
-			const bool efficientlyUpdateable = [&] {
-				for (int i = CurrentIndex; i >= 0; i--) {
-					AccumulatorRepresentation& current = AccumulatorStack[i];
-					if (current.BlackGood) return true;
-					if (current.movedPiece == Piece::BlackKing && IsRefreshRequired(current.move, Side::Black)) return false;
+			const int latestUpdated = [&] {
+				for (int i = CurrentIndex - 1; i >= 0; i--) {
+					if (AccumulatorStack[i].BlackGood) return i;
 				}
 				assert(false);
-				}();
+			}();
 
-			if (efficientlyUpdateable) {
-				// Apply all waiting updates incrementally up to the current point
-
-				const int latestUpdated = [&] {
-					for (int i = CurrentIndex - 1; i >= 0; i--) {
-						if (AccumulatorStack[i].BlackGood) return i;
-					}
-					assert(false);
-					}();
-
-				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
-					AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
+			for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
+				if (AccumulatorStack[i].movedPiece == Piece::BlackKing && IsRefreshRequired(AccumulatorStack[i].move, Side::Black)) {
+					AccumulatorStack[i].RefreshBlack(pos.States[i]);
 				}
-			}
-			else {
-				const int latestUpdated = [&] {
-					for (int i = CurrentIndex - 1; i >= 0; i--) {
-						if (AccumulatorStack[i].BlackGood) return i;
-					}
-					assert(false);
-					}();
-				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
-					if (AccumulatorStack[i].movedPiece == Piece::BlackKing && IsRefreshRequired(AccumulatorStack[i].move, Side::Black)) {
-						AccumulatorStack[i].RefreshBlack(pos.States[i]);
-					}
-					else {
-						AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
-					}
+				else {
+					AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
 				}
 			}
 		}
