@@ -94,7 +94,7 @@ int16_t NeuralEvaluate(const Position& position) {
 
 // Accumulator updates ----------------------------------------------------------------------------
 
-void AccumulatorRepresentation::UpdateFrom(const Board& b, const AccumulatorRepresentation& oldAcc,
+/*void AccumulatorRepresentation::UpdateFrom(const Board& b, const AccumulatorRepresentation& oldAcc,
 	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
 
 	WhiteGood = true;
@@ -176,6 +176,67 @@ void AccumulatorRepresentation::UpdateFrom(const Board& b, const AccumulatorRepr
 		const uint8_t victimPiece = movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
 		const uint8_t victimSquare = movedPiece == Piece::WhitePawn ? (m.to - 8) : (m.to + 8);
 		SubSubAddFeature({ movedPiece, m.from }, { victimPiece, victimSquare }, { movedPiece, m.to }, keepWhite, keepBlack);
+		return;
+	}
+}*/
+
+
+void AccumulatorRepresentation::UpdateIncrementally(const Board& b, const bool side, const AccumulatorRepresentation& oldAcc,
+	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
+
+	assert(oldAcc.WhiteGood || side == Side::Black);
+	assert(oldAcc.BlackGood|| side == Side::White);
+	if (side == Side::White) WhiteGood = true;
+	else BlackGood = true;
+	
+	// 1. For null-moves nothing changes, we just copy over everything
+	if (m.IsNull()) {
+		*this = oldAcc;
+		this->move = NullMove;
+		this->movedPiece = Piece::None;
+		this->capturedPiece = Piece::None;
+		return;
+	}
+
+	// (a) regular non-capture move
+	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
+		SubAddFeature({ movedPiece, m.from }, { movedPiece, m.to }, side);
+		return;
+	}
+
+	// (b) regular capture move
+	if (capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
+		SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { movedPiece, m.to }, side);
+		return;
+	}
+
+	// (c) castling
+	if (m.IsCastling()) {
+		const bool side = ColorOfPiece(movedPiece) == PieceColor::White;
+		const bool shortCastle = m.flag == MoveFlag::ShortCastle;
+		const uint8_t rookPiece = side == Side::White ? Piece::WhiteRook : Piece::BlackRook;
+		const uint8_t newKingFile = shortCastle ? 6 : 2;
+		const uint8_t newRookFile = shortCastle ? 5 : 3;
+		const uint8_t newKingSquare = newKingFile + (side == Side::Black) * 56;
+		const uint8_t newRookSquare = newRookFile + (side == Side::Black) * 56;
+		SubAddFeature({ movedPiece, m.from }, { movedPiece, newKingSquare }, side);
+		SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare }, side);
+		return;
+	}
+
+	// (d) promotion - with optional capture
+	if (m.IsPromotion()) {
+		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
+		if (capturedPiece == Piece::None) SubAddFeature({ movedPiece, m.from }, { promotionPiece, m.to }, side);
+		else SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { promotionPiece, m.to }, side);
+		return;
+	}
+
+	// (e) en passant
+	if (m.flag == MoveFlag::EnPassantPerformed) {
+		const uint8_t victimPiece = movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
+		const uint8_t victimSquare = movedPiece == Piece::WhitePawn ? (m.to - 8) : (m.to + 8);
+		SubSubAddFeature({ movedPiece, m.from }, { victimPiece, victimSquare }, { movedPiece, m.to }, side);
 		return;
 	}
 }

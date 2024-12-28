@@ -143,34 +143,34 @@ struct alignas(64) AccumulatorRepresentation {
 	// locally. For this reason this code stays for now, but it requires further investigation. Is
 	// it possible, that this optimization no longer gains due to better compilers getting better?
 
-	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const bool updateWhite, const bool updateBlack) {
+	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const bool side) {
 		const auto features1 = FeatureIndexes(f1.piece, f1.square);
 		const auto features2 = FeatureIndexes(f2.piece, f2.square);
 
-		if (updateWhite) {
+		if (side == Side::White) {
 			for (int i = 0; i < HiddenSize; i++) White[i] +=
 				- Network->FeatureWeights[WhiteBucket][features1.first][i]
 				+ Network->FeatureWeights[WhiteBucket][features2.first][i];
 		}
-		if (updateBlack) {
+		else {
 			for (int i = 0; i < HiddenSize; i++) Black[i] +=
 				- Network->FeatureWeights[BlackBucket][features1.second][i]
 				+ Network->FeatureWeights[BlackBucket][features2.second][i];
 		}
 	}
 
-	void SubSubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3, const bool updateWhite, const bool updateBlack) {
+	void SubSubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3, const bool side) {
 		const auto features1 = FeatureIndexes(f1.piece, f1.square);
 		const auto features2 = FeatureIndexes(f2.piece, f2.square);
 		const auto features3 = FeatureIndexes(f3.piece, f3.square);
 
-		if (updateWhite) {
+		if (side == Side::White) {
 			for (int i = 0; i < HiddenSize; i++) White[i] +=
 				- Network->FeatureWeights[WhiteBucket][features1.first][i]
 				- Network->FeatureWeights[WhiteBucket][features2.first][i]
 				+ Network->FeatureWeights[WhiteBucket][features3.first][i];
 		}
-		if (updateBlack) {
+		else {
 			for (int i = 0; i < HiddenSize; i++) Black[i] +=
 				- Network->FeatureWeights[BlackBucket][features1.second][i]
 				- Network->FeatureWeights[BlackBucket][features2.second][i]
@@ -201,7 +201,10 @@ struct alignas(64) AccumulatorRepresentation {
 		return { whiteFeatureIndex, blackFeatureIndex };
 	}
 
-	void UpdateFrom(const Board& b, const AccumulatorRepresentation& oldAcc,
+	//void UpdateFrom(const Board& b, const AccumulatorRepresentation& oldAcc,
+	//	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
+
+	void UpdateIncrementally(const Board& b, const bool side, const AccumulatorRepresentation& oldAcc,
 		const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
 
 };
@@ -217,7 +220,7 @@ struct EvaluationState {
 		current.movedPiece = movedPiece;
 		current.capturedPiece = capturedPiece;
 
-		current.UpdateFrom(pos.States[CurrentIndex], AccumulatorStack[CurrentIndex - 1], move, movedPiece, capturedPiece);
+		//current.UpdateFrom(pos.States[CurrentIndex], AccumulatorStack[CurrentIndex - 1], move, movedPiece, capturedPiece);
 	}
 
 	inline void PopState() {
@@ -236,17 +239,18 @@ struct EvaluationState {
 
 		if (!AccumulatorStack[CurrentIndex].WhiteGood) {
 
-			/*const bool efficientlyUpdateable = [&] {
+			// Determine whether we can incrementally update this
+			const bool efficientlyUpdateable = [&] {
 				for (int i = CurrentIndex - 1; i >= 0; i--) {
 					AccumulatorRepresentation& current = AccumulatorStack[i];
-					// TODO
+					if (current.movedPiece == Piece::WhiteKing && IsRefreshRequired(current.move, Side::White)) return false;
 					if (current.WhiteGood) return true;
 				}
 				assert(false);
-			}();*/
+			}();
 
-			if (true /*efficientlyUpdateable*/) {
-				// Apply all updates incrementally up to the current point
+			if (efficientlyUpdateable) {
+				// Apply all waiting updates incrementally up to the current point
 
 				const int latestUpdated = [&] {
 					for (int i = CurrentIndex - 1; i >= 0; i--) {
@@ -256,17 +260,29 @@ struct EvaluationState {
 				}();
 
 				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
-					AccumulatorStack[i].UpdateFrom(pos.States[i], AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
+					AccumulatorStack[i].UpdateIncrementally(pos.States[i], Side::White, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
 				}
 			}
 			else {
-				//
+				// Recalculate only this
+				AccumulatorStack[CurrentIndex].RefreshWhite(pos.CurrentState());
 			}
 		}
 
 		if (!AccumulatorStack[CurrentIndex].BlackGood) {
-			if (true /*efficientlyUpdateable*/) {
-				// Apply all updates incrementally up to the current point
+
+			// Determine whether we can incrementally update this
+			const bool efficientlyUpdateable = [&] {
+				for (int i = CurrentIndex - 1; i >= 0; i--) {
+					AccumulatorRepresentation& current = AccumulatorStack[i];
+					if (current.movedPiece == Piece::BlackKing && IsRefreshRequired(current.move, Side::Black)) return false;
+					if (current.BlackGood) return true;
+				}
+				assert(false);
+				}();
+
+			if (efficientlyUpdateable) {
+				// Apply all waiting updates incrementally up to the current point
 
 				const int latestUpdated = [&] {
 					for (int i = CurrentIndex - 1; i >= 0; i--) {
@@ -276,11 +292,12 @@ struct EvaluationState {
 					}();
 
 				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
-					AccumulatorStack[i].UpdateFrom(pos.States[i], AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
+					AccumulatorStack[i].UpdateIncrementally(pos.States[i], Side::Black, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
 				}
 			}
 			else {
-				//
+				// Recalculate only this
+				AccumulatorStack[CurrentIndex].RefreshBlack(pos.CurrentState());
 			}
 		}
 
