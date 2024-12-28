@@ -181,7 +181,7 @@ int16_t NeuralEvaluate(const Position& position) {
 }*/
 
 
-void AccumulatorRepresentation::UpdateIncrementally(const Board& b, const bool side, const AccumulatorRepresentation& oldAcc,
+void AccumulatorRepresentation::UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc,
 	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
 
 	assert(oldAcc.WhiteGood || side == Side::Black);
@@ -207,6 +207,22 @@ void AccumulatorRepresentation::UpdateIncrementally(const Board& b, const bool s
 		return;
 	}
 
+	assert(movedPiece == this->movedPiece);
+	assert(capturedPiece == this->capturedPiece);
+	assert(m == this->move);
+
+	if (side == Side::White) {
+		this->White = oldAcc.White;
+		//this->WhiteBucket = oldAcc.WhiteBucket;
+		//this->WhiteKingSquare = oldAcc.WhiteKingSquare; // LOL HIGHLY TERRIBLE AND IT'S A LIE
+
+	}
+	else {
+		this->Black = oldAcc.Black;
+		//this->BlackBucket = oldAcc.BlackBucket;
+		//this->BlackKingSquare = oldAcc.BlackKingSquare; // LOL HIGHLY TERRIBLE AND IT'S A LIE
+	}
+
 	// (a) regular non-capture move
 	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
 		SubAddFeature({ movedPiece, m.from }, { movedPiece, m.to }, side);
@@ -221,13 +237,13 @@ void AccumulatorRepresentation::UpdateIncrementally(const Board& b, const bool s
 
 	// (c) castling
 	if (m.IsCastling()) {
-		const bool side = ColorOfPiece(movedPiece) == PieceColor::White;
+		const bool castlingSide = ColorOfPiece(movedPiece) == PieceColor::White;
 		const bool shortCastle = m.flag == MoveFlag::ShortCastle;
-		const uint8_t rookPiece = side == Side::White ? Piece::WhiteRook : Piece::BlackRook;
+		const uint8_t rookPiece = castlingSide == Side::White ? Piece::WhiteRook : Piece::BlackRook;
 		const uint8_t newKingFile = shortCastle ? 6 : 2;
 		const uint8_t newRookFile = shortCastle ? 5 : 3;
-		const uint8_t newKingSquare = newKingFile + (side == Side::Black) * 56;
-		const uint8_t newRookSquare = newRookFile + (side == Side::Black) * 56;
+		const uint8_t newKingSquare = newKingFile + (castlingSide == Side::Black) * 56;
+		const uint8_t newRookSquare = newRookFile + (castlingSide == Side::Black) * 56;
 		SubAddFeature({ movedPiece, m.from }, { movedPiece, newKingSquare }, side);
 		SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare }, side);
 		return;

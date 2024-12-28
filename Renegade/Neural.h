@@ -204,7 +204,7 @@ struct alignas(64) AccumulatorRepresentation {
 	//void UpdateFrom(const Board& b, const AccumulatorRepresentation& oldAcc,
 	//	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
 
-	void UpdateIncrementally(const Board& b, const bool side, const AccumulatorRepresentation& oldAcc,
+	void UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc,
 		const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
 
 };
@@ -239,16 +239,18 @@ struct EvaluationState {
 
 	inline int16_t Evaluate(const Position& pos) {
 
+		AccumulatorRepresentation& c = AccumulatorStack[CurrentIndex];
+
 		// 1. Update all waiting
 
 		if (!AccumulatorStack[CurrentIndex].WhiteGood) {
 
 			// Determine whether we can incrementally update this
 			const bool efficientlyUpdateable = [&] {
-				for (int i = CurrentIndex - 1; i >= 0; i--) {
+				for (int i = CurrentIndex; i >= 0; i--) {
 					AccumulatorRepresentation& current = AccumulatorStack[i];
-					if (current.movedPiece == Piece::WhiteKing && IsRefreshRequired(current.move, Side::White)) return false;
 					if (current.WhiteGood) return true;
+					if (current.movedPiece == Piece::WhiteKing && IsRefreshRequired(current.move, Side::White)) return false;
 				}
 				assert(false);
 			}();
@@ -263,8 +265,10 @@ struct EvaluationState {
 					assert(false);
 				}();
 
+				//cout << "/";
 				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
-					AccumulatorStack[i].UpdateIncrementally(pos.States[i], Side::White, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
+					//cout << ".";
+					AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
 				}
 			}
 			else {
@@ -276,11 +280,11 @@ struct EvaluationState {
 		if (!AccumulatorStack[CurrentIndex].BlackGood) {
 
 			// Determine whether we can incrementally update this
-			const bool efficientlyUpdateable = [&] {
+			const bool efficientlyUpdateable = false; [&] {
 				for (int i = CurrentIndex - 1; i >= 0; i--) {
 					AccumulatorRepresentation& current = AccumulatorStack[i];
-					if (current.movedPiece == Piece::BlackKing && IsRefreshRequired(current.move, Side::Black)) return false;
 					if (current.BlackGood) return true;
+					if (current.movedPiece == Piece::BlackKing && IsRefreshRequired(current.move, Side::Black)) return false;
 				}
 				assert(false);
 				}();
@@ -296,7 +300,7 @@ struct EvaluationState {
 					}();
 
 				for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
-					AccumulatorStack[i].UpdateIncrementally(pos.States[i], Side::Black, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
+					AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
 				}
 			}
 			else {
@@ -305,6 +309,12 @@ struct EvaluationState {
 			}
 		}
 
+		assert(AccumulatorStack[CurrentIndex].WhiteGood);
+		assert(AccumulatorStack[CurrentIndex].BlackGood);
+
+		//int good = NeuralEvaluate(pos);
+		//int bad = NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
+		//assert(good == bad);
 
 		return NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
 	}
