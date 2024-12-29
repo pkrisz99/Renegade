@@ -201,8 +201,7 @@ struct alignas(64) AccumulatorRepresentation {
 		return { whiteFeatureIndex, blackFeatureIndex };
 	}
 
-	void UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc,
-		const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
+	void UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc);
 
 };
 
@@ -236,9 +235,7 @@ struct EvaluationState {
 
 	inline int16_t Evaluate(const Position& pos) {
 
-		AccumulatorRepresentation& c = AccumulatorStack[CurrentIndex];
-
-		// 1. Update all waiting
+		// For evaluating, we need to make sure the accumulator is up-to-date for both sides
 
 		if (!AccumulatorStack[CurrentIndex].WhiteGood) {
 
@@ -254,7 +251,7 @@ struct EvaluationState {
 					AccumulatorStack[i].RefreshWhite(pos.States[i]);
 				}
 				else {
-					AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
+					AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1]);
 				}
 			}
 		}
@@ -273,13 +270,10 @@ struct EvaluationState {
 					AccumulatorStack[i].RefreshBlack(pos.States[i]);
 				}
 				else {
-					AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1], AccumulatorStack[i].move, AccumulatorStack[i].movedPiece, AccumulatorStack[i].capturedPiece);
+					AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1]);
 				}
 			}
 		}
-
-		assert(AccumulatorStack[CurrentIndex].WhiteGood);
-		assert(AccumulatorStack[CurrentIndex].BlackGood);
 
 		//int good = NeuralEvaluate(pos);
 		//int bad = NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
