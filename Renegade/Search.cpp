@@ -956,10 +956,9 @@ void Search::OrderMovesQ(const ThreadData& t, const Position& position, MoveList
 
 // Perft methods ----------------------------------------------------------------------------------
 
-
 void Search::Perft(Position& position, const int depth, const PerftType type) const {
-	const bool startingPosition = position.Hash() == 0x463b96181691fc9c;
-	constexpr std::array<uint64_t, 8> startingPerfts = { 1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860 };
+	const bool isStartpos = position.Hash() == 0x463b96181691fc9c;
+	constexpr std::array<uint64_t, 8> startposPerfts = { 1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860 };
 
 	const auto startTime = Clock::now();
 	const uint64_t r = PerftRecursive(position, depth, depth, type);
@@ -967,17 +966,19 @@ void Search::Perft(Position& position, const int depth, const PerftType type) co
 
 	const float seconds = static_cast<float>((endTime - startTime).count() / 1e9);
 	const float speed = r / seconds / 1000000;
-	cout << "Perft(" << depth << ") = " << r << "  | " << std::setprecision(2) << std::fixed << seconds << " s | " << std::setprecision(3) << speed << " mnps | No bulk counting" << endl;
+	cout << "-> Perft(" << depth << ") = " << Console::FormatInteger(r) << " | "
+		<< std::setprecision(2) << std::fixed << seconds << " s | "
+		<< std::setprecision(3) << speed << " mnps | No bulk counting" << endl;
 
-	if (startingPosition && depth < startingPerfts.size() && startingPerfts[depth] != r)
-		cout << "Uh-oh. (expected: " << startingPerfts[depth] << ")" << endl;
+	if (isStartpos && depth < startposPerfts.size() && startposPerfts[depth] != r)
+		cout << "-> Uh-oh. (expected: " << Console::FormatInteger(startposPerfts[depth]) << ")" << endl;
 }
 
 uint64_t Search::PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const {
 	MoveList moves{};
 	position.GenerateMoves(moves, MoveGen::All, Legality::Pseudolegal);
 
-	if (type == PerftType::PerftDiv && originalDepth == depth) cout << "Legal moves (" << moves.size() << "): " << endl;
+	if (type == PerftType::PerftDiv && originalDepth == depth) cout << "-> Legal moves (" << moves.size() << "): " << endl;
 	uint64_t count = 0;
 	for (const auto& m : moves) {
 		if (!position.IsLegalMove(m.move)) continue;
