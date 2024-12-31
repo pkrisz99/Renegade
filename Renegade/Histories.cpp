@@ -46,14 +46,13 @@ bool Histories::IsCountermove(const Move& previousMove, const Move& thisMove) co
 
 void Histories::UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level) {
 
-	// Main quiet history
+	// Main quiet history (note that we manually increase the delta here)
 	const bool side = ColorOfPiece(piece) == PieceColor::White;
 	const bool fromSquareAttacked = position.IsSquareThreatened(m.from);
 	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
-	int16_t hdelta = delta;
-	hdelta += (delta > 0) ? 300 : -300;
-
-	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], hdelta);
+	int16_t quietHistoryDelta = delta;
+	quietHistoryDelta += (delta > 0) ? 300 : -300;
+	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], quietHistoryDelta);
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
