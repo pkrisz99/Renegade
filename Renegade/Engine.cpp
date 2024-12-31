@@ -49,7 +49,7 @@ void Engine::Start() {
 		if (cmd.size() == 0) continue;
 		std::vector<std::string> parts = Split(cmd);
 
-		if (cmd == "quit") {
+		if (cmd == "quit" || cmd == "q") {
 			break;
 		}
 
@@ -209,7 +209,7 @@ void Engine::Start() {
 			DrawBoard(position);
 			continue;
 		}
-		if (parts[0] == "eval") {
+		if (parts[0] == "eval" || parts[0] == "e") {
 			const int nnue = NeuralEvaluate(position);
 			cout << "-> Neural network evaluation: " << ToCentipawns(nnue, position.GetPly()) << " cp  (internal units: " << nnue << ")" << endl;
 			continue;
@@ -226,10 +226,6 @@ void Engine::Start() {
 		if (parts[0] == "ch") {
 			SearchThreads.ResetState(true);
 			cout << "Transposition table cleared." << endl;
-			continue;
-		}
-		if (parts[0] == "test") {
-			cout << "Test trigger point" << endl;
 			continue;
 		}
 		if (parts[0] == "bighash") {
@@ -373,9 +369,10 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "nnue") {
-			cout << "-> Arch: (" << FeatureSize << "x" << InputBucketCount << "->" << HiddenSize << ")x2" << "->1  [SCReLU, horizontally mirrored]" << endl;
+			cout << "-> Arch: (" << FeatureSize << "x" << InputBucketCount << "hm -> " << HiddenSize << ")x2" << " -> 1"
+				<< "  [SCReLU, QA=" << QA << ", QB=" << QB << "]" << endl;
 			cout << "-> Net name: " << NETWORK_NAME << endl;
-			cout << "-> Net size: " << sizeof(NetworkRepresentation) << endl;
+			cout << "-> Net size: " << Console::FormatInteger(sizeof(NetworkRepresentation)) << endl;
 			continue;
 		}
 
@@ -537,20 +534,18 @@ void Engine::HandleBench() {
 }
 
 void Engine::HandleCompiler() const {
-	cout << endl;
 #if defined(__clang__)
-	cout << "Compiler: clang" << endl;
-	cout << "Version: " << __clang_major__ << endl;
+	cout << "-> Compiler: clang" << endl;
+	cout << "-> Version: " << __clang_major__ << endl;
 #elif defined(__GNUC__) || defined(__GNUG__)
-	cout << "Compiler: gcc" << endl;
-	cout << "Version: " << __GNUC__ << endl;
+	cout << "-> Compiler: gcc" << endl;
+	cout << "-> Version: " << __GNUC__ << endl;
 #elif defined(_MSC_VER)
-	cout << "Compiler: MSVC" << endl;
-	cout << "Version: " << _MSC_VER << endl;
+	cout << "-> Compiler: MSVC" << endl;
+	cout << "-> Version: " << _MSC_VER << endl;
 #elif
-	cout << "Interesting compiler you've got there!" << endl;
+	cout << "-> Unknown - Interesting compiler you've got there!" << endl;
 #endif
-	cout << endl;
 }
 
 void Engine::HandleHelp() const {
@@ -562,5 +557,5 @@ void Engine::HandleHelp() const {
 		<< "\n- draw: draws the current board"
 		<< "\n- eval: prints the static evaluation of the position"
 		<< "\n- fen: displays the current position's FEN string"
-		<< "\n- go perft [n] & go perftdiv [n]: retuns the number of possible positions after n plys (incl. duplicates)" << endl;
+		<< "\n- go perft [n] & go perftdiv [n]: retuns the number of possible positions after n plys (incl. duplicates)\n" << endl;
 }
