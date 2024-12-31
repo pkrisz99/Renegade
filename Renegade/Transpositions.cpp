@@ -53,6 +53,7 @@ bool Transpositions::Probe(const uint64_t& hash, TranspositionEntry& entry, cons
 }
 
 void Transpositions::Prefetch(const uint64_t hash) const {
+	return;
 #if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
 	const uint64_t key = hash & HashMask;
 	__builtin_prefetch(&Table[key]);
