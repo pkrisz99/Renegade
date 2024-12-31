@@ -158,6 +158,57 @@ void AccumulatorRepresentation::UpdateIncrementally(const bool side, const Accum
 	}
 }
 
+// Evaluate call ----------------------------------------------------------------------------------
+
+int16_t EvaluationState::Evaluate(const Position& pos) {
+
+	// For evaluating, we need to make sure the accumulator is up-to-date for both sides
+
+	if (!AccumulatorStack[CurrentIndex].WhiteGood) {
+
+		const int latestUpdated = [&] {
+			for (int i = CurrentIndex - 1; i >= 0; i--) {
+				if (AccumulatorStack[i].WhiteGood) return i;
+			}
+			assert(false);
+		}();
+
+		for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
+			if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
+				AccumulatorStack[i].RefreshWhite(pos.States[i]);
+			}
+			else {
+				AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1]);
+			}
+		}
+	}
+
+	if (!AccumulatorStack[CurrentIndex].BlackGood) {
+
+		const int latestUpdated = [&] {
+			for (int i = CurrentIndex - 1; i >= 0; i--) {
+				if (AccumulatorStack[i].BlackGood) return i;
+			}
+			assert(false);
+			}();
+
+		for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
+			if (AccumulatorStack[i].movedPiece == Piece::BlackKing && IsRefreshRequired(AccumulatorStack[i].move, Side::Black)) {
+				AccumulatorStack[i].RefreshBlack(pos.States[i]);
+			}
+			else {
+				AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1]);
+			}
+		}
+	}
+
+	//int good = NeuralEvaluate(pos);
+	//int bad = NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
+	//assert(good == bad);
+
+	return NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
+}
+
 // Loading the neural network ---------------------------------------------------------------------
 
 void LoadDefaultNetwork() {
