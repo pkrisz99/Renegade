@@ -50,8 +50,7 @@ void Histories::UpdateHistory(const Position& position, const Move& m, const uin
 	const bool side = ColorOfPiece(piece) == PieceColor::White;
 	const bool fromSquareAttacked = position.IsSquareThreatened(m.from);
 	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
-	int16_t quietHistoryDelta = delta;
-	quietHistoryDelta += (delta > 0) ? 300 : -300;
+	const int16_t quietHistoryDelta = delta + ((delta > 0) ? 300 : -300);
 	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], quietHistoryDelta);
 
 	// Continuation history
