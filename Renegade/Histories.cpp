@@ -7,7 +7,6 @@ Histories::Histories() {
 void Histories::ClearAll() {
 	ClearKillerAndCounterMoves();
 	std::memset(&QuietHistory, 0, sizeof(QuietHistoryTable));
-	std::memset(&QuietHistoryStructure, 0, sizeof(QuietHistoryStructureTable));
 	std::memset(&CaptureHistory, 0, sizeof(CaptureHistoryTable));
 	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistoryTable));
 	std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionTable));
@@ -47,18 +46,12 @@ bool Histories::IsCountermove(const Move& previousMove, const Move& thisMove) co
 
 void Histories::UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level) {
 
-	// Main quiet history
+	// Main quiet history (note that we manually increase the delta here)
 	const bool side = ColorOfPiece(piece) == PieceColor::White;
 	const bool fromSquareAttacked = position.IsSquareThreatened(m.from);
 	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
-	const uint16_t lastPawnKey = QuietHistoryStructure[piece][m.to][fromSquareAttacked][toSquareAttacked];
-	const uint16_t pawnKey = position.GetPawnKey() % 65536;
-	const bool pawnKeyChanged = lastPawnKey != pawnKey;
-	int16_t hdelta = delta;
-	if (pawnKeyChanged) hdelta += (delta > 0) ? 300 : -300;
-
-	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], hdelta);
-	QuietHistoryStructure[piece][m.to][fromSquareAttacked][toSquareAttacked] = pawnKey;
+	const int16_t quietHistoryDelta = delta + ((delta > 0) ? 300 : -300);
+	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], quietHistoryDelta);
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
