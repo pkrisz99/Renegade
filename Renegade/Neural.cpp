@@ -163,9 +163,11 @@ void AccumulatorRepresentation::UpdateIncrementally(const bool side, const Accum
 int16_t EvaluationState::Evaluate(const Position& pos) {
 
 	// For evaluating, we need to make sure the accumulator is up-to-date for both sides
+	// If we need a refresh, it's important to know, that the accumulator stack and the position stack are indexed differently
+	const int basePositionIndex = pos.States.size() - CurrentIndex - 1;
 
+	// Update white accumulators
 	if (!AccumulatorStack[CurrentIndex].WhiteGood) {
-
 		const int latestUpdated = [&] {
 			for (int i = CurrentIndex - 1; i >= 0; i--) {
 				if (AccumulatorStack[i].WhiteGood) return i;
@@ -175,7 +177,7 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 
 		for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
 			if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
-				AccumulatorStack[i].RefreshWhite(pos.States[i]);
+				AccumulatorStack[i].RefreshWhite(pos.States[basePositionIndex + i]);
 			}
 			else {
 				AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1]);
@@ -183,18 +185,18 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 		}
 	}
 
+	// Update black accumulators
 	if (!AccumulatorStack[CurrentIndex].BlackGood) {
-
 		const int latestUpdated = [&] {
 			for (int i = CurrentIndex - 1; i >= 0; i--) {
 				if (AccumulatorStack[i].BlackGood) return i;
 			}
 			assert(false);
-			}();
+		}();
 
 		for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
 			if (AccumulatorStack[i].movedPiece == Piece::BlackKing && IsRefreshRequired(AccumulatorStack[i].move, Side::Black)) {
-				AccumulatorStack[i].RefreshBlack(pos.States[i]);
+				AccumulatorStack[i].RefreshBlack(pos.States[basePositionIndex + i]);
 			}
 			else {
 				AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1]);
