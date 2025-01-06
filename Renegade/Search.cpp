@@ -558,8 +558,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
 		const uint64_t nodesBefore = t.Nodes;
 
+		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
 		position.PushMove(m);
-		TranspositionTable.Prefetch(position.Hash());
 		t.Nodes += 1;
 		int score = NoEval;
 		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
@@ -735,8 +735,8 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
+		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
 		position.PushMove(m);
-		TranspositionTable.Prefetch(position.Hash());
 		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
 		const int score = -SearchQuiescence(t, level + 1, -beta, -alpha, pvNode);
 		position.PopMove();
