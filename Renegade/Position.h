@@ -128,6 +128,20 @@ public:
 		return MurmurHash3(WhitePawnBits()) ^ MurmurHash3(BlackPawnBits() ^ Zobrist[780]);
 	}
 
+	inline uint64_t ApproximateHashAfterMove(const Move& move) const {
+		// Calculate the approximate hash after a move on the current board
+		// This is to make prefetching more efficient
+		// It doesn't need to be perfect, just good enough, it handles most quiet moves and captures
+		uint64_t hash = Hashes.back() ^ Zobrist[780];
+		const uint8_t movedPiece = GetPieceAt(move.from);
+		const uint8_t capturedPiece = GetPieceAt(move.to);
+		constexpr std::array<uint8_t, 15> pieceMapping = { 255, 1, 3, 5, 7, 9, 11, 255, 255, 0, 2, 4, 6, 8, 10 };
+		hash ^= Zobrist[64 * pieceMapping[movedPiece] + move.from];
+		hash ^= Zobrist[64 * pieceMapping[movedPiece] + move.to];
+		if (capturedPiece != Piece::None) hash ^= Zobrist[64 * pieceMapping[capturedPiece] + move.to];
+		return hash;
+	}
+
 	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;
 
 	inline uint64_t WhitePawnBits() const { return States.back().WhitePawnBits; }
