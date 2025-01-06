@@ -22,6 +22,9 @@ std::unique_ptr<NetworkRepresentation> ExternalNetwork;
 // Evaluating the position ------------------------------------------------------------------------
 
 int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc) {
+	assert(AccumulatorStack[CurrentIndex].WhiteGood);
+	assert(AccumulatorStack[CurrentIndex].BlackGood);
+
 	const bool turn = position.Turn();
 	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.White : acc.Black;
 	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.Black : acc.White;
@@ -92,89 +95,120 @@ int16_t NeuralEvaluate(const Position& position) {
 	return NeuralEvaluate(position, acc);
 }
 
-// Accumulator updates ----------------------------------------------------------------------------
+// Incremental accumulator updates ----------------------------------------------------------------
 
-void AccumulatorRepresentation::UpdateFrom(const Position& pos, const AccumulatorRepresentation& oldAcc,
-	const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece) {
+void AccumulatorRepresentation::UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc) {
 
-	// 1. For null-moves nothing changes, we just copy over everything
-	if (m.IsNull()) {
-		*this = oldAcc;
-		return;
-	}
+	// Ensure the base accumulator is already up to date
+	assert(oldAcc.WhiteGood || side == Side::Black);
+	assert(oldAcc.BlackGood || side == Side::White);
 
-	// 2. Determine if we require a refresh (which only can be needed when the king moves)
+	// After completing this, it's guaranteed that the accumulator will be up to date for the given side
+	if (side == Side::White) WhiteGood = true;
+	else BlackGood = true;
 
-	const bool side = ColorOfPiece(movedPiece) == PieceColor::White ? Side::White : Side::Black;
-	bool keepWhite = true;
-	bool keepBlack = true;
-
-	if (TypeOfPiece(movedPiece) == PieceType::King && IsRefreshRequired(m, side)) {
-		if (side == Side::White) keepWhite = false;
-		else keepBlack = false;
-	}
-
-	if (keepWhite) {
-		White = oldAcc.White;
-		WhiteBucket = oldAcc.WhiteBucket;
-		WhiteKingSquare = pos.WhiteKingSquare();
-	}
-	else {
-		RefreshWhite(pos);
-	}
-
-	if (keepBlack) {
-		Black = oldAcc.Black;
-		BlackBucket = oldAcc.BlackBucket;
-		BlackKingSquare = pos.BlackKingSquare();
-	}
-	else {
-		RefreshBlack(pos);
-	}
-
-	// 3. Perform incremental updates
+	// Copy over the previous state (possible future optimization by deferring this and adding the accumulator change?)
+	if (side == Side::White) White = oldAcc.White;
+	else Black = oldAcc.Black;
 	
+	// For null-moves nothing changes, we're done here
+	if (move.IsNull()) return;
+
+	// Handle various cases of incremental updating
 	// (a) regular non-capture move
-	if (capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
-		SubAddFeature({ movedPiece, m.from }, { movedPiece, m.to }, keepWhite, keepBlack);;
+	if (capturedPiece == Piece::None && !move.IsPromotion() && move.flag != MoveFlag::EnPassantPerformed) {
+		SubAddFeature({ movedPiece, move.from }, { movedPiece, move.to }, side);
 		return;
 	}
 
 	// (b) regular capture move
-	if (capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
-		SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { movedPiece, m.to }, keepWhite, keepBlack);
+	if (capturedPiece != Piece::None && !move.IsPromotion() && move.flag != MoveFlag::EnPassantPerformed && !move.IsCastling()) {
+		SubSubAddFeature({ movedPiece, move.from }, { capturedPiece, move.to }, { movedPiece, move.to }, side);
 		return;
 	}
 
 	// (c) castling
-	if (m.IsCastling()) {
-		const bool side = ColorOfPiece(movedPiece) == PieceColor::White;
-		const bool shortCastle = m.flag == MoveFlag::ShortCastle;
-		const uint8_t rookPiece = side == Side::White ? Piece::WhiteRook : Piece::BlackRook;
+	if (move.IsCastling()) {
+		const bool castlingSide = ColorOfPiece(movedPiece) == PieceColor::White;
+		const bool shortCastle = move.flag == MoveFlag::ShortCastle;
+		const uint8_t rookPiece = castlingSide == Side::White ? Piece::WhiteRook : Piece::BlackRook;
 		const uint8_t newKingFile = shortCastle ? 6 : 2;
 		const uint8_t newRookFile = shortCastle ? 5 : 3;
-		const uint8_t newKingSquare = newKingFile + (side == Side::Black) * 56;
-		const uint8_t newRookSquare = newRookFile + (side == Side::Black) * 56;
-		SubAddFeature({ movedPiece, m.from }, { movedPiece, newKingSquare }, keepWhite, keepBlack);
-		SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare }, keepWhite, keepBlack);
+		const uint8_t newKingSquare = newKingFile + (castlingSide == Side::Black) * 56;
+		const uint8_t newRookSquare = newRookFile + (castlingSide == Side::Black) * 56;
+		SubAddFeature({ movedPiece, move.from }, { movedPiece, newKingSquare }, side);
+		SubAddFeature({ rookPiece, move.to }, { rookPiece, newRookSquare }, side);
 		return;
 	}
 
 	// (d) promotion - with optional capture
-	if (m.IsPromotion()) {
-		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		if (capturedPiece == Piece::None) SubAddFeature({ movedPiece, m.from }, { promotionPiece, m.to }, keepWhite, keepBlack);
-		else SubSubAddFeature({ movedPiece, m.from }, { capturedPiece, m.to }, { promotionPiece, m.to }, keepWhite, keepBlack);
+	if (move.IsPromotion()) {
+		const uint8_t promotionPiece = move.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
+		if (capturedPiece == Piece::None) SubAddFeature({ movedPiece, move.from }, { promotionPiece, move.to }, side);
+		else SubSubAddFeature({ movedPiece, move.from }, { capturedPiece, move.to }, { promotionPiece, move.to }, side);
 		return;
 	}
 
 	// (e) en passant
-	if (m.flag == MoveFlag::EnPassantPerformed) {
+	if (move.flag == MoveFlag::EnPassantPerformed) {
 		const uint8_t victimPiece = movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
-		const uint8_t victimSquare = movedPiece == Piece::WhitePawn ? (m.to - 8) : (m.to + 8);
-		SubSubAddFeature({ movedPiece, m.from }, { victimPiece, victimSquare }, { movedPiece, m.to }, keepWhite, keepBlack);
+		const uint8_t victimSquare = movedPiece == Piece::WhitePawn ? (move.to - 8) : (move.to + 8);
+		SubSubAddFeature({ movedPiece, move.from }, { victimPiece, victimSquare }, { movedPiece, move.to }, side);
 		return;
 	}
+}
+
+// Evaluate call ----------------------------------------------------------------------------------
+
+int16_t EvaluationState::Evaluate(const Position& pos) {
+
+	// For evaluating, we need to make sure the accumulator is up-to-date for both sides
+	// If we need a refresh, it's important to know, that the accumulator stack and the position stack are indexed differently
+	const int basePositionIndex = pos.States.size() - CurrentIndex - 1;
+
+	// Update white accumulators
+	if (!AccumulatorStack[CurrentIndex].WhiteGood) {
+		const int latestUpdated = [&] {
+			for (int i = CurrentIndex - 1; i >= 0; i--) {
+				if (AccumulatorStack[i].WhiteGood) return i;
+			}
+			assert(false);
+		}();
+
+		for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
+			if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
+				AccumulatorStack[i].RefreshWhite(pos.States[basePositionIndex + i]);
+			}
+			else {
+				AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1]);
+			}
+		}
+	}
+
+	// Update black accumulators
+	if (!AccumulatorStack[CurrentIndex].BlackGood) {
+		const int latestUpdated = [&] {
+			for (int i = CurrentIndex - 1; i >= 0; i--) {
+				if (AccumulatorStack[i].BlackGood) return i;
+			}
+			assert(false);
+		}();
+
+		for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
+			if (AccumulatorStack[i].movedPiece == Piece::BlackKing && IsRefreshRequired(AccumulatorStack[i].move, Side::Black)) {
+				AccumulatorStack[i].RefreshBlack(pos.States[basePositionIndex + i]);
+			}
+			else {
+				AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1]);
+			}
+		}
+	}
+
+	//int good = NeuralEvaluate(pos);
+	//int bad = NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
+	//assert(good == bad);
+
+	return NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
 }
 
 // Loading the neural network ---------------------------------------------------------------------

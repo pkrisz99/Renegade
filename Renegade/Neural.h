@@ -50,6 +50,11 @@ struct PieceAndSquare {
 	uint8_t piece, square;
 };
 
+struct AccumulatorRepresentation;
+int16_t NeuralEvaluate(const Position& position);
+int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc);
+void LoadDefaultNetwork();
+
 inline int GetInputBucket(const uint8_t kingSq, const bool side) {
 	const uint8_t transform = side == Side::White ? 0 : 56;
 	const uint8_t rank = GetSquareRank(kingSq ^ transform);
@@ -79,36 +84,42 @@ struct alignas(64) AccumulatorRepresentation {
 	std::array<int16_t, HiddenSize> Black;
 	uint8_t WhiteBucket, BlackBucket;
 	uint8_t WhiteKingSquare, BlackKingSquare;
+	Move move;
+	uint8_t movedPiece, capturedPiece;
+	bool WhiteGood, BlackGood;
+
 
 	void RefreshBoth(const Position& pos) {
-		RefreshWhite(pos);
-		RefreshBlack(pos);
+		RefreshWhite(pos.CurrentState());
+		RefreshBlack(pos.CurrentState());
 	}
 
-	void RefreshWhite(const Position& pos) {
+	void RefreshWhite(const Board& b) {
 		for (int i = 0; i < HiddenSize; i++) White[i] = Network->FeatureBias[i];
-		WhiteKingSquare = pos.WhiteKingSquare();
+		WhiteKingSquare = LsbSquare(b.WhiteKingBits);
 		WhiteBucket = GetInputBucket(WhiteKingSquare, Side::White);
 		
-		uint64_t bits = pos.GetOccupancy();
+		uint64_t bits = b.GetOccupancy();
 		while (bits) {
 			const uint8_t sq = Popsquare(bits);
-			const uint8_t piece = pos.GetPieceAt(sq);
+			const uint8_t piece = b.GetPieceAt(sq);
 			AddFeatureWhite(piece, sq);
 		}
+		WhiteGood = true;
 	}
 
-	void RefreshBlack(const Position& pos) {
+	void RefreshBlack(const Board& b) {
 		for (int i = 0; i < HiddenSize; i++) Black[i] = Network->FeatureBias[i];
-		BlackKingSquare = pos.BlackKingSquare();
+		BlackKingSquare = LsbSquare(b.BlackKingBits);
 		BlackBucket = GetInputBucket(BlackKingSquare, Side::Black);
 
-		uint64_t bits = pos.GetOccupancy();
+		uint64_t bits = b.GetOccupancy();
 		while (bits) {
 			const uint8_t sq = Popsquare(bits);
-			const uint8_t piece = pos.GetPieceAt(sq);
+			const uint8_t piece = b.GetPieceAt(sq);
 			AddFeatureBlack(piece, sq);
 		}
+		BlackGood = true;
 	}
 
 	void AddFeatureWhite(const uint8_t piece, const uint8_t sq) {
@@ -132,34 +143,34 @@ struct alignas(64) AccumulatorRepresentation {
 	// locally. For this reason this code stays for now, but it requires further investigation. Is
 	// it possible, that this optimization no longer gains due to better compilers getting better?
 
-	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const bool updateWhite, const bool updateBlack) {
+	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const bool side) {
 		const auto features1 = FeatureIndexes(f1.piece, f1.square);
 		const auto features2 = FeatureIndexes(f2.piece, f2.square);
 
-		if (updateWhite) {
+		if (side == Side::White) {
 			for (int i = 0; i < HiddenSize; i++) White[i] +=
 				- Network->FeatureWeights[WhiteBucket][features1.first][i]
 				+ Network->FeatureWeights[WhiteBucket][features2.first][i];
 		}
-		if (updateBlack) {
+		else {
 			for (int i = 0; i < HiddenSize; i++) Black[i] +=
 				- Network->FeatureWeights[BlackBucket][features1.second][i]
 				+ Network->FeatureWeights[BlackBucket][features2.second][i];
 		}
 	}
 
-	void SubSubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3, const bool updateWhite, const bool updateBlack) {
+	void SubSubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3, const bool side) {
 		const auto features1 = FeatureIndexes(f1.piece, f1.square);
 		const auto features2 = FeatureIndexes(f2.piece, f2.square);
 		const auto features3 = FeatureIndexes(f3.piece, f3.square);
 
-		if (updateWhite) {
+		if (side == Side::White) {
 			for (int i = 0; i < HiddenSize; i++) White[i] +=
 				- Network->FeatureWeights[WhiteBucket][features1.first][i]
 				- Network->FeatureWeights[WhiteBucket][features2.first][i]
 				+ Network->FeatureWeights[WhiteBucket][features3.first][i];
 		}
-		if (updateBlack) {
+		else {
 			for (int i = 0; i < HiddenSize; i++) Black[i] +=
 				- Network->FeatureWeights[BlackBucket][features1.second][i]
 				- Network->FeatureWeights[BlackBucket][features2.second][i]
@@ -177,7 +188,7 @@ struct alignas(64) AccumulatorRepresentation {
 		else BlackBucket = bucket;
 	}
 
-	inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq) {
+	inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq) const {
 		const uint8_t pieceColor = ColorOfPiece(piece);
 		const uint8_t pieceType = TypeOfPiece(piece);
 		constexpr int colorOffset = 64 * 6;
@@ -190,12 +201,37 @@ struct alignas(64) AccumulatorRepresentation {
 		return { whiteFeatureIndex, blackFeatureIndex };
 	}
 
-	void UpdateFrom(const Position& pos, const AccumulatorRepresentation& oldAcc,
-		const Move& m, const uint8_t movedPiece, const uint8_t capturedPiece);
+	void UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc);
 
 };
 
-int16_t NeuralEvaluate(const Position& position);
-int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc);
+struct EvaluationState {
+	std::array<AccumulatorRepresentation, MaxDepth + 1> AccumulatorStack;
+	int CurrentIndex;
 
-void LoadDefaultNetwork();
+	inline void PushState(const Position& pos, const Move move, const uint8_t movedPiece, const uint8_t capturedPiece) {
+		CurrentIndex += 1;
+		AccumulatorRepresentation& current = AccumulatorStack[CurrentIndex];
+		current.move = move;
+		current.movedPiece = movedPiece;
+		current.capturedPiece = capturedPiece;
+		current.BlackGood = false;
+		current.WhiteGood = false;
+		current.WhiteKingSquare = pos.WhiteKingSquare();
+		current.BlackKingSquare = pos.BlackKingSquare();
+		current.WhiteBucket = GetInputBucket(current.WhiteKingSquare, Side::White);
+		current.BlackBucket = GetInputBucket(current.BlackKingSquare, Side::Black);
+	}
+
+	inline void PopState() {
+		CurrentIndex -= 1;
+		assert(CurrentIndex >= 0);
+	}
+
+	inline void Reset(const Position& pos) {
+		CurrentIndex = 0;
+		AccumulatorStack[0].RefreshBoth(pos);
+	}
+
+	int16_t Evaluate(const Position& pos);
+};
