@@ -188,7 +188,7 @@ struct alignas(64) AccumulatorRepresentation {
 		else BlackBucket = bucket;
 	}
 
-	inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq) {
+	inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq) const {
 		const uint8_t pieceColor = ColorOfPiece(piece);
 		const uint8_t pieceType = TypeOfPiece(piece);
 		constexpr int colorOffset = 64 * 6;
@@ -206,7 +206,7 @@ struct alignas(64) AccumulatorRepresentation {
 };
 
 struct EvaluationState {
-	std::array<AccumulatorRepresentation, MaxDepth> AccumulatorStack;
+	std::array<AccumulatorRepresentation, MaxDepth + 1> AccumulatorStack;
 	int CurrentIndex;
 
 	inline void PushState(const Position& pos, const Move move, const uint8_t movedPiece, const uint8_t capturedPiece) {
