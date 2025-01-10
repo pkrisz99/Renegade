@@ -142,6 +142,6 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 		return FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to] / 256;
 	}();
 
-	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection) * 2 / 3;
+	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection);
 	return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
 }
