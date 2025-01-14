@@ -6,59 +6,59 @@ uint64_t Board::CalculateHash() const {
 	uint64_t bits = WhitePawnBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 1 + sq];
+		hash ^= Zobrist[64 * 0 + sq];
 	}
 	bits = BlackPawnBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 0 + sq];
+		hash ^= Zobrist[64 * 1 + sq];
 	}
 	bits = WhiteKnightBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 3 + sq];
+		hash ^= Zobrist[64 * 2 + sq];
 	}
 	bits = BlackKnightBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 2 + sq];
+		hash ^= Zobrist[64 * 3 + sq];
 	}
 	bits = WhiteBishopBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 5 + sq];
+		hash ^= Zobrist[64 * 4 + sq];
 	}
 	bits = BlackBishopBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 4 + sq];
+		hash ^= Zobrist[64 * 5 + sq];
 	}
 	bits = WhiteRookBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 7 + sq];
+		hash ^= Zobrist[64 * 6 + sq];
 	}
 	bits = BlackRookBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 6 + sq];
+		hash ^= Zobrist[64 * 7 + sq];
 	}
 	bits = WhiteQueenBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 9 + sq];
+		hash ^= Zobrist[64 * 8 + sq];
 	}
 	bits = BlackQueenBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 8 + sq];
+		hash ^= Zobrist[64 * 9 + sq];
 	}
 
 	int sq = LsbSquare(WhiteKingBits);
-	hash ^= Zobrist[64 * 11 + sq];
+	hash ^= Zobrist[64 * 10 + sq];
 
 	sq = LsbSquare(BlackKingBits);
-	hash ^= Zobrist[64 * 10 + sq];
+	hash ^= Zobrist[64 * 11 + sq];
 
 	// Castling
 	if (WhiteRightToShortCastle) hash ^= Zobrist[768];
