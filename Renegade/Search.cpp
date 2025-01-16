@@ -630,35 +630,33 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		return inCheck ? LosingMateScore(level) : 0;
 	}
 
-	// Update search history and statistics
+	// Update search history and statistics when having a cutoff
 	if (bestScore >= beta && !aborting) {
 
 		if (level != 0) t.CutoffCount[level - 1] += 1;
 		const bool quietBestMove = position.IsMoveQuiet(bestMove);
-		const int16_t historyDelta = std::min(300 * (depth - 1), 2250);
+		const int16_t historyDelta = std::min(300 * depth, 2550);
 
-		// If a quiet move causes a fail-high, update move ordering tables
+		// Increment history scores for the move causing the cutoff 
 		if (quietBestMove) {
+			t.History.UpdateHistory(position, bestMove, position.GetPieceAt(bestMove.from), historyDelta, level);
 			t.History.SetKillerMove(bestMove, level);
 			if (level > 0) t.History.SetCountermove(position.GetPreviousMove(1).move, bestMove);
-			if (depth > 1) t.History.UpdateHistory(position, bestMove, position.GetPieceAt(bestMove.from), historyDelta, level);
 		}
 		else {
-			if (depth > 1) t.History.UpdateCaptureHistory(position, bestMove, historyDelta);
+			t.History.UpdateCaptureHistory(position, bestMove, historyDelta);
 		}
 
 		// Decrement history scores for all previously tried moves
-		if (depth > 1) {
-			if (quietBestMove) quietsTried.pop(); // don't decrement for the current move
-			else capturesTried.pop();
+		if (quietBestMove) quietsTried.pop(); // don't decrement for the current move
+		else capturesTried.pop();
 
-			for (const Move& prevTriedMove : quietsTried) {
-				const uint8_t prevTriedPiece = position.GetPieceAt(prevTriedMove.from);
-				t.History.UpdateHistory(position, prevTriedMove, prevTriedPiece, -historyDelta, level);
-			}
-			for (const Move& prevTriedMove : capturesTried) {
-				t.History.UpdateCaptureHistory(position, prevTriedMove, -historyDelta);
-			}
+		for (const Move& prevTriedMove : quietsTried) {
+			const uint8_t prevTriedPiece = position.GetPieceAt(prevTriedMove.from);
+			t.History.UpdateHistory(position, prevTriedMove, prevTriedPiece, -historyDelta, level);
+		}
+		for (const Move& prevTriedMove : capturesTried) {
+			t.History.UpdateCaptureHistory(position, prevTriedMove, -historyDelta);
 		}
 	}
 
