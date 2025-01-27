@@ -30,6 +30,9 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.Black : acc.White;
 	int32_t output = 0;
 
+	const int pieceCount = Popcount(position.GetOccupancy());
+	const int outputBucket = GetOutputBucket(pieceCount);
+
 #ifdef __AVX2__
 	// Calculate output with handwritten SIMD (autovec also works, but it's slower)
 	// Idea by somelizard, it makes fast QA=255 SCReLU possible
@@ -53,7 +56,7 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
 		auto v = _mm256_load_si256((__m256i*) &hiddenFriendly[chunkSize * i]);
 		v = _mm256_min_epi16(_mm256_max_epi16(v, min), max);
-		const auto w = _mm256_load_si256((__m256i*) &Network->OutputWeights[chunkSize * i]);
+		const auto w = _mm256_load_si256((__m256i*) &Network->OutputWeights[outputBucket][chunkSize * i]);
 		const auto p = _mm256_madd_epi16(v, _mm256_mullo_epi16(v, w));
 		sum = _mm256_add_epi32(sum, p);
 	}
@@ -63,7 +66,7 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
 		auto v = _mm256_load_si256((__m256i*) &hiddenOpponent[chunkSize * i]);
 		v = _mm256_min_epi16(_mm256_max_epi16(v, min), max);
-		const auto w = _mm256_load_si256((__m256i*) &Network->OutputWeights[chunkSize * i + HiddenSize]);
+		const auto w = _mm256_load_si256((__m256i*) &Network->OutputWeights[outputBucket][chunkSize * i + HiddenSize]);
 		const auto p = _mm256_madd_epi16(v, _mm256_mullo_epi16(v, w));
 		sum = _mm256_add_epi32(sum, p);
 	}
@@ -75,12 +78,12 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 		const int32_t x = std::clamp<int32_t>(value, 0, QA);
 		return x * x;
 	};
-	for (int i = 0; i < HiddenSize; i++) output += Activation(hiddenFriendly[i]) * Network->OutputWeights[i];
-	for (int i = 0; i < HiddenSize; i++) output += Activation(hiddenOpponent[i]) * Network->OutputWeights[i + HiddenSize];
+	for (int i = 0; i < HiddenSize; i++) output += Activation(hiddenFriendly[i]) * Network->OutputWeights[outputBucket][i];
+	for (int i = 0; i < HiddenSize; i++) output += Activation(hiddenOpponent[i]) * Network->OutputWeights[outputBucket][i + HiddenSize];
 #endif
 
 	constexpr int Q = QA * QB;
-	output = (output / QA + Network->OutputBias) * Scale / Q; // for SCReLU
+	output = (output / QA + Network->OutputBias[outputBucket]) * Scale / Q; // for SCReLU
 
 	// Scale according to material
 	const int gamePhase = position.GetGamePhase();
