@@ -44,26 +44,36 @@ bool Histories::IsCountermove(const Move& previousMove, const Move& thisMove) co
 
 // History heuristic ------------------------------------------------------------------------------
 
-void Histories::UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level) {
+template void Histories::UpdateQuietHistory<Bonus>(const Position&, const Move&, int, int);
+template void Histories::UpdateQuietHistory<Penalty>(const Position&, const Move&, int, int);
+template void Histories::UpdateCaptureHistory<Bonus>(const Position&, const Move&, int);
+template void Histories::UpdateCaptureHistory<Penalty>(const Position&, const Move&, int);
 
-	// Main quiet history (note that we manually increase the delta here)
-	const bool side = ColorOfPiece(piece) == PieceColor::White;
+template <bool bonus>
+void Histories::UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth) {
+	
+	const int delta = std::min(300 * depth, 2550) * (bonus ? 1 : -1);
+
+	// Main quiet history
+	const uint8_t movedPiece = position.GetPieceAt(m.from);
 	const bool fromSquareAttacked = position.IsSquareThreatened(m.from);
 	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
-	UpdateHistoryValue(QuietHistory[piece][m.to][fromSquareAttacked][toSquareAttacked], delta);
+	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareAttacked][toSquareAttacked], delta);
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
 		const auto& [prevMove, prevPiece] = position.GetPreviousMove(ply);
 		if (prevPiece != Piece::None) {
-			int16_t& value = ContinuationHistory[prevPiece][prevMove.to][piece][m.to];
+			int16_t& value = ContinuationHistory[prevPiece][prevMove.to][movedPiece][m.to];
 			UpdateHistoryValue(value, delta);
 		}
 	}
 }
 
-void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int16_t delta) {
+template <bool bonus>
+void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth) {
+	const int delta = std::min(300 * depth, 2550) * (bonus ? 1 : -1);
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
@@ -87,7 +97,7 @@ int Histories::GetHistoryScore(const Position& position, const Move& m, const ui
 	return historyScore;
 }
 
-int16_t Histories::GetCaptureHistoryScore(const Position& position, const Move& m) const {
+int Histories::GetCaptureHistoryScore(const Position& position, const Move& m) const {
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);

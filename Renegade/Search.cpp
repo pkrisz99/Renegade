@@ -212,7 +212,6 @@ void Search::SearchMoves(ThreadData& t) {
 	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), EmptyMove);
 	std::fill(t.SuperSingular.begin(), t.SuperSingular.end(), false);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
-	std::fill(t.DoubleExtensions.begin(), t.DoubleExtensions.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
 	t.History.ClearKillerAndCounterMoves();
 	t.EvalState.Reset(t.CurrentPosition);
@@ -487,7 +486,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
 		if (level + 1 < MaxDepth) t.CutoffCount[level + 1] = 0;
-		if (level > 0) t.DoubleExtensions[level] = t.DoubleExtensions[level - 1];
 	}
 	MovePicker movePicker(t.MoveListStack[level]);
 
@@ -532,7 +530,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Singular extensions
 		int extension = 0;
-		if (singularCandidate && m == ttMove) {
+		if (singularCandidate && m == ttMove && level < t.Depth * 2) {
 			const int singularMargin = depth * 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
@@ -542,13 +540,12 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				
 			if (singularScore < singularBeta) {
 				// Successful extension
-				const bool doubleExtend = (!pvNode && (singularScore < singularBeta - 30) && (t.DoubleExtensions[level] < 6)) || t.SuperSingular[level];
-				if (doubleExtend) t.DoubleExtensions[level] += 1;
+				const bool doubleExtend = (!pvNode && (singularScore < singularBeta - 30)) || t.SuperSingular[level];
 				extension = 1 + doubleExtend;
 			}
 			else {
 				// Extension check failed
-				if (!pvNode && (singularBeta >= beta)) return singularBeta; //
+				if (!pvNode && (singularBeta >= beta)) return singularBeta;
 				else if (cutNode) extension = -1;
 			}
 		}
@@ -635,29 +632,23 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		if (level != 0) t.CutoffCount[level - 1] += 1;
 		const bool quietBestMove = position.IsMoveQuiet(bestMove);
-		const int16_t historyDelta = std::min(300 * depth, 2550);
 
 		// Increment history scores for the move causing the cutoff 
 		if (quietBestMove) {
-			t.History.UpdateHistory(position, bestMove, position.GetPieceAt(bestMove.from), historyDelta, level);
+			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth);
 			t.History.SetKillerMove(bestMove, level);
 			if (level > 0) t.History.SetCountermove(position.GetPreviousMove(1).move, bestMove);
 		}
 		else {
-			t.History.UpdateCaptureHistory(position, bestMove, historyDelta);
+			t.History.UpdateCaptureHistory<Bonus>(position, bestMove, depth);
 		}
 
 		// Decrement history scores for all previously tried moves
 		if (quietBestMove) quietsTried.pop(); // don't decrement for the current move
 		else capturesTried.pop();
 
-		for (const Move& prevTriedMove : quietsTried) {
-			const uint8_t prevTriedPiece = position.GetPieceAt(prevTriedMove.from);
-			t.History.UpdateHistory(position, prevTriedMove, prevTriedPiece, -historyDelta, level);
-		}
-		for (const Move& prevTriedMove : capturesTried) {
-			t.History.UpdateCaptureHistory(position, prevTriedMove, -historyDelta);
-		}
+		for (const Move& qt : quietsTried) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth);
+		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth);
 	}
 
 	// Update evaluation correction
