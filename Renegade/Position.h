@@ -135,7 +135,7 @@ public:
 		uint64_t hash = Hashes.back() ^ Zobrist[780];
 		const uint8_t movedPiece = GetPieceAt(move.from);
 		const uint8_t capturedPiece = GetPieceAt(move.to);
-		constexpr std::array<uint8_t, 15> pieceMapping = { 255, 1, 3, 5, 7, 9, 11, 255, 255, 0, 2, 4, 6, 8, 10 };
+		constexpr std::array<uint8_t, 15> pieceMapping = { 255, 0, 1, 2, 3, 4, 5, 255, 255, 6, 7, 8, 9, 10, 11 };
 		hash ^= Zobrist[64 * pieceMapping[movedPiece] + move.from];
 		hash ^= Zobrist[64 * pieceMapping[movedPiece] + move.to];
 		if (capturedPiece != Piece::None) hash ^= Zobrist[64 * pieceMapping[capturedPiece] + move.to];
