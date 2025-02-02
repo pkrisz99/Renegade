@@ -4,6 +4,10 @@
 #include "Utils.h"
 #include <memory>
 
+// Aliases for readabiliy
+constexpr bool Bonus = true;
+constexpr bool Penalty = false;
+
 class Histories
 {
 public:
@@ -22,13 +26,13 @@ public:
 	void SetCountermove(const Move& previousMove, const Move& thisMove);
 	bool IsCountermove(const Move& previousMove, const Move& thisMove) const;
 
-	// History heuristic (quiet moves):
-	void UpdateHistory(const Position& position, const Move& m, const uint8_t piece, const int16_t delta, const int level);
-	void UpdateCaptureHistory(const Position& position, const Move& m, const int16_t delta);
+	// History heuristic:
+	template <bool bonus> void UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth);
+	template <bool bonus> void UpdateCaptureHistory(const Position& position, const Move& m, const int depth);
 	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
-	int16_t GetCaptureHistoryScore(const Position& position, const Move& m) const;
+	int GetCaptureHistoryScore(const Position& position, const Move& m) const;
 
-	// Static evaluation correction history:
+	// Correction history for position evaluations:
 	void UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth);
 	int16_t ApplyCorrection(const Position& position, const int16_t rawEval) const;
 
