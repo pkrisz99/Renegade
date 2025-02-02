@@ -212,7 +212,6 @@ void Search::SearchMoves(ThreadData& t) {
 	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), EmptyMove);
 	std::fill(t.SuperSingular.begin(), t.SuperSingular.end(), false);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
-	std::fill(t.DoubleExtensions.begin(), t.DoubleExtensions.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
 	t.History.ClearKillerAndCounterMoves();
 	t.EvalState.Reset(t.CurrentPosition);
@@ -487,7 +486,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
 		if (level + 1 < MaxDepth) t.CutoffCount[level + 1] = 0;
-		if (level > 0) t.DoubleExtensions[level] = t.DoubleExtensions[level - 1];
 	}
 	MovePicker movePicker(t.MoveListStack[level]);
 
@@ -532,7 +530,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Singular extensions
 		int extension = 0;
-		if (singularCandidate && m == ttMove) {
+		if (singularCandidate && m == ttMove && level < t.Depth * 2) {
 			const int singularMargin = depth * 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
@@ -542,13 +540,12 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				
 			if (singularScore < singularBeta) {
 				// Successful extension
-				const bool doubleExtend = (!pvNode && (singularScore < singularBeta - 30) && (t.DoubleExtensions[level] < 6)) || t.SuperSingular[level];
-				if (doubleExtend) t.DoubleExtensions[level] += 1;
+				const bool doubleExtend = (!pvNode && (singularScore < singularBeta - 30)) || t.SuperSingular[level];
 				extension = 1 + doubleExtend;
 			}
 			else {
 				// Extension check failed
-				if (!pvNode && (singularBeta >= beta)) return singularBeta; //
+				if (!pvNode && (singularBeta >= beta)) return singularBeta;
 				else if (cutNode) extension = -1;
 			}
 		}
