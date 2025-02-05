@@ -369,7 +369,7 @@ void Engine::Start() {
 		}
 
 		if (parts[0] == "nnue") {
-			cout << "-> Arch: (" << FeatureSize << "x" << InputBucketCount << "hm -> " << HiddenSize << ")x2" << " -> 1"
+			cout << "-> Arch: (" << FeatureSize << "x" << InputBucketCount << "hm -> " << HiddenSize << ")x2" << " -> 1x" << OutputBucketCount
 				<< "  [SCReLU, QA=" << QA << ", QB=" << QB << "]" << endl;
 			cout << "-> Net name: " << NETWORK_NAME << endl;
 			cout << "-> Net size: " << Console::FormatInteger(sizeof(NetworkRepresentation)) << endl;

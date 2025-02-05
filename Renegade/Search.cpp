@@ -9,7 +9,6 @@
 // - the ordering score can come either directly from history, or from captures/killers etc.
 // - quiescence search is very basic
 // - there aren't any form of staged movegen implemented
-// - elo gain estimates are very outdated
 // - some stuff are just plain cursed
 
 Search::Search() {
@@ -403,7 +402,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 8)
-		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && (std::abs(ttEval) < MateThreshold);
+		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && !IsMateScore(ttEval);
 	const bool ttPV = pvNode || ttEntry.ttPv;
 	
 	// Obtain the evaluation of the position
@@ -420,10 +419,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		staticEval = t.History.ApplyCorrection(position, rawEval);
 		eval = staticEval;
 
-		if ((ttEval != NoEval) && !inCheck) {  // inCheck is cosmetic
-			if ((ttEntry.scoreType == ScoreType::Exact)
-				|| ((ttEntry.scoreType == ScoreType::LowerBound) && (staticEval < ttEval))
-				|| ((ttEntry.scoreType == ScoreType::UpperBound) && (staticEval > ttEval))) eval = ttEval;
+		if (ttEval != NoEval) {
+			if (ttEntry.scoreType == ScoreType::Exact
+				|| (ttEntry.scoreType == ScoreType::LowerBound && staticEval < ttEval)
+				|| (ttEntry.scoreType == ScoreType::UpperBound && staticEval > ttEval)) eval = ttEval; // can't be true when in check
 		}
 		t.StaticEvalStack[level] = staticEval;
 		t.EvalStack[level] = eval;
@@ -440,21 +439,21 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
 
-		// Reverse futility pruning (+128 elo)
+		// Reverse futility pruning
 		const int rfpMargin = depth * 90 - improving * 90;
-		if ((depth <= 7) && (std::abs(beta) < MateThreshold)) {
+		if (depth <= 7 && !IsMateScore(beta)) {
 			if (eval - rfpMargin > beta) return eval;
 		}
 
-		// Null-move pruning (+33 elo)
-		if (depth >= 3 && !position.IsPreviousMoveNull() && eval >= beta && position.ZugzwangUnlikely()) {
+		// Null-move pruning
+		if (depth >= 3 && eval >= beta && !position.IsPreviousMoveNull() && position.ZugzwangUnlikely()) {
 			TranspositionTable.Prefetch(position.Hash() ^ Zobrist[780]);
 			const int nmpReduction = [&] {
 				const int defaultReduction = 3 + depth / 3 + std::min((eval - beta) / 200, 3);
 				return std::min(defaultReduction, depth);
 			}();
 			position.PushNullMove();
-			t.EvalState.PushState(position, NullMove, 0, 0);
+			t.EvalState.PushState(position, NullMove, Piece::None, Piece::None);
 			const int nmpScore = -SearchRecursive(t, depth - nmpReduction, level + 1, -beta, -beta + 1, false, !cutNode);
 			position.PopMove();
 			t.EvalState.PopState();
@@ -463,15 +462,15 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 		}
 
-		// Futility pruning (2024: +10 elo)
+		// Futility pruning
 		const int futilityMargin = 30 + depth * 100;
-		if (depth <= 5 && (std::abs(beta) < MateThreshold)) {
+		if (depth <= 5 && !IsMateScore(beta)) {
 			futilityPrunable = (eval + futilityMargin < alpha);
 		}
 	}
 
 	// Internal iterative reductions
-	if (depth > 4 && ttMove.IsEmpty() && !singularSearch) {
+	if (depth >= 5 && ttMove.IsEmpty() && !singularSearch) {
 		depth -= 1;
 	}
 
@@ -510,18 +509,18 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		else capturesTried.push(m);
 
 		// Moves loop pruning techniques
-		if (!pvNode && (bestScore > -MateThreshold) && (order < 90000) && !DatagenMode) {
+		if (!pvNode && !IsLosingMateScore(bestScore) && (order < 90000) && !DatagenMode) {
 
-			// Late-move pruning (+9 elo)
-			if (isQuiet && !inCheck && (depth < 5)) {
+			// Late-move pruning
+			if (depth <= 4 && isQuiet && !inCheck) {
 				const int lmpCount = 3 + depth * (depth - !improving);
 				if (legalMoveCount > lmpCount) break;
 			}
 
 			// Performing futility pruning
-			if (isQuiet && (order < 32678) && (alpha < MateThreshold) && futilityPrunable) break;
+			if (isQuiet && order < 32678 && alpha < MateThreshold && futilityPrunable) break;
 
-			// Main search SEE pruning (+20 elo)
+			// Main search SEE pruning
 			if (depth <= 5) {
 				const int seeMargin = isQuiet ? (-50 * depth) : (-100 * depth);
 				if (!StaticExchangeEval(position, m, seeMargin)) continue;
@@ -545,7 +544,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 			else {
 				// Extension check failed
-				if (!pvNode && (singularBeta >= beta)) return singularBeta;
+				if (!pvNode && singularBeta >= beta) return singularBeta;
 				else if (cutNode) extension = -1;
 			}
 		}
@@ -563,7 +562,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		
 		// Late-move reductions & principal variation search
-		if ((legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet && depth >= 3) {
+		if (depth >= 3 && (legalMoveCount >= (pvNode ? 6 : 4)) && isQuiet) {
 			
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!ttPV) reduction += 1;
@@ -719,7 +718,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	while (movePicker.hasNext()) {
 		const auto& [m, order] = movePicker.get();
 		if (!position.IsLegalMove(m)) continue;
-		if (!StaticExchangeEval(position, m, 0)) continue; // Quiescence search SEE pruning (+39 elo)
+		if (!StaticExchangeEval(position, m, 0)) continue; // Quiescence search SEE pruning
 		t.Nodes += 1;
 
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
@@ -829,10 +828,10 @@ bool Search::StaticExchangeEval(const Position& position, const Move& move, cons
 		SetBitFalse(occupancy, sq);
 
 		// Update potentially uncovered sliding pieces
-		if ((victim == PieceType::Pawn) || (victim == PieceType::Bishop) || (victim == PieceType::Queen)) {
+		if (victim == PieceType::Pawn || victim == PieceType::Bishop || victim == PieceType::Queen) {
 			attackers |= GetBishopAttacks(move.to, occupancy) & diagonals;
 		}
-		if ((victim == PieceType::Rook) || (victim == PieceType::Queen)) {
+		if (victim == PieceType::Rook || victim == PieceType::Queen) {
 			attackers |= GetRookAttacks(move.to, occupancy) & parallels;
 		}
 

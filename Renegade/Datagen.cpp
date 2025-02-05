@@ -47,7 +47,7 @@ static std::string ToTextformat(const std::string fen, const int16_t whiteScore,
 		switch (outcome) {
 		case GameState::WhiteVictory: return "1.0";
 		case GameState::BlackVictory: return "0.0";
-		case GameState::Draw: return "0.5";
+		case GameState::Drawn: return "0.5";
 		default: return "???";
 		}
 		}();
@@ -236,7 +236,7 @@ void SelfPlay(const std::string filename) {
 			if (std::abs(whiteScore) < drawAdjEvalThreshold) {
 				drawAdjudicationCounter += 1;
 				if (drawAdjudicationCounter >= drawAdjPlies) {
-					outcome = GameState::Draw;
+					outcome = GameState::Drawn;
 					break;
 				}
 			}
@@ -276,7 +276,7 @@ void SelfPlay(const std::string filename) {
 		Plies.fetch_add(position.GetPly(), std::memory_order_relaxed);
 
 		if (outcome == GameState::WhiteVictory) WhiteWins.fetch_add(1, std::memory_order_relaxed);
-		else if (outcome == GameState::Draw) Draws.fetch_add(1, std::memory_order_relaxed);
+		else if (outcome == GameState::Drawn) Draws.fetch_add(1, std::memory_order_relaxed);
 		else if (outcome == GameState::BlackVictory) BlackWins.fetch_add(1, std::memory_order_relaxed);
 		
 		// 5. Store the game to the memory, and periodically to the hard drive

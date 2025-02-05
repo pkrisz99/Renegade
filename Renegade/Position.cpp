@@ -824,10 +824,10 @@ GameState Position::GetGameState() const {
 
 	if (moves.size() == 0) {
 		if (IsInCheck()) return (Turn() == Side::Black) ? GameState::WhiteVictory : GameState::BlackVictory;
-		else return GameState::Draw; // Stalemate
+		else return GameState::Drawn; // Stalemate
 	}
 
 	// Check other types of draws
-	if (IsDrawn(true)) return GameState::Draw;
+	if (IsDrawn(true)) return GameState::Drawn;
 	else return GameState::Playing;
 }

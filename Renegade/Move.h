@@ -74,20 +74,20 @@ public:
 	}
 
 	inline bool IsEmpty() const {
-		return (from == 0) && (to == 0) && (flag == 0);
+		return from == 0 && to == 0 && flag == 0;
 	}
 
 	inline bool IsNull() const {
-		return (from == 0) && (to == 0);
+		return from == 0 && to == 0;
 	}
 
 	inline bool IsUnderpromotion() const {
-		return (flag == MoveFlag::PromotionToRook) || (flag == MoveFlag::PromotionToKnight) || (flag == MoveFlag::PromotionToBishop);
+		return flag == MoveFlag::PromotionToRook || flag == MoveFlag::PromotionToKnight || flag == MoveFlag::PromotionToBishop;
 	}
 
 	inline bool IsPromotion() const {
-		return (flag == MoveFlag::PromotionToQueen) || (flag == MoveFlag::PromotionToRook)
-			|| (flag == MoveFlag::PromotionToKnight) || (flag == MoveFlag::PromotionToBishop);
+		return flag == MoveFlag::PromotionToQueen || flag == MoveFlag::PromotionToRook
+			|| flag == MoveFlag::PromotionToKnight || flag == MoveFlag::PromotionToBishop;
 	}
 
 	inline bool IsCastling() const {
@@ -110,7 +110,7 @@ public:
 	}
 
 	inline bool operator== (const Move& m) const {
-		return (from == m.from) && (to == m.to) && (flag == m.flag);
+		return from == m.from && to == m.to && flag == m.flag;
 	}
 
 };
@@ -124,8 +124,6 @@ struct MoveAndPiece {
 };
 
 // Move list --------------------------------------------------------------------------------------
-
-constexpr int MaxMoveCount = 256;
 
 struct ScoredMove {
 	Move move;

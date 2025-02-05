@@ -21,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.1.74";
+constexpr std::string_view Version = "dev 1.1.75";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -31,7 +31,9 @@ constexpr int MateThreshold = MateEval - 1000;
 constexpr int NoEval = -32001;
 constexpr int NegativeInfinity = -32001;
 constexpr int PositiveInfinity = 32001;
+
 constexpr int MaxDepth = 128;
+constexpr int MaxMoveCount = 256;
 
 // Pawn value normalization and WDL reporting:
 // (calculated with https://github.com/official-stockfish/WDL_model using Renegade's own games)
@@ -45,13 +47,13 @@ int ToCentipawns(const int score, const int ply);
 
 // Score range detection:
 static inline bool IsMateScore(const int score) {
-	return (std::abs(score) > MateThreshold) && (std::abs(score) <= MateEval);
+	return std::abs(score) > MateThreshold;
 }
 static inline bool IsWinningMateScore(const int score) {
-	return (score > MateThreshold) && (score <= MateEval);
+	return score > MateThreshold;
 }
 static inline bool IsLosingMateScore(const int score) {
-	return (score < -MateThreshold && (score >= -MateEval));
+	return score < -MateThreshold;
 }
 static inline int LosingMateScore(const int level) {
 	return -MateEval + level;
@@ -166,7 +168,7 @@ const std::array<std::string, 64> SquareStrings = {
 
 // Structures  ------------------------------------------------------------------------------------
 
-enum class GameState { Playing, WhiteVictory, BlackVictory, Draw };
+enum class GameState { Playing, WhiteVictory, BlackVictory, Drawn };
 
 enum class PerftType { Normal, PerftDiv };
 

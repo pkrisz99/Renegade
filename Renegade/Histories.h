@@ -33,7 +33,7 @@ public:
 	int GetCaptureHistoryScore(const Position& position, const Move& m) const;
 
 	// Correction history for position evaluations:
-	void UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth);
+	void UpdateCorrection(const Position& position, const int16_t refEval, const int16_t score, const int depth);
 	int16_t ApplyCorrection(const Position& position, const int16_t rawEval) const;
 
 private:

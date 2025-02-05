@@ -111,8 +111,8 @@ int Histories::GetCaptureHistoryScore(const Position& position, const Move& m) c
 
 // Static evaluation correction history -----------------------------------------------------------
 
-void Histories::UpdateCorrection(const Position& position, const int16_t rawEval, const int16_t score, const int depth) {
-	const int diff = (score - rawEval) * 256;
+void Histories::UpdateCorrection(const Position& position, const int16_t refEval, const int16_t score, const int depth) {
+	const int diff = (score - refEval) * 256;
 	const int weight = std::min(16, depth + 1);
 
 	const uint64_t materialKey = position.GetMaterialKey() % 32768;
