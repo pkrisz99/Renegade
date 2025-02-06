@@ -73,10 +73,6 @@ public:
 		else return { f1, r1, f2, r2, promo };
 	}
 
-	inline bool IsEmpty() const {
-		return from == 0 && to == 0 && flag == 0;
-	}
-
 	inline bool IsNull() const {
 		return from == 0 && to == 0;
 	}
@@ -115,8 +111,7 @@ public:
 
 };
 
-static const Move NullMove { 0, 0, MoveFlag::NullMove };
-static const Move EmptyMove { 0, 0, MoveFlag::None };
+static const Move NullMove { 0, 0, MoveFlag::None };
 
 struct MoveAndPiece {
 	Move move{};

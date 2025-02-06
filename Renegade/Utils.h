@@ -21,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.1.75";
+constexpr std::string_view Version = "dev 1.1.76";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -70,8 +70,7 @@ namespace MoveFlag {
 	constexpr uint8_t PromotionToRook = 5;
 	constexpr uint8_t PromotionToQueen = 6;
 	constexpr uint8_t EnPassantPossible = 7;
-	constexpr uint8_t NullMove = 8;
-	constexpr uint8_t EnPassantPerformed = 9;
+	constexpr uint8_t EnPassantPerformed = 8;
 }
 
 namespace Side {
