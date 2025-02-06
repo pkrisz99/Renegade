@@ -208,7 +208,7 @@ void Search::SearchMoves(ThreadData& t) {
 	t.result = {};
 	t.ResetStatistics();
 	t.ResetPvTable();
-	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), EmptyMove);
+	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), NullMove);
 	std::fill(t.SuperSingular.begin(), t.SuperSingular.end(), false);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
@@ -380,12 +380,12 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	const Move excludedMove = t.ExcludedMoves[level];
-	const bool singularSearch = !excludedMove.IsEmpty();
+	const bool singularSearch = !excludedMove.IsNull();
 
 	// Probe the transposition table
 	TranspositionEntry ttEntry;
 	int ttEval = NoEval;
-	Move ttMove = EmptyMove;
+	Move ttMove = NullMove;
 	bool found = false;
 	const uint64_t hash = position.Hash();
 
@@ -470,7 +470,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	// Internal iterative reductions
-	if (depth >= 5 && ttMove.IsEmpty() && !singularSearch) {
+	if (depth >= 5 && ttMove.IsNull() && !singularSearch) {
 		depth -= 1;
 	}
 
@@ -492,7 +492,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
 	int failLowCount = 0;
-	Move bestMove = EmptyMove;
+	Move bestMove = NullMove;
 	int bestScore = NegativeInfinity;
 
 	StaticVector<Move, MaxMoveCount> quietsTried;
@@ -535,7 +535,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			const int singularDepth = (depth - 1) / 2;
 			t.ExcludedMoves[level] = m;
 			const int singularScore = SearchRecursive(t, singularDepth, level, singularBeta - 1, singularBeta, false, cutNode);
-			t.ExcludedMoves[level] = EmptyMove;
+			t.ExcludedMoves[level] = NullMove;
 				
 			if (singularScore < singularBeta) {
 				// Successful extension
@@ -689,7 +689,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	TranspositionEntry ttEntry;
 	const bool found = TranspositionTable.Probe(hash, ttEntry, level);
 	if (!pvNode && found && ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
-	Move ttMove = EmptyMove;
+	Move ttMove = NullMove;
 	if (found) ttMove = Move(ttEntry.packedMove);
 	const bool ttPV = pvNode || ttEntry.ttPv;
 
@@ -712,7 +712,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 	// Search recursively
 	int bestScore = staticEval;
-	Move bestMove = EmptyMove;
+	Move bestMove = NullMove;
 	int scoreType = ScoreType::UpperBound;
 
 	while (movePicker.hasNext()) {
@@ -873,7 +873,7 @@ std::vector<Move> ThreadData::GeneratePvLine() const {
 
 	for (int i = 0; i < PvLength[0]; i++) {
 		const Move& m = PvTable[0][i];
-		if (m.IsEmpty()) break;
+		if (m.IsNull()) break;
 		list.push_back(m);
 	}
 	return list;

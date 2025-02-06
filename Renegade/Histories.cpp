@@ -31,7 +31,7 @@ bool Histories::IsKillerMove(const Move& move, const int level) const {
 }
 
 void Histories::ResetKillerForPly(const int level) {
-	KillerMoves[level] = EmptyMove;
+	KillerMoves[level] = NullMove;
 }
 
 void Histories::SetCountermove(const Move& previousMove, const Move& thisMove) {

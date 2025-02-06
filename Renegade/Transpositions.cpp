@@ -14,7 +14,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 	const uint16_t quality = Age * 2 + depth;
 	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
 
-	if (quality >= Table[key].quality) { // (TranspositionTable[key].depth <= depth)
+	if (quality >= Table[key].quality) {
 		Table[key].depth = depth;
 		if (Table[key].hash != storedHash || !bestMove.IsNull()) {
 			Table[key].packedMove = bestMove.Pack();
