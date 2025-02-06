@@ -186,6 +186,7 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 			for (int i = latestUpdated.value() + 1; i <= CurrentIndex; i++) {
 				if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
 					AccumulatorStack[i].RefreshWhite(pos.States[basePositionIndex + i]);
+					//cout << "OH NO" << endl;
 				}
 				else {
 					AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1]);
@@ -201,6 +202,7 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 			const uint8_t whiteKingSq = pos.WhiteKingSquare();
 			const int inputBucket = GetInputBucket(whiteKingSq, Side::White);
 			const int bucketCacheIndex = inputBucket + (GetSquareFile(whiteKingSq) >= 4 ? InputBucketCount : 0);
+			const int whiteKingFile = GetSquareFile(whiteKingSq);
 			BucketCacheItem& cache = BucketCache[0][bucketCacheIndex];
 
 			// Calculate the feature boolean array for the current position
@@ -227,24 +229,19 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 				
 				while (toBeAdded) {
 					const uint8_t sq = Popsquare(toBeAdded);
-					const int feature = [&] {
-						const int whiteKingFile = GetSquareFile(whiteKingSq);
-						return ((whiteKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
-					}();
+					const int feature = ((whiteKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
 					adds.push(feature);
 					for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] += Network->FeatureWeights[inputBucket][feature][i];
 				}
 
 				while (toBeSubbed) {
 					const uint8_t sq = Popsquare(toBeSubbed);
-					const int feature = [&] {
-						const int whiteKingFile = GetSquareFile(whiteKingSq);
-						return ((whiteKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
-					}();
+					const int feature = ((whiteKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
 					subs.push(feature);
 					for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] -= Network->FeatureWeights[inputBucket][feature][i];
 				}
 			}
+			//cout << "+" << (int)adds.size() << "  -" << (int)subs.size() << endl;
 			cache.featureBits = featureBits;
 			AccumulatorStack[CurrentIndex].White = cache.cachedAcc;
 			AccumulatorStack[CurrentIndex].WhiteGood = true;

@@ -214,7 +214,7 @@ struct alignas(64) AccumulatorRepresentation {
 
 struct alignas(64) BucketCacheItem {
 	std::array<int16_t, HiddenSize> cachedAcc;
-	std::array<uint64_t, 12> featureBits;
+	std::array<uint64_t, 12> featureBits{};
 
 	BucketCacheItem() {
 		for (int i = 0; i < HiddenSize; i++) cachedAcc[i] = Network->FeatureBias[i];
