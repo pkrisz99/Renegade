@@ -171,20 +171,85 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 
 	// Update white accumulators
 	if (!AccumulatorStack[CurrentIndex].WhiteGood) {
-		const int latestUpdated = [&] {
+		const std::optional<int> latestUpdated = [&] {
 			for (int i = CurrentIndex - 1; i >= 0; i--) {
-				if (AccumulatorStack[i].WhiteGood) return i;
+				if (AccumulatorStack[i].WhiteGood) return std::optional<int>(i);
+				if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
+					return std::optional<int>(std::nullopt);
+				}
 			}
 			assert(false);
 		}();
 
-		for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
-			if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
-				AccumulatorStack[i].RefreshWhite(pos.States[basePositionIndex + i]);
+		if (latestUpdated.has_value()) {
+
+			for (int i = latestUpdated.value() + 1; i <= CurrentIndex; i++) {
+				if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
+					AccumulatorStack[i].RefreshWhite(pos.States[basePositionIndex + i]);
+				}
+				else {
+					AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1]);
+				}
 			}
-			else {
-				AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1]);
+		}
+		else {
+
+			// Bucket caches
+			// (I know this part is horrible)
+
+			// Get the cache entry to be updated
+			const uint8_t whiteKingSq = pos.WhiteKingSquare();
+			const int inputBucket = GetInputBucket(whiteKingSq, Side::White);
+			const int bucketCacheIndex = inputBucket + (GetSquareFile(whiteKingSq) >= 4 ? InputBucketCount : 0);
+			BucketCacheItem& cache = BucketCache[0][bucketCacheIndex];
+
+			// Calculate the feature boolean array for the current position
+			std::array<uint64_t, 12> featureBits;
+			featureBits[0] = pos.CurrentState().WhitePawnBits;
+			featureBits[1] = pos.CurrentState().WhiteKnightBits;
+			featureBits[2] = pos.CurrentState().WhiteBishopBits;
+			featureBits[3] = pos.CurrentState().WhiteRookBits;
+			featureBits[4] = pos.CurrentState().WhiteQueenBits;
+			featureBits[5] = pos.CurrentState().WhiteKingBits;
+			featureBits[6] = pos.CurrentState().BlackPawnBits;
+			featureBits[7] = pos.CurrentState().BlackKnightBits;
+			featureBits[8] = pos.CurrentState().BlackBishopBits;
+			featureBits[9] = pos.CurrentState().BlackRookBits;
+			featureBits[10] = pos.CurrentState().BlackQueenBits;
+			featureBits[11] = pos.CurrentState().BlackKingBits;
+
+			// Compare it with the cached entry
+			StaticVector<int, 32> adds{};
+			StaticVector<int, 32> subs{};
+			for (int i = 0; i < 12; i++) {
+				uint64_t toBeAdded = featureBits[i] & ~cache.featureBits[i];
+				uint64_t toBeSubbed = cache.featureBits[i] & ~featureBits[i];
+				
+				while (toBeAdded) {
+					const uint8_t sq = Popsquare(toBeAdded);
+					const int feature = [&] {
+						const int whiteKingFile = GetSquareFile(whiteKingSq);
+						return ((whiteKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
+					}();
+					adds.push(feature);
+					for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] += Network->FeatureWeights[inputBucket][feature][i];
+				}
+
+				while (toBeSubbed) {
+					const uint8_t sq = Popsquare(toBeSubbed);
+					const int feature = [&] {
+						const int whiteKingFile = GetSquareFile(whiteKingSq);
+						return ((whiteKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
+					}();
+					subs.push(feature);
+					for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] -= Network->FeatureWeights[inputBucket][feature][i];
+				}
 			}
+			cache.featureBits = featureBits;
+			AccumulatorStack[CurrentIndex].White = cache.cachedAcc;
+			AccumulatorStack[CurrentIndex].WhiteGood = true;
+			AccumulatorStack[CurrentIndex].WhiteKingSquare = whiteKingSq;
+			AccumulatorStack[CurrentIndex].WhiteBucket = inputBucket;
 		}
 	}
 
@@ -205,6 +270,10 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 				AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1]);
 			}
 		}
+
+
+
+
 	}
 
 	//int good = NeuralEvaluate(pos);

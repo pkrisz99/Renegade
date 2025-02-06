@@ -212,9 +212,19 @@ struct alignas(64) AccumulatorRepresentation {
 
 };
 
+struct alignas(64) BucketCacheItem {
+	std::array<int16_t, HiddenSize> cachedAcc;
+	std::array<uint64_t, 12> featureBits;
+
+	BucketCacheItem() {
+		for (int i = 0; i < HiddenSize; i++) cachedAcc[i] = Network->FeatureBias[i];
+	}
+};
+
 struct EvaluationState {
 	std::array<AccumulatorRepresentation, MaxDepth + 1> AccumulatorStack;
 	int CurrentIndex;
+	MultiArray<BucketCacheItem, 2, InputBucketCount * 2> BucketCache;
 
 	inline void PushState(const Position& pos, const Move move, const uint8_t movedPiece, const uint8_t capturedPiece) {
 		CurrentIndex += 1;
