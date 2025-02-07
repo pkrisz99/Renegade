@@ -172,7 +172,7 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 	// Update white accumulators
 	if (!AccumulatorStack[CurrentIndex].WhiteGood) {
 		const std::optional<int> latestUpdated = [&] {
-			for (int i = CurrentIndex - 1; i >= 0; i--) {
+			for (int i = CurrentIndex; i >= 0; i--) {
 				if (AccumulatorStack[i].WhiteGood) return std::optional<int>(i);
 				if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
 					return std::optional<int>(std::nullopt);
@@ -182,15 +182,8 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 		}();
 
 		if (latestUpdated.has_value()) {
-
 			for (int i = latestUpdated.value() + 1; i <= CurrentIndex; i++) {
-				if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
-					AccumulatorStack[i].RefreshWhite(pos.States[basePositionIndex + i]);
-					//cout << "OH NO" << endl;
-				}
-				else {
-					AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1]);
-				}
+				AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1]);
 			}
 		}
 		else {
