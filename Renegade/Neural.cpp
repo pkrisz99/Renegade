@@ -157,31 +157,47 @@ void AccumulatorRepresentation::UpdateIncrementally(const bool side, const Accum
 	}
 }
 
-void EvaluationState::UpdateFromBucketCacheW(const Position& pos, const int accIndex, const bool side) {
+void EvaluationState::UpdateFromBucketCache(const Position& pos, const int accIndex, const bool side) {
 	// Bucket caches
 	// (I know this part is horrible)
 
 	// Get the cache entry to be updated
-	const uint8_t whiteKingSq = pos.WhiteKingSquare();
-	const int inputBucket = GetInputBucket(whiteKingSq, Side::White);
-	const int bucketCacheIndex = inputBucket + (GetSquareFile(whiteKingSq) >= 4 ? InputBucketCount : 0);
-	const int whiteKingFile = GetSquareFile(whiteKingSq);
-	BucketCacheItem& cache = BucketCache[0][bucketCacheIndex];
+	const uint8_t kingSq = (side == Side::White ? pos.WhiteKingSquare() : pos.BlackKingSquare());
+	const int inputBucket = GetInputBucket(kingSq, side);
+	const int bucketCacheIndex = inputBucket + (GetSquareFile(kingSq) >= 4 ? InputBucketCount : 0);
+	const int whiteKingFile = GetSquareFile(kingSq);
+	BucketCacheItem& cache = BucketCache[side][bucketCacheIndex];
 
 	// Calculate the feature boolean array for the current position
 	std::array<uint64_t, 12> featureBits;
-	featureBits[0] = pos.CurrentState().WhitePawnBits;
-	featureBits[1] = pos.CurrentState().WhiteKnightBits;
-	featureBits[2] = pos.CurrentState().WhiteBishopBits;
-	featureBits[3] = pos.CurrentState().WhiteRookBits;
-	featureBits[4] = pos.CurrentState().WhiteQueenBits;
-	featureBits[5] = pos.CurrentState().WhiteKingBits;
-	featureBits[6] = pos.CurrentState().BlackPawnBits;
-	featureBits[7] = pos.CurrentState().BlackKnightBits;
-	featureBits[8] = pos.CurrentState().BlackBishopBits;
-	featureBits[9] = pos.CurrentState().BlackRookBits;
-	featureBits[10] = pos.CurrentState().BlackQueenBits;
-	featureBits[11] = pos.CurrentState().BlackKingBits;
+	if (side == Side::White) {
+		featureBits[0] = pos.CurrentState().WhitePawnBits;
+		featureBits[1] = pos.CurrentState().WhiteKnightBits;
+		featureBits[2] = pos.CurrentState().WhiteBishopBits;
+		featureBits[3] = pos.CurrentState().WhiteRookBits;
+		featureBits[4] = pos.CurrentState().WhiteQueenBits;
+		featureBits[5] = pos.CurrentState().WhiteKingBits;
+		featureBits[6] = pos.CurrentState().BlackPawnBits;
+		featureBits[7] = pos.CurrentState().BlackKnightBits;
+		featureBits[8] = pos.CurrentState().BlackBishopBits;
+		featureBits[9] = pos.CurrentState().BlackRookBits;
+		featureBits[10] = pos.CurrentState().BlackQueenBits;
+		featureBits[11] = pos.CurrentState().BlackKingBits;
+	}
+	else {
+		featureBits[0] = pos.CurrentState().BlackPawnBits;
+		featureBits[1] = pos.CurrentState().BlackKnightBits;
+		featureBits[2] = pos.CurrentState().BlackBishopBits;
+		featureBits[3] = pos.CurrentState().BlackRookBits;
+		featureBits[4] = pos.CurrentState().BlackQueenBits;
+		featureBits[5] = pos.CurrentState().BlackKingBits;
+		featureBits[6] = pos.CurrentState().WhitePawnBits;
+		featureBits[7] = pos.CurrentState().WhiteKnightBits;
+		featureBits[8] = pos.CurrentState().WhiteBishopBits;
+		featureBits[9] = pos.CurrentState().WhiteRookBits;
+		featureBits[10] = pos.CurrentState().WhiteQueenBits;
+		featureBits[11] = pos.CurrentState().WhiteKingBits;
+	}
 
 	// Compare it with the cached entry
 	StaticVector<int, 32> adds{};
@@ -192,79 +208,26 @@ void EvaluationState::UpdateFromBucketCacheW(const Position& pos, const int accI
 
 		while (toBeAdded) {
 			const uint8_t sq = Popsquare(toBeAdded);
-			const int feature = ((whiteKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
+			const int featuresq = ((whiteKingFile < 4) ? sq : (sq ^ 7));
+			const int feature = (side == Side::White ? featuresq : Mirror(featuresq)) + i * 64;
 			adds.push(feature);
 			for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] += Network->FeatureWeights[inputBucket][feature][i];
 		}
 
 		while (toBeSubbed) {
 			const uint8_t sq = Popsquare(toBeSubbed);
-			const int feature = ((whiteKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
+			const int featuresq = ((whiteKingFile < 4) ? sq : (sq ^ 7));
+			const int feature = (side == Side::White ? featuresq : Mirror(featuresq)) + i * 64;
 			subs.push(feature);
 			for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] -= Network->FeatureWeights[inputBucket][feature][i];
 		}
 	}
 	//cout << "+" << (int)adds.size() << "  -" << (int)subs.size() << endl;
 	cache.featureBits = featureBits;
-	AccumulatorStack[accIndex].Accumulator[Side::White] = cache.cachedAcc;
-	AccumulatorStack[accIndex].Correct[Side::White] = true;
-	AccumulatorStack[accIndex].KingSquare[Side::White] = whiteKingSq;
-	AccumulatorStack[accIndex].ActiveBucket[Side::White] = inputBucket;
-}
-
-void EvaluationState::UpdateFromBucketCacheB(const Position& pos, const int accIndex, const bool side) {
-	// Bucket caches
-	// (I know this part is horrible)
-
-	// Get the cache entry to be updated
-	const uint8_t blackKingSq = pos.BlackKingSquare();
-	const int inputBucket = GetInputBucket(blackKingSq, Side::Black);
-	const int bucketCacheIndex = inputBucket + (GetSquareFile(blackKingSq) >= 4 ? InputBucketCount : 0);
-	const int blackKingFile = GetSquareFile(blackKingSq);
-	BucketCacheItem& cache = BucketCache[1][bucketCacheIndex];
-
-	// Calculate the feature boolean array for the current position
-	std::array<uint64_t, 12> featureBits;
-	featureBits[0] = pos.CurrentState().BlackPawnBits;
-	featureBits[1] = pos.CurrentState().BlackKnightBits;
-	featureBits[2] = pos.CurrentState().BlackBishopBits;
-	featureBits[3] = pos.CurrentState().BlackRookBits;
-	featureBits[4] = pos.CurrentState().BlackQueenBits;
-	featureBits[5] = pos.CurrentState().BlackKingBits;
-	featureBits[6] = pos.CurrentState().WhitePawnBits;
-	featureBits[7] = pos.CurrentState().WhiteKnightBits;
-	featureBits[8] = pos.CurrentState().WhiteBishopBits;
-	featureBits[9] = pos.CurrentState().WhiteRookBits;
-	featureBits[10] = pos.CurrentState().WhiteQueenBits;
-	featureBits[11] = pos.CurrentState().WhiteKingBits;
-
-	// Compare it with the cached entry
-	StaticVector<int, 32> adds{};
-	StaticVector<int, 32> subs{};
-	for (int i = 0; i < 12; i++) {
-		uint64_t toBeAdded = featureBits[i] & ~cache.featureBits[i];
-		uint64_t toBeSubbed = cache.featureBits[i] & ~featureBits[i];
-
-		while (toBeAdded) {
-			const uint8_t sq = Popsquare(toBeAdded);
-			const int feature = Mirror((blackKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
-			adds.push(feature);
-			for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] += Network->FeatureWeights[inputBucket][feature][i];
-		}
-
-		while (toBeSubbed) {
-			const uint8_t sq = Popsquare(toBeSubbed);
-			const int feature = Mirror((blackKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
-			subs.push(feature);
-			for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] -= Network->FeatureWeights[inputBucket][feature][i];
-		}
-	}
-	//cout << "+" << (int)adds.size() << "  -" << (int)subs.size() << endl;
-	cache.featureBits = featureBits;
-	AccumulatorStack[accIndex].Accumulator[Side::Black] = cache.cachedAcc;
-	AccumulatorStack[accIndex].Correct[Side::Black] = true;
-	AccumulatorStack[accIndex].KingSquare[Side::Black] = blackKingSq;
-	AccumulatorStack[accIndex].ActiveBucket[Side::Black] = inputBucket;
+	AccumulatorStack[accIndex].Accumulator[side] = cache.cachedAcc;
+	AccumulatorStack[accIndex].Correct[side] = true;
+	AccumulatorStack[accIndex].KingSquare[side] = kingSq;
+	AccumulatorStack[accIndex].ActiveBucket[side] = inputBucket;
 }
 
 // Evaluate call ----------------------------------------------------------------------------------
@@ -273,49 +236,33 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 
 	// For evaluating, we need to make sure the accumulator is up-to-date for both sides
 	// If we need a refresh, it's important to know, that the accumulator stack and the position stack are indexed differently
-	const int basePositionIndex = pos.States.size() - CurrentIndex - 1;
+	// const int basePositionIndex = pos.States.size() - CurrentIndex - 1;
 
-	// Update white accumulators
-	if (!AccumulatorStack[CurrentIndex].Correct[Side::White]) {
-		const std::optional<int> latestUpdated = [&] {
-			for (int i = CurrentIndex; i >= 0; i--) {
-				if (AccumulatorStack[i].Correct[Side::White]) return std::optional<int>(i);
-				if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
-					return std::optional<int>(std::nullopt);
+	// Update accumulators
+
+	for (const bool side : {Side::White, Side::Black}) {
+
+		if (!AccumulatorStack[CurrentIndex].Correct[side]) {
+			const std::optional<int> latestUpdated = [&] {
+				for (int i = CurrentIndex; i >= 0; i--) {
+					if (AccumulatorStack[i].Correct[side]) return std::optional<int>(i);
+					if (TypeOfPiece(AccumulatorStack[i].movedPiece) == PieceType::King
+						&& ColorOfPiece(AccumulatorStack[i].movedPiece) == SideToPieceColor(side)
+						&& IsRefreshRequired(AccumulatorStack[i].move, side)) {
+						return std::optional<int>(std::nullopt);
+					}
 				}
-			}
-			assert(false);
-		}();
-
-		if (latestUpdated.has_value()) {
-			for (int i = latestUpdated.value() + 1; i <= CurrentIndex; i++) {
-				AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1]);
-			}
-		}
-		else {
-			UpdateFromBucketCacheW(pos, CurrentIndex, Side::White);
-		}
-	}
-
-	// Update black accumulators
-	if (!AccumulatorStack[CurrentIndex].Correct[Side::Black]) {
-		const std::optional<int> latestUpdated = [&] {
-			for (int i = CurrentIndex; i >= 0; i--) {
-				if (AccumulatorStack[i].Correct[Side::Black]) return std::optional<int>(i);
-				if (AccumulatorStack[i].movedPiece == Piece::BlackKing && IsRefreshRequired(AccumulatorStack[i].move, Side::Black)) {
-					return std::optional<int>(std::nullopt);
-				}
-			}
-			assert(false);
+				assert(false);
 			}();
 
-		if (latestUpdated.has_value()) {
-			for (int i = latestUpdated.value() + 1; i <= CurrentIndex; i++) {
-				AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1]);
+			if (latestUpdated.has_value()) {
+				for (int i = latestUpdated.value() + 1; i <= CurrentIndex; i++) {
+					AccumulatorStack[i].UpdateIncrementally(side, AccumulatorStack[i - 1]);
+				}
 			}
-		}
-		else {
-			UpdateFromBucketCacheB(pos, CurrentIndex, Side::Black);
+			else {
+				UpdateFromBucketCache(pos, CurrentIndex, side);
+			}
 		}
 	}
 

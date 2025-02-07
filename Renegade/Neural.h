@@ -201,6 +201,5 @@ struct EvaluationState {
 	}
 
 	int16_t Evaluate(const Position& pos);
-	void UpdateFromBucketCacheW(const Position& pos, const int accIndex, const bool side);
-	void UpdateFromBucketCacheB(const Position& pos, const int accIndex, const bool side);
+	void UpdateFromBucketCache(const Position& pos, const int accIndex, const bool side);
 };
