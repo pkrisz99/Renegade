@@ -111,24 +111,15 @@ struct alignas(64) AccumulatorRepresentation {
 		while (bits) {
 			const uint8_t sq = Popsquare(bits);
 			const uint8_t piece = b.GetPieceAt(sq);
-			AddFeature(side, piece, sq);
+			AddFeatureForSide(side, piece, sq);
 		}
 		Correct[side] = true;
 	}
 
-	void AddFeature(const bool side, const uint8_t piece, const uint8_t sq) {
+	void AddFeatureForSide(const bool side, const uint8_t piece, const uint8_t sq) {
 		const int feature = FeatureIndexes(side, piece, sq);
 		const int bucket = ActiveBucket[side];
 		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] += Network->FeatureWeights[bucket][feature][i];
-	}
-
-	void AddFeatureBoth(const uint8_t piece, const uint8_t sq) {
-		const auto wfeature = FeatureIndexes(Side::White, piece, sq);
-		const auto bfeature = FeatureIndexes(Side::Black, piece, sq);
-		const int wbucket = ActiveBucket[Side::White];
-		const int bbucket = ActiveBucket[Side::Black];
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] += Network->FeatureWeights[wbucket][wfeature][i];
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] += Network->FeatureWeights[bbucket][bfeature][i];
 	}
 
 	// Fused NNUE updates are generally a speedup, however it seems to depend on the exact machine:
@@ -137,46 +128,23 @@ struct alignas(64) AccumulatorRepresentation {
 	// it possible, that this optimization no longer gains due to better compilers getting better?
 
 	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const bool side) {
-
-		if (side == Side::White) {
-			const auto features1 = FeatureIndexes(Side::White, f1.piece, f1.square);
-			const auto features2 = FeatureIndexes(Side::White, f2.piece, f2.square);
-			const int wbucket = ActiveBucket[Side::White];
-			for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] +=
-				- Network->FeatureWeights[wbucket][features1][i]
-				+ Network->FeatureWeights[wbucket][features2][i];
-		}
-		else {
-			const auto features1 = FeatureIndexes(Side::Black, f1.piece, f1.square);
-			const auto features2 = FeatureIndexes(Side::Black, f2.piece, f2.square);
-			const int bbucket = ActiveBucket[Side::Black];
-			for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] +=
-				- Network->FeatureWeights[bbucket][features1][i]
-				+ Network->FeatureWeights[bbucket][features2][i];
-		}
+		const auto features1 = FeatureIndexes(side, f1.piece, f1.square);
+		const auto features2 = FeatureIndexes(side, f2.piece, f2.square);
+		const int bucket = ActiveBucket[side];
+		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] +=
+			- Network->FeatureWeights[bucket][features1][i]
+			+ Network->FeatureWeights[bucket][features2][i];
 	}
 
 	void SubSubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3, const bool side) {
-		if (side == Side::White) {
-			const int wbucket = ActiveBucket[Side::White];
-			const auto features1 = FeatureIndexes(Side::White, f1.piece, f1.square);
-			const auto features2 = FeatureIndexes(Side::White, f2.piece, f2.square);
-			const auto features3 = FeatureIndexes(Side::White, f3.piece, f3.square);
-			for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] +=
-				- Network->FeatureWeights[wbucket][features1][i]
-				- Network->FeatureWeights[wbucket][features2][i]
-				+ Network->FeatureWeights[wbucket][features3][i];
-		}
-		else {
-			const int bbucket = ActiveBucket[Side::Black];
-			const auto features1 = FeatureIndexes(Side::Black, f1.piece, f1.square);
-			const auto features2 = FeatureIndexes(Side::Black, f2.piece, f2.square);
-			const auto features3 = FeatureIndexes(Side::Black, f3.piece, f3.square);
-			for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] +=
-				- Network->FeatureWeights[bbucket][features1][i]
-				- Network->FeatureWeights[bbucket][features2][i]
-				+ Network->FeatureWeights[bbucket][features3][i];
-		}
+		const int bucket = ActiveBucket[side];
+		const auto features1 = FeatureIndexes(side, f1.piece, f1.square);
+		const auto features2 = FeatureIndexes(side, f2.piece, f2.square);
+		const auto features3 = FeatureIndexes(side, f3.piece, f3.square);
+		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] +=
+			- Network->FeatureWeights[bucket][features1][i]
+			- Network->FeatureWeights[bucket][features2][i]
+			+ Network->FeatureWeights[bucket][features3][i];
 	}
 
 	inline int FeatureIndexes(const bool perspective, const uint8_t piece, const uint8_t sq) const {
