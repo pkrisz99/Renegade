@@ -98,7 +98,48 @@ int16_t NeuralEvaluate(const Position& position) {
 	return NeuralEvaluate(position, acc);
 }
 
-// Accumulator updates ----------------------------------------------------------------------------
+// Evaluation call & accumulator updates ----------------------------------------------------------
+
+int16_t EvaluationState::Evaluate(const Position& pos) {
+
+	// For evaluating, we need to make sure the accumulator is up-to-date for both sides
+	// If we need a refresh, it's important to know, that the accumulator stack and the position stack are indexed differently
+	// const int basePositionIndex = pos.States.size() - CurrentIndex - 1;
+
+	// Update accumulators
+
+	for (const bool side : {Side::White, Side::Black}) {
+
+		if (!AccumulatorStack[CurrentIndex].Correct[side]) {
+			const std::optional<int> latestUpdated = [&] {
+				for (int i = CurrentIndex; i >= 0; i--) {
+					if (AccumulatorStack[i].Correct[side]) return std::optional<int>(i);
+					if (TypeOfPiece(AccumulatorStack[i].movedPiece) == PieceType::King
+						&& ColorOfPiece(AccumulatorStack[i].movedPiece) == SideToPieceColor(side)
+						&& IsRefreshRequired(AccumulatorStack[i].move, side)) {
+						return std::optional<int>(std::nullopt);
+					}
+				}
+				assert(false);
+				}();
+
+			if (latestUpdated.has_value()) {
+				for (int i = latestUpdated.value() + 1; i <= CurrentIndex; i++) {
+					AccumulatorStack[i].UpdateIncrementally(side, AccumulatorStack[i - 1]);
+				}
+			}
+			else {
+				UpdateFromBucketCache(pos, CurrentIndex, side);
+			}
+		}
+	}
+
+	//int good = NeuralEvaluate(pos);
+	//int bad = NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
+	//assert(good == bad);
+
+	return NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
+}
 
 void AccumulatorRepresentation::UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc) {
 
@@ -228,49 +269,6 @@ void EvaluationState::UpdateFromBucketCache(const Position& pos, const int accIn
 	AccumulatorStack[accIndex].Correct[side] = true;
 	AccumulatorStack[accIndex].KingSquare[side] = kingSq;
 	AccumulatorStack[accIndex].ActiveBucket[side] = inputBucket;
-}
-
-// Evaluate call ----------------------------------------------------------------------------------
-
-int16_t EvaluationState::Evaluate(const Position& pos) {
-
-	// For evaluating, we need to make sure the accumulator is up-to-date for both sides
-	// If we need a refresh, it's important to know, that the accumulator stack and the position stack are indexed differently
-	// const int basePositionIndex = pos.States.size() - CurrentIndex - 1;
-
-	// Update accumulators
-
-	for (const bool side : {Side::White, Side::Black}) {
-
-		if (!AccumulatorStack[CurrentIndex].Correct[side]) {
-			const std::optional<int> latestUpdated = [&] {
-				for (int i = CurrentIndex; i >= 0; i--) {
-					if (AccumulatorStack[i].Correct[side]) return std::optional<int>(i);
-					if (TypeOfPiece(AccumulatorStack[i].movedPiece) == PieceType::King
-						&& ColorOfPiece(AccumulatorStack[i].movedPiece) == SideToPieceColor(side)
-						&& IsRefreshRequired(AccumulatorStack[i].move, side)) {
-						return std::optional<int>(std::nullopt);
-					}
-				}
-				assert(false);
-			}();
-
-			if (latestUpdated.has_value()) {
-				for (int i = latestUpdated.value() + 1; i <= CurrentIndex; i++) {
-					AccumulatorStack[i].UpdateIncrementally(side, AccumulatorStack[i - 1]);
-				}
-			}
-			else {
-				UpdateFromBucketCache(pos, CurrentIndex, side);
-			}
-		}
-	}
-
-	//int good = NeuralEvaluate(pos);
-	//int bad = NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
-	//assert(good == bad);
-
-	return NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
 }
 
 // Loading the neural network ---------------------------------------------------------------------
