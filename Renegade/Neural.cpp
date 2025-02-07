@@ -98,18 +98,17 @@ int16_t NeuralEvaluate(const Position& position) {
 	return NeuralEvaluate(position, acc);
 }
 
-// Incremental accumulator updates ----------------------------------------------------------------
+// Accumulator updates ----------------------------------------------------------------------------
 
 void AccumulatorRepresentation::UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc) {
 
-	// Ensure the base accumulator is already up to date
+	// Ensure the base accumulator is already up to date, and copy over the previous state
+	// (possible future optimization by deferring this and adding the accumulator change?)
 	assert(oldAcc.Correct[side]);
-
-	// After completing this, it's guaranteed that the accumulator will be up to date for the given side
-	Correct[side] = true;
-
-	// Copy over the previous state (possible future optimization by deferring this and adding the accumulator change?)
 	Accumulator[side] = oldAcc.Accumulator[side];
+
+	// After completing the following, it's guaranteed that the accumulator will be up to date for the given side
+	Correct[side] = true;
 	
 	// For null-moves nothing changes, we're done here
 	if (move.IsNull()) return;
