@@ -26,8 +26,8 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	assert(acc.BlackGood);
 
 	const bool turn = position.Turn();
-	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.White : acc.Black;
-	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.Black : acc.White;
+	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.Accumulator[Side::White] : acc.Accumulator[Side::Black];
+	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.Accumulator[Side::Black] : acc.Accumulator[Side::White];
 	int32_t output = 0;
 
 	const int pieceCount = Popcount(position.GetOccupancy());
@@ -107,12 +107,12 @@ void AccumulatorRepresentation::UpdateIncrementally(const bool side, const Accum
 	assert(oldAcc.BlackGood || side == Side::White);
 
 	// After completing this, it's guaranteed that the accumulator will be up to date for the given side
-	if (side == Side::White) WhiteGood = true;
-	else BlackGood = true;
+	if (side == Side::White) Correct[Side::White] = true;
+	else Correct[Side::Black] = true;
 
 	// Copy over the previous state (possible future optimization by deferring this and adding the accumulator change?)
-	if (side == Side::White) White = oldAcc.White;
-	else Black = oldAcc.Black;
+	if (side == Side::White) Accumulator[Side::White] = oldAcc.Accumulator[Side::White];
+	else Accumulator[Side::Black] = oldAcc.Accumulator[Side::Black];
 	
 	// For null-moves nothing changes, we're done here
 	if (move.IsNull()) return;
@@ -210,10 +210,10 @@ void EvaluationState::UpdateFromBucketCache(const Position& pos, const int accIn
 	}
 	//cout << "+" << (int)adds.size() << "  -" << (int)subs.size() << endl;
 	cache.featureBits = featureBits;
-	AccumulatorStack[accIndex].White = cache.cachedAcc;
-	AccumulatorStack[accIndex].WhiteGood = true;
-	AccumulatorStack[accIndex].WhiteKingSquare = whiteKingSq;
-	AccumulatorStack[accIndex].WhiteBucket = inputBucket;
+	AccumulatorStack[accIndex].Accumulator[Side::White] = cache.cachedAcc;
+	AccumulatorStack[accIndex].Correct[Side::White] = true;
+	AccumulatorStack[accIndex].KingSquare[Side::White] = whiteKingSq;
+	AccumulatorStack[accIndex].ActiveBucket[Side::White] = inputBucket;
 }
 
 // Evaluate call ----------------------------------------------------------------------------------
@@ -225,10 +225,10 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 	const int basePositionIndex = pos.States.size() - CurrentIndex - 1;
 
 	// Update white accumulators
-	if (!AccumulatorStack[CurrentIndex].WhiteGood) {
+	if (!AccumulatorStack[CurrentIndex].Correct[Side::White]) {
 		const std::optional<int> latestUpdated = [&] {
 			for (int i = CurrentIndex; i >= 0; i--) {
-				if (AccumulatorStack[i].WhiteGood) return std::optional<int>(i);
+				if (AccumulatorStack[i].Correct[Side::White]) return std::optional<int>(i);
 				if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
 					return std::optional<int>(std::nullopt);
 				}
@@ -247,10 +247,10 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 	}
 
 	// Update black accumulators
-	if (!AccumulatorStack[CurrentIndex].BlackGood) {
+	if (!AccumulatorStack[CurrentIndex].Correct[Side::Black]) {
 		const int latestUpdated = [&] {
 			for (int i = CurrentIndex - 1; i >= 0; i--) {
-				if (AccumulatorStack[i].BlackGood) return i;
+				if (AccumulatorStack[i].Correct[Side::Black]) return i;
 			}
 			assert(false);
 		}();
