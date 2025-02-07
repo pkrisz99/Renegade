@@ -88,7 +88,8 @@ inline bool IsRefreshRequired(const Move& kingMove, const bool side) {
 
 struct alignas(64) AccumulatorRepresentation {
 
-	alignas(64) std::array<std::array<int16_t, HiddenSize>, 2> Accumulator;
+	alignas(64) std::array<int16_t, HiddenSize> WhiteAccumulator;
+	alignas(64) std::array<int16_t, HiddenSize> BlackAccumulator;
 	std::array<uint8_t, 2> ActiveBucket;
 	std::array<uint8_t, 2> KingSquare;
 	std::array<bool, 2> Correct;
@@ -103,7 +104,7 @@ struct alignas(64) AccumulatorRepresentation {
 	}
 
 	void RefreshWhite(const Board& b) {
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] = Network->FeatureBias[i];
+		for (int i = 0; i < HiddenSize; i++) WhiteAccumulator[i] = Network->FeatureBias[i];
 		KingSquare[Side::White] = LsbSquare(b.WhiteKingBits);
 		ActiveBucket[Side::White] = GetInputBucket(KingSquare[Side::White], Side::White);
 		
@@ -117,7 +118,7 @@ struct alignas(64) AccumulatorRepresentation {
 	}
 
 	void RefreshBlack(const Board& b) {
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] = Network->FeatureBias[i];
+		for (int i = 0; i < HiddenSize; i++) BlackAccumulator[i] = Network->FeatureBias[i];
 		KingSquare[Side::Black] = LsbSquare(b.BlackKingBits);
 		ActiveBucket[Side::Black] = GetInputBucket(KingSquare[Side::Black], Side::Black);
 
@@ -132,18 +133,18 @@ struct alignas(64) AccumulatorRepresentation {
 
 	void AddFeatureWhite(const uint8_t piece, const uint8_t sq) {
 		const auto feature = FeatureIndexes(piece, sq).first;
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] += Network->FeatureWeights[ActiveBucket[Side::White]][feature][i];
+		for (int i = 0; i < HiddenSize; i++) WhiteAccumulator[i] += Network->FeatureWeights[ActiveBucket[Side::White]][feature][i];
 	}
 
 	void AddFeatureBlack(const uint8_t piece, const uint8_t sq) {
 		const auto feature = FeatureIndexes(piece, sq).second;
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] += Network->FeatureWeights[ActiveBucket[Side::Black]][feature][i];
+		for (int i = 0; i < HiddenSize; i++) BlackAccumulator[i] += Network->FeatureWeights[ActiveBucket[Side::Black]][feature][i];
 	}
 
 	void AddFeatureBoth(const uint8_t piece, const uint8_t sq) {
 		const auto features = FeatureIndexes(piece, sq);
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] += Network->FeatureWeights[ActiveBucket[Side::White]][features.first][i];
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] += Network->FeatureWeights[ActiveBucket[Side::Black]][features.second][i];
+		for (int i = 0; i < HiddenSize; i++) WhiteAccumulator[i] += Network->FeatureWeights[ActiveBucket[Side::White]][features.first][i];
+		for (int i = 0; i < HiddenSize; i++) BlackAccumulator[i] += Network->FeatureWeights[ActiveBucket[Side::Black]][features.second][i];
 	}
 
 	// Fused NNUE updates are generally a speedup, however it seems to depend on the exact machine:
@@ -156,12 +157,12 @@ struct alignas(64) AccumulatorRepresentation {
 		const auto features2 = FeatureIndexes(f2.piece, f2.square);
 
 		if (side == Side::White) {
-			for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] +=
+			for (int i = 0; i < HiddenSize; i++) WhiteAccumulator[i] +=
 				- Network->FeatureWeights[ActiveBucket[Side::White]][features1.first][i]
 				+ Network->FeatureWeights[ActiveBucket[Side::White]][features2.first][i];
 		}
 		else {
-			for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] +=
+			for (int i = 0; i < HiddenSize; i++) BlackAccumulator[i] +=
 				- Network->FeatureWeights[ActiveBucket[Side::Black]][features1.second][i]
 				+ Network->FeatureWeights[ActiveBucket[Side::Black]][features2.second][i];
 		}
@@ -173,13 +174,13 @@ struct alignas(64) AccumulatorRepresentation {
 		const auto features3 = FeatureIndexes(f3.piece, f3.square);
 
 		if (side == Side::White) {
-			for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] +=
+			for (int i = 0; i < HiddenSize; i++) WhiteAccumulator[i] +=
 				- Network->FeatureWeights[ActiveBucket[Side::White]][features1.first][i]
 				- Network->FeatureWeights[ActiveBucket[Side::White]][features2.first][i]
 				+ Network->FeatureWeights[ActiveBucket[Side::White]][features3.first][i];
 		}
 		else {
-			for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] +=
+			for (int i = 0; i < HiddenSize; i++) BlackAccumulator[i] +=
 				- Network->FeatureWeights[ActiveBucket[Side::Black]][features1.second][i]
 				- Network->FeatureWeights[ActiveBucket[Side::Black]][features2.second][i]
 				+ Network->FeatureWeights[ActiveBucket[Side::Black]][features3.second][i];

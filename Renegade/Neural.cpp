@@ -26,8 +26,8 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	assert(acc.BlackGood);
 
 	const bool turn = position.Turn();
-	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.Accumulator[Side::White] : acc.Accumulator[Side::Black];
-	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.Accumulator[Side::Black] : acc.Accumulator[Side::White];
+	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.WhiteAccumulator : acc.BlackAccumulator;
+	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.BlackAccumulator : acc.WhiteAccumulator;
 	int32_t output = 0;
 
 	const int pieceCount = Popcount(position.GetOccupancy());
@@ -111,8 +111,8 @@ void AccumulatorRepresentation::UpdateIncrementally(const bool side, const Accum
 	else Correct[Side::Black] = true;
 
 	// Copy over the previous state (possible future optimization by deferring this and adding the accumulator change?)
-	if (side == Side::White) Accumulator[Side::White] = oldAcc.Accumulator[Side::White];
-	else Accumulator[Side::Black] = oldAcc.Accumulator[Side::Black];
+	if (side == Side::White) WhiteAccumulator = oldAcc.WhiteAccumulator;
+	else BlackAccumulator = oldAcc.BlackAccumulator;
 	
 	// For null-moves nothing changes, we're done here
 	if (move.IsNull()) return;
@@ -210,7 +210,7 @@ void EvaluationState::UpdateFromBucketCache(const Position& pos, const int accIn
 	}
 	//cout << "+" << (int)adds.size() << "  -" << (int)subs.size() << endl;
 	cache.featureBits = featureBits;
-	AccumulatorStack[accIndex].Accumulator[Side::White] = cache.cachedAcc;
+	AccumulatorStack[accIndex].WhiteAccumulator = cache.cachedAcc;
 	AccumulatorStack[accIndex].Correct[Side::White] = true;
 	AccumulatorStack[accIndex].KingSquare[Side::White] = whiteKingSq;
 	AccumulatorStack[accIndex].ActiveBucket[Side::White] = inputBucket;
