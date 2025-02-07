@@ -161,6 +161,61 @@ void AccumulatorRepresentation::UpdateIncrementally(const bool side, const Accum
 	}
 }
 
+void EvaluationState::UpdateFromBucketCache(const Position& pos, const int accIndex, const bool side) {
+	// Bucket caches
+	// (I know this part is horrible)
+
+	// Get the cache entry to be updated
+	const uint8_t whiteKingSq = pos.WhiteKingSquare();
+	const int inputBucket = GetInputBucket(whiteKingSq, Side::White);
+	const int bucketCacheIndex = inputBucket + (GetSquareFile(whiteKingSq) >= 4 ? InputBucketCount : 0);
+	const int whiteKingFile = GetSquareFile(whiteKingSq);
+	BucketCacheItem& cache = BucketCache[0][bucketCacheIndex];
+
+	// Calculate the feature boolean array for the current position
+	std::array<uint64_t, 12> featureBits;
+	featureBits[0] = pos.CurrentState().WhitePawnBits;
+	featureBits[1] = pos.CurrentState().WhiteKnightBits;
+	featureBits[2] = pos.CurrentState().WhiteBishopBits;
+	featureBits[3] = pos.CurrentState().WhiteRookBits;
+	featureBits[4] = pos.CurrentState().WhiteQueenBits;
+	featureBits[5] = pos.CurrentState().WhiteKingBits;
+	featureBits[6] = pos.CurrentState().BlackPawnBits;
+	featureBits[7] = pos.CurrentState().BlackKnightBits;
+	featureBits[8] = pos.CurrentState().BlackBishopBits;
+	featureBits[9] = pos.CurrentState().BlackRookBits;
+	featureBits[10] = pos.CurrentState().BlackQueenBits;
+	featureBits[11] = pos.CurrentState().BlackKingBits;
+
+	// Compare it with the cached entry
+	StaticVector<int, 32> adds{};
+	StaticVector<int, 32> subs{};
+	for (int i = 0; i < 12; i++) {
+		uint64_t toBeAdded = featureBits[i] & ~cache.featureBits[i];
+		uint64_t toBeSubbed = cache.featureBits[i] & ~featureBits[i];
+
+		while (toBeAdded) {
+			const uint8_t sq = Popsquare(toBeAdded);
+			const int feature = ((whiteKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
+			adds.push(feature);
+			for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] += Network->FeatureWeights[inputBucket][feature][i];
+		}
+
+		while (toBeSubbed) {
+			const uint8_t sq = Popsquare(toBeSubbed);
+			const int feature = ((whiteKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
+			subs.push(feature);
+			for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] -= Network->FeatureWeights[inputBucket][feature][i];
+		}
+	}
+	//cout << "+" << (int)adds.size() << "  -" << (int)subs.size() << endl;
+	cache.featureBits = featureBits;
+	AccumulatorStack[accIndex].White = cache.cachedAcc;
+	AccumulatorStack[accIndex].WhiteGood = true;
+	AccumulatorStack[accIndex].WhiteKingSquare = whiteKingSq;
+	AccumulatorStack[accIndex].WhiteBucket = inputBucket;
+}
+
 // Evaluate call ----------------------------------------------------------------------------------
 
 int16_t EvaluationState::Evaluate(const Position& pos) {
@@ -187,59 +242,7 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 			}
 		}
 		else {
-
-			// Bucket caches
-			// (I know this part is horrible)
-
-			// Get the cache entry to be updated
-			const uint8_t whiteKingSq = pos.WhiteKingSquare();
-			const int inputBucket = GetInputBucket(whiteKingSq, Side::White);
-			const int bucketCacheIndex = inputBucket + (GetSquareFile(whiteKingSq) >= 4 ? InputBucketCount : 0);
-			const int whiteKingFile = GetSquareFile(whiteKingSq);
-			BucketCacheItem& cache = BucketCache[0][bucketCacheIndex];
-
-			// Calculate the feature boolean array for the current position
-			std::array<uint64_t, 12> featureBits;
-			featureBits[0] = pos.CurrentState().WhitePawnBits;
-			featureBits[1] = pos.CurrentState().WhiteKnightBits;
-			featureBits[2] = pos.CurrentState().WhiteBishopBits;
-			featureBits[3] = pos.CurrentState().WhiteRookBits;
-			featureBits[4] = pos.CurrentState().WhiteQueenBits;
-			featureBits[5] = pos.CurrentState().WhiteKingBits;
-			featureBits[6] = pos.CurrentState().BlackPawnBits;
-			featureBits[7] = pos.CurrentState().BlackKnightBits;
-			featureBits[8] = pos.CurrentState().BlackBishopBits;
-			featureBits[9] = pos.CurrentState().BlackRookBits;
-			featureBits[10] = pos.CurrentState().BlackQueenBits;
-			featureBits[11] = pos.CurrentState().BlackKingBits;
-
-			// Compare it with the cached entry
-			StaticVector<int, 32> adds{};
-			StaticVector<int, 32> subs{};
-			for (int i = 0; i < 12; i++) {
-				uint64_t toBeAdded = featureBits[i] & ~cache.featureBits[i];
-				uint64_t toBeSubbed = cache.featureBits[i] & ~featureBits[i];
-				
-				while (toBeAdded) {
-					const uint8_t sq = Popsquare(toBeAdded);
-					const int feature = ((whiteKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
-					adds.push(feature);
-					for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] += Network->FeatureWeights[inputBucket][feature][i];
-				}
-
-				while (toBeSubbed) {
-					const uint8_t sq = Popsquare(toBeSubbed);
-					const int feature = ((whiteKingFile < 4) ? sq : (sq ^ 7)) + i * 64;
-					subs.push(feature);
-					for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] -= Network->FeatureWeights[inputBucket][feature][i];
-				}
-			}
-			//cout << "+" << (int)adds.size() << "  -" << (int)subs.size() << endl;
-			cache.featureBits = featureBits;
-			AccumulatorStack[CurrentIndex].White = cache.cachedAcc;
-			AccumulatorStack[CurrentIndex].WhiteGood = true;
-			AccumulatorStack[CurrentIndex].WhiteKingSquare = whiteKingSq;
-			AccumulatorStack[CurrentIndex].WhiteBucket = inputBucket;
+			UpdateFromBucketCache(pos, CurrentIndex, Side::White);
 		}
 	}
 

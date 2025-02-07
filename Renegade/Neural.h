@@ -209,6 +209,7 @@ struct alignas(64) AccumulatorRepresentation {
 	}
 
 	void UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc);
+	void UpdateFromBucketCache(const Position& pos, const bool side);
 
 };
 
@@ -251,4 +252,5 @@ struct EvaluationState {
 	}
 
 	int16_t Evaluate(const Position& pos);
+	void UpdateFromBucketCache(const Position& pos, const int accIndex, const bool side);
 };
