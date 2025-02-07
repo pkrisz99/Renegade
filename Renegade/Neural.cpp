@@ -103,16 +103,13 @@ int16_t NeuralEvaluate(const Position& position) {
 void AccumulatorRepresentation::UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc) {
 
 	// Ensure the base accumulator is already up to date
-	assert(oldAcc.WhiteGood || side == Side::Black);
-	assert(oldAcc.BlackGood || side == Side::White);
+	assert(oldAcc.Correct[side]);
 
 	// After completing this, it's guaranteed that the accumulator will be up to date for the given side
-	if (side == Side::White) Correct[Side::White] = true;
-	else Correct[Side::Black] = true;
+	Correct[side] = true;
 
 	// Copy over the previous state (possible future optimization by deferring this and adding the accumulator change?)
-	if (side == Side::White) Accumulator[Side::White] = oldAcc.Accumulator[Side::White];
-	else Accumulator[Side::Black] = oldAcc.Accumulator[Side::Black];
+	Accumulator[side] = oldAcc.Accumulator[side];
 	
 	// For null-moves nothing changes, we're done here
 	if (move.IsNull()) return;
@@ -257,7 +254,7 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 
 		for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
 			if (AccumulatorStack[i].movedPiece == Piece::BlackKing && IsRefreshRequired(AccumulatorStack[i].move, Side::Black)) {
-				AccumulatorStack[i].RefreshBlack(pos.States[basePositionIndex + i]);
+				AccumulatorStack[i].RefreshSide(Side::Black, pos.States[basePositionIndex + i]);
 			}
 			else {
 				AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1]);

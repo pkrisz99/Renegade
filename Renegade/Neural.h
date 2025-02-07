@@ -98,56 +98,37 @@ struct alignas(64) AccumulatorRepresentation {
 
 
 	void RefreshBoth(const Position& pos) {
-		RefreshWhite(pos.CurrentState());
-		RefreshBlack(pos.CurrentState());
+		RefreshSide(Side::White, pos.CurrentState());
+		RefreshSide(Side::Black, pos.CurrentState());
 	}
 
-	void RefreshWhite(const Board& b) {
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] = Network->FeatureBias[i];
-		KingSquare[Side::White] = LsbSquare(b.WhiteKingBits);
-		ActiveBucket[Side::White] = GetInputBucket(KingSquare[Side::White], Side::White);
+	void RefreshSide(const bool side, const Board& b) {
+		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] = Network->FeatureBias[i];
+		KingSquare[side] = LsbSquare(side == Side::White ? b.WhiteKingBits : b.BlackKingBits);
+		ActiveBucket[side] = GetInputBucket(KingSquare[side], side);
 		
 		uint64_t bits = b.GetOccupancy();
 		while (bits) {
 			const uint8_t sq = Popsquare(bits);
 			const uint8_t piece = b.GetPieceAt(sq);
-			AddFeatureWhite(piece, sq);
+			AddFeature(side, piece, sq);
 		}
-		Correct[Side::White] = true;
+		Correct[side] = true;
 	}
 
-	void RefreshBlack(const Board& b) {
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] = Network->FeatureBias[i];
-		KingSquare[Side::Black] = LsbSquare(b.BlackKingBits);
-		ActiveBucket[Side::Black] = GetInputBucket(KingSquare[Side::Black], Side::Black);
-
-		uint64_t bits = b.GetOccupancy();
-		while (bits) {
-			const uint8_t sq = Popsquare(bits);
-			const uint8_t piece = b.GetPieceAt(sq);
-			AddFeatureBlack(piece, sq);
-		}
-		Correct[Side::Black] = true;
-	}
-
-	void AddFeatureWhite(const uint8_t piece, const uint8_t sq) {
-		const auto feature = FeatureIndexes(piece, sq).first;
-		const int bucket = ActiveBucket[Side::White];
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] += Network->FeatureWeights[bucket][feature][i];
-	}
-
-	void AddFeatureBlack(const uint8_t piece, const uint8_t sq) {
-		const auto feature = FeatureIndexes(piece, sq).second;
-		const int bucket = ActiveBucket[Side::Black];
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] += Network->FeatureWeights[bucket][feature][i];
+	void AddFeature(const bool side, const uint8_t piece, const uint8_t sq) {
+		const int feature = FeatureIndexes(side, piece, sq);
+		const int bucket = ActiveBucket[side];
+		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] += Network->FeatureWeights[bucket][feature][i];
 	}
 
 	void AddFeatureBoth(const uint8_t piece, const uint8_t sq) {
-		const auto features = FeatureIndexes(piece, sq);
+		const auto wfeature = FeatureIndexes(Side::White, piece, sq);
+		const auto bfeature = FeatureIndexes(Side::Black, piece, sq);
 		const int wbucket = ActiveBucket[Side::White];
 		const int bbucket = ActiveBucket[Side::Black];
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] += Network->FeatureWeights[wbucket][features.first][i];
-		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] += Network->FeatureWeights[bbucket][features.second][i];
+		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] += Network->FeatureWeights[wbucket][wfeature][i];
+		for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] += Network->FeatureWeights[bbucket][bfeature][i];
 	}
 
 	// Fused NNUE updates are generally a speedup, however it seems to depend on the exact machine:
@@ -156,65 +137,58 @@ struct alignas(64) AccumulatorRepresentation {
 	// it possible, that this optimization no longer gains due to better compilers getting better?
 
 	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const bool side) {
-		const auto features1 = FeatureIndexes(f1.piece, f1.square);
-		const auto features2 = FeatureIndexes(f2.piece, f2.square);
 
 		if (side == Side::White) {
+			const auto features1 = FeatureIndexes(Side::White, f1.piece, f1.square);
+			const auto features2 = FeatureIndexes(Side::White, f2.piece, f2.square);
 			const int wbucket = ActiveBucket[Side::White];
 			for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] +=
-				- Network->FeatureWeights[wbucket][features1.first][i]
-				+ Network->FeatureWeights[wbucket][features2.first][i];
+				- Network->FeatureWeights[wbucket][features1][i]
+				+ Network->FeatureWeights[wbucket][features2][i];
 		}
 		else {
+			const auto features1 = FeatureIndexes(Side::Black, f1.piece, f1.square);
+			const auto features2 = FeatureIndexes(Side::Black, f2.piece, f2.square);
 			const int bbucket = ActiveBucket[Side::Black];
 			for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] +=
-				- Network->FeatureWeights[bbucket][features1.second][i]
-				+ Network->FeatureWeights[bbucket][features2.second][i];
+				- Network->FeatureWeights[bbucket][features1][i]
+				+ Network->FeatureWeights[bbucket][features2][i];
 		}
 	}
 
 	void SubSubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3, const bool side) {
-		const auto features1 = FeatureIndexes(f1.piece, f1.square);
-		const auto features2 = FeatureIndexes(f2.piece, f2.square);
-		const auto features3 = FeatureIndexes(f3.piece, f3.square);
-
 		if (side == Side::White) {
 			const int wbucket = ActiveBucket[Side::White];
+			const auto features1 = FeatureIndexes(Side::White, f1.piece, f1.square);
+			const auto features2 = FeatureIndexes(Side::White, f2.piece, f2.square);
+			const auto features3 = FeatureIndexes(Side::White, f3.piece, f3.square);
 			for (int i = 0; i < HiddenSize; i++) Accumulator[Side::White][i] +=
-				- Network->FeatureWeights[wbucket][features1.first][i]
-				- Network->FeatureWeights[wbucket][features2.first][i]
-				+ Network->FeatureWeights[wbucket][features3.first][i];
+				- Network->FeatureWeights[wbucket][features1][i]
+				- Network->FeatureWeights[wbucket][features2][i]
+				+ Network->FeatureWeights[wbucket][features3][i];
 		}
 		else {
 			const int bbucket = ActiveBucket[Side::Black];
+			const auto features1 = FeatureIndexes(Side::Black, f1.piece, f1.square);
+			const auto features2 = FeatureIndexes(Side::Black, f2.piece, f2.square);
+			const auto features3 = FeatureIndexes(Side::Black, f3.piece, f3.square);
 			for (int i = 0; i < HiddenSize; i++) Accumulator[Side::Black][i] +=
-				- Network->FeatureWeights[bbucket][features1.second][i]
-				- Network->FeatureWeights[bbucket][features2.second][i]
-				+ Network->FeatureWeights[bbucket][features3.second][i];
+				- Network->FeatureWeights[bbucket][features1][i]
+				- Network->FeatureWeights[bbucket][features2][i]
+				+ Network->FeatureWeights[bbucket][features3][i];
 		}
 	}
 
-	void SetKingSquare(const bool side, const uint8_t square) {
-		if (side == Side::White) KingSquare[Side::White] = square;
-		else KingSquare[Side::Black] = square;
-	}
-
-	void SetActiveBucket(const bool side, const uint8_t bucket) {
-		if (side == Side::White) ActiveBucket[Side::White] = bucket;
-		else ActiveBucket[Side::Black] = bucket;
-	}
-
-	inline std::pair<int, int> FeatureIndexes(const uint8_t piece, const uint8_t sq) const {
+	inline int FeatureIndexes(const bool perspective, const uint8_t piece, const uint8_t sq) const {
 		const uint8_t pieceColor = ColorOfPiece(piece);
 		const uint8_t pieceType = TypeOfPiece(piece);
 		constexpr int colorOffset = 64 * 6;
 
-		const uint8_t whiteTransform = (GetSquareFile(KingSquare[Side::White]) < 4) ? 0 : 7;
-		const uint8_t blackTransform = (GetSquareFile(KingSquare[Side::Black]) < 4) ? 0 : 7;
-
-		const int whiteFeatureIndex = (pieceColor == PieceColor::White ? 0 : colorOffset) + (pieceType - 1) * 64 + (sq ^ whiteTransform);
-		const int blackFeatureIndex = (pieceColor == PieceColor::Black ? 0 : colorOffset) + (pieceType - 1) * 64 + Mirror(sq ^ blackTransform);
-		return { whiteFeatureIndex, blackFeatureIndex };
+		const uint8_t transform = (GetSquareFile(KingSquare[perspective]) < 4) ? 0 : 7;
+		const int featureIndex = (pieceColor == (SideToPieceColor(perspective)) ? 0 : colorOffset) + (pieceType - 1) * 64
+			+ ((perspective == Side::White) ? (sq ^ transform) : Mirror(sq ^ transform));
+		
+		return featureIndex;
 	}
 
 	void UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc);
@@ -241,8 +215,7 @@ struct EvaluationState {
 		current.move = move;
 		current.movedPiece = movedPiece;
 		current.capturedPiece = capturedPiece;
-		current.Correct[Side::White] = false;
-		current.Correct[Side::Black] = false;
+		current.Correct = { false, false };
 		current.KingSquare[Side::White] = pos.WhiteKingSquare();
 		current.KingSquare[Side::Black] = pos.BlackKingSquare();
 		current.ActiveBucket[Side::White] = GetInputBucket(current.KingSquare[Side::White], Side::White);
