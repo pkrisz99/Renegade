@@ -26,8 +26,8 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	assert(acc.BlackGood);
 
 	const bool turn = position.Turn();
-	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.White : acc.Black;
-	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.Black : acc.White;
+	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.Accumulator[Side::White] : acc.Accumulator[Side::Black];
+	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.Accumulator[Side::Black] : acc.Accumulator[Side::White];
 	int32_t output = 0;
 
 	const int pieceCount = Popcount(position.GetOccupancy());
@@ -98,120 +98,177 @@ int16_t NeuralEvaluate(const Position& position) {
 	return NeuralEvaluate(position, acc);
 }
 
-// Incremental accumulator updates ----------------------------------------------------------------
+// Evaluation call & accumulator updates ----------------------------------------------------------
 
-void AccumulatorRepresentation::UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc) {
+int16_t EvaluationState::Evaluate(const Position& pos) {
 
-	// Ensure the base accumulator is already up to date
-	assert(oldAcc.WhiteGood || side == Side::Black);
-	assert(oldAcc.BlackGood || side == Side::White);
+	// For evaluating, we need to make sure the accumulator is up-to-date for both sides
+	// The accumulators can be updated in two ways, in order of preference:
+	// - if applicable, incrementally from the last updated one
+	// - reconstructing it using a cache that we keep (colloquially known as "Finny tables")
+	
+	// Currently not used, but note that the accumulator stack and the position stack are indexed differently:
+	// const int basePositionIndex = pos.States.size() - CurrentIndex - 1;
 
-	// After completing this, it's guaranteed that the accumulator will be up to date for the given side
-	if (side == Side::White) WhiteGood = true;
-	else BlackGood = true;
+	for (const bool side : {Side::White, Side::Black}) {
 
-	// Copy over the previous state (possible future optimization by deferring this and adding the accumulator change?)
-	if (side == Side::White) White = oldAcc.White;
-	else Black = oldAcc.Black;
+		if (!AccumulatorStack[CurrentIndex].Correct[side]) {
+			const std::optional<int> latestUpdated = [&] {
+				for (int i = CurrentIndex; i >= 0; i--) {
+					if (AccumulatorStack[i].Correct[side]) return std::optional<int>(i);
+					if (IsRefreshRequired(AccumulatorStack[i].movedPiece, AccumulatorStack[i].move, side)) {
+						return std::optional<int>(std::nullopt);
+					}
+				}
+				assert(false);
+			}();
+
+			if (latestUpdated.has_value()) {
+				for (int i = latestUpdated.value() + 1; i <= CurrentIndex; i++) {
+					UpdateIncrementally(side, i);
+				}
+			}
+			else {
+				UpdateFromBucketCache(pos, CurrentIndex, side);
+			}
+		}
+	}
+
+	/*
+	const int fresh = NeuralEvaluate(pos);
+	const int acc = NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
+	assert(fresh == acc);
+	*/
+
+	// Now the accumulators are guaranteed to be correct, so the evaluation can be obtained
+	return NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
+}
+
+void EvaluationState::UpdateIncrementally(const bool side, const int accIndex) {
+
+	const AccumulatorRepresentation& o = AccumulatorStack[accIndex - 1];  // o -> old
+	AccumulatorRepresentation& c = AccumulatorStack[accIndex];            // c -> current
+	const Move& m = c.move;
+
+	// Ensure the base accumulator is already up to date, and copy over the previous state
+    // (possible future optimization by deferring this and adding the accumulator change?)
+	assert(o.Correct[side]);
+	c.Accumulator[side] = o.Accumulator[side];
+
+	// After completing the following, it's guaranteed that the accumulator will be up to date for the given side
+	c.Correct[side] = true;
 	
 	// For null-moves nothing changes, we're done here
-	if (move.IsNull()) return;
+	if (m.IsNull()) return;
 
 	// Handle various cases of incremental updating
 	// (a) regular non-capture move
-	if (capturedPiece == Piece::None && !move.IsPromotion() && move.flag != MoveFlag::EnPassantPerformed) {
-		SubAddFeature({ movedPiece, move.from }, { movedPiece, move.to }, side);
+	if (c.capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
+		c.SubAddFeature({ c.movedPiece, m.from }, { c.movedPiece, m.to }, side);
 		return;
 	}
 
 	// (b) regular capture move
-	if (capturedPiece != Piece::None && !move.IsPromotion() && move.flag != MoveFlag::EnPassantPerformed && !move.IsCastling()) {
-		SubSubAddFeature({ movedPiece, move.from }, { capturedPiece, move.to }, { movedPiece, move.to }, side);
+	if (c.capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
+		c.SubSubAddFeature({ c.movedPiece, m.from }, { c.capturedPiece, m.to }, { c.movedPiece, m.to }, side);
 		return;
 	}
 
 	// (c) castling
-	if (move.IsCastling()) {
-		const bool castlingSide = ColorOfPiece(movedPiece) == PieceColor::White;
-		const bool shortCastle = move.flag == MoveFlag::ShortCastle;
+	if (m.IsCastling()) {
+		const bool castlingSide = ColorOfPiece(c.movedPiece) == PieceColor::White;
+		const bool shortCastle = m.flag == MoveFlag::ShortCastle;
 		const uint8_t rookPiece = castlingSide == Side::White ? Piece::WhiteRook : Piece::BlackRook;
 		const uint8_t newKingFile = shortCastle ? 6 : 2;
 		const uint8_t newRookFile = shortCastle ? 5 : 3;
 		const uint8_t newKingSquare = newKingFile + (castlingSide == Side::Black) * 56;
 		const uint8_t newRookSquare = newRookFile + (castlingSide == Side::Black) * 56;
-		SubAddFeature({ movedPiece, move.from }, { movedPiece, newKingSquare }, side);
-		SubAddFeature({ rookPiece, move.to }, { rookPiece, newRookSquare }, side);
+		c.SubAddFeature({ c.movedPiece, m.from }, { c.movedPiece, newKingSquare }, side);
+		c.SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare }, side);
 		return;
 	}
 
 	// (d) promotion - with optional capture
-	if (move.IsPromotion()) {
-		const uint8_t promotionPiece = move.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		if (capturedPiece == Piece::None) SubAddFeature({ movedPiece, move.from }, { promotionPiece, move.to }, side);
-		else SubSubAddFeature({ movedPiece, move.from }, { capturedPiece, move.to }, { promotionPiece, move.to }, side);
+	if (m.IsPromotion()) {
+		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(c.movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
+		if (c.capturedPiece == Piece::None) c.SubAddFeature({ c.movedPiece, m.from }, { promotionPiece, m.to }, side);
+		else c.SubSubAddFeature({ c.movedPiece, m.from }, { c.capturedPiece, m.to }, { promotionPiece, m.to }, side);
 		return;
 	}
 
 	// (e) en passant
-	if (move.flag == MoveFlag::EnPassantPerformed) {
-		const uint8_t victimPiece = movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
-		const uint8_t victimSquare = movedPiece == Piece::WhitePawn ? (move.to - 8) : (move.to + 8);
-		SubSubAddFeature({ movedPiece, move.from }, { victimPiece, victimSquare }, { movedPiece, move.to }, side);
+	if (c.move.flag == MoveFlag::EnPassantPerformed) {
+		const uint8_t victimPiece = c.movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
+		const uint8_t victimSquare = c.movedPiece == Piece::WhitePawn ? (m.to - 8) : (m.to + 8);
+		c.SubSubAddFeature({ c.movedPiece, m.from }, { victimPiece, victimSquare }, { c.movedPiece, m.to }, side);
 		return;
 	}
 }
 
-// Evaluate call ----------------------------------------------------------------------------------
+void EvaluationState::UpdateFromBucketCache(const Position& pos, const int accIndex, const bool side) {
 
-int16_t EvaluationState::Evaluate(const Position& pos) {
+	// Get the cache entry to be updated
+	const uint8_t kingSq = AccumulatorStack[CurrentIndex].KingSquare[side];
+	const int inputBucket = AccumulatorStack[CurrentIndex].ActiveBucket[side];
+	const int mirroring = GetSquareFile(kingSq) >= 4;
+	const int bucketCacheIndex = inputBucket + (mirroring * InputBucketCount);
+	BucketCacheEntry& cache = BucketCache[side][bucketCacheIndex];
 
-	// For evaluating, we need to make sure the accumulator is up-to-date for both sides
-	// If we need a refresh, it's important to know, that the accumulator stack and the position stack are indexed differently
-	const int basePositionIndex = pos.States.size() - CurrentIndex - 1;
+	// Calculate the feature boolean array for the current position
+	std::array<uint64_t, 12> featureBits;
+	if (side == Side::White) {
+		featureBits[0] = pos.CurrentState().WhitePawnBits;
+		featureBits[1] = pos.CurrentState().WhiteKnightBits;
+		featureBits[2] = pos.CurrentState().WhiteBishopBits;
+		featureBits[3] = pos.CurrentState().WhiteRookBits;
+		featureBits[4] = pos.CurrentState().WhiteQueenBits;
+		featureBits[5] = pos.CurrentState().WhiteKingBits;
+		featureBits[6] = pos.CurrentState().BlackPawnBits;
+		featureBits[7] = pos.CurrentState().BlackKnightBits;
+		featureBits[8] = pos.CurrentState().BlackBishopBits;
+		featureBits[9] = pos.CurrentState().BlackRookBits;
+		featureBits[10] = pos.CurrentState().BlackQueenBits;
+		featureBits[11] = pos.CurrentState().BlackKingBits;
+	}
+	else {
+		featureBits[0] = pos.CurrentState().BlackPawnBits;
+		featureBits[1] = pos.CurrentState().BlackKnightBits;
+		featureBits[2] = pos.CurrentState().BlackBishopBits;
+		featureBits[3] = pos.CurrentState().BlackRookBits;
+		featureBits[4] = pos.CurrentState().BlackQueenBits;
+		featureBits[5] = pos.CurrentState().BlackKingBits;
+		featureBits[6] = pos.CurrentState().WhitePawnBits;
+		featureBits[7] = pos.CurrentState().WhiteKnightBits;
+		featureBits[8] = pos.CurrentState().WhiteBishopBits;
+		featureBits[9] = pos.CurrentState().WhiteRookBits;
+		featureBits[10] = pos.CurrentState().WhiteQueenBits;
+		featureBits[11] = pos.CurrentState().WhiteKingBits;
+	}
 
-	// Update white accumulators
-	if (!AccumulatorStack[CurrentIndex].WhiteGood) {
-		const int latestUpdated = [&] {
-			for (int i = CurrentIndex - 1; i >= 0; i--) {
-				if (AccumulatorStack[i].WhiteGood) return i;
-			}
-			assert(false);
-		}();
+	// Compare it with the cached entry
+	for (int i = 0; i < 12; i++) {
+		uint64_t toBeAdded = featureBits[i] & ~cache.featureBits[i];
+		uint64_t toBeSubbed = cache.featureBits[i] & ~featureBits[i];
 
-		for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
-			if (AccumulatorStack[i].movedPiece == Piece::WhiteKing && IsRefreshRequired(AccumulatorStack[i].move, Side::White)) {
-				AccumulatorStack[i].RefreshWhite(pos.States[basePositionIndex + i]);
-			}
-			else {
-				AccumulatorStack[i].UpdateIncrementally(Side::White, AccumulatorStack[i - 1]);
-			}
+		while (toBeAdded) {
+			const uint8_t sq = Popsquare(toBeAdded);
+			const int featureSq = !mirroring ? sq : (sq ^ 7);
+			const int feature = (side == Side::White ? featureSq : Mirror(featureSq)) + i * 64;
+			for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] += Network->FeatureWeights[inputBucket][feature][i];
+		}
+
+		while (toBeSubbed) {
+			const uint8_t sq = Popsquare(toBeSubbed);
+			const int featureSq = !mirroring ? sq : (sq ^ 7);
+			const int feature = (side == Side::White ? featureSq : Mirror(featureSq)) + i * 64;
+			for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] -= Network->FeatureWeights[inputBucket][feature][i];
 		}
 	}
 
-	// Update black accumulators
-	if (!AccumulatorStack[CurrentIndex].BlackGood) {
-		const int latestUpdated = [&] {
-			for (int i = CurrentIndex - 1; i >= 0; i--) {
-				if (AccumulatorStack[i].BlackGood) return i;
-			}
-			assert(false);
-		}();
-
-		for (int i = latestUpdated + 1; i <= CurrentIndex; i++) {
-			if (AccumulatorStack[i].movedPiece == Piece::BlackKing && IsRefreshRequired(AccumulatorStack[i].move, Side::Black)) {
-				AccumulatorStack[i].RefreshBlack(pos.States[basePositionIndex + i]);
-			}
-			else {
-				AccumulatorStack[i].UpdateIncrementally(Side::Black, AccumulatorStack[i - 1]);
-			}
-		}
-	}
-
-	//int good = NeuralEvaluate(pos);
-	//int bad = NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
-	//assert(good == bad);
-
-	return NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
+	// The cached entry is now updated, now copy it to the stack
+	cache.featureBits = featureBits;
+	AccumulatorStack[accIndex].Accumulator[side] = cache.cachedAcc;
+	AccumulatorStack[accIndex].Correct[side] = true;
 }
 
 // Loading the neural network ---------------------------------------------------------------------

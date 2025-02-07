@@ -2,9 +2,6 @@
 
 Engine::Engine(int argc, char* argv[]) {
 	Settings::UseUCI = !PrettySupport;
-	std::srand(static_cast<unsigned int>(std::time(0)));
-	GenerateMagicTables();
-	LoadDefaultNetwork();
 	SearchThreads.TranspositionTable.SetSize(Settings::Hash);
 
 	if (argc == 2 && std::string(argv[1]) == "bench") Behavior = EngineBehavior::Bench;
