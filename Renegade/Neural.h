@@ -133,18 +133,22 @@ struct alignas(64) AccumulatorRepresentation {
 
 	void AddFeatureWhite(const uint8_t piece, const uint8_t sq) {
 		const auto feature = FeatureIndexes(piece, sq).first;
-		for (int i = 0; i < HiddenSize; i++) WhiteAccumulator[i] += Network->FeatureWeights[ActiveBucket[Side::White]][feature][i];
+		const int bucket = ActiveBucket[Side::White];
+		for (int i = 0; i < HiddenSize; i++) WhiteAccumulator[i] += Network->FeatureWeights[bucket][feature][i];
 	}
 
 	void AddFeatureBlack(const uint8_t piece, const uint8_t sq) {
 		const auto feature = FeatureIndexes(piece, sq).second;
-		for (int i = 0; i < HiddenSize; i++) BlackAccumulator[i] += Network->FeatureWeights[ActiveBucket[Side::Black]][feature][i];
+		const int bucket = ActiveBucket[Side::Black];
+		for (int i = 0; i < HiddenSize; i++) BlackAccumulator[i] += Network->FeatureWeights[bucket][feature][i];
 	}
 
 	void AddFeatureBoth(const uint8_t piece, const uint8_t sq) {
 		const auto features = FeatureIndexes(piece, sq);
-		for (int i = 0; i < HiddenSize; i++) WhiteAccumulator[i] += Network->FeatureWeights[ActiveBucket[Side::White]][features.first][i];
-		for (int i = 0; i < HiddenSize; i++) BlackAccumulator[i] += Network->FeatureWeights[ActiveBucket[Side::Black]][features.second][i];
+		const int wbucket = ActiveBucket[Side::White];
+		const int bbucket = ActiveBucket[Side::Black];
+		for (int i = 0; i < HiddenSize; i++) WhiteAccumulator[i] += Network->FeatureWeights[wbucket][features.first][i];
+		for (int i = 0; i < HiddenSize; i++) BlackAccumulator[i] += Network->FeatureWeights[bbucket][features.second][i];
 	}
 
 	// Fused NNUE updates are generally a speedup, however it seems to depend on the exact machine:
@@ -157,14 +161,16 @@ struct alignas(64) AccumulatorRepresentation {
 		const auto features2 = FeatureIndexes(f2.piece, f2.square);
 
 		if (side == Side::White) {
+			const int wbucket = ActiveBucket[Side::White];
 			for (int i = 0; i < HiddenSize; i++) WhiteAccumulator[i] +=
-				- Network->FeatureWeights[ActiveBucket[Side::White]][features1.first][i]
-				+ Network->FeatureWeights[ActiveBucket[Side::White]][features2.first][i];
+				- Network->FeatureWeights[wbucket][features1.first][i]
+				+ Network->FeatureWeights[wbucket][features2.first][i];
 		}
 		else {
+			const int bbucket = ActiveBucket[Side::Black];
 			for (int i = 0; i < HiddenSize; i++) BlackAccumulator[i] +=
-				- Network->FeatureWeights[ActiveBucket[Side::Black]][features1.second][i]
-				+ Network->FeatureWeights[ActiveBucket[Side::Black]][features2.second][i];
+				- Network->FeatureWeights[bbucket][features1.second][i]
+				+ Network->FeatureWeights[bbucket][features2.second][i];
 		}
 	}
 
@@ -174,16 +180,18 @@ struct alignas(64) AccumulatorRepresentation {
 		const auto features3 = FeatureIndexes(f3.piece, f3.square);
 
 		if (side == Side::White) {
+			const int wbucket = ActiveBucket[Side::White];
 			for (int i = 0; i < HiddenSize; i++) WhiteAccumulator[i] +=
-				- Network->FeatureWeights[ActiveBucket[Side::White]][features1.first][i]
-				- Network->FeatureWeights[ActiveBucket[Side::White]][features2.first][i]
-				+ Network->FeatureWeights[ActiveBucket[Side::White]][features3.first][i];
+				- Network->FeatureWeights[wbucket][features1.first][i]
+				- Network->FeatureWeights[wbucket][features2.first][i]
+				+ Network->FeatureWeights[wbucket][features3.first][i];
 		}
 		else {
+			const int bbucket = ActiveBucket[Side::Black];
 			for (int i = 0; i < HiddenSize; i++) BlackAccumulator[i] +=
-				- Network->FeatureWeights[ActiveBucket[Side::Black]][features1.second][i]
-				- Network->FeatureWeights[ActiveBucket[Side::Black]][features2.second][i]
-				+ Network->FeatureWeights[ActiveBucket[Side::Black]][features3.second][i];
+				- Network->FeatureWeights[bbucket][features1.second][i]
+				- Network->FeatureWeights[bbucket][features2.second][i]
+				+ Network->FeatureWeights[bbucket][features3.second][i];
 		}
 	}
 
