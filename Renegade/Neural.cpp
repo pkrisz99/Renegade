@@ -103,10 +103,12 @@ int16_t NeuralEvaluate(const Position& position) {
 int16_t EvaluationState::Evaluate(const Position& pos) {
 
 	// For evaluating, we need to make sure the accumulator is up-to-date for both sides
-	// If we need a refresh, it's important to know, that the accumulator stack and the position stack are indexed differently
+	// The accumulators can be updated in two ways, in order of preference:
+	// - if applicable, incrementally from the last updated one
+	// - reconstructing it using a cache that we keep (colloquially known as "Finny tables")
+	
+	// Currently not used, but note that the accumulator stack and the position stack are indexed differently:
 	// const int basePositionIndex = pos.States.size() - CurrentIndex - 1;
-
-	// Update accumulators
 
 	for (const bool side : {Side::White, Side::Black}) {
 
@@ -114,18 +116,16 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 			const std::optional<int> latestUpdated = [&] {
 				for (int i = CurrentIndex; i >= 0; i--) {
 					if (AccumulatorStack[i].Correct[side]) return std::optional<int>(i);
-					if (TypeOfPiece(AccumulatorStack[i].movedPiece) == PieceType::King
-						&& ColorOfPiece(AccumulatorStack[i].movedPiece) == SideToPieceColor(side)
-						&& IsRefreshRequired(AccumulatorStack[i].move, side)) {
+					if (IsRefreshRequired(AccumulatorStack[i].movedPiece, AccumulatorStack[i].move, side)) {
 						return std::optional<int>(std::nullopt);
 					}
 				}
 				assert(false);
-				}();
+			}();
 
 			if (latestUpdated.has_value()) {
 				for (int i = latestUpdated.value() + 1; i <= CurrentIndex; i++) {
-					AccumulatorStack[i].UpdateIncrementally(side, AccumulatorStack[i - 1]);
+					UpdateIncrementally(side, i);
 				}
 			}
 			else {
@@ -134,80 +134,85 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 		}
 	}
 
-	//int good = NeuralEvaluate(pos);
-	//int bad = NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
-	//assert(good == bad);
+	/*
+	const int fresh = NeuralEvaluate(pos);
+	const int acc = NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
+	assert(fresh == acc);
+	*/
 
+	// Now the accumulators are guaranteed to be correct, so the evaluation can be obtained
 	return NeuralEvaluate(pos, AccumulatorStack[CurrentIndex]);
 }
 
-void AccumulatorRepresentation::UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc) {
+void EvaluationState::UpdateIncrementally(const bool side, const int accIndex) {
+
+	const AccumulatorRepresentation& o = AccumulatorStack[accIndex - 1];  // o -> old
+	AccumulatorRepresentation& c = AccumulatorStack[accIndex];            // c -> current
+	const Move& m = c.move;
 
 	// Ensure the base accumulator is already up to date, and copy over the previous state
-	// (possible future optimization by deferring this and adding the accumulator change?)
-	assert(oldAcc.Correct[side]);
-	Accumulator[side] = oldAcc.Accumulator[side];
+    // (possible future optimization by deferring this and adding the accumulator change?)
+	assert(o.Correct[side]);
+	c.Accumulator[side] = o.Accumulator[side];
 
 	// After completing the following, it's guaranteed that the accumulator will be up to date for the given side
-	Correct[side] = true;
+	c.Correct[side] = true;
 	
 	// For null-moves nothing changes, we're done here
-	if (move.IsNull()) return;
+	if (m.IsNull()) return;
 
 	// Handle various cases of incremental updating
 	// (a) regular non-capture move
-	if (capturedPiece == Piece::None && !move.IsPromotion() && move.flag != MoveFlag::EnPassantPerformed) {
-		SubAddFeature({ movedPiece, move.from }, { movedPiece, move.to }, side);
+	if (c.capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
+		c.SubAddFeature({ c.movedPiece, m.from }, { c.movedPiece, m.to }, side);
 		return;
 	}
 
 	// (b) regular capture move
-	if (capturedPiece != Piece::None && !move.IsPromotion() && move.flag != MoveFlag::EnPassantPerformed && !move.IsCastling()) {
-		SubSubAddFeature({ movedPiece, move.from }, { capturedPiece, move.to }, { movedPiece, move.to }, side);
+	if (c.capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
+		c.SubSubAddFeature({ c.movedPiece, m.from }, { c.capturedPiece, m.to }, { c.movedPiece, m.to }, side);
 		return;
 	}
 
 	// (c) castling
-	if (move.IsCastling()) {
-		const bool castlingSide = ColorOfPiece(movedPiece) == PieceColor::White;
-		const bool shortCastle = move.flag == MoveFlag::ShortCastle;
+	if (m.IsCastling()) {
+		const bool castlingSide = ColorOfPiece(c.movedPiece) == PieceColor::White;
+		const bool shortCastle = m.flag == MoveFlag::ShortCastle;
 		const uint8_t rookPiece = castlingSide == Side::White ? Piece::WhiteRook : Piece::BlackRook;
 		const uint8_t newKingFile = shortCastle ? 6 : 2;
 		const uint8_t newRookFile = shortCastle ? 5 : 3;
 		const uint8_t newKingSquare = newKingFile + (castlingSide == Side::Black) * 56;
 		const uint8_t newRookSquare = newRookFile + (castlingSide == Side::Black) * 56;
-		SubAddFeature({ movedPiece, move.from }, { movedPiece, newKingSquare }, side);
-		SubAddFeature({ rookPiece, move.to }, { rookPiece, newRookSquare }, side);
+		c.SubAddFeature({ c.movedPiece, m.from }, { c.movedPiece, newKingSquare }, side);
+		c.SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare }, side);
 		return;
 	}
 
 	// (d) promotion - with optional capture
-	if (move.IsPromotion()) {
-		const uint8_t promotionPiece = move.GetPromotionPieceType() + (ColorOfPiece(movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		if (capturedPiece == Piece::None) SubAddFeature({ movedPiece, move.from }, { promotionPiece, move.to }, side);
-		else SubSubAddFeature({ movedPiece, move.from }, { capturedPiece, move.to }, { promotionPiece, move.to }, side);
+	if (m.IsPromotion()) {
+		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(c.movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
+		if (c.capturedPiece == Piece::None) c.SubAddFeature({ c.movedPiece, m.from }, { promotionPiece, m.to }, side);
+		else c.SubSubAddFeature({ c.movedPiece, m.from }, { c.capturedPiece, m.to }, { promotionPiece, m.to }, side);
 		return;
 	}
 
 	// (e) en passant
-	if (move.flag == MoveFlag::EnPassantPerformed) {
-		const uint8_t victimPiece = movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
-		const uint8_t victimSquare = movedPiece == Piece::WhitePawn ? (move.to - 8) : (move.to + 8);
-		SubSubAddFeature({ movedPiece, move.from }, { victimPiece, victimSquare }, { movedPiece, move.to }, side);
+	if (c.move.flag == MoveFlag::EnPassantPerformed) {
+		const uint8_t victimPiece = c.movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
+		const uint8_t victimSquare = c.movedPiece == Piece::WhitePawn ? (m.to - 8) : (m.to + 8);
+		c.SubSubAddFeature({ c.movedPiece, m.from }, { victimPiece, victimSquare }, { c.movedPiece, m.to }, side);
 		return;
 	}
 }
 
 void EvaluationState::UpdateFromBucketCache(const Position& pos, const int accIndex, const bool side) {
-	// Bucket caches
-	// (I know this part is horrible)
 
 	// Get the cache entry to be updated
-	const uint8_t kingSq = (side == Side::White ? pos.WhiteKingSquare() : pos.BlackKingSquare());
-	const int inputBucket = GetInputBucket(kingSq, side);
-	const int bucketCacheIndex = inputBucket + (GetSquareFile(kingSq) >= 4 ? InputBucketCount : 0);
-	const int whiteKingFile = GetSquareFile(kingSq);
-	BucketCacheItem& cache = BucketCache[side][bucketCacheIndex];
+	const uint8_t kingSq = AccumulatorStack[CurrentIndex].KingSquare[side];
+	const int inputBucket = AccumulatorStack[CurrentIndex].ActiveBucket[side];
+	const int mirroring = GetSquareFile(kingSq) >= 4;
+	const int bucketCacheIndex = inputBucket + (mirroring * InputBucketCount);
+	BucketCacheEntry& cache = BucketCache[side][bucketCacheIndex];
 
 	// Calculate the feature boolean array for the current position
 	std::array<uint64_t, 12> featureBits;
@@ -241,34 +246,29 @@ void EvaluationState::UpdateFromBucketCache(const Position& pos, const int accIn
 	}
 
 	// Compare it with the cached entry
-	StaticVector<int, 32> adds{};
-	StaticVector<int, 32> subs{};
 	for (int i = 0; i < 12; i++) {
 		uint64_t toBeAdded = featureBits[i] & ~cache.featureBits[i];
 		uint64_t toBeSubbed = cache.featureBits[i] & ~featureBits[i];
 
 		while (toBeAdded) {
 			const uint8_t sq = Popsquare(toBeAdded);
-			const int featuresq = ((whiteKingFile < 4) ? sq : (sq ^ 7));
-			const int feature = (side == Side::White ? featuresq : Mirror(featuresq)) + i * 64;
-			adds.push(feature);
+			const int featureSq = !mirroring ? sq : (sq ^ 7);
+			const int feature = (side == Side::White ? featureSq : Mirror(featureSq)) + i * 64;
 			for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] += Network->FeatureWeights[inputBucket][feature][i];
 		}
 
 		while (toBeSubbed) {
 			const uint8_t sq = Popsquare(toBeSubbed);
-			const int featuresq = ((whiteKingFile < 4) ? sq : (sq ^ 7));
-			const int feature = (side == Side::White ? featuresq : Mirror(featuresq)) + i * 64;
-			subs.push(feature);
+			const int featureSq = !mirroring ? sq : (sq ^ 7);
+			const int feature = (side == Side::White ? featureSq : Mirror(featureSq)) + i * 64;
 			for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] -= Network->FeatureWeights[inputBucket][feature][i];
 		}
 	}
-	//cout << "+" << (int)adds.size() << "  -" << (int)subs.size() << endl;
+
+	// The cached entry is now updated, now copy it to the stack
 	cache.featureBits = featureBits;
 	AccumulatorStack[accIndex].Accumulator[side] = cache.cachedAcc;
 	AccumulatorStack[accIndex].Correct[side] = true;
-	AccumulatorStack[accIndex].KingSquare[side] = kingSq;
-	AccumulatorStack[accIndex].ActiveBucket[side] = inputBucket;
 }
 
 // Loading the neural network ---------------------------------------------------------------------

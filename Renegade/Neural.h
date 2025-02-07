@@ -69,14 +69,18 @@ inline int GetOutputBucket(const int pieceCount) {
 	return (pieceCount - 2) / divisor;
 }
 
-inline bool IsRefreshRequired(const Move& kingMove, const bool side) {
-	// Get the real 'to' square in case of castling
-	const uint8_t from = kingMove.from;
-	const uint8_t to = [&] {
-		if (!kingMove.IsCastling()) return kingMove.to;
+inline bool IsRefreshRequired(const uint8_t piece, const Move& move, const bool side) {
+	// If the our king didn't move then it couldn't be a refresh
+	if ((side == Side::White && piece != Piece::WhiteKing) || (side == Side::Black && piece != Piece::BlackKing))
+		return false;
 
-		if (side == Side::White) return (kingMove.flag == MoveFlag::ShortCastle) ? Squares::G1 : Squares::C1;
-		else return (kingMove.flag == MoveFlag::ShortCastle) ? Squares::G8 : Squares::C8;
+	// Get the real 'to' square in case of castling
+	const uint8_t from = move.from;
+	const uint8_t to = [&] {
+		if (!move.IsCastling()) return move.to;
+
+		if (side == Side::White) return (move.flag == MoveFlag::ShortCastle) ? Squares::G1 : Squares::C1;
+		else return (move.flag == MoveFlag::ShortCastle) ? Squares::G8 : Squares::C8;
 	}();
 
 	// Refresh due to horizontal mirroring or bucket change
@@ -117,7 +121,7 @@ struct alignas(64) AccumulatorRepresentation {
 	}
 
 	void AddFeatureForSide(const bool side, const uint8_t piece, const uint8_t sq) {
-		const int feature = FeatureIndexes(side, piece, sq);
+		const int feature = FeatureIndex(side, piece, sq);
 		const int bucket = ActiveBucket[side];
 		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] += Network->FeatureWeights[bucket][feature][i];
 	}
@@ -128,8 +132,8 @@ struct alignas(64) AccumulatorRepresentation {
 	// it possible, that this optimization no longer gains due to better compilers getting better?
 
 	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const bool side) {
-		const auto features1 = FeatureIndexes(side, f1.piece, f1.square);
-		const auto features2 = FeatureIndexes(side, f2.piece, f2.square);
+		const auto features1 = FeatureIndex(side, f1.piece, f1.square);
+		const auto features2 = FeatureIndex(side, f2.piece, f2.square);
 		const int bucket = ActiveBucket[side];
 		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] +=
 			- Network->FeatureWeights[bucket][features1][i]
@@ -138,16 +142,16 @@ struct alignas(64) AccumulatorRepresentation {
 
 	void SubSubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3, const bool side) {
 		const int bucket = ActiveBucket[side];
-		const auto features1 = FeatureIndexes(side, f1.piece, f1.square);
-		const auto features2 = FeatureIndexes(side, f2.piece, f2.square);
-		const auto features3 = FeatureIndexes(side, f3.piece, f3.square);
+		const auto features1 = FeatureIndex(side, f1.piece, f1.square);
+		const auto features2 = FeatureIndex(side, f2.piece, f2.square);
+		const auto features3 = FeatureIndex(side, f3.piece, f3.square);
 		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] +=
 			- Network->FeatureWeights[bucket][features1][i]
 			- Network->FeatureWeights[bucket][features2][i]
 			+ Network->FeatureWeights[bucket][features3][i];
 	}
 
-	inline int FeatureIndexes(const bool perspective, const uint8_t piece, const uint8_t sq) const {
+	inline int FeatureIndex(const bool perspective, const uint8_t piece, const uint8_t sq) const {
 		const uint8_t pieceColor = ColorOfPiece(piece);
 		const uint8_t pieceType = TypeOfPiece(piece);
 		constexpr int colorOffset = 64 * 6;
@@ -158,16 +162,13 @@ struct alignas(64) AccumulatorRepresentation {
 		
 		return featureIndex;
 	}
-
-	void UpdateIncrementally(const bool side, const AccumulatorRepresentation& oldAcc);
-
 };
 
-struct alignas(64) BucketCacheItem {
+struct alignas(64) BucketCacheEntry {
 	std::array<int16_t, HiddenSize> cachedAcc;
 	std::array<uint64_t, 12> featureBits{};
 
-	BucketCacheItem() {
+	BucketCacheEntry() {
 		for (int i = 0; i < HiddenSize; i++) cachedAcc[i] = Network->FeatureBias[i];
 	}
 };
@@ -175,7 +176,7 @@ struct alignas(64) BucketCacheItem {
 struct EvaluationState {
 	std::array<AccumulatorRepresentation, MaxDepth + 1> AccumulatorStack;
 	int CurrentIndex;
-	MultiArray<BucketCacheItem, 2, InputBucketCount * 2> BucketCache;
+	MultiArray<BucketCacheEntry, 2, InputBucketCount * 2> BucketCache;
 
 	inline void PushState(const Position& pos, const Move move, const uint8_t movedPiece, const uint8_t capturedPiece) {
 		CurrentIndex += 1;
@@ -201,5 +202,6 @@ struct EvaluationState {
 	}
 
 	int16_t Evaluate(const Position& pos);
+	void UpdateIncrementally(const bool side, const int accIndex);
 	void UpdateFromBucketCache(const Position& pos, const int accIndex, const bool side);
 };
