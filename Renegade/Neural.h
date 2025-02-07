@@ -6,6 +6,7 @@
 #include <immintrin.h>
 #include <iterator>
 #include <memory>
+#include <optional>
 
 // This is the code for the NNUE evaluation
 // Renegade uses a horizontally mirrored perspective net with input buckets based on the king's
