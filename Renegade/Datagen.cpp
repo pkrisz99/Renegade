@@ -1,4 +1,4 @@
-/*#include "Datagen.h"
+#include "Datagen.h"
 
 static void SetTitle(const std::string title) {
 	Console::ClearScreen();
@@ -393,4 +393,3 @@ static void MergeDatagenFiles() {
 	cout << Console::Green << "\nCompleted." << Console::White << endl;
 	PressEnterToExit();
 }
-*/
