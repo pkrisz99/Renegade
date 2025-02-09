@@ -26,8 +26,8 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	assert(acc.BlackGood);
 
 	const bool turn = position.Turn();
-	const std::array<int16_t, HiddenSize>& hiddenFriendly = (turn == Side::White) ? acc.Accumulator[Side::White] : acc.Accumulator[Side::Black];
-	const std::array<int16_t, HiddenSize>& hiddenOpponent = (turn == Side::White) ? acc.Accumulator[Side::Black] : acc.Accumulator[Side::White];
+	const std::array<int16_t, HiddenSize>& hiddenFriendly = acc.Accumulator[turn];
+	const std::array<int16_t, HiddenSize>& hiddenOpponent = acc.Accumulator[!turn];
 	int32_t output = 0;
 
 	const int pieceCount = Popcount(position.GetOccupancy());

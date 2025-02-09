@@ -341,16 +341,16 @@ void Position::GenerateKnightMoves(MoveList& moves, const int home) const {
 
 template <bool side, int pieceType, MoveGen moveGen>
 void Position::GenerateSlidingMoves(MoveList& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) const {
-	const uint64_t friendlyOccupance = (side == PieceColor::White) ? whiteOccupancy : blackOccupancy;
-	const uint64_t opponentOccupance = (side == PieceColor::White) ? blackOccupancy : whiteOccupancy;
+	const uint64_t friendlyOccupancy = (side == Side::White) ? whiteOccupancy : blackOccupancy;
+	const uint64_t opponentOccupancy = (side == Side::White) ? blackOccupancy : whiteOccupancy;
 	const uint64_t occupancy = whiteOccupancy | blackOccupancy;
 	uint64_t map = 0;
 
-	if constexpr (pieceType == PieceType::Rook) map = GetRookAttacks(home, occupancy) & ~friendlyOccupance;
-	if constexpr (pieceType == PieceType::Bishop) map = GetBishopAttacks(home, occupancy) & ~friendlyOccupance;
-	if constexpr (pieceType == PieceType::Queen) map = GetQueenAttacks(home, occupancy) & ~friendlyOccupance;
+	if constexpr (pieceType == PieceType::Rook) map = GetRookAttacks(home, occupancy) & ~friendlyOccupancy;
+	if constexpr (pieceType == PieceType::Bishop) map = GetBishopAttacks(home, occupancy) & ~friendlyOccupancy;
+	if constexpr (pieceType == PieceType::Queen) map = GetQueenAttacks(home, occupancy) & ~friendlyOccupancy;
 
-	if constexpr (moveGen == MoveGen::Noisy) map &= opponentOccupance;
+	if constexpr (moveGen == MoveGen::Noisy) map &= opponentOccupancy;
 	if (map == 0) return;
 
 	while (map != 0) {
