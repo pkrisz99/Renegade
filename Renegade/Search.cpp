@@ -692,13 +692,15 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	Move ttMove = NullMove;
 	if (found) ttMove = Move(ttEntry.packedMove);
 	const bool ttPV = pvNode || ttEntry.ttPv;
+	const bool inCheck = position.IsInCheck();
 
 	// Update alpha-beta bounds
 	const int rawEval = [&] {
-		if (found && !position.IsInCheck()) return ttEntry.rawEval;
+		if (inCheck) return int16_t(NoEval);
+		if (found) return ttEntry.rawEval;
 		return static_cast<int16_t>(Evaluate(t, position, level));
 	}();
-	const int staticEval = t.History.ApplyCorrection(position, rawEval);
+	const int staticEval = (rawEval != NoEval) ? t.History.ApplyCorrection(position, rawEval) : LosingMateScore(level);
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= MaxDepth) return staticEval;
