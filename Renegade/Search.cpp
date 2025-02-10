@@ -419,11 +419,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		staticEval = t.History.ApplyCorrection(position, rawEval);
 		eval = staticEval;
 
-		if (ttEval != NoEval) {
-			if (ttEntry.scoreType == ScoreType::Exact
-				|| (ttEntry.scoreType == ScoreType::LowerBound && staticEval < ttEval)
-				|| (ttEntry.scoreType == ScoreType::UpperBound && staticEval > ttEval)) eval = ttEval; // can't be true when in check
-		}
 		t.StaticEvalStack[level] = staticEval;
 		t.EvalStack[level] = eval;
 		t.SuperSingular[level] = false;
