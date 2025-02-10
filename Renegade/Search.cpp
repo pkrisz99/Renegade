@@ -412,7 +412,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	if (!singularSearch) {
 		rawEval = [&] {
-			if (inCheck) return static_cast<int16_t>(NoEval);
 			if (found) return ttEntry.rawEval;
 			return static_cast<int16_t>(Evaluate(t, position, level));
 		}();
@@ -422,7 +421,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (ttEval != NoEval) {
 			if (ttEntry.scoreType == ScoreType::Exact
 				|| (ttEntry.scoreType == ScoreType::LowerBound && staticEval < ttEval)
-				|| (ttEntry.scoreType == ScoreType::UpperBound && staticEval > ttEval)) eval = ttEval; // can't be true when in check
+				|| (ttEntry.scoreType == ScoreType::UpperBound && staticEval > ttEval)) eval = ttEval;
 		}
 		t.StaticEvalStack[level] = staticEval;
 		t.EvalStack[level] = eval;
