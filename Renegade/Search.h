@@ -46,6 +46,7 @@ public:
 	std::array<int, MaxDepth> StaticEvalStack;
 	std::array<int, MaxDepth> EvalStack;
 	std::array<int, MaxDepth> CutoffCount;
+	std::array<int, MaxDepth> DepthStack; // Depth at the beginning of the node
 	std::array<Move, MaxDepth> ExcludedMoves;
 	std::array<bool, MaxDepth> SuperSingular;
 

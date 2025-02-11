@@ -211,6 +211,7 @@ void Search::SearchMoves(ThreadData& t) {
 	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), NullMove);
 	std::fill(t.SuperSingular.begin(), t.SuperSingular.end(), false);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
+	std::fill(t.DepthStack.begin(), t.DepthStack.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
 	t.History.ClearKillerAndCounterMoves();
 	t.EvalState.Reset(t.CurrentPosition);
@@ -370,6 +371,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	// Check for draws
 	if (!rootNode && position.IsDrawn(false)) return DrawEvaluation(t);
 
+	const Move excludedMove = t.ExcludedMoves[level];
+	const bool singularSearch = !excludedMove.IsNull();
+	if (!singularSearch) t.DepthStack[level] = depth;
+
 	// Check extensions
 	const bool inCheck = position.IsInCheck();
 	if (!rootNode && inCheck) depth += 1;
@@ -378,9 +383,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	if (depth <= 0) {
 		return SearchQuiescence(t, level, alpha, beta, pvNode);
 	}
-
-	const Move excludedMove = t.ExcludedMoves[level];
-	const bool singularSearch = !excludedMove.IsNull();
 
 	// Probe the transposition table
 	TranspositionEntry ttEntry;
@@ -569,6 +571,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
 			if (cutNode) reduction += 1;
+			if (level > 1 && (t.DepthStack[level - 1] - t.DepthStack[level] > 4) && !singularSearch) reduction -= 1;
 			reduction = std::max(reduction, 0);
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
