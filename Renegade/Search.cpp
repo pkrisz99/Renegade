@@ -437,6 +437,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
 	bool futilityPrunable = false;
+	const bool fromNullMove = position.IsPreviousMoveNull();
 
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
@@ -571,7 +572,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
 			if (cutNode) reduction += 1;
-			if (level > 1 && (t.DepthStack[level - 1] - t.DepthStack[level] > 4) && !singularSearch) reduction -= 1;
+			if (level > 1 && (t.DepthStack[level - 1] - t.DepthStack[level] > 4) && !singularSearch && !fromNullMove) reduction -= 1;
 			reduction = std::max(reduction, 0);
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
