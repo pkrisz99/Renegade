@@ -401,7 +401,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 	}
 
-	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 8)
+	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 7)
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && !IsMateScore(ttEval);
 	const bool ttPV = pvNode || ttEntry.ttPv;
 	
