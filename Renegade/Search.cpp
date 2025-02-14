@@ -401,7 +401,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 	}
 
-	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 8)
+	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 7)
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && !IsMateScore(ttEval);
 	const bool ttPV = pvNode || ttEntry.ttPv;
 	
@@ -566,7 +566,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!ttPV) reduction += 1;
-			if (inCheck) reduction -= 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < 80000) reduction -= std::clamp(order / 8192, -2, 2);
 			if (cutNode) reduction += 1;
