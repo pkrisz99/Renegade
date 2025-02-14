@@ -25,11 +25,11 @@ void Engine::Start() {
 	}
 
 	// Handle externally receiving datagen
-	/*if (Behavior == EngineBehavior::DatagenNormal || Behavior == EngineBehavior::DatagenDFRC) {
+	if (Behavior == EngineBehavior::DatagenNormal || Behavior == EngineBehavior::DatagenDFRC) {
 		const DatagenLaunchMode launchMode = (Behavior == EngineBehavior::DatagenNormal) ? DatagenLaunchMode::Normal : DatagenLaunchMode::DFRC;
 		StartDatagen(launchMode);
 		return;
-	}*/
+	}
 
 	Position position = Position(FEN::StartPos);
 	std::string cmd;
