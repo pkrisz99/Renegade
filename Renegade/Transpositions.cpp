@@ -35,8 +35,14 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 	TranspositionEntry& candidateEntry = Table[key].Entries[candidateSlot];
 
 	// Check if replaceable ...
+	const bool replaceable = [&] {
+		if (storedHash != candidateEntry.hash) return true;
+		if (scoreType == ScoreType::Exact) return true;
+		return quality >= candidateEntry.quality;
+	}();
 
-	if (quality >= candidateEntry.quality) {
+	// Update entry within the cluster
+	if (replaceable) {
 		candidateEntry.depth = depth;
 		if (candidateEntry.hash != storedHash || !bestMove.IsNull()) {
 			candidateEntry.packedMove = bestMove.Pack();

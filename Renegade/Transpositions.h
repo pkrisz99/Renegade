@@ -30,7 +30,7 @@ struct TranspositionEntry {
 	}
 };
 struct alignas(64) TranspositionCluster {
-	std::array<TranspositionEntry, 4> Entries;
+	std::array<TranspositionEntry, 4> Entries{};
 };
 
 static_assert(sizeof(TranspositionEntry) == 16);
