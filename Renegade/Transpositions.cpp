@@ -12,17 +12,18 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 
 	const uint64_t key = hash & HashMask;
 	const uint16_t quality = Age * 2 + depth;
-	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
+	const uint32_t storedHash = GetStoredHash(hash);
 	const TranspositionCluster& cluster = Table[key];
 
 	// Find the slot to use
 	const int candidateSlot = [&] {
 		int currentWorst = -1, currentWorstQuality = 1000000;
-		for (int i = 0; i < cluster.Entries.size(); i++) {
-			if (cluster.Entries[i].scoreType == ScoreType::Invalid) return i;
-			if (cluster.Entries[i].hash == storedHash) return i;
+		for (int i = 0; i < cluster.entries.size(); i++) {
+			const TranspositionEntry& entry = cluster.entries[i];
+			if (entry.scoreType == ScoreType::Invalid) return i;
+			if (entry.hash == storedHash) return i;
 
-			const int quality = cluster.Entries[i].quality;
+			const int quality = entry.quality;
 			if (quality < currentWorstQuality) {
 				currentWorst = i;
 				currentWorstQuality = quality;
@@ -32,16 +33,16 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 		return currentWorst;
 	}();
 
-	TranspositionEntry& candidateEntry = Table[key].Entries[candidateSlot];
+	TranspositionEntry& candidateEntry = Table[key].entries[candidateSlot];
 
-	// Check if replaceable ...
+	// Check if the candidate entry is replaceable
 	const bool replaceable = [&] {
 		if (storedHash != candidateEntry.hash) return true;
 		if (scoreType == ScoreType::Exact) return true;
 		return quality >= candidateEntry.quality;
 	}();
 
-	// Update entry within the cluster
+	// Update the transposition entry
 	if (replaceable) {
 		candidateEntry.depth = depth;
 		if (candidateEntry.hash != storedHash || !bestMove.IsNull()) {
@@ -64,10 +65,10 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 bool Transpositions::Probe(const uint64_t hash, TranspositionEntry& returned, const int level) const {
 	assert(HashMask != 0);
 	const uint64_t key = GetClusterIndex(hash);
-	const uint32_t storedHash = static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
+	const uint32_t storedHash = GetStoredHash(hash);
 	const TranspositionCluster& cluster = Table[key];
 
-	for (const TranspositionEntry& entry : cluster.Entries) {
+	for (const TranspositionEntry& entry : cluster.entries) {
 		if (entry.hash != storedHash) continue;
 
 		returned = entry;
@@ -113,7 +114,7 @@ int Transpositions::GetHashfull() const {
 	// Approximate by checking the usage of the first 1000 clusters
 	int hashfull = 0;
 	for (int i = 0; i < 1000; i++) {
-		for (const TranspositionEntry& entry : Table[i].Entries) {
+		for (const TranspositionEntry& entry : Table[i].entries) {
 			if (entry.quality >= Age * 2) hashfull += 1;
 		}
 	}

@@ -30,7 +30,7 @@ struct TranspositionEntry {
 	}
 };
 struct alignas(64) TranspositionCluster {
-	std::array<TranspositionEntry, 4> Entries{};
+	std::array<TranspositionEntry, 4> entries{};
 };
 
 static_assert(sizeof(TranspositionEntry) == 16);
@@ -55,6 +55,10 @@ private:
 
 	inline uint64_t GetClusterIndex(const uint64_t hash) const {
 		return hash & HashMask;
+	}
+
+	inline uint32_t GetStoredHash(const uint64_t hash) const {
+		return static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
 	}
 };
 
