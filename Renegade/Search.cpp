@@ -464,7 +464,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Futility pruning
 		const int futilityMargin = 30 + depth * 100;
-		if (depth <= 5 && !IsMateScore(beta)) {
+		if (depth <= 4 && !IsMateScore(beta)) {
 			futilityPrunable = (eval + futilityMargin < alpha);
 		}
 	}
