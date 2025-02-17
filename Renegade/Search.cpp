@@ -498,6 +498,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	int failLowCount = 0;
 	Move bestMove = NullMove;
 	int bestScore = NegativeInfinity;
+	bool deepen = false;
 
 	StaticVector<Move, MaxMoveCount> quietsTried;
 	StaticVector<Move, MaxMoveCount> capturesTried;
@@ -579,7 +580,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			score = -SearchRecursive(t, reducedDepth, level + 1, -alpha - 1, -alpha, false, true);
 
 			if (score > alpha && reducedDepth < depth - 1) {
-				score = -SearchRecursive(t, depth - 1, level + 1, -alpha - 1, -alpha, false, !cutNode);
+				if (!deepen) deepen = score > (bestScore + 50 + (depth - 1) * 5);
+				score = -SearchRecursive(t, depth - 1 + deepen, level + 1, -alpha - 1, -alpha, false, !cutNode);
 			}
 		}
 		else if (!pvNode || legalMoveCount > 1) {
