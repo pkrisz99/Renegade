@@ -6,8 +6,8 @@ Results::Results() {
 	pv = std::vector<Move>();
 }
 
-Results::Results(const int score, const int depth, const int seldepth, const uint64_t nodes, const int time,
-	const int nps, const int hashfull, const int ply, const std::vector<Move>& pv) {
+Results::Results(const int score, const int depth, const int seldepth, const uint64_t nodes, const uint64_t time,
+	const uint64_t nps, const int hashfull, const int ply, const std::vector<Move>& pv) {
 
 	// This constructor only exists to help with the order of parameters
 	this->score = score;
@@ -22,7 +22,7 @@ Results::Results(const int score, const int depth, const int seldepth, const uin
 }
 
 Move Results::BestMove() const {
-	return (pv.size() != 0) ? pv.front() : Move();
+	return (pv.size() != 0) ? pv.front() : NullMove;
 }
 
 // Communicating the search results ---------------------------------------------------------------

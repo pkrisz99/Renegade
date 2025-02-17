@@ -27,7 +27,7 @@ class alignas(64) ThreadData {
 public:
 	void ResetStatistics();
 
-	int Depth = 0, SelDepth = 0;
+	int RootDepth = 0, SelDepth = 0;
 	uint64_t Nodes = 0;
 	Histories History;
 	MultiArray<Move, MaxDepth + 1, MaxDepth + 1> PvTable;

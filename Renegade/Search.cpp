@@ -23,7 +23,7 @@ Search::Search() {
 }
 
 void ThreadData::ResetStatistics() {
-	Depth = 0;
+	RootDepth = 0;
 	SelDepth = 0;
 	Nodes = 0;
 }
@@ -181,14 +181,14 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 }
 
 bool Search::ShouldAbort(const ThreadData& t) {
-	if (Aborting.load(std::memory_order_relaxed) && (t.Depth > 1 || !t.IsMainThread())) return true;
+	if (Aborting.load(std::memory_order_relaxed) && (t.RootDepth > 1 || !t.IsMainThread())) return true;
 	if (!t.IsMainThread()) return false; // TODO: ensure limits when multithreaded
 
-	if ((Constraints.MaxNodes != -1) && (t.Nodes >= Constraints.MaxNodes) && (t.Depth > 1)) {
+	if ((Constraints.MaxNodes != -1) && (t.Nodes >= Constraints.MaxNodes) && (t.RootDepth > 1)) {
 		Aborting.store(true, std::memory_order_relaxed);
 		return true;
 	}
-	if ((t.Nodes % 1024 == 0) && (Constraints.SearchTimeMax != -1) && (t.Depth > 1)) {
+	if ((t.Nodes % 1024 == 0) && (Constraints.SearchTimeMax != -1) && (t.RootDepth > 1)) {
 		const auto now = Clock::now();
 		const int elapsedMs = static_cast<int>((now - StartSearchTime).count() / 1e6);
 		if (elapsedMs >= Constraints.SearchTimeMax) {
@@ -222,18 +222,18 @@ void Search::SearchMoves(ThreadData& t) {
 
 	while (!finished) {
 		t.ResetPvTable();
-		t.Depth += 1;
-		t.SelDepth = t.Depth;
+		t.RootDepth += 1;
+		t.SelDepth = 0;
 
 		// Obtain score
-		if (t.Depth < 5) {
+		if (t.RootDepth < 5) {
 			// Regular negamax for shallow depths
-			score = SearchRecursive(t, t.Depth, 0, NegativeInfinity, PositiveInfinity, true, false);
+			score = SearchRecursive(t, t.RootDepth, 0, NegativeInfinity, PositiveInfinity, true, false);
 		}
 		else {
 			// Aspiration windows
 			int windowSize = 20;
-			int searchDepth = t.Depth;
+			int searchDepth = t.RootDepth;
 
 			while (true) {
 				if (Aborting.load(std::memory_order_relaxed)) break;
@@ -254,7 +254,7 @@ void Search::SearchMoves(ThreadData& t) {
 				if (score <= alpha) {
 					alpha = std::max(alpha - windowSize, NegativeInfinity);
 					beta = (alpha + beta) / 2;
-					searchDepth = t.Depth;
+					searchDepth = t.RootDepth;
 				}
 				else if (score >= beta) {
 					beta = std::min(beta + windowSize, PositiveInfinity);
@@ -279,17 +279,17 @@ void Search::SearchMoves(ThreadData& t) {
 			if (Constraints.SearchTimeMin != -1 && Constraints.SearchTimeMin != Constraints.SearchTimeMax) {
 				const int originalSoftTimeLimit = Constraints.SearchTimeMin;
 				const Move& bestMove = t.PvTable[0][0];
-				const double bestMoveFraction = static_cast<double>(t.RootNodeCounts[bestMove.from][bestMove.to]) / static_cast<double>(t.Nodes);
-				const int adjustedSoftTimeLimit = originalSoftTimeLimit * static_cast<float>(t.Depth >= 10 ? (1.5 - bestMoveFraction) * 1.35 : 1.0);
+				const double bestMoveFraction = t.RootNodeCounts[bestMove.from][bestMove.to] / static_cast<double>(t.Nodes);
+				const int adjustedSoftTimeLimit = originalSoftTimeLimit * (t.RootDepth >= 10 ? (1.5 - bestMoveFraction) * 1.35 : 1.0);
 				if (elapsedMs >= adjustedSoftTimeLimit) finished = true;
 			}
 		}
 
-		if ((t.Depth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
-		if (t.Depth >= MaxDepth) finished = true;
+		if ((t.RootDepth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
+		if (t.RootDepth >= MaxDepth) finished = true;
 		if ((t.Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
 
-		if (Aborting.load(std::memory_order_relaxed) && !t.singlethreaded && t.Depth > 1) {
+		if (Aborting.load(std::memory_order_relaxed) && !t.singlethreaded && t.RootDepth > 1) {
 			t.result.nodes = t.Nodes;
 			t.result.time = elapsedMs;
 			t.result.nps = static_cast<int>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
@@ -299,7 +299,7 @@ void Search::SearchMoves(ThreadData& t) {
 
 		// Save info
 		t.result.score = score;
-		t.result.depth = t.Depth;
+		t.result.depth = t.RootDepth;
 		t.result.seldepth = t.SelDepth;
 
 		t.result.nodes = t.Nodes;
@@ -323,23 +323,26 @@ void Search::SearchMoves(ThreadData& t) {
 
 }
 
-Results Search::AggregateThreadResults() const {  // lambdafy these
+Results Search::AggregateThreadResults() const {
 	Results sumResult{};
 
-	// Main thread
+	// Values from the main
 	sumResult.depth = Threads.front().result.depth;
 	sumResult.score = Threads.front().result.score;
 	sumResult.ply = Threads.front().result.ply;
+	sumResult.pv = Threads.front().result.pv;
 
+	// Values from multiple threads
 	for (const ThreadData& t : Threads) sumResult.seldepth = std::max(sumResult.seldepth, t.SelDepth);
 	for (const ThreadData& t : Threads) sumResult.nodes += t.Nodes;
-	sumResult.hashfull = TranspositionTable.GetHashfull();
-	
+
+	// Other data
 	const auto currentTime = Clock::now();
-	const int elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
+	const uint64_t elapsedNs = std::max((currentTime - StartSearchTime).count(), int64_t{1});
+	const uint64_t elapsedMs = elapsedNs / 1'000'000;
 	sumResult.time = elapsedMs;
-	sumResult.nps = static_cast<int>(sumResult.nodes * 1e9 / (currentTime - StartSearchTime).count());
-	sumResult.pv = Threads.front().result.pv;
+	sumResult.nps = static_cast<uint64_t>(sumResult.nodes * 1e9 / elapsedNs);
+	sumResult.hashfull = TranspositionTable.GetHashfull();
 	sumResult.threads = Threads.size();
 
 	return sumResult;
@@ -359,6 +362,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	if (aborting) return NoEval;
 	t.InitPvLength(level);
 	if (level >= MaxDepth) return Evaluate(t, position, level);
+	if (level > t.SelDepth) t.SelDepth = level;
 
 	// Mate distance pruning
 	if (!rootNode) {
@@ -440,8 +444,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	if (!pvNode && !inCheck && !singularSearch) {
 
 		// Reverse futility pruning
-		const int rfpMargin = depth * 90 - improving * 90;
 		if (depth <= 7 && !IsMateScore(beta)) {
+			const int rfpMargin = depth * 90 - improving * 90;
 			if (eval - rfpMargin > beta) return (eval + beta) / 2;
 		}
 
@@ -529,7 +533,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Singular extensions
 		int extension = 0;
-		if (singularCandidate && m == ttMove && level < t.Depth * 2) {
+		if (singularCandidate && m == ttMove && level < t.RootDepth * 2) {
 			const int singularMargin = depth * 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
@@ -679,8 +683,6 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	// Check search limits
 	const bool aborting = ShouldAbort(t);
 	if (aborting) return NoEval;
-
-	// Update statistics
 	if (level > t.SelDepth) t.SelDepth = level;
 
 	// Probe the transposition table
