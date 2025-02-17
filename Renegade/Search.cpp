@@ -444,7 +444,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	if (!pvNode && !inCheck && !singularSearch) {
 
 		// Reverse futility pruning
-		if (depth <= 7 && !IsMateScore(beta)) {
+		if (depth <= 6 && !IsMateScore(beta)) {
 			const int rfpMargin = depth * 90 - improving * 90;
 			if (eval - rfpMargin > beta) return (eval + beta) / 2;
 		}
@@ -467,7 +467,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		// Futility pruning
-		const int futilityMargin = 30 + depth * 100;
+		const int futilityMargin = 50 + depth * 120;
 		if (depth <= 5 && !IsMateScore(beta)) {
 			futilityPrunable = (eval + futilityMargin < alpha);
 		}
@@ -515,9 +515,9 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Moves loop pruning techniques
 		if (!pvNode && !IsLosingMateScore(bestScore) && (order < 90000) && !DatagenMode) {
 
-			// Late-move pruning
+			// Late move pruning
 			if (depth <= 4 && isQuiet && !inCheck) {
-				const int lmpCount = 3 + depth * (depth - !improving);
+				const int lmpCount = 3 + depth * depth / (2 - improving);
 				if (legalMoveCount > lmpCount) break;
 			}
 
