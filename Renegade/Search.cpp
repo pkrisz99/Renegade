@@ -498,7 +498,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	int failLowCount = 0;
 	Move bestMove = NullMove;
 	int bestScore = NegativeInfinity;
-	bool deepen = false;
 
 	StaticVector<Move, MaxMoveCount> quietsTried;
 	StaticVector<Move, MaxMoveCount> capturesTried;
@@ -564,6 +563,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		t.Nodes += 1;
 		int score = NoEval;
 		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
+		bool deepen = false;
 
 		
 		// Late-move reductions & principal variation search
@@ -580,7 +580,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			score = -SearchRecursive(t, reducedDepth, level + 1, -alpha - 1, -alpha, false, true);
 
 			if (score > alpha && reducedDepth < depth - 1) {
-				if (!deepen) deepen = score > (bestScore + 50 + (depth - 1) * 5);
+				deepen = score > (bestScore + 50 + (depth - 1) * 5);
 				score = -SearchRecursive(t, depth - 1 + deepen, level + 1, -alpha - 1, -alpha, false, !cutNode);
 			}
 		}
@@ -589,7 +589,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		if (pvNode && (legalMoveCount == 1 || score > alpha)) {
-			score = -SearchRecursive(t, depth - 1 + extension, level + 1, -beta, -alpha, true, false);
+			score = -SearchRecursive(t, depth - 1 + extension + deepen, level + 1, -beta, -alpha, true, false);
 		}
 
 		position.PopMove();
