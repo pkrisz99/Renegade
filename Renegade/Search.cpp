@@ -582,6 +582,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (score > alpha && reducedDepth < depth - 1) {
 				deepen = score > (bestScore + 50 + (depth - 1) * 5);
 				score = -SearchRecursive(t, depth - 1 + deepen, level + 1, -alpha - 1, -alpha, false, !cutNode);
+
+				if (isQuiet && (score <= alpha || score >= beta)) {
+					t.History.UpdateContinuationHistory(position, score >= beta, movedPiece, m.to, level, depth);
+				}
 			}
 		}
 		else if (!pvNode || legalMoveCount > 1) {

@@ -29,6 +29,7 @@ public:
 	// History heuristic:
 	template <bool bonus> void UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth);
 	template <bool bonus> void UpdateCaptureHistory(const Position& position, const Move& m, const int depth);
+	void UpdateContinuationHistory(const Position& position, const bool bonus, const uint8_t mPiece, const uint8_t mto, const int level, const int depth);
 	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
 	int GetCaptureHistoryScore(const Position& position, const Move& m) const;
 

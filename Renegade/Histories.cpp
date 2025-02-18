@@ -71,6 +71,25 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 	}
 }
 
+void Histories::UpdateContinuationHistory(const Position& position, const bool bonus, const uint8_t mPiece, const uint8_t mto, const int level, const int depth) {
+
+	const int delta = std::min(300 * depth, 2550) * (bonus ? 1 : -1);
+	const auto [move, movedPiece] = position.GetPreviousMove(1);
+	assert(move.to == mto);
+	assert(movedPiece == mPiece);
+
+
+	for (const int ply : { 2, 3, 5 }) {
+		if (level < ply) break;
+		const auto& [prevMove, prevPiece] = position.GetPreviousMove(ply);
+		if (prevPiece != Piece::None) {
+			int16_t& value = ContinuationHistory[prevPiece][prevMove.to][movedPiece][move.to];
+			UpdateHistoryValue(value, delta);
+		}
+	}
+}
+
+
 template <bool bonus>
 void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth) {
 	const int delta = std::min(300 * depth, 2550) * (bonus ? 1 : -1);
