@@ -632,7 +632,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	// Update search history and statistics when having a cutoff
-	if (bestScore >= beta && !aborting) {
+	if (!bestMove.IsNull() && !aborting) {
 
 		if (level != 0) t.CutoffCount[level - 1] += 1;
 		const bool quietBestMove = position.IsMoveQuiet(bestMove);
