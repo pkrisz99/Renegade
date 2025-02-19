@@ -640,8 +640,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Increment history scores for the move causing the cutoff 
 		if (quietBestMove) {
 			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth);
-			t.History.SetKillerMove(bestMove, level);
-			if (level > 0) t.History.SetCountermove(position.GetPreviousMove(1).move, bestMove);
+			if (bestScore >= beta) t.History.SetKillerMove(bestMove, level);
+			if (level > 0 && bestScore >= beta) t.History.SetCountermove(position.GetPreviousMove(1).move, bestMove);
 		}
 		else {
 			t.History.UpdateCaptureHistory<Bonus>(position, bestMove, depth);
