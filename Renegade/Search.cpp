@@ -634,25 +634,27 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	// Update search history and statistics when having a cutoff
 	if (!bestMove.IsNull() && !aborting) {
 
+		const bool small = (bestScore < beta);
+
 		if (level != 0 && bestScore >= beta) t.CutoffCount[level - 1] += 1;
 		const bool quietBestMove = position.IsMoveQuiet(bestMove);
 
 		// Increment history scores for the move causing the cutoff 
 		if (quietBestMove) {
-			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth);
+			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth, small);
 			if (bestScore >= beta) t.History.SetKillerMove(bestMove, level);
 			if (level > 0 && bestScore >= beta) t.History.SetCountermove(position.GetPreviousMove(1).move, bestMove);
 		}
 		else {
-			t.History.UpdateCaptureHistory<Bonus>(position, bestMove, depth);
+			t.History.UpdateCaptureHistory<Bonus>(position, bestMove, depth, small);
 		}
 
 		// Decrement history scores for all previously tried moves
 		if (quietBestMove) quietsTried.pop(); // don't decrement for the current move
 		else capturesTried.pop();
 
-		for (const Move& qt : quietsTried) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth);
-		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth);
+		for (const Move& qt : quietsTried) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth, small);
+		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth, small);
 	}
 
 	// Update evaluation correction
