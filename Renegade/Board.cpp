@@ -242,3 +242,13 @@ uint64_t Board::CalculateMaterialKey() const {
 
 	return MurmurHash3(material_key);
 }
+
+bool Board::IsMoveQuiet(const Move& move) const {
+	if (move.IsCastling()) return true;
+	const uint8_t movedPiece = GetPieceAt(move.from);
+	const uint8_t targetPiece = GetPieceAt(move.to);
+	if (targetPiece != Piece::None) return false;
+	if (move.flag == MoveFlag::PromotionToQueen) return false;
+	if (move.flag == MoveFlag::EnPassantPerformed) return false;
+	return true;
+}

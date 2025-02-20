@@ -655,6 +655,11 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth);
 	}
 
+	// Prior countermove bonus when failing low
+	if (bestMove.IsNull() && level > 1 && !position.IsPreviousMoveNull() && position.IsPreviousMoveQuiet()) {
+		t.History.UpdateQuietHistoryForPCM(position, position.GetPreviousMove(2).move, depth);
+	}
+
 	// Update evaluation correction
 	if (!aborting && !singularSearch) {
 		const bool updateCorrection = [&] {

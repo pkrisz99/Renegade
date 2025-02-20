@@ -71,6 +71,14 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 	}
 }
 
+void Histories::UpdateQuietHistoryForPCM(const Position& position, const Move& m, const int depth) {
+	const int delta = std::min(300 * depth, 2550);
+	const uint8_t movedPiece = position.GetPieceAt(m.from);
+	const bool fromSquareAttacked = CheckBit(position.Threats[position.Threats.size() - 2], m.from);
+	const bool toSquareAttacked = CheckBit(position.Threats[position.Threats.size() - 2], m.to);
+	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareAttacked][toSquareAttacked], delta);
+}
+
 template <bool bonus>
 void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth) {
 	const int delta = std::min(300 * depth, 2550) * (bonus ? 1 : -1);

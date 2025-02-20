@@ -110,6 +110,13 @@ public:
 		return Moves.size() != 0 && Moves.back().move == NullMove;
 	}
 
+	inline bool IsPreviousMoveQuiet() const {
+		if (Moves.size() == 0) return false;
+		const Board& previousState = States[States.size() - 2];
+		const Move& previousMove = Moves.back().move;
+		return previousState.IsMoveQuiet(previousMove);
+	}
+
 	inline uint64_t GetThreats() const {
 		assert(Threats.back() != 0ull);
 		return Threats.back();

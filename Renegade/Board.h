@@ -95,6 +95,7 @@ struct Board {
 	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
 
 	uint64_t CalculateMaterialKey() const;
+	bool IsMoveQuiet(const Move& move) const;
 
 };
 
