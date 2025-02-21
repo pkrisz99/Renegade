@@ -717,19 +717,30 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	int bestScore = staticEval;
 	Move bestMove = NullMove;
 	int scoreType = ScoreType::UpperBound;
+	int searchedMoves = 0;
 
 	while (movePicker.hasNext()) {
 		const auto& [m, order] = movePicker.get();
 		if (!position.IsLegalMove(m)) continue;
 		if (!StaticExchangeEval(position, m, 0)) continue; // Quiescence search SEE pruning
 		t.Nodes += 1;
+		searchedMoves += 1;
 
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
 		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
 		position.PushMove(m);
 		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
-		const int score = -SearchQuiescence(t, level + 1, -beta, -alpha, pvNode);
+		
+		int score = NoEval;
+		if (searchedMoves == 1) {
+			score = -SearchQuiescence(t, level + 1, -beta, -alpha, pvNode);
+		}
+		else {
+			score = -SearchQuiescence(t, level + 1, -alpha - 1, -alpha, false);
+			if (score > alpha) score = -SearchQuiescence(t, level + 1, -beta, -alpha, pvNode);
+		}
+
 		position.PopMove();
 		t.EvalState.PopState();
 
