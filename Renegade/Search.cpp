@@ -933,7 +933,7 @@ void Search::OrderMoves(const ThreadData& t, const Position& position, MoveList&
 		const bool losingCapture = [&] {
 			if (position.IsMoveQuiet(m.move)) return false;
 			const int16_t captureScore = (m.move.IsPromotion()) ? 0 : t.History.GetCaptureHistoryScore(position, m.move);
-			return !StaticExchangeEval(position, m.move, -captureScore / 50);
+			return !StaticExchangeEval(position, m.move, -captureScore / 32);
 		}();
 		m.orderScore = CalculateOrderScore(t, position, m.move, level, ttMove, losingCapture, true);
 	}
