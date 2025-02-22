@@ -49,9 +49,11 @@ private:
 
 	// Move ordering history:
 	using QuietHistoryTable = MultiArray<int16_t, 15, 64, 2, 2>;
+	using QuietHistoryTable2 = MultiArray<int16_t, 15, 64>;
 	using CaptureHistoryTable = MultiArray<int16_t, 15, 64, 15, 2, 2>; // [attacking piece][square to][captured piece]
 	using ContinuationHistoryTable = MultiArray<int16_t, 15, 64, 15, 64>;
 	QuietHistoryTable QuietHistory;
+	QuietHistoryTable2 QuietHistory2;
 	CaptureHistoryTable CaptureHistory;
 	ContinuationHistoryTable ContinuationHistory;
 

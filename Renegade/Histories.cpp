@@ -7,6 +7,7 @@ Histories::Histories() {
 void Histories::ClearAll() {
 	ClearKillerAndCounterMoves();
 	std::memset(&QuietHistory, 0, sizeof(QuietHistoryTable));
+	std::memset(&QuietHistory2, 0, sizeof(QuietHistoryTable2));
 	std::memset(&CaptureHistory, 0, sizeof(CaptureHistoryTable));
 	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistoryTable));
 	std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionTable));
@@ -59,6 +60,7 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 	const bool fromSquareAttacked = position.IsSquareThreatened(m.from);
 	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
 	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareAttacked][toSquareAttacked], delta);
+	UpdateHistoryValue(QuietHistory2[movedPiece][m.to], delta);
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
@@ -88,7 +90,9 @@ void Histories::UpdateCaptureHistory(const Position& position, const Move& m, co
 int Histories::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
-	int historyScore = QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened];
+	int historyScore =
+		QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened] 
+		+ QuietHistory2[movedPiece][m.to] / 4;
 
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
