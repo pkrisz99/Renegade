@@ -454,7 +454,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			TranspositionTable.Prefetch(position.Hash() ^ Zobrist[780]);
 			const int nmpReduction = [&] {
 				const int defaultReduction = 4 + depth / 3 + std::min((eval - beta) / 200, 3);
-				return std::min(defaultReduction, depth);
+				return std::min(defaultReduction, depth - 1);
 			}();
 			position.PushNullMove();
 			t.EvalState.PushState(position, NullMove, Piece::None, Piece::None);
