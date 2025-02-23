@@ -462,7 +462,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			position.PopMove();
 			t.EvalState.PopState();
 			if (nmpScore >= beta) {
-				return IsMateScore(nmpScore) ? beta : nmpScore;
+				return IsMateScore(nmpScore) ? beta : ((nmpScore * 3 + beta) / 4);
 			}
 		}
 
