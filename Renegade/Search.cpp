@@ -440,6 +440,11 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
 	bool futilityPrunable = false;
 
+	// Internal iterative reductions
+	if (depth >= 5 && ttMove.IsNull() && !singularSearch) {
+		depth -= 1;
+	}
+
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
 
@@ -455,7 +460,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			const int nmpReduction = [&] {
 				const int defaultReduction = 4 + depth / 3 + std::min((eval - beta) / 200, 3);
 				return std::min(defaultReduction, depth);
-			}();
+				}();
 			position.PushNullMove();
 			t.EvalState.PushState(position, NullMove, Piece::None, Piece::None);
 			const int nmpScore = -SearchRecursive(t, depth - nmpReduction, level + 1, -beta, -beta + 1, false, !cutNode);
@@ -471,11 +476,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (depth <= 5 && !IsMateScore(beta)) {
 			futilityPrunable = (eval + futilityMargin < alpha);
 		}
-	}
-
-	// Internal iterative reductions
-	if (depth >= 5 && ttMove.IsNull() && !singularSearch) {
-		depth -= 1;
 	}
 
 	// Initialize variables and generate moves
