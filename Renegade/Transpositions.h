@@ -16,7 +16,7 @@ struct TranspositionEntry {
 	uint32_t hash = 0;
 	int16_t score = 0;
 	int16_t rawEval = 0;
-	uint16_t quality = 0;
+	uint16_t generation = 0;
 	uint8_t depth = 0;
 	uint8_t scoreType = ScoreType::Invalid;
 	uint16_t packedMove = 0;
@@ -51,7 +51,7 @@ public:
 private:
 	std::vector<TranspositionCluster> Table;
 	uint64_t HashMask;
-	uint16_t Age;
+	uint16_t CurrentGeneration;
 
 	inline uint64_t GetClusterIndex(const uint64_t hash) const {
 		return hash & HashMask;
@@ -59,6 +59,10 @@ private:
 
 	inline uint32_t GetStoredHash(const uint64_t hash) const {
 		return static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
+	}
+
+	inline int RecordingQuality(const int generation, const int depth) const {
+		return generation * 2 + depth;
 	}
 };
 

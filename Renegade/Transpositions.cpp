@@ -11,7 +11,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 	if (std::abs(score) > MateEval) return;
 
 	const uint64_t key = hash & HashMask;
-	const uint16_t quality = Age * 2 + depth;
+	const uint16_t quality = RecordingQuality(CurrentGeneration, depth);
 	const uint32_t storedHash = GetStoredHash(hash);
 	const TranspositionCluster& cluster = Table[key];
 
@@ -23,7 +23,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 			if (entry.scoreType == ScoreType::Invalid) return i;
 			if (entry.hash == storedHash) return i;
 
-			const int quality = entry.quality;
+			const int quality = RecordingQuality(entry.generation, entry.depth);
 			if (quality < currentWorstQuality) {
 				currentWorst = i;
 				currentWorstQuality = quality;
@@ -39,7 +39,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 	const bool replaceable = [&] {
 		if (storedHash != candidateEntry.hash) return true;
 		if (scoreType == ScoreType::Exact) return true;
-		return quality >= candidateEntry.quality;
+		return quality >= RecordingQuality(candidateEntry.generation, candidateEntry.depth);
 	}();
 
 	// Update the transposition entry
@@ -50,7 +50,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 		}
 		candidateEntry.scoreType = scoreType;
 		candidateEntry.hash = storedHash;
-		candidateEntry.quality = quality;
+		candidateEntry.generation = CurrentGeneration;
 		candidateEntry.rawEval = rawEval;
 		candidateEntry.ttPv = ttPv;
 
@@ -91,7 +91,7 @@ void Transpositions::Prefetch(const uint64_t hash) const {
 }
 
 void Transpositions::IncreaseAge() {
-	if (Age < 32000) Age += 1;
+	if (CurrentGeneration < 65000) CurrentGeneration += 1;
 }
 
 void Transpositions::SetSize(const int megabytes) {
@@ -107,7 +107,7 @@ void Transpositions::Clear() {
 	Table.reserve(HashMask + 1);
 	for (uint64_t i = 0; i < HashMask + 1; i++) Table.push_back(TranspositionCluster());
 	Table.shrink_to_fit(); // I don't think that's needed
-	Age = 0;
+	CurrentGeneration = 0;
 }
 
 int Transpositions::GetHashfull() const {
@@ -115,7 +115,7 @@ int Transpositions::GetHashfull() const {
 	int hashfull = 0;
 	for (int i = 0; i < 1000; i++) {
 		for (const TranspositionEntry& entry : Table[i].entries) {
-			if (entry.quality >= Age * 2) hashfull += 1;
+			if (RecordingQuality(entry.generation, entry.depth) >= RecordingQuality(CurrentGeneration, 0)) hashfull += 1;
 		}
 	}
 	return hashfull / 4;
