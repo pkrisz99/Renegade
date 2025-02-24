@@ -16,9 +16,9 @@ struct TranspositionEntry {
 	uint32_t hash = 0;
 	int16_t score = 0;
 	int16_t rawEval = 0;
-	uint16_t quality = ScoreType::Invalid;
+	uint16_t quality = 0;
 	uint8_t depth = 0;
-	uint8_t scoreType = 0;
+	uint8_t scoreType = ScoreType::Invalid;
 	uint16_t packedMove = 0;
 	bool ttPv = false;
 

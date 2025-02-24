@@ -22,8 +22,7 @@ std::unique_ptr<NetworkRepresentation> ExternalNetwork;
 // Evaluating the position ------------------------------------------------------------------------
 
 int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation& acc) {
-	assert(acc.WhiteGood);
-	assert(acc.BlackGood);
+	assert(acc.Correct[Side::White] && acc.Correct[Side::Black]);
 
 	const bool turn = position.Turn();
 	const std::array<int16_t, HiddenSize>& hiddenFriendly = acc.Accumulator[turn];

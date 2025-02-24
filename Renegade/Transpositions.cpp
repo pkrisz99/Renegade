@@ -6,7 +6,7 @@ Transpositions::Transpositions() {
 
 void Transpositions::Store(const uint64_t hash, const int depth, const int16_t score, const int scoreType, const int16_t rawEval, const Move& bestMove, const int level, const bool ttPv) {
 
-	assert(std::abs(score) > MateEval);
+	//assert(std::abs(score) < MateEval); <-- only good if not aborting
 	assert(HashMask != 0);
 	if (std::abs(score) > MateEval) return;
 
