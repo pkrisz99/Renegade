@@ -232,7 +232,7 @@ void Search::SearchMoves(ThreadData& t) {
 		}
 		else {
 			// Aspiration windows
-			int windowSize = 20;
+			int windowSize = 12;
 			int searchDepth = t.RootDepth;
 
 			while (true) {
