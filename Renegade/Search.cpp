@@ -642,20 +642,22 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Increment history scores for the move causing the cutoff 
 		if (quietBestMove) {
-			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth);
+			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth, 0);
 			t.History.SetKillerMove(bestMove, level);
 			if (level > 0) t.History.SetCountermove(position.GetPreviousMove(1).move, bestMove);
 		}
 		else {
-			t.History.UpdateCaptureHistory<Bonus>(position, bestMove, depth);
+			t.History.UpdateCaptureHistory<Bonus>(position, bestMove, depth, 0);
 		}
 
 		// Decrement history scores for all previously tried moves
 		if (quietBestMove) quietsTried.pop(); // don't decrement for the current move
 		else capturesTried.pop();
 
-		for (const Move& qt : quietsTried) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth);
-		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth);
+		int i = 0;
+		for (const Move& qt : quietsTried) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth, ++i);
+		i = 0;
+		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth, ++i);
 	}
 
 	// Update evaluation correction

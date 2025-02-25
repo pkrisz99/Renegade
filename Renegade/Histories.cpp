@@ -1,6 +1,8 @@
 #include "Histories.h"
 
 Histories::Histories() {
+	MoveCountBonus[0] = 0; // this is used on purpose
+	for (int i = 1; i < 32; i++) MoveCountBonus[i] = 300 / i;
 	ClearAll();
 }
 
@@ -44,15 +46,15 @@ bool Histories::IsCountermove(const Move& previousMove, const Move& thisMove) co
 
 // History heuristic ------------------------------------------------------------------------------
 
-template void Histories::UpdateQuietHistory<Bonus>(const Position&, const Move&, int, int);
-template void Histories::UpdateQuietHistory<Penalty>(const Position&, const Move&, int, int);
-template void Histories::UpdateCaptureHistory<Bonus>(const Position&, const Move&, int);
-template void Histories::UpdateCaptureHistory<Penalty>(const Position&, const Move&, int);
+template void Histories::UpdateQuietHistory<Bonus>(const Position&, const Move&, int, int, int);
+template void Histories::UpdateQuietHistory<Penalty>(const Position&, const Move&, int, int, int);
+template void Histories::UpdateCaptureHistory<Bonus>(const Position&, const Move&, int, int);
+template void Histories::UpdateCaptureHistory<Penalty>(const Position&, const Move&, int, int);
 
 template <bool bonus>
-void Histories::UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth) {
+void Histories::UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth, const int mc) {
 	
-	const int delta = std::min(300 * depth, 2550) * (bonus ? 1 : -1);
+	const int delta = (std::min(300 * depth, 2550) + MoveCountBonus[std::min(mc, 31)]) * (bonus ? 1 : -1);
 
 	// Main quiet history
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
@@ -72,8 +74,8 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 }
 
 template <bool bonus>
-void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth) {
-	const int delta = std::min(300 * depth, 2550) * (bonus ? 1 : -1);
+void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth, const int mc) {
+	const int delta = (std::min(300 * depth, 2550) + MoveCountBonus[std::min(mc, 31)]) * (bonus ? 1 : -1);
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
