@@ -11,7 +11,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 	if (std::abs(score) > MateEval) return;
 
 	const uint64_t key = hash & HashMask;
-	const uint16_t quality = RecordingQuality(CurrentGeneration, depth);
+	const int quality = RecordingQuality(CurrentGeneration, depth);
 	const uint32_t storedHash = GetStoredHash(hash);
 	const TranspositionCluster& cluster = Table[key];
 
@@ -23,10 +23,10 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 			if (entry.scoreType == ScoreType::Invalid) return i;
 			if (entry.hash == storedHash) return i;
 
-			const int quality = RecordingQuality(entry.generation, entry.depth);
-			if (quality < currentWorstQuality) {
+			const int entryQuality = RecordingQuality(entry.generation, entry.depth);
+			if (entryQuality < currentWorstQuality) {
 				currentWorst = i;
-				currentWorstQuality = quality;
+				currentWorstQuality = entryQuality;
 			};
 		};
 		assert(currentWorst != -1);
@@ -39,7 +39,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 	const bool replaceable = [&] {
 		if (storedHash != candidateEntry.hash) return true;
 		if (scoreType == ScoreType::Exact) return true;
-		return quality >= RecordingQuality(candidateEntry.generation, candidateEntry.depth);
+		return UpdatingQuality(CurrentGeneration, depth) >= UpdatingQuality(candidateEntry.generation, candidateEntry.depth);
 	}();
 
 	// Update the transposition entry

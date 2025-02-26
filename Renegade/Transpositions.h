@@ -64,5 +64,9 @@ private:
 	inline int RecordingQuality(const int generation, const int depth) const {
 		return generation * 2 + depth;
 	}
+
+	inline int UpdatingQuality(const int generation, const int depth) const {
+		return generation * 2 + depth;
+	}
 };
 
