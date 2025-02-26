@@ -39,7 +39,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 	const bool replaceable = [&] {
 		if (storedHash != candidateEntry.hash) return true;
 		if (scoreType == ScoreType::Exact) return true;
-		return UpdatingQuality(CurrentGeneration, depth) >= UpdatingQuality(candidateEntry.generation, candidateEntry.depth);
+		return depth + 3 + ttPv * 2 >= candidateEntry.depth;
 	}();
 
 	// Update the transposition entry
