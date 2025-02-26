@@ -522,7 +522,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 
 			// Performing futility pruning
-			if (isQuiet && order < 32678 && alpha < MateThreshold && futilityPrunable) break;
+			if (isQuiet && order < 32768 && alpha < MateThreshold && futilityPrunable) {
+				bestScore = (bestScore + alpha) / 2;
+				break;
+			}
 
 			// Main search SEE pruning
 			if (depth <= 5) {
