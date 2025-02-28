@@ -896,27 +896,25 @@ void ThreadData::ResetPvTable() {
 int Search::CalculateOrderScore(const ThreadData& t, const Position& position, const Move& m, const int level, const Move& ttMove,
 	const bool losingCapture, const bool useMoveStack) const {
 
-	const uint8_t movedPiece = position.GetPieceAt(m.from);
-	const uint8_t attackingPieceType = TypeOfPiece(movedPiece);
-	const uint8_t capturedPieceType = TypeOfPiece(position.GetPieceAt(m.to));
-	constexpr std::array<int, 7> values = { 0, 100, 300, 300, 500, 900, 0 };
-
 	// Transposition move
 	if (m == ttMove) return 900000;
+
+	constexpr std::array<int, 7> values = { 0, 100, 300, 300, 500, 900, 0 };
+	const uint8_t movedPiece = position.GetPieceAt(m.from);
+	const uint8_t attackingPieceType = TypeOfPiece(movedPiece);
+	const uint8_t capturedPieceType = [&] {
+		if (m.IsCastling()) return PieceType::None;
+		if (m.flag == MoveFlag::EnPassantPerformed) return PieceType::Pawn;
+		return TypeOfPiece(position.GetPieceAt(m.to));
+	}();
 
 	// Queen promotions
 	if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[capturedPieceType];
 
 	// Captures
-	if (!m.IsCastling()) {
-		if (!losingCapture) {
-			if (capturedPieceType != PieceType::None) return 600000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m);
-			if (m.flag == MoveFlag::EnPassantPerformed) return 600000 + values[PieceType::Pawn] * 8 + t.History.GetCaptureHistoryScore(position, m);
-		}
-		else {
-			if (capturedPieceType != PieceType::None) return -200000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m);
-			if (m.flag == MoveFlag::EnPassantPerformed) return -200000 + values[PieceType::Pawn] * 8 + t.History.GetCaptureHistoryScore(position, m);
-		}
+	if (capturedPieceType != PieceType::None) {
+		if (!losingCapture) return 600000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m);
+		else return -200000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m);
 	}
 
 	// Quiet killer moves
@@ -926,9 +924,7 @@ int Search::CalculateOrderScore(const ThreadData& t, const Position& position, c
 	if (level > 0 && useMoveStack && t.History.IsCountermove(position.GetPreviousMove(1).move, m)) return 99000;
 
 	// Quiet moves
-	const bool turn = position.Turn();
 	const int historyScore = t.History.GetHistoryScore(position, m, movedPiece, level);
-
 	return historyScore;
 }
 
