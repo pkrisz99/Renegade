@@ -913,8 +913,8 @@ int Search::CalculateOrderScore(const ThreadData& t, const Position& position, c
 
 	// Captures
 	if (capturedPieceType != PieceType::None) {
-		if (!losingCapture) return 600000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m);
-		else return -200000 + values[capturedPieceType] * 8 + t.History.GetCaptureHistoryScore(position, m);
+		if (!losingCapture) return 600000 + values[capturedPieceType] * 16 + t.History.GetCaptureHistoryScore(position, m);
+		else return -200000 + values[capturedPieceType] * 16 + t.History.GetCaptureHistoryScore(position, m);
 	}
 
 	// Quiet killer moves
