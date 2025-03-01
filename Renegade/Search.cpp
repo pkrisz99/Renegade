@@ -570,7 +570,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		
 		// Late-move reductions & principal variation search
-		if (depth >= 3 && (legalMoveCount >= (pvNode ? 6 : 4) + 2 * rootNode) && isQuiet) {
+		if (depth >= 3 && (legalMoveCount >= (pvNode ? 5 : 3) + 2 * rootNode) && isQuiet) {
 			
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!ttPV) reduction += 1;
