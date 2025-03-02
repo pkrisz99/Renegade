@@ -474,7 +474,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	// Internal iterative reductions
-	if (depth >= 5 && ttMove.IsNull() && !singularSearch) {
+	if (depth >= 6 && ttMove.IsNull() && !singularSearch) {
 		depth -= 1;
 	}
 
