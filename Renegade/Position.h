@@ -163,6 +163,7 @@ public:
 	uint64_t GetAttackersOfSquare(const uint8_t square, const uint64_t occupied) const;
 	std::string GetFEN() const;
 	GameState GetGameState() const;
+	bool StaticExchangeEval(const Move& move, const int threshold) const;
 
 	std::vector<Board> States{};
 	std::vector<uint64_t> Hashes{};

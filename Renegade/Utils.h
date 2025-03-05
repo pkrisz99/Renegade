@@ -370,7 +370,7 @@ struct StaticVector {
 		return items[index];
 	}
 
-	inline std::size_t size() {
+	inline std::size_t size() const {
 		return count;
 	}
 
