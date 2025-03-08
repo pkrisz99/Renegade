@@ -119,7 +119,6 @@ void Search::Loop(ThreadData& t) {
 	while (true) {
 		
 		t.Looping.Passthrough.store(false);
-		t.Looping.Ready.store(true);
 		ActiveThreadCount.fetch_sub(1);
 		if (t.IsMainThread() && t.result.BestMove() != NullMove) PrintBestmove(t.result.BestMove());
 		t.Looping.CondVar.notify_all();
@@ -130,7 +129,6 @@ void Search::Loop(ThreadData& t) {
 		});
 
 
-		t.Looping.Ready.store(false);
 		if (t.Looping.IsExiting()) return;
 		else {
 			SearchMoves(t);

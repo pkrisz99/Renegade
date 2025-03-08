@@ -63,7 +63,6 @@ public:
 	struct LoopingLogic {
 	public:
 		inline void Step() {
-			while (!Ready.load()) {};
 			Passthrough.store(true);
 			CondVar.notify_all();
 		}
@@ -77,7 +76,6 @@ public:
 		inline bool IsExiting() const {
 			return Exiting.load();
 		}
-		std::atomic<bool> Ready = false;  // in very rare cases prevents the engine from locking up due to unfortunate timing of changing Passthrough (?)
 
 		std::mutex Mutex;
 		std::condition_variable CondVar;
