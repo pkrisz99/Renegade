@@ -42,7 +42,7 @@ public:
 	void ResetPvTable();
 
 	// Reused variables / stack
-	std::array<MoveList, MaxDepth> MoveListStack{};
+	std::array<MovePicker, MaxDepth> MovePickerStack;
 	std::array<int, MaxDepth> StaticEvalStack;
 	std::array<int, MaxDepth> EvalStack;
 	std::array<int, MaxDepth> CutoffCount;
@@ -117,8 +117,6 @@ public:
 
 	void Perft(Position& position, const int depth, const PerftType type) const;
 
-	bool StaticExchangeEval(const Position& position, const Move& move, const int threshold) const;
-
 	std::atomic<bool> Aborting = true;
 	bool DatagenMode = false;
 	Transpositions TranspositionTable;
@@ -139,11 +137,6 @@ private:
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	bool ShouldAbort(const ThreadData& t);
 	int DrawEvaluation(const ThreadData& t) const;
-
-	void OrderMoves(const ThreadData& t, const Position& position, MoveList& ml, const int level, const Move& ttMove);
-	void OrderMovesQ(const ThreadData& t, const Position& position, MoveList& ml, const int level, const Move& ttMove);
-	int CalculateOrderScore(const ThreadData& t, const Position& position, const Move& m, const int level, const Move& ttMove,
-		const bool losingCapture, const bool useMoveStack) const;
 
 	
 	SearchConstraints Constraints;

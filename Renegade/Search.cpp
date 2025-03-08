@@ -385,6 +385,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	const Move excludedMove = t.ExcludedMoves[level];
 	const bool singularSearch = !excludedMove.IsNull();
+	MovePicker& movePicker = t.MovePickerStack[level];
 
 	// Probe the transposition table
 	TranspositionEntry ttEntry;
@@ -478,20 +479,15 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		depth -= 1;
 	}
 
-	// Initialize variables and generate moves
-	// (in singular search we've already done these)
+	// Initialize variables, generate and order moves (in singular search we've already done these)
 	if (!singularSearch) {
-		// Generating moves and ordering them
-		t.MoveListStack[level].clear();
-		position.GenerateMoves(t.MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
-		OrderMoves(t, position, t.MoveListStack[level], level, ttMove);
+		movePicker.Initialize(MoveGen::All, position, t.History, ttMove, level);
 
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
 		if (level + 1 < MaxDepth) t.CutoffCount[level + 1] = 0;
 	}
-	MovePicker movePicker(t.MoveListStack[level]);
-
+	
 	// Iterate through legal moves
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
@@ -502,8 +498,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	StaticVector<Move, MaxMoveCount> quietsTried;
 	StaticVector<Move, MaxMoveCount> capturesTried;
 
-	while (movePicker.hasNext()) {
-		const auto& [m, order] = movePicker.get();
+	while (movePicker.HasNext()) {
+		const auto& [m, order] = movePicker.Get();
 		if (m == excludedMove) continue;
 		if (!position.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
@@ -530,7 +526,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			// Main search SEE pruning
 			if (depth <= 5) {
 				const int seeMargin = isQuiet ? (-50 * depth) : (-100 * depth);
-				if (!StaticExchangeEval(position, m, seeMargin)) continue;
+				if (!position.StaticExchangeEval(m, seeMargin)) continue;
 			}
 		}
 
@@ -543,6 +539,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			t.ExcludedMoves[level] = m;
 			const int singularScore = SearchRecursive(t, singularDepth, level, singularBeta - 1, singularBeta, false, cutNode);
 			t.ExcludedMoves[level] = NullMove;
+			t.MovePickerStack[level].index = 1;
 				
 			if (singularScore < singularBeta) {
 				// Successful extension
@@ -712,20 +709,18 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (position.IsDrawn(false)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them
-	t.MoveListStack[level].clear();
-	position.GenerateMoves(t.MoveListStack[level], MoveGen::Noisy, Legality::Pseudolegal);
-	OrderMovesQ(t, position, t.MoveListStack[level], level, ttMove);
-	MovePicker movePicker(t.MoveListStack[level]);
+	MovePicker& movePicker = t.MovePickerStack[level];
+	movePicker.Initialize(MoveGen::Noisy, position, t.History, ttMove, level);
 
 	// Search recursively
 	int bestScore = staticEval;
 	Move bestMove = NullMove;
 	int scoreType = ScoreType::UpperBound;
 
-	while (movePicker.hasNext()) {
-		const auto& [m, order] = movePicker.get();
+	while (movePicker.HasNext()) {
+		const auto& [m, order] = movePicker.Get();
 		if (!position.IsLegalMove(m)) continue;
-		if (!StaticExchangeEval(position, m, 0)) continue; // Quiescence search SEE pruning
+		if (!position.StaticExchangeEval(m, 0)) continue; // Quiescence search SEE pruning
 		t.Nodes += 1;
 
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
@@ -764,102 +759,6 @@ int Search::DrawEvaluation(const ThreadData& t) const {
 	return t.Nodes % 4 - 2;
 }
 
-// Static exchange evaluation (SEE) ---------------------------------------------------------------
-
-bool Search::StaticExchangeEval(const Position& position, const Move& move, const int threshold) const {
-	// This is more or less the standard way of doing this
-	// The implementation follows Ethereal's method
-
-	constexpr auto seeValues = std::array{ 0, 100, 300, 300, 500, 1000, 999999 };
-
-	// Get the initial piece
-	uint8_t victim = TypeOfPiece(position.GetPieceAt(move.from));
-	if (move.IsPromotion()) victim = move.GetPromotionPieceType();
-
-	// Get estimated move value
-	int estimatedMoveValue = seeValues[TypeOfPiece(position.GetPieceAt(move.to))];
-	if (move.IsPromotion()) estimatedMoveValue += seeValues[move.GetPromotionPieceType()] - seeValues[PieceType::Pawn];
-	else if (move.flag == MoveFlag::EnPassantPerformed) estimatedMoveValue = seeValues[PieceType::Pawn];
-	else if (move.IsCastling()) estimatedMoveValue = 0;
-
-	// Handle trivial cases (losing the piece for nothing still above / having initial gain below threshold)
-	int score = -threshold;
-	score += estimatedMoveValue;
-	if (score < 0) return false;
-	score -= seeValues[victim];
-	if (score >= 0) return true;
-
-	// Lookups (should be optimized) 
-	const uint64_t whitePieces = position.GetOccupancy(Side::White);
-	const uint64_t blackPieces = position.GetOccupancy(Side::Black);
-	const uint64_t parallels = position.WhiteRookBits() | position.BlackRookBits() | position.WhiteQueenBits() | position.BlackQueenBits();
-	const uint64_t diagonals = position.WhiteBishopBits() | position.BlackBishopBits() | position.WhiteQueenBits() | position.BlackQueenBits();
-	uint64_t occupancy = whitePieces | blackPieces;
-	SetBitFalse(occupancy, move.from);
-	SetBitTrue(occupancy, move.to);
-	bool turn = position.Turn();
-	if (move.flag == MoveFlag::EnPassantPerformed) {
-		SetBitFalse(occupancy, (turn == Side::White) ? move.to - 8 : move.to + 8);
-	}
-	turn = !turn;
-	uint64_t attackers = position.GetAttackersOfSquare(move.to, occupancy) & occupancy;
-
-	// Pseudo-generating steps
-	while (true) {
-
-		uint64_t currentAttackers = attackers & ((turn == Side::White) ? whitePieces : blackPieces);
-		if (!currentAttackers) break;
-
-		// Retrieve the location of the least valuable attacking piece type
-		int sq = -1;
-		if (turn == Side::White) {
-			if (currentAttackers & position.WhitePawnBits()) sq = LsbSquare(currentAttackers & position.WhitePawnBits());
-			else if (currentAttackers & position.WhiteKnightBits()) sq = LsbSquare(currentAttackers & position.WhiteKnightBits());
-			else if (currentAttackers & position.WhiteBishopBits()) sq = LsbSquare(currentAttackers & position.WhiteBishopBits());
-			else if (currentAttackers & position.WhiteRookBits()) sq = LsbSquare(currentAttackers & position.WhiteRookBits());
-			else if (currentAttackers & position.WhiteQueenBits()) sq = LsbSquare(currentAttackers & position.WhiteQueenBits());
-			else if (currentAttackers & position.WhiteKingBits()) sq = LsbSquare(currentAttackers & position.WhiteKingBits());
-		}
-		else {
-			if (currentAttackers & position.BlackPawnBits()) sq = LsbSquare(currentAttackers & position.BlackPawnBits());
-			else if (currentAttackers & position.BlackKnightBits()) sq = LsbSquare(currentAttackers & position.BlackKnightBits());
-			else if (currentAttackers & position.BlackBishopBits()) sq = LsbSquare(currentAttackers & position.BlackBishopBits());
-			else if (currentAttackers & position.BlackRookBits()) sq = LsbSquare(currentAttackers & position.BlackRookBits());
-			else if (currentAttackers & position.BlackQueenBits()) sq = LsbSquare(currentAttackers & position.BlackQueenBits());
-			else if (currentAttackers & position.BlackKingBits()) sq = LsbSquare(currentAttackers & position.BlackKingBits());
-		}
-		assert(sq != -1);
-
-		// Update fields
-		victim = TypeOfPiece(position.GetPieceAt(sq));
-		SetBitFalse(occupancy, sq);
-
-		// Update potentially uncovered sliding pieces
-		if (victim == PieceType::Pawn || victim == PieceType::Bishop || victim == PieceType::Queen) {
-			attackers |= GetBishopAttacks(move.to, occupancy) & diagonals;
-		}
-		if (victim == PieceType::Rook || victim == PieceType::Queen) {
-			attackers |= GetRookAttacks(move.to, occupancy) & parallels;
-		}
-
-		attackers &= occupancy;
-		turn = !turn;
-
-		// Break conditions
-		score = -score - seeValues[victim] - 1;
-		if (score >= 0) {
-			const uint64_t upcomingOccupancy = (turn == Side::White) ? whitePieces : blackPieces;
-			if (victim == PieceType::King && (currentAttackers & upcomingOccupancy)) {
-				turn = !turn;
-			}
-			break;
-		}
-	}
-
-	// If after the exchange it's our opponent's turn, that means we won
-	return turn != position.Turn();
-}
-
 // PV table ---------------------------------------------------------------------------------------
 
 void ThreadData::InitPvLength(const int level) {
@@ -889,60 +788,6 @@ std::vector<Move> ThreadData::GeneratePvLine() const {
 void ThreadData::ResetPvTable() {
 	std::memset(&PvTable, 0, sizeof(PvTable));
 	std::fill(PvLength.begin(), PvLength.end(), 0);
-}
-
-// Move ordering ----------------------------------------------------------------------------------
-
-int Search::CalculateOrderScore(const ThreadData& t, const Position& position, const Move& m, const int level, const Move& ttMove,
-	const bool losingCapture, const bool useMoveStack) const {
-
-	// Transposition move
-	if (m == ttMove) return 900000;
-
-	constexpr std::array<int, 7> values = { 0, 100, 300, 300, 500, 900, 0 };
-	const uint8_t movedPiece = position.GetPieceAt(m.from);
-	const uint8_t attackingPieceType = TypeOfPiece(movedPiece);
-	const uint8_t capturedPieceType = [&] {
-		if (m.IsCastling()) return PieceType::None;
-		if (m.flag == MoveFlag::EnPassantPerformed) return PieceType::Pawn;
-		return TypeOfPiece(position.GetPieceAt(m.to));
-	}();
-
-	// Queen promotions
-	if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[capturedPieceType];
-
-	// Captures
-	if (capturedPieceType != PieceType::None) {
-		if (!losingCapture) return 600000 + values[capturedPieceType] * 16 + t.History.GetCaptureHistoryScore(position, m);
-		else return -200000 + values[capturedPieceType] * 16 + t.History.GetCaptureHistoryScore(position, m);
-	}
-
-	// Quiet killer moves
-	if (t.History.IsKillerMove(m, level)) return 100000;
-
-	// Countermove heuristic
-	if (level > 0 && useMoveStack && t.History.IsCountermove(position.GetPreviousMove(1).move, m)) return 99000;
-
-	// Quiet moves
-	const int historyScore = t.History.GetHistoryScore(position, m, movedPiece, level);
-	return historyScore;
-}
-
-void Search::OrderMoves(const ThreadData& t, const Position& position, MoveList& ml, const int level, const Move& ttMove) {
-	for (auto& m : ml) {
-		const bool losingCapture = [&] {
-			if (position.IsMoveQuiet(m.move)) return false;
-			const int16_t captureScore = (m.move.IsPromotion()) ? 0 : t.History.GetCaptureHistoryScore(position, m.move);
-			return !StaticExchangeEval(position, m.move, -captureScore / 32);
-		}();
-		m.orderScore = CalculateOrderScore(t, position, m.move, level, ttMove, losingCapture, true);
-	}
-}
-
-void Search::OrderMovesQ(const ThreadData& t, const Position& position, MoveList& ml, const int level, const Move& ttMove) {
-	for (auto& m : ml) {
-		m.orderScore = CalculateOrderScore(t, position, m.move, level, ttMove, false, false);
-	}
 }
 
 // Perft methods ----------------------------------------------------------------------------------
