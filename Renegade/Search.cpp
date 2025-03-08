@@ -115,8 +115,20 @@ void Search::StopSearch() {
 
 void Search::Loop(ThreadData& t) {
 	LoadedThreadCount.fetch_add(1);
+	ActiveThreadCount.fetch_add(1);
 	while (true) {
-		t.Looping.Wait();
+		
+		t.Looping.Passthrough.store(false);
+		t.Looping.Ready.store(true);
+		ActiveThreadCount.fetch_sub(1);
+		t.Looping.CondVar.notify_all();
+
+		std::unique_lock lock(t.Looping.Mutex);
+		t.Looping.CondVar.wait(lock, [&] {
+			return t.Looping.Passthrough.load();
+		});
+
+
 		t.Looping.Ready.store(false);
 		if (t.Looping.IsExiting()) return;
 		else {

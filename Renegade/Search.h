@@ -74,23 +74,11 @@ public:
 			CondVar.notify_all();
 		}
 
-		inline void Wait() {
-			Passthrough.store(false);
-			Ready.store(true);
-			CondVar.notify_all();
-
-			std::unique_lock lock(Mutex);
-			CondVar.wait(lock, [&] {
-				return Passthrough.load();
-			});
-		}
-
 		inline bool IsExiting() const {
 			return Exiting.load();
 		}
 		std::atomic<bool> Ready = false;  // in very rare cases prevents the engine from locking up due to unfortunate timing of changing Passthrough (?)
 
-	private:
 		std::mutex Mutex;
 		std::condition_variable CondVar;
 		std::atomic<bool> Passthrough = false;
