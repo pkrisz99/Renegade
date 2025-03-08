@@ -29,22 +29,17 @@ void ThreadData::ResetStatistics() {
 }
 
 void Search::ResetState(const bool clearTT) {
-	for (ThreadData& t : Threads) {
-		t.History.ClearAll();
-	}
+	for (ThreadData& t : Threads) t.History.ClearAll();
 	if (clearTT) TranspositionTable.Clear();
 }
 
 void Search::StartThreads(const int threadCount) {
 	assert(Threads.size() == 0);
-	//Threads.reserve(threadCount);
 	LoadedThreadCount.store(0);
 	for (int i = 0; i < threadCount; i++) {
 		ThreadData& t = Threads.emplace_back();
 		t.threadId = i;
-		t.Thread = std::thread([&] {
-			Loop(std::ref(t)); /// is std::ref required?
-		});
+		t.Thread = std::thread([&] { Loop(t); });
 	}
 	while (LoadedThreadCount.load() < Threads.size()) {};
 }
@@ -225,13 +220,12 @@ void Search::SearchMoves(ThreadData& t) {
 		t.RootDepth += 1;
 		t.SelDepth = 0;
 
-		// Obtain score
 		if (t.RootDepth < 5) {
 			// Regular negamax for shallow depths
 			score = SearchRecursive(t, t.RootDepth, 0, NegativeInfinity, PositiveInfinity, true, false);
 		}
 		else {
-			// Aspiration windows
+			// Aspiration windows for higher depths
 			int windowSize = 20;
 			int searchDepth = t.RootDepth;
 
@@ -292,7 +286,7 @@ void Search::SearchMoves(ThreadData& t) {
 		if (Aborting.load(std::memory_order_relaxed) && !t.singlethreaded && t.RootDepth > 1) {
 			t.result.nodes = t.Nodes;
 			t.result.time = elapsedMs;
-			t.result.nps = static_cast<int>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
+			t.result.nps = static_cast<uint64_t>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
 			t.result.hashfull = TranspositionTable.GetHashfull();
 			break;
 		}
@@ -304,7 +298,7 @@ void Search::SearchMoves(ThreadData& t) {
 
 		t.result.nodes = t.Nodes;
 		t.result.time = elapsedMs;
-		t.result.nps = static_cast<int>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
+		t.result.nps = static_cast<uint64_t>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
 		t.result.hashfull = TranspositionTable.GetHashfull();
 
 		// Obtaining PV line and displaying

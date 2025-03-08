@@ -260,11 +260,6 @@ void Engine::Start() {
 
 			SearchThreads.WaitUntilReady();
 
-			/*if (!SearchThreads.Aborting.load(std::memory_order_relaxed)) {
-				std::cerr << "info string Search is busy!" << endl;
-				continue;
-			}*/
-
 			if ((parts[1] == "startpos") || (parts[1] == "kiwipete") || (parts[1] == "lasker") || (parts[1] == "frc")) {
 				if (parts[1] == "startpos") position = Position(FEN::StartPos);
 				else if (parts[1] == "kiwipete") position = Position(FEN::Kiwipete);
@@ -306,12 +301,6 @@ void Engine::Start() {
 		if (parts[0] == "go") {
 
 			SearchThreads.WaitUntilReady();
-
-			/*if (!Search.Aborting.load(std::memory_order_relaxed)) {
-				std::cerr << "info string Search is busy!" << endl;
-				continue;
-			}
-			if (SearchThread.joinable()) SearchThread.join();*/
 
 			if ((parts.size() == 3) && (parts[1] == "perft" || parts[1] == "perftdiv")) {
 				const int depth = stoi(parts[2]);
