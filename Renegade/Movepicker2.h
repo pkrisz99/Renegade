@@ -9,8 +9,10 @@
 template <MoveGen movegen>
 class MovePicker {
 public:
+	MovePicker() = default;
+
 	MovePicker(const Position& pos, const Histories& hist, const Move& ttMove, const Move& killerMove, const Move& counterMove,
-		const int level): pos(pos), hist(hist) {
+		const int level) {
 		this->ttMove = ttMove;
 		this->killerMove = killerMove;
 		this->counterMove = counterMove;
@@ -18,7 +20,7 @@ public:
 		index = 0;
 
 		pos.GenerateMoves(moves, movegen, Legality::Pseudolegal);
-		for (auto& m : moves) m.orderScore = GetMoveScore(m.move);
+		for (auto& m : moves) m.orderScore = GetMoveScore(pos, hist, m.move);
 	}
 
 	std::pair<Move, int> Get() {
@@ -45,7 +47,7 @@ public:
 
 private:
 
-	int GetMoveScore(const Move& m) const {
+	int GetMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
 
 		// Transposition move
 		if (m == ttMove) return 900000;
@@ -92,6 +94,4 @@ private:
 	MoveList moves{};
 	int level;
 	int index;
-	const Position& pos;
-	const Histories& hist;
 };

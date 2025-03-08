@@ -42,7 +42,7 @@ public:
 	void ResetPvTable();
 
 	// Reused variables / stack
-	std::array<std::unique_ptr<MovePicker<MoveGen::All>>, MaxDepth> MovePickerStack{};
+	std::array<MovePicker<MoveGen::All>, MaxDepth> MovePickerStack;
 	std::array<int, MaxDepth> StaticEvalStack;
 	std::array<int, MaxDepth> EvalStack;
 	std::array<int, MaxDepth> CutoffCount;
