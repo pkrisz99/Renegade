@@ -78,39 +78,17 @@ Results Search::SearchSinglethreaded(const Position& pos, const SearchParams& pa
 
 void Search::StartSearch(Position& position, const SearchParams params, const bool display) {
 
-	StartSearchTime = Clock::now();
 	TranspositionTable.IncreaseAge();
 
 	MoveList rootLegalMoves{};
 	position.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
 
-	// Handle no legal moves
-	if (rootLegalMoves.size() == 0) {
-		cout << "info string No legal moves!" << endl;
-		PrintBestmove(NullMove);
-		return;
-	}
-
-	// Early exit for only one legal move
-	if (rootLegalMoves.size() == 1 && !DatagenMode && (params.wtime != 0 || params.btime != 0)) {
-		const Move onlyMove = rootLegalMoves[0].move;
-		cout << "info string Only one legal move!" << endl;
-		cout << "info depth 1 nodes 0 pv " << onlyMove.ToString(Settings::Chess960) << endl;
-		PrintBestmove(onlyMove);
-		return;
-	}
-
-	Constraints = CalculateConstraints(params, position.Turn());
-
-	// Fire up the threads
-	Aborting.store(false);
-	ActiveThreadCount.store(Threads.size());
-	for (ThreadData& t : Threads) {
-		t.CurrentPosition = position;
-		t.result = {};
-		t.ResetStatistics();
-	}
-	for (ThreadData& t : Threads) t.Looping.Step();
+	// lol
+	const Move onlyMove = rootLegalMoves[0].move;
+	//cout << "info string Only one legal move!" << endl;
+	//cout << "info depth 1 nodes 0 pv " << onlyMove.ToString(Settings::Chess960) << endl;
+	PrintBestmove(onlyMove);
+	return;
 }
 
 void Search::StopSearch() {
