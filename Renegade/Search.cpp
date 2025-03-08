@@ -98,6 +98,7 @@ void Search::StartSearch(Position& position, const SearchParams params, const bo
 	Constraints = CalculateConstraints(params, position.Turn());
 
 	// Fire up the threads
+	WaitUntilReady();
 	Aborting.store(false);
 	ActiveThreadCount.store(Threads.size());
 	for (ThreadData& t : Threads) {
