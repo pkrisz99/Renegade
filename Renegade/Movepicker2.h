@@ -45,6 +45,8 @@ public:
 		return index < moves.size();
 	}
 
+	int index;
+
 private:
 
 	int GetMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
@@ -93,5 +95,5 @@ private:
 	Move ttMove, killerMove, counterMove;
 	MoveList moves{};
 	int level;
-	int index;
+
 };

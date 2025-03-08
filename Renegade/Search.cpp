@@ -544,6 +544,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			t.ExcludedMoves[level] = m;
 			const int singularScore = SearchRecursive(t, singularDepth, level, singularBeta - 1, singularBeta, false, cutNode);
 			t.ExcludedMoves[level] = NullMove;
+			t.MovePickerStack[level].index = 1;
 				
 			if (singularScore < singularBeta) {
 				// Successful extension
