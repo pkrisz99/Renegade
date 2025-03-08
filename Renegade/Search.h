@@ -62,9 +62,10 @@ public:
 		return threadId == 0;
 	}
 
-	ThreadAction Action;
+	// Thread handling
 	std::mutex Mutex;
 	std::condition_variable CondVar;
+	ThreadAction Action;
 	bool Exited = false;
 };
 

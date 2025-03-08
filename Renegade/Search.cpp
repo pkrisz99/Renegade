@@ -29,22 +29,17 @@ void ThreadData::ResetStatistics() {
 }
 
 void Search::ResetState(const bool clearTT) {
-	for (ThreadData& t : Threads) {
-		t.History.ClearAll();
-	}
+	for (ThreadData& t : Threads) t.History.ClearAll();
 	if (clearTT) TranspositionTable.Clear();
 }
 
 void Search::StartThreads(const int threadCount) {
 	assert(Threads.size() == 0);
-	//Threads.reserve(threadCount);
 	LoadedThreadCount.store(0);
 	for (int i = 0; i < threadCount; i++) {
 		ThreadData& t = Threads.emplace_back();
 		t.threadId = i;
-		t.Thread = std::thread([&] {
-			Loop(std::ref(t)); /// is std::ref required?
-		});
+		t.Thread = std::thread([&] { Loop(t); });
 	}
 	while (LoadedThreadCount.load() < Threads.size()) {};
 }
@@ -492,8 +487,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		// Futility pruning
-		const int futilityMargin = 30 + depth * 100;
 		if (depth <= 5 && !IsMateScore(beta)) {
+			const int futilityMargin = 30 + depth * 100;
 			futilityPrunable = (eval + futilityMargin < alpha);
 		}
 	}
