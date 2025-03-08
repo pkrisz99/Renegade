@@ -135,7 +135,6 @@ void Search::Loop(ThreadData& t) {
 			SearchMoves(t);
 			if (t.IsMainThread()) PrintBestmove(t.result.BestMove());
 		}
-		ActiveThreadCount.fetch_sub(1);
 	}
 }
 
