@@ -10,12 +10,13 @@ class MovePicker {
 public:
 	MovePicker() = default;
 
-	MovePicker(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
+	void Initialize(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
 		this->ttMove = ttMove;
 		this->killerMove = hist.GetKillerMove(level);
 		this->counterMove = (level > 0) ? hist.GetCountermove(pos.GetPreviousMove(1).move) : NullMove;
 		this->level = level;
 		this->moveGen = moveGen;
+		this->moves.clear();
 		index = 0;
 
 		pos.GenerateMoves(moves, moveGen, Legality::Pseudolegal);
