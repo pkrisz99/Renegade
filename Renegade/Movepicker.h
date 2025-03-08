@@ -4,7 +4,6 @@
 #include "Utils.h"
 #include <algorithm>
 #include <array>
-//#include <memory>
 
 class MovePicker {
 public:
@@ -92,8 +91,8 @@ private:
 	}
 
 
-	Move ttMove, killerMove, counterMove;
+	Move ttMove{}, killerMove{}, counterMove{};
 	MoveList moves{};
-	int level;
-	MoveGen moveGen;
+	int level = 0;
+	MoveGen moveGen = MoveGen::All;
 };

@@ -20,13 +20,11 @@ public:
 	// Killer move heuristic:
 	void SetKillerMove(const Move& move, const int level);
 	Move GetKillerMove(const int level) const;
-	bool IsKillerMove(const Move& move, const int level) const;
 	void ResetKillerForPly(const int level);
 
 	// Countermove heuristic:
 	void SetCountermove(const Move& previousMove, const Move& thisMove);
 	Move GetCountermove(const Move& previousMove) const;
-	bool IsCountermove(const Move& previousMove, const Move& thisMove) const;
 
 	// History heuristic:
 	template <bool bonus> void UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth);

@@ -30,10 +30,6 @@ Move Histories::GetKillerMove(const int level) const {
 	return KillerMoves[level];
 }
 
-bool Histories::IsKillerMove(const Move& move, const int level) const {
-	return KillerMoves[level] == move;
-}
-
 void Histories::ResetKillerForPly(const int level) {
 	KillerMoves[level] = NullMove;
 }
@@ -44,10 +40,6 @@ void Histories::SetCountermove(const Move& previousMove, const Move& thisMove) {
 
 Move Histories::GetCountermove(const Move& previousMove) const {
 	return CounterMoves[previousMove.from][previousMove.to];
-}
-
-bool Histories::IsCountermove(const Move& previousMove, const Move& thisMove) const {
-	return CounterMoves[previousMove.from][previousMove.to] == thisMove;
 }
 
 // History heuristic ------------------------------------------------------------------------------
