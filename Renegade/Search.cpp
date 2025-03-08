@@ -121,6 +121,7 @@ void Search::Loop(ThreadData& t) {
 		t.Looping.Passthrough.store(false);
 		t.Looping.Ready.store(true);
 		ActiveThreadCount.fetch_sub(1);
+		if (t.IsMainThread() && t.result.BestMove() != NullMove) PrintBestmove(t.result.BestMove());
 		t.Looping.CondVar.notify_all();
 
 		std::unique_lock lock(t.Looping.Mutex);
@@ -133,7 +134,6 @@ void Search::Loop(ThreadData& t) {
 		if (t.Looping.IsExiting()) return;
 		else {
 			SearchMoves(t);
-			if (t.IsMainThread()) PrintBestmove(t.result.BestMove());
 		}
 	}
 }

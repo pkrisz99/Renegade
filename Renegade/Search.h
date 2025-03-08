@@ -53,7 +53,7 @@ public:
 
 	std::thread Thread;
 	int threadId;
-	Results result;
+	Results result{};
 	bool singlethreaded = false;
 
 	inline bool IsMainThread() const {
