@@ -51,7 +51,12 @@ void Search::StartThreads(const int threadCount) {
 
 void Search::StopThreads() {
 	StopSearch();
-	for (ThreadData& t : Threads) t.Looping.Exit();
+	for (ThreadData& t : Threads) {
+		std::unique_lock<std::mutex> lock(t.Mutex);
+		t.Action = ThreadAction::Exit;
+		lock.unlock();
+		t.CondVar.notify_one();
+	}
 	for (ThreadData& t : Threads) t.Thread.join();
 	Threads.clear();
 }
@@ -110,7 +115,12 @@ void Search::StartSearch(Position& position, const SearchParams params, const bo
 		t.result = {};
 		t.ResetStatistics();
 	}
-	for (ThreadData& t : Threads) t.Looping.Step();
+	for (ThreadData& t : Threads) {
+		std::unique_lock<std::mutex> lock(t.Mutex);
+		t.Action = ThreadAction::Search;
+		lock.unlock();
+		t.CondVar.notify_one();
+	}
 }
 
 void Search::StopSearch() {
@@ -120,20 +130,34 @@ void Search::StopSearch() {
 
 void Search::Loop(ThreadData& t) {
 	LoadedThreadCount.fetch_add(1);
+
 	while (true) {
-		t.Looping.Wait();
-		t.Looping.Ready.store(false);
-		if (t.Looping.IsExiting()) return;
+
+		std::unique_lock<std::mutex> lock(t.Mutex);
+		t.CondVar.wait(lock, [&] { return t.Action != ThreadAction::Sleep; });
+
+		if (t.Action == ThreadAction::Exit) break;
 		else {
 			SearchMoves(t);
 			if (t.IsMainThread()) PrintBestmove(t.result.BestMove());
 		}
+
+		t.Action = ThreadAction::Sleep;
 		ActiveThreadCount.fetch_sub(1);
+		t.CondVar.notify_one();
 	}
+
+	std::unique_lock<std::mutex> lock(t.Mutex);
+	t.Exited = true;
+	lock.unlock();
+	t.CondVar.notify_all();
 }
 
-void Search::WaitUntilReady() const {
-	while (ActiveThreadCount.load() > 0) {}
+void Search::WaitUntilReady() {
+	for (ThreadData& t : Threads) {
+		std::unique_lock<std::mutex> lock(t.Mutex);
+		t.CondVar.wait(lock, [&] { return t.Action == ThreadAction::Sleep; });
+	}
 }
 
 
