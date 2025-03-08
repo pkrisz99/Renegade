@@ -29,29 +29,29 @@ void ThreadData::ResetStatistics() {
 }
 
 void Search::ResetState(const bool clearTT) {
-	for (ThreadData& t : Threads) {
-		t.History.ClearAll();
-	}
+	for (ThreadData& t : Threads) t.History.ClearAll();
 	if (clearTT) TranspositionTable.Clear();
 }
 
 void Search::StartThreads(const int threadCount) {
 	assert(Threads.size() == 0);
-	//Threads.reserve(threadCount);
 	LoadedThreadCount.store(0);
 	for (int i = 0; i < threadCount; i++) {
 		ThreadData& t = Threads.emplace_back();
 		t.threadId = i;
-		t.Thread = std::thread([&] {
-			Loop(std::ref(t)); /// is std::ref required?
-		});
+		t.Thread = std::thread([&] { Loop(t); });
 	}
 	while (LoadedThreadCount.load() < Threads.size()) {};
 }
 
 void Search::StopThreads() {
 	StopSearch();
-	for (ThreadData& t : Threads) t.Looping.Exit();
+	for (ThreadData& t : Threads) {
+		std::unique_lock<std::mutex> lock(t.Mutex);
+		t.Action = ThreadAction::Exit;
+		lock.unlock();
+		t.CondVar.notify_one();
+	}
 	for (ThreadData& t : Threads) t.Thread.join();
 	Threads.clear();
 }
@@ -110,7 +110,12 @@ void Search::StartSearch(Position& position, const SearchParams params, const bo
 		t.result = {};
 		t.ResetStatistics();
 	}
-	for (ThreadData& t : Threads) t.Looping.Step();
+	for (ThreadData& t : Threads) {
+		std::unique_lock<std::mutex> lock(t.Mutex);
+		t.Action = ThreadAction::Search;
+		lock.unlock();
+		t.CondVar.notify_one();
+	}
 }
 
 void Search::StopSearch() {
@@ -120,20 +125,34 @@ void Search::StopSearch() {
 
 void Search::Loop(ThreadData& t) {
 	LoadedThreadCount.fetch_add(1);
+
 	while (true) {
-		t.Looping.Wait();
-		t.Looping.Ready.store(false);
-		if (t.Looping.IsExiting()) return;
+
+		std::unique_lock<std::mutex> lock(t.Mutex);
+		t.CondVar.wait(lock, [&] { return t.Action != ThreadAction::Sleep; });
+
+		if (t.Action == ThreadAction::Exit) break;
 		else {
 			SearchMoves(t);
 			if (t.IsMainThread()) PrintBestmove(t.result.BestMove());
 		}
+
+		t.Action = ThreadAction::Sleep;
 		ActiveThreadCount.fetch_sub(1);
+		t.CondVar.notify_one();
 	}
+
+	std::unique_lock<std::mutex> lock(t.Mutex);
+	t.Exited = true;
+	lock.unlock();
+	t.CondVar.notify_all();
 }
 
-void Search::WaitUntilReady() const {
-	while (ActiveThreadCount.load() > 0) {}
+void Search::WaitUntilReady() {
+	for (ThreadData& t : Threads) {
+		std::unique_lock<std::mutex> lock(t.Mutex);
+		t.CondVar.wait(lock, [&] { return t.Action == ThreadAction::Sleep; });
+	}
 }
 
 
@@ -468,8 +487,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		// Futility pruning
-		const int futilityMargin = 30 + depth * 100;
 		if (depth <= 5 && !IsMateScore(beta)) {
+			const int futilityMargin = 30 + depth * 100;
 			futilityPrunable = (eval + futilityMargin < alpha);
 		}
 	}
