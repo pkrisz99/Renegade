@@ -485,13 +485,14 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		//t.MoveListStack[level].clear();
 		//position.GenerateMoves(t.MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
 		//OrderMoves(t, position, t.MoveListStack[level], level, ttMove);
+		t.MovePickerStack[level] = std::make_unique<MovePicker<MoveGen::All>>(position, t.History, ttMove, t.History.GetKillerMove(level), (level > 0) ? t.History.GetCountermove(position.GetPreviousMove(1).move) : NullMove, level);
+
 
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
 		if (level + 1 < MaxDepth) t.CutoffCount[level + 1] = 0;
 	}
-	MovePicker<MoveGen::All> movePicker(position, t.History, ttMove, t.History.GetKillerMove(level), t.History.GetCountermove(position.GetPreviousMove(1).move), level);
-
+	
 	// Iterate through legal moves
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
@@ -502,8 +503,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	StaticVector<Move, MaxMoveCount> quietsTried;
 	StaticVector<Move, MaxMoveCount> capturesTried;
 
-	while (movePicker.HasNext()) {
-		const auto& [m, order] = movePicker.Get();
+	while (t.MovePickerStack[level]->HasNext()) {
+		const auto& [m, order] = t.MovePickerStack[level]->Get();
 		if (m == excludedMove) continue;
 		if (!position.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
@@ -712,7 +713,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (position.IsDrawn(false)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them
-	t.MoveListStack[level].clear();
+	//t.MoveListStack[level].clear();
 	//position.GenerateMoves(t.MoveListStack[level], MoveGen::Noisy, Legality::Pseudolegal);
 	//OrderMovesQ(t, position, t.MoveListStack[level], level, ttMove);
 	//MovePicker movePicker(t.MoveListStack[level]);

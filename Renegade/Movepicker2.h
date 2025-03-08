@@ -22,7 +22,7 @@ public:
 	}
 
 	std::pair<Move, int> Get() {
-		assert(hasNext());
+		assert(HasNext());
 
 		int bestOrderScore = moves[index].orderScore;
 		int bestIndex = index;
