@@ -10,11 +10,10 @@ class MovePicker {
 public:
 	MovePicker() = default;
 
-	MovePicker(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const Move& killerMove, const Move& counterMove,
-		const int level) {
+	MovePicker(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
 		this->ttMove = ttMove;
-		this->killerMove = killerMove;
-		this->counterMove = counterMove;
+		this->killerMove = hist.GetKillerMove(level);
+		this->counterMove = (level > 0) ? hist.GetCountermove(pos.GetPreviousMove(1).move) : NullMove;
 		this->level = level;
 		this->moveGen = moveGen;
 		index = 0;
@@ -61,7 +60,7 @@ private:
 			if (m.IsCastling()) return PieceType::None;
 			if (m.flag == MoveFlag::EnPassantPerformed) return PieceType::Pawn;
 			return TypeOfPiece(pos.GetPieceAt(m.to));
-			}();
+		}();
 
 		// Queen promotions
 		if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[capturedPieceType];
