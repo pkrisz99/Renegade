@@ -6,20 +6,20 @@
 #include <array>
 //#include <memory>
 
-template <MoveGen movegen>
 class MovePicker {
 public:
 	MovePicker() = default;
 
-	MovePicker(const Position& pos, const Histories& hist, const Move& ttMove, const Move& killerMove, const Move& counterMove,
+	MovePicker(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const Move& killerMove, const Move& counterMove,
 		const int level) {
 		this->ttMove = ttMove;
 		this->killerMove = killerMove;
 		this->counterMove = counterMove;
 		this->level = level;
+		this->moveGen = moveGen;
 		index = 0;
 
-		pos.GenerateMoves(moves, movegen, Legality::Pseudolegal);
+		pos.GenerateMoves(moves, moveGen, Legality::Pseudolegal);
 		for (auto& m : moves) m.orderScore = GetMoveScore(pos, hist, m.move);
 	}
 
@@ -70,7 +70,7 @@ private:
 		if (capturedPieceType != PieceType::None) {
 
 			const bool losingCapture = [&] {
-				if (movegen	== MoveGen::Noisy) return false;
+				if (moveGen == MoveGen::Noisy) return false;
 				if (pos.IsMoveQuiet(m)) return false;
 				const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
 				return !pos.StaticExchangeEval(m, -captureScore / 32);
@@ -95,5 +95,5 @@ private:
 	Move ttMove, killerMove, counterMove;
 	MoveList moves{};
 	int level;
-
+	MoveGen moveGen;
 };

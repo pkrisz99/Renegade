@@ -385,6 +385,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	const Move excludedMove = t.ExcludedMoves[level];
 	const bool singularSearch = !excludedMove.IsNull();
+	MovePicker& movePicker = t.MovePickerStack[level];
 
 	// Probe the transposition table
 	TranspositionEntry ttEntry;
@@ -478,15 +479,9 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		depth -= 1;
 	}
 
-	// Initialize variables and generate moves
-	// (in singular search we've already done these)
+	// Initialize variables, generate and order moves (in singular search we've already done these)
 	if (!singularSearch) {
-		// Generating moves and ordering them
-		//t.MoveListStack[level].clear();
-		//position.GenerateMoves(t.MoveListStack[level], MoveGen::All, Legality::Pseudolegal);
-		//OrderMoves(t, position, t.MoveListStack[level], level, ttMove);
-		t.MovePickerStack[level] = MovePicker<MoveGen::All>(position, t.History, ttMove, t.History.GetKillerMove(level), (level > 0) ? t.History.GetCountermove(position.GetPreviousMove(1).move) : NullMove, level);
-
+		movePicker = MovePicker(MoveGen::All, position, t.History, ttMove, t.History.GetKillerMove(level), (level > 0) ? t.History.GetCountermove(position.GetPreviousMove(1).move) : NullMove, level);
 
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
@@ -503,8 +498,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	StaticVector<Move, MaxMoveCount> quietsTried;
 	StaticVector<Move, MaxMoveCount> capturesTried;
 
-	while (t.MovePickerStack[level].HasNext()) {
-		const auto& [m, order] = t.MovePickerStack[level].Get();
+	while (movePicker.HasNext()) {
+		const auto& [m, order] = movePicker.Get();
 		if (m == excludedMove) continue;
 		if (!position.IsLegalMove(m)) continue;
 		legalMoveCount += 1;
@@ -714,13 +709,8 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (position.IsDrawn(false)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them
-	//t.MoveListStack[level].clear();
-	//position.GenerateMoves(t.MoveListStack[level], MoveGen::Noisy, Legality::Pseudolegal);
-	//OrderMovesQ(t, position, t.MoveListStack[level], level, ttMove);
-	//MovePicker movePicker(t.MoveListStack[level]);
-
-	MovePicker<MoveGen::Noisy> movePicker(position, t.History, ttMove, NullMove, NullMove, level);
-
+	MovePicker& movePicker = t.MovePickerStack[level];
+	movePicker = MovePicker(MoveGen::Noisy, position, t.History, ttMove, NullMove, NullMove, level);
 
 	// Search recursively
 	int bestScore = staticEval;
