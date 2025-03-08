@@ -171,7 +171,6 @@
     <ClInclude Include="Magics.h" />
     <ClInclude Include="Move.h" />
     <ClInclude Include="Movepicker.h" />
-    <ClInclude Include="Movepicker2.h" />
     <ClInclude Include="Neural.h" />
     <ClInclude Include="Position.h" />
     <ClInclude Include="Reporting.h" />
