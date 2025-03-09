@@ -125,7 +125,7 @@ public:
 	}
 
 	inline uint64_t GetPawnKey() const {
-		return MurmurHash3(WhitePawnBits()) ^ MurmurHash3(BlackPawnBits() ^ Zobrist[780]);
+		return MxmaHash(WhitePawnBits()) ^ MxmaHash(BlackPawnBits() ^ Zobrist[780]);
 	}
 
 	inline uint64_t ApproximateHashAfterMove(const Move& move) const {

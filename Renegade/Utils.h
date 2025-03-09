@@ -282,6 +282,15 @@ constexpr uint64_t MurmurHash3(uint64_t key) {
 	return key;
 };
 
+constexpr uint64_t MxmaHash(uint64_t key) {
+	// Source: https://jonkagstrom.com/bit-mixer-construction
+	key *= 0xff51afd7ed558ccdull;
+	key ^= key >> 32;
+	key *= 0xff51afd7ed558ccdull;
+	key += key >> 32;
+	return key;
+}
+
 // String handling --------------------------------------------------------------------------------
 
 void ConvertToLowercase(std::string& str);

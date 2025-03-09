@@ -240,5 +240,5 @@ uint64_t Board::CalculateMaterialKey() const {
 	material_key |= (static_cast<uint64_t>(Popcount(BlackRookBits)) << 48);
 	material_key |= (static_cast<uint64_t>(Popcount(BlackQueenBits)) << 54);
 
-	return MurmurHash3(material_key);
+	return MxmaHash(material_key);
 }
