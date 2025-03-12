@@ -56,8 +56,16 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 
 	// Main quiet history
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
-	const bool fromSquareAttacked = position.IsSquareThreatened(m.from);
-	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
+	const int fromSquareAttacked = [&] {
+		if (position.IsSquareThreatenedByPawn(m.from)) return 0;
+		if (position.IsSquareThreatened(m.from)) return 1;
+		return 2;
+	}();
+	const int toSquareAttacked = [&] {
+		if (position.IsSquareThreatenedByPawn(m.to)) return 0;
+		if (position.IsSquareThreatened(m.to)) return 1;
+		return 2;
+	}();
 	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareAttacked][toSquareAttacked], delta);
 
 	// Continuation history
@@ -86,9 +94,17 @@ void Histories::UpdateCaptureHistory(const Position& position, const Move& m, co
 }
 
 int Histories::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
-	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
-	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
-	int historyScore = QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened];
+	const int fromSquareAttacked = [&] {
+		if (position.IsSquareThreatenedByPawn(m.from)) return 0;
+		if (position.IsSquareThreatened(m.from)) return 1;
+		return 2;
+	}();
+	const int toSquareAttacked = [&] {
+		if (position.IsSquareThreatenedByPawn(m.to)) return 0;
+		if (position.IsSquareThreatened(m.to)) return 1;
+		return 2;
+	}();
+	int historyScore = QuietHistory[movedPiece][m.to][fromSquareAttacked][toSquareAttacked];
 
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;

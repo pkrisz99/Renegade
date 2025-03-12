@@ -4,7 +4,7 @@
 #include "Utils.h"
 #include <memory>
 
-// Aliases for readabiliy
+// Aliases for readability
 constexpr bool Bonus = true;
 constexpr bool Penalty = false;
 
@@ -48,7 +48,7 @@ private:
 	MultiArray<Move, 64, 64> CounterMoves;
 
 	// Move ordering history:
-	using QuietHistoryTable = MultiArray<int16_t, 15, 64, 2, 2>;
+	using QuietHistoryTable = MultiArray<int16_t, 15, 64, 3, 3>;
 	using CaptureHistoryTable = MultiArray<int16_t, 15, 64, 15, 2, 2>; // [attacking piece][square to][captured piece]
 	using ContinuationHistoryTable = MultiArray<int16_t, 15, 64, 15, 64>;
 	QuietHistoryTable QuietHistory;

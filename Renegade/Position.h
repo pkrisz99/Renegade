@@ -120,6 +120,12 @@ public:
 		return CheckBit(Threats.back(), sq);
 	}
 
+	inline bool IsSquareThreatenedByPawn(const uint8_t sq) const {
+		if (Turn() == Side::White);
+		const uint64_t pawnThreats = (Turn() == Side::White) ? GetPawnAttacks<Side::Black>() : GetPawnAttacks<Side::White>();
+		return CheckBit(pawnThreats, sq);
+	}
+
 	inline uint64_t GetMaterialKey() const {
 		return States.back().CalculateMaterialKey();
 	}
