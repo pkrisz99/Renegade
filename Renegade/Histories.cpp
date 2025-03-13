@@ -113,7 +113,7 @@ int Histories::GetCaptureHistoryScore(const Position& position, const Move& m) c
 
 void Histories::UpdateCorrection(const Position& position, const int16_t refEval, const int16_t score, const int depth) {
 	const int diff = (score - refEval) * 256;
-	const int weight = std::min(16, depth + 1);
+	const int weight = std::min(20, depth + 4);
 
 	const uint64_t materialKey = position.GetMaterialKey() % 32768;
 	int32_t& materialValue = MaterialCorrectionHistory[position.Turn()][materialKey];
