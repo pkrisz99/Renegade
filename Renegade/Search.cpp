@@ -530,9 +530,9 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Moves loop pruning techniques
 		if (!pvNode && !IsLosingMateScore(bestScore) && (order < 90000) && !DatagenMode) {
 
-			// Late-move pruning
+			// Late move pruning
 			if (depth <= 4 && isQuiet && !inCheck) {
-				const int lmpCount = 3 + depth * (depth - !improving);
+				const int lmpCount = 3 + depth * depth / (2 - improving);
 				if (legalMoveCount > lmpCount) break;
 			}
 
