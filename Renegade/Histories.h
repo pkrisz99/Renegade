@@ -59,8 +59,10 @@ private:
 	using MaterialCorrectionTable = MultiArray<int32_t, 2, 32768>;
 	using PawnsCorrectionTable = MultiArray<int32_t, 2, 16384>;
 	using FollowUpCorrectionTable = MultiArray<int32_t, 15, 64, 15, 64>;
+	using PawnThreatCorrectionTable = MultiArray<int32_t, 2, 65536>;
 	MaterialCorrectionTable MaterialCorrectionHistory;
 	PawnsCorrectionTable PawnsCorrectionHistory;
 	FollowUpCorrectionTable FollowUpCorrectionHistory;
+	PawnThreatCorrectionTable PawnThreatCorrectionHistory;
 };
 

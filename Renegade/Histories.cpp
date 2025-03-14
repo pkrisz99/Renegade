@@ -12,6 +12,7 @@ void Histories::ClearAll() {
 	std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionTable));
 	std::memset(&PawnsCorrectionHistory, 0, sizeof(PawnsCorrectionTable));
 	std::memset(&FollowUpCorrectionHistory, 0, sizeof(FollowUpCorrectionTable));
+	std::memset(&PawnThreatCorrectionHistory, 0, sizeof(PawnThreatCorrectionTable));
 }
 
 void Histories::ClearKillerAndCounterMoves() {
@@ -125,6 +126,11 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 	pawnValue = ((256 - weight) * pawnValue + weight * diff) / 256;
 	pawnValue = std::clamp(pawnValue, -6144, 6144);
 
+	const uint64_t pawnThreatKey = position.GetPawnThreatKey() % 65536;
+	int32_t& pawnThreatValue = PawnThreatCorrectionHistory[position.Turn()][pawnThreatKey];
+	pawnThreatValue = ((256 - weight) * pawnThreatValue + weight * diff) / 256;
+	pawnThreatValue = std::clamp(pawnThreatValue, -6144, 6144);
+
 	if (position.Moves.size() >= 2) {
 		const MoveAndPiece& prev1 = position.GetPreviousMove(1);
 		const MoveAndPiece& prev2 = position.GetPreviousMove(2);
@@ -143,6 +149,8 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 	const uint64_t pawnKey = position.GetPawnKey() % 16384;
 	const int pawnCorrection = PawnsCorrectionHistory[position.Turn()][pawnKey] / 256;
 
+	const uint64_t pawnThreatKey = position.GetPawnThreatKey() % 65536;
+	const int pawnThreatCorrection = PawnThreatCorrectionHistory[position.Turn()][pawnThreatKey] / 256;
 
 	const int lastMoveCorrection = [&] {
 		if (position.Moves.size() < 2) return 0;
@@ -151,6 +159,6 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 		return FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to] / 256;
 	}();
 
-	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection);
+	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection + pawnThreatCorrection) * 3 / 4;
 	return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
 }

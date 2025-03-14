@@ -128,6 +128,31 @@ public:
 		return MurmurHash3(WhitePawnBits()) ^ MurmurHash3(BlackPawnBits() ^ Zobrist[780]);
 	}
 
+	inline uint64_t GetPawnThreatKey() const {
+		if (Turn() == Side::White) {
+			const uint64_t pawnThreats = GetPawnAttacks<Side::Black>();
+			const uint64_t threatenedKnights = WhiteKnightBits() & pawnThreats;
+			const uint64_t threatenedBishops = WhiteBishopBits() & pawnThreats;
+			const uint64_t threatenedRooks = WhiteRookBits() & pawnThreats;
+			const uint64_t threatenedQueens = WhiteQueenBits() & pawnThreats;
+			return MurmurHash3(threatenedKnights)
+				^ MurmurHash3(threatenedBishops ^ Zobrist[0])
+				^ MurmurHash3(threatenedRooks ^ Zobrist[1])
+				^ MurmurHash3(threatenedQueens ^ Zobrist[2]);
+		}
+		else {
+			const uint64_t pawnThreats = GetPawnAttacks<Side::White>();
+			const uint64_t threatenedKnights = BlackKnightBits() & pawnThreats;
+			const uint64_t threatenedBishops = BlackBishopBits() & pawnThreats;
+			const uint64_t threatenedRooks = BlackRookBits() & pawnThreats;
+			const uint64_t threatenedQueens = BlackQueenBits() & pawnThreats;
+			MurmurHash3(threatenedKnights)
+				^ MurmurHash3(threatenedBishops ^ Zobrist[0])
+				^ MurmurHash3(threatenedRooks ^ Zobrist[1])
+				^ MurmurHash3(threatenedQueens ^ Zobrist[2]);
+		}
+	}
+
 	inline uint64_t ApproximateHashAfterMove(const Move& move) const {
 		// Calculate the approximate hash after a move on the current board
 		// This is to make prefetching more efficient
