@@ -146,7 +146,7 @@ public:
 			const uint64_t threatenedBishops = BlackBishopBits() & pawnThreats;
 			const uint64_t threatenedRooks = BlackRookBits() & pawnThreats;
 			const uint64_t threatenedQueens = BlackQueenBits() & pawnThreats;
-			MurmurHash3(threatenedKnights)
+			return MurmurHash3(threatenedKnights)
 				^ MurmurHash3(threatenedBishops ^ Zobrist[0])
 				^ MurmurHash3(threatenedRooks ^ Zobrist[1])
 				^ MurmurHash3(threatenedQueens ^ Zobrist[2]);
