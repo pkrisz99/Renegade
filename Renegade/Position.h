@@ -131,29 +131,25 @@ public:
 	inline uint64_t GetPawnThreatKey() const {
 		if (Turn() == Side::White) {
 			const uint64_t pawnThreats = GetPawnAttacks<Side::White>();
-			const uint64_t threatenedPawns = WhitePawnBits() & pawnThreats;
 			const uint64_t threatenedKnights = WhiteKnightBits() & pawnThreats;
 			const uint64_t threatenedBishops = WhiteBishopBits() & pawnThreats;
 			const uint64_t threatenedRooks = WhiteRookBits() & pawnThreats;
 			const uint64_t threatenedQueens = WhiteQueenBits() & pawnThreats;
-			return MurmurHash3(threatenedPawns)
-				^ MurmurHash3(threatenedKnights ^ Zobrist[0])
-				^ MurmurHash3(threatenedBishops ^ Zobrist[1])
-				^ MurmurHash3(threatenedRooks ^ Zobrist[2])
-				^ MurmurHash3(threatenedQueens ^ Zobrist[3]);
+			return MurmurHash3(threatenedKnights)
+				^ MurmurHash3(threatenedBishops ^ Zobrist[0])
+				^ MurmurHash3(threatenedRooks ^ Zobrist[1])
+				^ MurmurHash3(threatenedQueens ^ Zobrist[2]);
 		}
 		else {
 			const uint64_t pawnThreats = GetPawnAttacks<Side::Black>();
-			const uint64_t threatenedPawns = BlackPawnBits() & pawnThreats;
 			const uint64_t threatenedKnights = BlackKnightBits() & pawnThreats;
 			const uint64_t threatenedBishops = BlackBishopBits() & pawnThreats;
 			const uint64_t threatenedRooks = BlackRookBits() & pawnThreats;
 			const uint64_t threatenedQueens = BlackQueenBits() & pawnThreats;
-			return MurmurHash3(threatenedPawns)
-				^ MurmurHash3(threatenedKnights ^ Zobrist[0])
-				^ MurmurHash3(threatenedBishops ^ Zobrist[1])
-				^ MurmurHash3(threatenedRooks ^ Zobrist[2])
-				^ MurmurHash3(threatenedQueens ^ Zobrist[3]);
+			return MurmurHash3(threatenedKnights)
+				^ MurmurHash3(threatenedBishops ^ Zobrist[0])
+				^ MurmurHash3(threatenedRooks ^ Zobrist[1])
+				^ MurmurHash3(threatenedQueens ^ Zobrist[2]);
 		}
 	}
 
