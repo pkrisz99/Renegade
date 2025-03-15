@@ -457,7 +457,12 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		eval = t.EvalStack[level];
 	}
 
-	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
+	const bool improving = [&] {
+		if (inCheck) return false;
+		if (level >= 2 && t.StaticEvalStack[level - 2] != NoEval) return t.StaticEvalStack[level] > t.StaticEvalStack[level - 2];
+		if (level >= 4 && t.StaticEvalStack[level - 4] != NoEval) return t.StaticEvalStack[level] > t.StaticEvalStack[level - 4];
+		return false;
+	}();
 	bool futilityPrunable = false;
 
 	// Whole-node pruning techniques
