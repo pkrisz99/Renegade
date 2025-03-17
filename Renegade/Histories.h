@@ -51,9 +51,11 @@ private:
 	using QuietHistoryTable = MultiArray<int16_t, 15, 64, 2, 2>;
 	using CaptureHistoryTable = MultiArray<int16_t, 15, 64, 15, 2, 2>; // [attacking piece][square to][captured piece]
 	using ContinuationHistoryTable = MultiArray<int16_t, 15, 64, 15, 64>;
+	using PawnHistoryTable = MultiArray<int16_t, 1024, 15, 64>;
 	QuietHistoryTable QuietHistory;
 	CaptureHistoryTable CaptureHistory;
 	ContinuationHistoryTable ContinuationHistory;
+	PawnHistoryTable PawnHistory;
 
 	// Evaluation correction history:
 	using MaterialCorrectionTable = MultiArray<int32_t, 2, 32768>;

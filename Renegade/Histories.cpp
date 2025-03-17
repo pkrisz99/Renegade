@@ -9,6 +9,7 @@ void Histories::ClearAll() {
 	std::memset(&QuietHistory, 0, sizeof(QuietHistoryTable));
 	std::memset(&CaptureHistory, 0, sizeof(CaptureHistoryTable));
 	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistoryTable));
+	std::memset(&PawnHistory, 0, sizeof(PawnHistory));
 	std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionTable));
 	std::memset(&PawnsCorrectionHistory, 0, sizeof(PawnsCorrectionTable));
 	std::memset(&FollowUpCorrectionHistory, 0, sizeof(FollowUpCorrectionTable));
@@ -69,6 +70,10 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 			UpdateHistoryValue(value, delta);
 		}
 	}
+
+	// Pawn structure history
+	const uint64_t pawnKey = position.GetPawnKey() % 1024;
+	UpdateHistoryValue(PawnHistory[pawnKey][movedPiece][m.to], delta);
 }
 
 template <bool bonus>
@@ -94,6 +99,10 @@ int Histories::GetHistoryScore(const Position& position, const Move& m, const ui
 		if (level < ply) break;
 		historyScore += ContinuationHistory[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
 	}
+
+	const uint64_t pawnKey = position.GetPawnKey() % 1024;
+	historyScore += PawnHistory[pawnKey][movedPiece][m.to];
+
 	return historyScore;
 }
 
