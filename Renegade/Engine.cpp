@@ -58,7 +58,7 @@ void Engine::Start() {
 			cout << "option name Threads type spin default " << ThreadsDefault << " min " << ThreadsMin << " max " << ThreadsMax << '\n';
 			cout << "option name UCI_ShowWDL type check default " << (ShowWDLDefault ? "true" : "false") << '\n';
 			cout << "option name UCI_Chess960 type check default " << (Chess960Default ? "true" : "false") << '\n';
-			if (Tune::Active()) Tune::PrintOptions();
+			if (Tune::IsActive()) Tune::PrintParameters();
 			cout << "uciok" << endl;
 			Settings::UseUCI = true;
 			continue;
@@ -93,7 +93,7 @@ void Engine::Start() {
 		}*/
 
 		if (cmd == "tunetext") {
-			Tune::GenerateString();
+			Tune::GenerateOpenBenchString();
 			continue;
 		}
 
@@ -142,8 +142,8 @@ void Engine::Start() {
 				SearchThreads.SetThreadCount(Settings::Threads);
 				valid = true;
 			}
-			else if (Tune::List.find(parts[2]) != Tune::List.end()) {
-				Tune::List.at(parts[2]).value = stoi(parts[4]);
+			else if (parts.size() >= 5 && Tune::IsActive() && Tune::HasParameter(parts[2])) {
+				Tune::SetParameter(parts[2], std::stoi(parts[4]));
 				valid = true;
 			}
 			
