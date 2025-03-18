@@ -52,7 +52,7 @@ template void Histories::UpdateCaptureHistory<Penalty>(const Position&, const Mo
 template <bool bonus>
 void Histories::UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth) {
 	
-	const int delta = std::min(300 * depth, 2550) * (bonus ? 1 : -1);
+	const int delta = std::min(Tune::tune_history_coeff() * depth, Tune::tune_history_clamp()) * (bonus ? 1 : -1);
 
 	// Main quiet history
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
@@ -73,7 +73,7 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 
 template <bool bonus>
 void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth) {
-	const int delta = std::min(300 * depth, 2550) * (bonus ? 1 : -1);
+	const int delta = std::min(Tune::tune_history_coeff() * depth, Tune::tune_history_clamp()) * (bonus ? 1 : -1);
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
@@ -115,22 +115,25 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 	const int diff = (score - refEval) * 256;
 	const int weight = std::min(16, depth + 1);
 
+	const int cap = Tune::tune_corrhist_cap();
+	const int inertia = Tune::tune_corrhist_inertia();
+
 	const uint64_t materialKey = position.GetMaterialKey() % 32768;
 	int32_t& materialValue = MaterialCorrectionHistory[position.Turn()][materialKey];
-	materialValue = ((256 - weight) * materialValue + weight * diff) / 256;
-	materialValue = std::clamp(materialValue, -6144, 6144);
+	materialValue = ((inertia - weight) * materialValue + weight * diff) / inertia;
+	materialValue = std::clamp(materialValue, -cap, cap);
 
 	const uint64_t pawnKey = position.GetPawnKey() % 16384;
 	int32_t& pawnValue = PawnsCorrectionHistory[position.Turn()][pawnKey];
-	pawnValue = ((256 - weight) * pawnValue + weight * diff) / 256;
-	pawnValue = std::clamp(pawnValue, -6144, 6144);
+	pawnValue = ((inertia - weight) * pawnValue + weight * diff) / inertia;
+	pawnValue = std::clamp(pawnValue, -cap, cap);
 
 	if (position.Moves.size() >= 2) {
 		const MoveAndPiece& prev1 = position.GetPreviousMove(1);
 		const MoveAndPiece& prev2 = position.GetPreviousMove(2);
 		int32_t& followUpValue = FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to];
-		followUpValue = ((256 - weight) * followUpValue + weight * diff) / 256;
-		followUpValue = std::clamp(followUpValue, -6144, 6144);
+		followUpValue = ((inertia - weight) * followUpValue + weight * diff) / inertia;
+		followUpValue = std::clamp(followUpValue, -cap, cap);
 	}
 }
 

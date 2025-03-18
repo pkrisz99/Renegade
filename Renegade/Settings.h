@@ -38,9 +38,10 @@ struct Tunable {
 #define ADD_TUNABLE(NAME, DEFAULT, MIN, MAX, STEP)                         \
 	inline Tunable NAME = Tunable{ #NAME, DEFAULT, MIN, MAX, STEP };       \
 	struct RegisterTunable_##NAME {                                        \
-		RegisterTunable_##NAME() { Tune::List.emplace(NAME.name, NAME); }  \
+		RegisterTunable_##NAME() { List.emplace(NAME.name, NAME); }  \
 	};                                                                     \
-	inline RegisterTunable_##NAME registerTunable_##NAME;
+	inline RegisterTunable_##NAME registerTunable_##NAME;                  \
+    inline int tune_##NAME() { return NAME.value; }
 
 namespace Tune {
 
@@ -48,6 +49,33 @@ namespace Tune {
 
 	// === Add parameters to be tuned here ===
 	// Format is: ADD_TUNABLE(name, default, min, max, step)
+
+	ADD_TUNABLE(rfp_margin,              95, 60, 120, 10)
+	ADD_TUNABLE(rfp_improving_reduction, 85, 60, 120, 10)
+
+	ADD_TUNABLE(nmp_eval_divider, 200, 100, 300, 30)
+
+	ADD_TUNABLE(fp_margin_offset, 30, 0, 100, 15)
+	ADD_TUNABLE(fp_margin_coeff, 100, 70, 150, 15)
+
+	ADD_TUNABLE(lmr_multiplier, 40, 30, 55, 5)
+	ADD_TUNABLE(lmr_base, 70, 40, 100, 5)
+	ADD_TUNABLE(lmr_history_div, 16384, 8192, 32678, 2048)
+	ADD_TUNABLE(lmr_deeper_offset, 50, 30, 70, 8)
+	ADD_TUNABLE(lmr_deeper_coeff, 5, 3, 10, 1)
+
+	ADD_TUNABLE(asp_start, 20, 12, 26, 3)
+
+	ADD_TUNABLE(history_clamp, 2550, 1000, 3000, 150)
+	ADD_TUNABLE(history_coeff, 300, 150, 500, 25)
+	ADD_TUNABLE(history_cap, 16384, 8192, 32678, 1024)
+
+	ADD_TUNABLE(corrhist_cap, 6144, 4096, 8192, 512)
+	ADD_TUNABLE(corrhist_inertia, 256, 128, 512, 32)
+
+	ADD_TUNABLE(capthist_mul, 16, 8, 24, 4)
+	ADD_TUNABLE(capthist_div, 32, 16, 48, 4)
+	
 
 	// =======================================	
 
