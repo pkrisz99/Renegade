@@ -336,7 +336,7 @@ void SelfPlay(const std::string filename) {
 
 // File merging tool ------------------------------------------------------------------------------
 
-static void MergeDatagenFiles() {
+void MergeDatagenFiles() {
 	SetTitle("Renegade's file merging utility for datagen");
 	const std::filesystem::path path = std::filesystem::current_path();
 	cout << "Current folder: " << Console::Yellow << path.string() << Console::White << endl;

@@ -6,12 +6,12 @@ Histories::Histories() {
 
 void Histories::ClearAll() {
 	ClearKillerAndCounterMoves();
-	std::memset(&QuietHistory, 0, sizeof(QuietHistoryTable));
-	std::memset(&CaptureHistory, 0, sizeof(CaptureHistoryTable));
-	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistoryTable));
-	std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionTable));
-	std::memset(&PawnsCorrectionHistory, 0, sizeof(PawnsCorrectionTable));
-	std::memset(&FollowUpCorrectionHistory, 0, sizeof(FollowUpCorrectionTable));
+	std::memset(&QuietHistory, 0, sizeof(QuietHistory));
+	std::memset(&CaptureHistory, 0, sizeof(CaptureHistory));
+	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistory));
+	std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionHistory));
+	std::memset(&PawnsCorrectionHistory, 0, sizeof(PawnsCorrectionHistory));
+	std::memset(&FollowUpCorrectionHistory, 0, sizeof(FollowUpCorrectionHistory));
 }
 
 void Histories::ClearKillerAndCounterMoves() {
@@ -56,9 +56,9 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 
 	// Main quiet history
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
-	const bool fromSquareAttacked = position.IsSquareThreatened(m.from);
-	const bool toSquareAttacked = position.IsSquareThreatened(m.to);
-	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareAttacked][toSquareAttacked], delta);
+	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
+	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
+	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened], delta);
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {

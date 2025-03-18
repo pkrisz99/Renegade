@@ -304,9 +304,9 @@ void Search::SearchMoves(ThreadData& t) {
 			}
 		}
 
-		if ((t.RootDepth >= Constraints.MaxDepth) && (Constraints.MaxDepth != -1)) finished = true;
+		if (t.RootDepth >= Constraints.MaxDepth && Constraints.MaxDepth != -1) finished = true;
 		if (t.RootDepth >= MaxDepth) finished = true;
-		if ((t.Nodes >= Constraints.SoftNodes) && (Constraints.SoftNodes != -1)) finished = true;
+		if (t.Nodes >= Constraints.SoftNodes && Constraints.SoftNodes != -1) finished = true;
 
 		if (Aborting.load(std::memory_order_relaxed) && !t.singlethreaded && t.RootDepth > 1) {
 			t.result.nodes = t.Nodes;
@@ -537,7 +537,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 
 			// Performing futility pruning
-			if (isQuiet && order < 32768 && alpha < MateThreshold && futilityPrunable) {
+			if (futilityPrunable && isQuiet && order < 32768 && alpha < MateThreshold) {
 				bestScore = (bestScore + alpha) / 2;
 				break;
 			}
