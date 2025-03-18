@@ -1,4 +1,4 @@
-/*#include "Datagen.h"
+#include "Datagen.h"
 
 static void SetTitle(const std::string title) {
 	Console::ClearScreen();
@@ -27,7 +27,10 @@ std::vector<std::string> Openings{};
 static std::string FormatRuntime(const int seconds) {
 	const auto [minutes, s] = std::div(seconds, 60);
 	const auto [h, m] = std::div(minutes, 60);
-	return std::format("{}:{:02d}:{:02d}", h, m, s);
+	//return std::format("{}:{:02d}:{:02d}", h, m, s);
+	std::stringstream oss;
+	oss << h << ':' << std::setw(2) << std::setfill('0') << m << ':' << std::setw(2) << std::setfill('0') << s;
+	return oss.str();
 }
 
 static bool Filter(const Position& pos, const Move& move, const int eval) {
@@ -305,6 +308,7 @@ void SelfPlay(const std::string filename) {
 				+ " | Speed: " + std::to_string(speed1 / 1000) + "k/h " + std::to_string(speed2) + "/s/th";
 			cout << display << endl;
 
+#ifdef __cpp_lib_format
 			if (games % 1000 == 0) {
 				const float whiteWinRate = WhiteWins.load(std::memory_order_relaxed) * 100.f / games;
 				const float drawRate = Draws.load(std::memory_order_relaxed) * 100.f / games;
@@ -324,6 +328,7 @@ void SelfPlay(const std::string filename) {
 				cout << std::format(" -> {:32}  -> {:32}\n", depthString, nodesString);
 				cout << Console::White << std::flush;
 			}
+#endif
 		}
 
 	}
@@ -393,4 +398,3 @@ static void MergeDatagenFiles() {
 	cout << Console::Green << "\nCompleted." << Console::White << endl;
 	PressEnterToExit();
 }
-*/

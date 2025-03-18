@@ -30,7 +30,7 @@ public:
 	Search SearchThreads;
 	EngineBehavior Behavior = EngineBehavior::Normal;
 
-#if defined(_MSC_VER)
+#ifdef __cpp_lib_format
 	const bool PrettySupport = true;
 #else
 	const bool PrettySupport = false;
