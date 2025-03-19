@@ -52,13 +52,13 @@ template void Histories::UpdateCaptureHistory<Penalty>(const Position&, const Mo
 template <bool bonus>
 void Histories::UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth) {
 	
-	const int delta = std::min(tune_history_coeff() * depth, tune_history_clamp()) * (bonus ? 1 : -1);
+	const int delta = std::min(tune_history_q_coeff() * depth, tune_history_q_clamp()) * (bonus ? 1 : -1);
 
 	// Main quiet history
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
-	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened], delta);
+	UpdateHistoryValueQ(QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened], delta);
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
@@ -66,14 +66,14 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 		const auto& [prevMove, prevPiece] = position.GetPreviousMove(ply);
 		if (prevPiece != Piece::None) {
 			int16_t& value = ContinuationHistory[prevPiece][prevMove.to][movedPiece][m.to];
-			UpdateHistoryValue(value, delta);
+			UpdateHistoryValueQ(value, delta);
 		}
 	}
 }
 
 template <bool bonus>
 void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth) {
-	const int delta = std::min(tune_history_coeff() * depth, tune_history_clamp()) * (bonus ? 1 : -1);
+	const int delta = std::min(tune_history_c_coeff() * depth, tune_history_c_clamp()) * (bonus ? 1 : -1);
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
@@ -82,7 +82,7 @@ void Histories::UpdateCaptureHistory(const Position& position, const Move& m, co
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
 		else return (position.Turn() == Side::White) ? Piece::WhitePawn : Piece::BlackPawn;
 	}();
-	UpdateHistoryValue(CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened], delta);
+	UpdateHistoryValueC(CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened], delta);
 }
 
 int Histories::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {

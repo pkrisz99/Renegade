@@ -286,7 +286,7 @@ void Search::SearchMoves(ThreadData& t) {
 					break;
 				}
 
-				windowSize += windowSize / 2;
+				windowSize += windowSize * tune_asp_widening() / 256;
 			}
 
 		}
