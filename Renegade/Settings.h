@@ -97,6 +97,9 @@ ADD_TUNABLE(fp_margin_coeff, 106, 70, 150, 15)
 
 ADD_TUNABLE(lmr_multiplier, 35, 28, 45, 5)
 ADD_TUNABLE(lmr_base, 78, 50, 100, 5)
+ADD_TUNABLE(lmr_pv_multiplier, 35, 26, 45, 5)
+ADD_TUNABLE(lmr_pv_base, 78, 50, 100, 5)
+
 ADD_TUNABLE(lmr_history_div, 19000, 13000, 26000, 2000)
 ADD_TUNABLE(lmr_deeper_offset, 44, 30, 70, 8)
 ADD_TUNABLE(lmr_deeper_coeff, 5, 3, 10, 1)

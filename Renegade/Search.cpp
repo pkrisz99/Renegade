@@ -588,7 +588,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Late-move reductions & principal variation search
 		if (depth >= 3 && (legalMoveCount >= (3 + pvNode * 2 + rootNode * 2)) && isQuiet) {
 			
-			int reduction = static_cast<int>((tune_lmr_multiplier() / 100.0) * std::log(std::min(depth, 31)) * std::log(std::min(failLowCount, 31)) + (tune_lmr_base() / 100.0));
+			int reduction = [&] {
+				if (!ttPV) return static_cast<int>((tune_lmr_multiplier() / 100.0) * std::log(std::min(depth, 31)) * std::log(std::min(failLowCount, 31)) + (tune_lmr_base() / 100.0));
+				else return static_cast<int>((tune_lmr_pv_multiplier() / 100.0) * std::log(std::min(depth, 31)) * std::log(std::min(failLowCount, 31)) + (tune_lmr_pv_base() / 100.0));
+			}();
 			if (!ttPV) reduction += 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < 80000) reduction -= std::clamp(order / tune_lmr_history_div(), -2, 2);
