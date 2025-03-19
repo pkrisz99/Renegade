@@ -251,7 +251,7 @@ void Search::SearchMoves(ThreadData& t) {
 		}
 		else {
 			// Aspiration windows
-			int windowSize = 20;
+			int windowSize = tune_asp_start();
 			int searchDepth = t.RootDepth;
 
 			while (true) {
@@ -465,7 +465,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Reverse futility pruning
 		if (depth <= 7 && !IsMateScore(beta)) {
-			const int rfpMargin = depth * 95 - improving * 85;
+			const int rfpMargin = std::max(depth * tune_rfp_margin() - improving * tune_rfp_improving_reduction(), 0);
 			if (eval - rfpMargin > beta) return (eval + beta) / 2;
 		}
 
@@ -473,7 +473,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (depth >= 3 && eval >= beta && !position.IsPreviousMoveNull() && position.ZugzwangUnlikely()) {
 			TranspositionTable.Prefetch(position.Hash() ^ Zobrist[780]);
 			const int nmpReduction = [&] {
-				const int defaultReduction = 4 + depth / 3 + std::min((eval - beta) / 200, 3);
+				const int defaultReduction = 4 + depth / 3 + std::min((eval - beta) / tune_nmp_eval_divider(), 3);
 				return std::min(defaultReduction, depth);
 			}();
 			position.PushNullMove();
@@ -488,7 +488,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Futility pruning
 		if (depth <= 5 && !IsMateScore(beta)) {
-			const int futilityMargin = 30 + depth * 100;
+			const int futilityMargin = tune_fp_margin_offset() + depth * tune_fp_margin_coeff();
 			futilityPrunable = (eval + futilityMargin < alpha);
 		}
 	}
@@ -588,10 +588,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Late-move reductions & principal variation search
 		if (depth >= 3 && (legalMoveCount >= (3 + pvNode * 2 + rootNode * 2)) && isQuiet) {
 			
-			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
+			int reduction = static_cast<int>((tune_lmr_multiplier() / 100.0) * std::log(std::min(depth, 31)) * std::log(std::min(failLowCount, 31)) + (tune_lmr_base() / 100.0));
 			if (!ttPV) reduction += 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
-			if (std::abs(order) < 80000) reduction -= std::clamp(order / 16384, -2, 2);
+			if (std::abs(order) < 80000) reduction -= std::clamp(order / tune_lmr_history_div(), -2, 2);
 			if (cutNode) reduction += 1;
 			if (improving) reduction -= 1;
 			reduction = std::max(reduction, 0);
@@ -600,7 +600,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			score = -SearchRecursive(t, reducedDepth, level + 1, -alpha - 1, -alpha, false, true);
 
 			if (score > alpha && reducedDepth < depth - 1) {
-				deepen = score > (bestScore + 50 + (depth - 1) * 5);
+				deepen = score > (bestScore + tune_lmr_deeper_offset() + (depth - 1) * tune_lmr_deeper_coeff());
 				score = -SearchRecursive(t, depth - 1 + deepen, level + 1, -alpha - 1, -alpha, false, !cutNode);
 			}
 		}

@@ -86,3 +86,29 @@ inline void SetTunableParameter(const std::string name, const int value) {
 // Set tunable parameters here --------------------------------------------------------------------
 // Format here is: ADD_TUNABLE(name, default, min, max, step)
 // Usage in code:  tune_name()
+
+ADD_TUNABLE(rfp_margin, 102, 60, 120, 10)
+ADD_TUNABLE(rfp_improving_reduction, 90, 60, 120, 15)
+
+ADD_TUNABLE(nmp_eval_divider, 211, 150, 270, 30)
+
+ADD_TUNABLE(fp_margin_offset, 51, 0, 100, 15)
+ADD_TUNABLE(fp_margin_coeff, 106, 70, 150, 15)
+
+ADD_TUNABLE(lmr_multiplier, 35, 28, 45, 5)
+ADD_TUNABLE(lmr_base, 78, 50, 100, 5)
+ADD_TUNABLE(lmr_history_div, 19000, 13000, 26000, 2000)
+ADD_TUNABLE(lmr_deeper_offset, 44, 30, 70, 8)
+ADD_TUNABLE(lmr_deeper_coeff, 5, 3, 10, 1)
+
+ADD_TUNABLE(asp_start, 16, 12, 20, 3)
+
+ADD_TUNABLE(history_clamp, 2575, 1500, 3500, 300)
+ADD_TUNABLE(history_coeff, 300, 150, 500, 30)
+ADD_TUNABLE(history_cap, 15350, 8192, 32678, 1536)
+
+ADD_TUNABLE(corrhist_cap, 7700, 6144, 9216, 768)
+ADD_TUNABLE(corrhist_inertia, 242, 128, 512, 32)
+
+ADD_TUNABLE(capthist_mul, 16, 12, 24, 4)
+ADD_TUNABLE(capthist_div, 35, 16, 48, 4)
