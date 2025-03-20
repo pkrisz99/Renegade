@@ -38,13 +38,8 @@ public:
 
 private:
 
-	inline void UpdateHistoryValueQ(int16_t& value, const int amount) {
-		const int gravity = value * std::abs(amount) / tune_history_q_cap();
-		value += amount - gravity;
-	}
-
-	inline void UpdateHistoryValueC(int16_t& value, const int amount) {
-		const int gravity = value * std::abs(amount) / tune_history_c_cap();
+	inline void UpdateHistoryValue(int16_t& value, const int amount) {
+		const int gravity = value * std::abs(amount) / tune_history_cap();
 		value += amount - gravity;
 	}
 
