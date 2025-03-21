@@ -63,7 +63,7 @@ private:
 		}();
 
 		// Queen promotions
-		if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[capturedPieceType];
+		if (m.flag == MoveFlag::PromotionToQueen) return 800000 + values[capturedPieceType];
 
 		// Captures
 		if (capturedPieceType != PieceType::None) {
@@ -75,15 +75,15 @@ private:
 				return !pos.StaticExchangeEval(m, -captureScore / 35);
 			}();
 
-			if (!losingCapture) return 600000 + values[capturedPieceType] * 16 + hist.GetCaptureHistoryScore(pos, m);
+			if (!losingCapture) return 700000 + values[capturedPieceType] * 16 + hist.GetCaptureHistoryScore(pos, m);
 			else return -200000 + values[capturedPieceType] * 16 + hist.GetCaptureHistoryScore(pos, m);
 		}
 
 		// Quiet killer moves
-		if (m == killerMove) return 100000;
+		if (m == killerMove) return 600000 + hist.GetHistoryScore(pos, m, movedPiece, level);
 
 		// Countermove heuristic
-		if (m == counterMove) return 99000;
+		if (m == counterMove) return 400000 + hist.GetHistoryScore(pos, m, movedPiece, level);
 
 		// Quiet moves
 		const int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);

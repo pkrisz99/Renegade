@@ -528,7 +528,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		else capturesTried.push(m);
 
 		// Moves loop pruning techniques
-		if (!pvNode && !IsLosingMateScore(bestScore) && (order < 90000) && !DatagenMode) {
+		if (!pvNode && !IsLosingMateScore(bestScore) && (order < 100000) && !DatagenMode) {
 
 			// Late-move pruning
 			if (depth <= 4 && isQuiet && !inCheck) {
@@ -591,9 +591,13 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!ttPV) reduction += 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
-			if (std::abs(order) < 80000) reduction -= std::clamp(order / 19000, -2, 2);
 			if (cutNode) reduction += 1;
 			if (improving) reduction -= 1;
+
+			if (std::abs(order) < 100000) reduction -= std::clamp(order / 19000, -2, 2);
+			else if (300000 < order < 500000) reduction -= std::clamp((order - 400000) / 19000, -2, 2);
+			else if (500000 < order < 700000) reduction -= std::clamp((order - 600000) / 19000, -2, 2);
+
 			reduction = std::max(reduction, 0);
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
