@@ -595,8 +595,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (improving) reduction -= 1;
 
 			if (std::abs(order) < 100000) reduction -= std::clamp(order / 19000, -2, 2);
-			else if (300000 < order < 500000) reduction -= std::clamp((order - 400000) / 19000, -2, 2);
-			else if (500000 < order < 700000) reduction -= std::clamp((order - 600000) / 19000, -2, 2);
+			else if (300000 < order && order < 500000) reduction -= std::clamp((order - 400000) / 19000, -2, 2);
+			else if (500000 < order && order < 700000) reduction -= std::clamp((order - 600000) / 19000, -2, 2);
 
 			reduction = std::max(reduction, 0);
 
