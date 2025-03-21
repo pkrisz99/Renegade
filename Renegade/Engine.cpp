@@ -28,6 +28,7 @@ void Engine::Start() {
 	if (Behavior == EngineBehavior::DatagenNormal || Behavior == EngineBehavior::DatagenDFRC) {
 		const DatagenLaunchMode launchMode = (Behavior == EngineBehavior::DatagenNormal) ? DatagenLaunchMode::Normal : DatagenLaunchMode::DFRC;
 		StartDatagen(launchMode);
+		SearchThreads.StopThreads();
 		return;
 	}
 
@@ -47,6 +48,7 @@ void Engine::Start() {
 		std::vector<std::string> parts = Split(cmd);
 
 		if (cmd == "quit" || cmd == "q") {
+			SearchThreads.StopSearch();
 			break;
 		}
 
@@ -77,18 +79,17 @@ void Engine::Start() {
 
 		if (cmd == "stop" || cmd == "s") {
 			SearchThreads.StopSearch();
-			SearchThreads.WaitUntilReady();
 			continue;
 		}
 
 		if (cmd == "datagen") {
 			StartDatagen(DatagenLaunchMode::Ask);
-			return;
+			break;
 		}
 
 		if (cmd == "merge") {
 			MergeDatagenFiles();
-			return;
+			break;
 		}
 
 		if (cmd == "tunetext") {
@@ -355,7 +356,7 @@ void Engine::Start() {
 		cout << "Unknown command: '" << parts[0] << "'" << endl;
 
 	}
-	cout << "Stopping engine." << endl;
+
 	SearchThreads.StopThreads();
 }
 
