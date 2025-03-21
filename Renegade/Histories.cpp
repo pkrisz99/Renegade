@@ -12,6 +12,7 @@ void Histories::ClearAll() {
 	std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionHistory));
 	std::memset(&PawnsCorrectionHistory, 0, sizeof(PawnsCorrectionHistory));
 	std::memset(&FollowUpCorrectionHistory, 0, sizeof(FollowUpCorrectionHistory));
+	std::memset(&DumbCorrectionHistory, 0, sizeof(DumbCorrectionHistory));
 }
 
 void Histories::ClearKillerAndCounterMoves() {
@@ -132,6 +133,11 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 		followUpValue = ((242 - weight) * followUpValue + weight * diff) / 242;
 		followUpValue = std::clamp(followUpValue, -7700, 7700);
 	}
+
+	const uint64_t dumbKey = position.Hash() % 131072;
+	int32_t& dumbValue = DumbCorrectionHistory[position.Turn()][dumbKey];
+	dumbValue = ((242 - weight) * dumbValue + weight * diff) / 242;
+	dumbValue = std::clamp(dumbValue, -7700, 7700);
 }
 
 int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEval) const {
@@ -143,7 +149,6 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 	const uint64_t pawnKey = position.GetPawnKey() % 16384;
 	const int pawnCorrection = PawnsCorrectionHistory[position.Turn()][pawnKey] / 256;
 
-
 	const int lastMoveCorrection = [&] {
 		if (position.Moves.size() < 2) return 0;
 		const MoveAndPiece& prev1 = position.GetPreviousMove(1);
@@ -151,6 +156,9 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 		return FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to] / 256;
 	}();
 
-	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection);
+	const uint64_t dumbKey = position.Hash() % 131072;
+	const int dumbCorrection = DumbCorrectionHistory[position.Turn()][dumbKey] / 256;
+
+	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection + dumbCorrection);
 	return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
 }

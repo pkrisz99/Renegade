@@ -56,5 +56,6 @@ private:
 	MultiArray<int32_t, 2, 32768> MaterialCorrectionHistory;
 	MultiArray<int32_t, 2, 16384> PawnsCorrectionHistory;
 	MultiArray<int32_t, 15, 64, 15, 64> FollowUpCorrectionHistory;
+	MultiArray<int32_t, 2, 131072> DumbCorrectionHistory; // trying this because I'm not at all convinced by non-pawn tbh
 };
 
