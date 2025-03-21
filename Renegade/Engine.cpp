@@ -503,10 +503,8 @@ void Engine::HandleBench() {
 	SearchThreads.ResetState(false);
 	Settings::Hash = oldHashSize;
 	SearchThreads.TranspositionTable.SetSize(oldHashSize); // also clears the transposition table
-	// Some issues with the following code, but only when starting from the command line:
-	// Settings::Threads = oldThreadCount;
-	// SearchThreads.SetThreadCount(oldThreadCount);
-	// possibly starting and shutting down a thread too quickly?
+	Settings::Threads = oldThreadCount;
+	SearchThreads.SetThreadCount(oldThreadCount);
 	Settings::Chess960 = oldChess960Setting;
 }
 
