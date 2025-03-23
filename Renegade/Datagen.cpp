@@ -1,5 +1,7 @@
 #include "Datagen.h"
 
+// Display things ---------------------------------------------------------------------------------
+
 static void SetTitle(const std::string title) {
 	Console::ClearScreen();
 	cout << Console::Highlight << " " << title << " " << Console::White;
@@ -12,7 +14,16 @@ static void PressEnterToExit() {
 	cin.get();
 }
 
-// Self-play datagen ------------------------------------------------------------------------------ 
+static std::string FormatRuntime(const int seconds) {
+	const auto [minutes, s] = std::div(seconds, 60);
+	const auto [h, m] = std::div(minutes, 60);
+	//return std::format("{}:{:02d}:{:02d}", h, m, s);
+	std::stringstream oss;
+	oss << h << ':' << std::setw(2) << std::setfill('0') << m << ':' << std::setw(2) << std::setfill('0') << s;
+	return oss.str();
+}
+
+// Self-play datagen ------------------------------------------------------------------------------
 
 void SelfPlay(const std::string filename);  // main loop per thread, forward declaring this
 
@@ -24,38 +35,6 @@ int ThreadCount = 0;
 bool DFRC = false;
 std::vector<std::string> Openings{};
 
-static std::string FormatRuntime(const int seconds) {
-	const auto [minutes, s] = std::div(seconds, 60);
-	const auto [h, m] = std::div(minutes, 60);
-	//return std::format("{}:{:02d}:{:02d}", h, m, s);
-	std::stringstream oss;
-	oss << h << ':' << std::setw(2) << std::setfill('0') << m << ':' << std::setw(2) << std::setfill('0') << s;
-	return oss.str();
-}
-
-static bool Filter(const Position& pos, const Move& move, const int eval) {
-	if (std::abs(eval) > MateThreshold) return true;
-	if (pos.GetPly() < minSavePly) return true;
-	if (DFRC && move.IsCastling()) return true;
-	if (!pos.IsMoveQuiet(move)) return true;
-	if (pos.IsInCheck()) return true;
-	return false;
-}
-
-static std::string ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome) {
-	// Format: <fen> | <eval> | <wdl>
-	// eval: white pov in cp, wdl 1.0 = white win, 0.0 = black win
-
-	const std::string outcomeStr = [&] {
-		switch (outcome) {
-		case GameState::WhiteVictory: return "1.0";
-		case GameState::BlackVictory: return "0.0";
-		case GameState::Drawn: return "0.5";
-		default: return "???";
-		}
-		}();
-	return fen + " | " + std::to_string(whiteScore) + " | " + outcomeStr;
-}
 
 void StartDatagen(const DatagenLaunchMode launchMode) {
 
@@ -155,8 +134,8 @@ void SelfPlay(const std::string filename) {
 	int gamesOnThread = 0;
 	std::mt19937 generator(std::random_device{}());
 
-	std::vector<std::pair<std::string, int>> currentGame{};
 	std::vector<std::string> unsavedLines{};
+	std::vector<Viriformat> unsavedViriformatGames;
 
 
 	while (true) {
@@ -165,7 +144,8 @@ void SelfPlay(const std::string filename) {
 		int winAdjudicationCounter = 0;
 		int drawAdjudicationCounter = 0;
 		GameState outcome = GameState();
-		currentGame.clear();
+		std::vector<std::pair<std::string, int>> currentGame{};
+		Viriformat currentViriformatGame{};
 
 		// 1. Reset state
 		Position position = [&] {
@@ -214,6 +194,7 @@ void SelfPlay(const std::string filename) {
 
 		Searcher1->ResetState(true);
 		Searcher2->ResetState(true);
+		currentViriformatGame.SetStartingBoard(position.CurrentState(), position.CastlingConfig);
 
 		// 4. Play out the game
 		while (true) {
@@ -262,10 +243,11 @@ void SelfPlay(const std::string filename) {
 			Depths.fetch_add(results.depth, std::memory_order_relaxed);
 			Nodes.fetch_add(results.nodes, std::memory_order_relaxed);
 			
-			if (!Filter(position, move, results.score)) {
+			if (TextformatFilter(position, move, results.score)) {
 				PositionsAccepted.fetch_add(1, std::memory_order_relaxed);
 				currentGame.push_back(std::pair(position.GetFEN(), whiteScore));
 			}
+			currentViriformatGame.AddMove(move, whiteScore);
 			position.PushMove(move);
 
 			outcome = position.GetGameState();
@@ -286,12 +268,20 @@ void SelfPlay(const std::string filename) {
 		for (const auto& [fen, whiteScore] : currentGame) {
 			unsavedLines.push_back(ToTextformat(fen, whiteScore, outcome));
 		}
-		if (gamesOnThread % 64 == 0) {
+		currentViriformatGame.Finish(outcome);
+		unsavedViriformatGames.push_back(currentViriformatGame);
+
+		if (gamesOnThread % 100 == 0) {  // should take a few milliseconds
 			std::ofstream file(filename, std::ios_base::app);
 			const std::ostream_iterator<std::string> output_iterator(file, "\n");
 			std::copy(std::begin(unsavedLines), std::end(unsavedLines), output_iterator);
 			file.close();
 			unsavedLines.clear();
+
+			std::ofstream vfFile(filename + ".vf", std::ios_base::app | std::ios::binary);
+			for (const Viriformat& vfGame : unsavedViriformatGames) vfGame.WriteToFile(vfFile);
+			vfFile.close();
+			unsavedViriformatGames.clear();
 		}
 
 		// 6. Update display
@@ -397,4 +387,121 @@ void MergeDatagenFiles() {
 	output.close();
 	cout << Console::Green << "\nCompleted." << Console::White << endl;
 	PressEnterToExit();
+}
+
+// Viriformat and textformat ----------------------------------------------------------------------
+
+void Viriformat::SetStartingBoard(const Board& b, const CastlingConfiguration& cc) {
+	startingBoard = b;
+	castlingConfig = cc;
+}
+
+void Viriformat::AddMove(const Move& move, const int eval) {
+	moves.push_back({ ViriformatMove(move), static_cast<int16_t>(eval) });
+}
+
+void Viriformat::Finish(const GameState state) {
+	assert(state != GameState::Playing);
+	outcome = state;
+}
+
+// Converts Renegade's move representation for Viriformat
+uint16_t Viriformat::ViriformatMove(const Move& m) const {
+	const uint8_t flag = [&] {
+		switch (m.flag) {
+		case MoveFlag::ShortCastle: return 0b10'00;
+		case MoveFlag::LongCastle: return 0b10'00;
+		case MoveFlag::EnPassantPerformed: return 0b01'00;
+		case MoveFlag::PromotionToKnight: return 0b11'00;
+		case MoveFlag::PromotionToBishop: return 0b11'01;
+		case MoveFlag::PromotionToRook: return 0b11'10;
+		case MoveFlag::PromotionToQueen: return 0b11'11;
+		default: return 0b00'00;
+		}
+	}();
+	return (m.from) | (m.to << 6) | (flag << 12);
+}
+
+void Viriformat::WriteToFile(std::ofstream& stream) const {
+
+	// Marlinformat starting entry (32 bytes)
+	const uint64_t startingOccupancy = startingBoard.GetOccupancy();
+	uint64_t occupancy = startingOccupancy;
+	std::array<uint8_t, 16> pieces{}; // 32 x 4 bits
+	int i = 0;
+	while (occupancy) {
+		const uint8_t sq = Popsquare(occupancy);
+		const uint8_t piece = startingBoard.GetPieceAt(sq);
+		uint8_t marlinformatPiece = TypeOfPiece(piece) - 1 + (ColorOfPiece(piece) == PieceColor::Black) * 8;
+
+		// Extra checks for rooks, rooks that can still castle have a different encoding
+		if (piece == Piece::WhiteRook) {
+			if ((sq == castlingConfig.WhiteShortCastleRookSquare && startingBoard.WhiteRightToShortCastle)
+				|| (sq == castlingConfig.WhiteLongCastleRookSquare && startingBoard.WhiteRightToLongCastle))
+				marlinformatPiece = 6;
+		}
+		else if (piece == Piece::BlackRook) {
+			if ((sq == castlingConfig.BlackShortCastleRookSquare && startingBoard.BlackRightToShortCastle)
+				|| (sq == castlingConfig.BlackLongCastleRookSquare && startingBoard.BlackRightToLongCastle))
+				marlinformatPiece = 14;
+		}
+
+		const auto [index, high] = std::div(i, 2);
+		pieces[index] |= marlinformatPiece << (high ? 4 : 0);
+		i++;
+	}
+
+	const uint8_t encodedSideToMove = startingBoard.Turn == Side::Black;
+	const uint8_t encodedEpSquare = (startingBoard.EnPassantSquare == -1) ? 64 : static_cast<uint8_t>(startingBoard.EnPassantSquare);
+
+	const uint8_t encodedOutcome = [&] {
+		if (outcome == GameState::BlackVictory) return 0;
+		if (outcome == GameState::Drawn) return 1;
+		if (outcome == GameState::WhiteVictory) return 2;
+		assert(false);
+		return 3;
+	}();
+
+	const uint8_t encodedEpAndStm = (encodedSideToMove << 7) | encodedEpSquare;
+	const int16_t encodedScore = 0; // unused
+
+	stream.write(reinterpret_cast<const char*>(&startingOccupancy), 8);
+	stream.write(reinterpret_cast<const char*>(pieces.data()), 16);
+	stream.write(reinterpret_cast<const char*>(&encodedEpAndStm), 1);
+	stream.write(reinterpret_cast<const char*>(&startingBoard.HalfmoveClock), 1);
+	stream.write(reinterpret_cast<const char*>(&startingBoard.FullmoveClock), 2);
+	stream.write(reinterpret_cast<const char*>(&encodedScore), 2);
+	stream.write(reinterpret_cast<const char*>(&encodedOutcome), 1);
+	stream.write(reinterpret_cast<const char*>(&extraByte), 1);
+
+	// Moves (4 bytes each)
+	stream.write(reinterpret_cast<const char*>(moves.data()), 4 * moves.size());
+
+	// Null terminator (4 bytes)
+	static constexpr std::array<uint8_t, 4> nullTerminator = { 0, 0, 0, 0 };
+	stream.write(reinterpret_cast<const char*>(nullTerminator.data()), 4);
+}
+
+// Returns true if the position should be trained on
+static bool TextformatFilter(const Position& pos, const Move& move, const int eval) {
+	if (std::abs(eval) > MateThreshold) return false;
+	if (pos.GetPly() < minSavePly) return false;
+	if (DFRC && move.IsCastling()) return false;
+	if (!pos.IsMoveQuiet(move)) return false;
+	if (pos.IsInCheck()) return false;
+	return true;
+}
+
+// Creates a textformat entry
+// "<fen> | <eval> | <wdl>" where eval: white pov in cp & wdl: 1.0 = white win, 0.0 = black win, 0.5 = drawn
+static std::string ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome) {
+	const std::string outcomeStr = [&] {
+		switch (outcome) {
+		case GameState::WhiteVictory: return "1.0";
+		case GameState::BlackVictory: return "0.0";
+		case GameState::Drawn: return "0.5";
+		default: return "???";
+		}
+	}();
+	return fen + " | " + std::to_string(whiteScore) + " | " + outcomeStr;
 }
