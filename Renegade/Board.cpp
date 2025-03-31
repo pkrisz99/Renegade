@@ -229,16 +229,16 @@ uint64_t Board::CalculateMaterialKey() const {
 	uint64_t material_key = 0;
 
 	material_key |= static_cast<uint64_t>(Popcount(WhitePawnBits));
-	material_key |= (static_cast<uint64_t>(Popcount(WhiteKnightBits)) << 6);
-	material_key |= (static_cast<uint64_t>(Popcount(WhiteBishopBits)) << 12);
-	material_key |= (static_cast<uint64_t>(Popcount(WhiteRookBits)) << 18);
-	material_key |= (static_cast<uint64_t>(Popcount(WhiteQueenBits)) << 24);
+	material_key |= static_cast<uint64_t>(Popcount(WhiteKnightBits)) << 6;
+	material_key |= static_cast<uint64_t>(Popcount(WhiteBishopBits)) << 12;
+	material_key |= static_cast<uint64_t>(Popcount(WhiteRookBits)) << 18;
+	material_key |= static_cast<uint64_t>(Popcount(WhiteQueenBits)) << 24;
 
-	material_key |= (static_cast<uint64_t>(Popcount(BlackPawnBits)) << 30);
-	material_key |= (static_cast<uint64_t>(Popcount(BlackKnightBits)) << 36);
-	material_key |= (static_cast<uint64_t>(Popcount(BlackBishopBits)) << 42);
-	material_key |= (static_cast<uint64_t>(Popcount(BlackRookBits)) << 48);
-	material_key |= (static_cast<uint64_t>(Popcount(BlackQueenBits)) << 54);
+	material_key |= static_cast<uint64_t>(Popcount(BlackPawnBits)) << 30;
+	material_key |= static_cast<uint64_t>(Popcount(BlackKnightBits)) << 36;
+	material_key |= static_cast<uint64_t>(Popcount(BlackBishopBits)) << 42;
+	material_key |= static_cast<uint64_t>(Popcount(BlackRookBits)) << 48;
+	material_key |= static_cast<uint64_t>(Popcount(BlackQueenBits)) << 54;
 
 	return MurmurHash3(material_key);
 }
