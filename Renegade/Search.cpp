@@ -544,7 +544,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			// Main search SEE pruning
 			if (depth <= 5) {
-				const int seeMargin = isQuiet ? (-50 * depth) : (-100 * depth);
+				const int seeMargin = isQuiet ? (-50 * depth - 50) : (-100 * depth - 50);
 				if (!position.StaticExchangeEval(m, seeMargin)) continue;
 			}
 		}
