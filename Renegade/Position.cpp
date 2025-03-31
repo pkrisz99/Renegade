@@ -7,7 +7,6 @@ Position::Position(const std::string& fen) {
 
 	// Reserve memory, add starting state
 	States.reserve(512);
-	Hashes.reserve(512);
 	Moves.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
@@ -108,8 +107,7 @@ Position::Position(const std::string& fen) {
 	board.HalfmoveClock = stoi(parts[4]);
 	board.FullmoveClock = stoi(parts[5]);
 	board.Threats = CalculateAttackedSquares(!Turn());
-
-	Hashes.push_back(board.CalculateHash());
+	board.BoardHash = board.CalculateHash();
 }
 
 Position::Position(const int frcWhite, const int frcBlack) {
@@ -120,7 +118,6 @@ Position::Position(const int frcWhite, const int frcBlack) {
 
 	// Reserve memory, add starting state
 	States.reserve(512);
-	Hashes.reserve(512);
 	Moves.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
@@ -200,8 +197,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	board.HalfmoveClock = 0;
 	board.FullmoveClock = 1;
 	board.Threats = CalculateAttackedSquares(!Turn());
-
-	Hashes.push_back(board.CalculateHash());
+	board.BoardHash = board.CalculateHash();
 }
 
 // Pushing moves ----------------------------------------------------------------------------------
@@ -215,10 +211,10 @@ void Position::PushMove(const Move& move) {
 
 	board.ApplyMove(move, CastlingConfig);
 	board.Threats = CalculateAttackedSquares(!Turn());
+	board.BoardHash = board.CalculateHash();
 
-	Hashes.push_back(board.CalculateHash());
 	Moves.push_back({ move, movedPiece });
-	assert(States.size() == Hashes.size() && States.size() - 1 == Moves.size());
+	assert(States.size() - 1 == Moves.size());
 }
 
 void Position::PushNullMove() {
@@ -230,11 +226,11 @@ void Position::PushNullMove() {
 	board.Threats = CalculateAttackedSquares(!Turn());
 
 	if (board.EnPassantSquare == -1) {
-		Hashes.push_back(Hashes.back() ^ Zobrist[780]);
+		board.BoardHash = board.BoardHash ^ Zobrist[780];
 	}
 	else {
 		board.EnPassantSquare = -1;
-		Hashes.push_back(board.CalculateHash());
+		board.BoardHash = board.CalculateHash();
 	}
 
 	Moves.push_back({ NullMove, Piece::None });
@@ -307,7 +303,6 @@ bool Position::PushUCI(const std::string& str) {
 
 void Position::PopMove() {
 	States.pop_back();
-	Hashes.pop_back();
 	Moves.pop_back();
 }
 
@@ -731,12 +726,12 @@ bool Position::IsDrawn(const bool threefold) const {
 
 	// 2. Threefold repetitions
 	const uint64_t hash = Hash();
-	const int length = Hashes.size();
+	const int length = States.size();
 	const int threshold = threefold ? 3 : 2;
 	int repeated = 0;
 
 	for (int i = length - 1; i >= std::max(0, length - b.HalfmoveClock - 2); i -= 2) {
-		if (Hashes[i] == hash) {
+		if (States[i].BoardHash == hash) {
 			repeated += 1;
 			if (repeated >= threshold) return true;
 		}

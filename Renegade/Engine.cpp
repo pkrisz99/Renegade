@@ -186,9 +186,9 @@ void Engine::Start() {
 				cout << "sizeof int:                " << sizeof(int) << endl;
 			}
 			if (parts[1] == "pasthashes") {
-				cout << "Past hashes size: " << position.Hashes.size() << endl;
-				for (int i = 0; i < position.Hashes.size(); i++) {
-					cout << "- entry " << i << ": " << std::hex << position.Hashes[i] << std::dec << endl;
+				cout << "Past hashes size: " << position.States.size() << endl;
+				for (int i = 0; i < position.States.size(); i++) {
+					cout << "- entry " << i << ": " << std::hex << position.States[i].BoardHash << std::dec << endl;
 				}
 			}
 			if (parts[1] == "isdraw") {

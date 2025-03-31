@@ -35,6 +35,7 @@ struct Board {
 	uint64_t BlackKingBits = 0;
 
 	uint64_t Threats = 0;
+	uint64_t BoardHash = 0;
 
 	uint8_t HalfmoveClock = 0;
 	uint16_t FullmoveClock = 0;
@@ -100,4 +101,4 @@ struct Board {
 
 };
 
-static_assert(sizeof(Board) == 184);
+static_assert(sizeof(Board) == 192);

@@ -63,7 +63,7 @@ public:
 	}
 
 	inline uint64_t Hash() const {
-		return Hashes.back();
+		return States.back().BoardHash;
 	}
 
 	inline int GetPly() const {
@@ -130,7 +130,7 @@ public:
 		// Calculate the approximate hash after a move on the current board
 		// This is to make prefetching more efficient
 		// It doesn't need to be perfect, just good enough, it handles most quiet moves and captures
-		uint64_t hash = Hashes.back() ^ Zobrist[780];
+		uint64_t hash = States.back().BoardHash ^ Zobrist[780];
 		const uint8_t movedPiece = GetPieceAt(move.from);
 		const uint8_t capturedPiece = GetPieceAt(move.to);
 		constexpr std::array<uint8_t, 15> pieceMapping = { 255, 0, 1, 2, 3, 4, 5, 255, 255, 6, 7, 8, 9, 10, 11 };
@@ -164,7 +164,6 @@ public:
 	bool StaticExchangeEval(const Move& move, const int threshold) const;
 
 	std::vector<Board> States{};
-	std::vector<uint64_t> Hashes{};
 	std::vector<MoveAndPiece> Moves{};
 	CastlingConfiguration CastlingConfig{};
 
