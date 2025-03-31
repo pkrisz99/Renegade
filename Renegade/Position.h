@@ -111,13 +111,11 @@ public:
 	}
 
 	inline uint64_t GetThreats() const {
-		assert(Threats.back() != 0ull);
-		return Threats.back();
+		return States.back().Threats;
 	}
 
 	inline bool IsSquareThreatened(const uint8_t sq) const {
-		assert(Threats.back() != 0ull);
-		return CheckBit(Threats.back(), sq);
+		return CheckBit(States.back().Threats, sq);
 	}
 
 	inline uint64_t GetMaterialKey() const {
@@ -167,7 +165,6 @@ public:
 
 	std::vector<Board> States{};
 	std::vector<uint64_t> Hashes{};
-	std::vector<uint64_t> Threats{};
 	std::vector<MoveAndPiece> Moves{};
 	CastlingConfiguration CastlingConfig{};
 

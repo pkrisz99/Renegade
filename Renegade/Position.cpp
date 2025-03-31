@@ -9,7 +9,6 @@ Position::Position(const std::string& fen) {
 	States.reserve(512);
 	Hashes.reserve(512);
 	Moves.reserve(512);
-	Threats.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
 	
@@ -108,9 +107,9 @@ Position::Position(const std::string& fen) {
 
 	board.HalfmoveClock = stoi(parts[4]);
 	board.FullmoveClock = stoi(parts[5]);
+	board.Threats = CalculateAttackedSquares(!Turn());
 
 	Hashes.push_back(board.CalculateHash());
-	Threats.push_back(CalculateAttackedSquares(!Turn()));
 }
 
 Position::Position(const int frcWhite, const int frcBlack) {
@@ -123,7 +122,6 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	States.reserve(512);
 	Hashes.reserve(512);
 	Moves.reserve(512);
-	Threats.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
 
@@ -201,9 +199,9 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	board.EnPassantSquare = -1;
 	board.HalfmoveClock = 0;
 	board.FullmoveClock = 1;
+	board.Threats = CalculateAttackedSquares(!Turn());
 
 	Hashes.push_back(board.CalculateHash());
-	Threats.push_back(CalculateAttackedSquares(!Turn()));
 }
 
 // Pushing moves ----------------------------------------------------------------------------------
@@ -216,11 +214,11 @@ void Position::PushMove(const Move& move) {
 	const uint8_t movedPiece = board.GetPieceAt(move.from);
 
 	board.ApplyMove(move, CastlingConfig);
+	board.Threats = CalculateAttackedSquares(!Turn());
 
 	Hashes.push_back(board.CalculateHash());
 	Moves.push_back({ move, movedPiece });
-	Threats.push_back(CalculateAttackedSquares(!Turn()));
-	assert(States.size() == Hashes.size() && States.size() - 1 == Moves.size() && States.size() == Threats.size());
+	assert(States.size() == Hashes.size() && States.size() - 1 == Moves.size());
 }
 
 void Position::PushNullMove() {
@@ -229,6 +227,7 @@ void Position::PushNullMove() {
 
 	board.Turn = !board.Turn;
 	if (board.Turn == Side::White) board.FullmoveClock += 1;
+	board.Threats = CalculateAttackedSquares(!Turn());
 
 	if (board.EnPassantSquare == -1) {
 		Hashes.push_back(Hashes.back() ^ Zobrist[780]);
@@ -237,8 +236,8 @@ void Position::PushNullMove() {
 		board.EnPassantSquare = -1;
 		Hashes.push_back(board.CalculateHash());
 	}
+
 	Moves.push_back({ NullMove, Piece::None });
-	Threats.push_back(CalculateAttackedSquares(!Turn()));
 	return;
 }
 
@@ -310,7 +309,6 @@ void Position::PopMove() {
 	States.pop_back();
 	Hashes.pop_back();
 	Moves.pop_back();
-	Threats.pop_back();
 }
 
 // Generating moves -------------------------------------------------------------------------------
@@ -456,7 +454,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & fakeOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = Threats.back();
+			const uint64_t opponentAttacks = b.Threats;
 			const bool safe = !(opponentAttacks & rayBetweenKingAndG);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::ShortCastle));
 		}
@@ -474,7 +472,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & fakeOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = Threats.back();
+			const uint64_t opponentAttacks = b.Threats;
 			const bool safe = !(opponentAttacks & rayBetweenKingAndC);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::LongCastle));
 		}
