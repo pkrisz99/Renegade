@@ -831,3 +831,99 @@ GameState Position::GetGameState() const {
 	if (IsDrawn(true)) return GameState::Drawn;
 	else return GameState::Playing;
 }
+
+// Static exchange evaluation (SEE) ---------------------------------------------------------------
+
+bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
+	// This is more or less the standard way of doing this
+	// The implementation follows Ethereal's method
+
+	constexpr auto seeValues = std::array{ 0, 100, 300, 300, 500, 1000, 999999 };
+
+	// Get the initial piece
+	uint8_t victim = TypeOfPiece(GetPieceAt(move.from));
+	if (move.IsPromotion()) victim = move.GetPromotionPieceType();
+
+	// Get estimated move value
+	int estimatedMoveValue = seeValues[TypeOfPiece(GetPieceAt(move.to))];
+	if (move.IsPromotion()) estimatedMoveValue += seeValues[move.GetPromotionPieceType()] - seeValues[PieceType::Pawn];
+	else if (move.flag == MoveFlag::EnPassantPerformed) estimatedMoveValue = seeValues[PieceType::Pawn];
+	else if (move.IsCastling()) estimatedMoveValue = 0;
+
+	// Handle trivial cases (losing the piece for nothing still above / having initial gain below threshold)
+	int score = -threshold;
+	score += estimatedMoveValue;
+	if (score < 0) return false;
+	score -= seeValues[victim];
+	if (score >= 0) return true;
+
+	// Lookups (should be optimized) 
+	const uint64_t whitePieces = GetOccupancy(Side::White);
+	const uint64_t blackPieces = GetOccupancy(Side::Black);
+	const uint64_t parallels = WhiteRookBits() | BlackRookBits() | WhiteQueenBits() | BlackQueenBits();
+	const uint64_t diagonals = WhiteBishopBits() | BlackBishopBits() | WhiteQueenBits() | BlackQueenBits();
+	uint64_t occupancy = whitePieces | blackPieces;
+	SetBitFalse(occupancy, move.from);
+	SetBitTrue(occupancy, move.to);
+	bool turn = Turn();
+	if (move.flag == MoveFlag::EnPassantPerformed) {
+		SetBitFalse(occupancy, (turn == Side::White) ? move.to - 8 : move.to + 8);
+	}
+	turn = !turn;
+	uint64_t attackers = GetAttackersOfSquare(move.to, occupancy) & occupancy;
+
+	// Pseudo-generating steps
+	while (true) {
+
+		uint64_t currentAttackers = attackers & ((turn == Side::White) ? whitePieces : blackPieces);
+		if (!currentAttackers) break;
+
+		// Retrieve the location of the least valuable attacking piece type
+		int sq = -1;
+		if (turn == Side::White) {
+			if (currentAttackers & WhitePawnBits()) sq = LsbSquare(currentAttackers & WhitePawnBits());
+			else if (currentAttackers & WhiteKnightBits()) sq = LsbSquare(currentAttackers & WhiteKnightBits());
+			else if (currentAttackers & WhiteBishopBits()) sq = LsbSquare(currentAttackers & WhiteBishopBits());
+			else if (currentAttackers & WhiteRookBits()) sq = LsbSquare(currentAttackers & WhiteRookBits());
+			else if (currentAttackers & WhiteQueenBits()) sq = LsbSquare(currentAttackers & WhiteQueenBits());
+			else if (currentAttackers & WhiteKingBits()) sq = LsbSquare(currentAttackers & WhiteKingBits());
+		}
+		else {
+			if (currentAttackers & BlackPawnBits()) sq = LsbSquare(currentAttackers & BlackPawnBits());
+			else if (currentAttackers & BlackKnightBits()) sq = LsbSquare(currentAttackers & BlackKnightBits());
+			else if (currentAttackers & BlackBishopBits()) sq = LsbSquare(currentAttackers & BlackBishopBits());
+			else if (currentAttackers & BlackRookBits()) sq = LsbSquare(currentAttackers & BlackRookBits());
+			else if (currentAttackers & BlackQueenBits()) sq = LsbSquare(currentAttackers & BlackQueenBits());
+			else if (currentAttackers & BlackKingBits()) sq = LsbSquare(currentAttackers & BlackKingBits());
+		}
+		assert(sq != -1);
+
+		// Update fields
+		victim = TypeOfPiece(GetPieceAt(sq));
+		SetBitFalse(occupancy, sq);
+
+		// Update potentially uncovered sliding pieces
+		if (victim == PieceType::Pawn || victim == PieceType::Bishop || victim == PieceType::Queen) {
+			attackers |= GetBishopAttacks(move.to, occupancy) & diagonals;
+		}
+		if (victim == PieceType::Rook || victim == PieceType::Queen) {
+			attackers |= GetRookAttacks(move.to, occupancy) & parallels;
+		}
+
+		attackers &= occupancy;
+		turn = !turn;
+
+		// Break conditions
+		score = -score - seeValues[victim] - 1;
+		if (score >= 0) {
+			const uint64_t upcomingOccupancy = (turn == Side::White) ? whitePieces : blackPieces;
+			if (victim == PieceType::King && (currentAttackers & upcomingOccupancy)) {
+				turn = !turn;
+			}
+			break;
+		}
+	}
+
+	// If after the exchange it's our opponent's turn, that means we won
+	return turn != Turn();
+}

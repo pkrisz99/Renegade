@@ -158,7 +158,6 @@
     <ClCompile Include="Renegade.cpp" />
     <ClCompile Include="Reporting.cpp" />
     <ClCompile Include="Search.cpp" />
-    <ClCompile Include="Settings.cpp" />
     <ClCompile Include="Transpositions.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>

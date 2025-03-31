@@ -25,11 +25,12 @@ void Engine::Start() {
 	}
 
 	// Handle externally receiving datagen
-	/*if (Behavior == EngineBehavior::DatagenNormal || Behavior == EngineBehavior::DatagenDFRC) {
+	if (Behavior == EngineBehavior::DatagenNormal || Behavior == EngineBehavior::DatagenDFRC) {
 		const DatagenLaunchMode launchMode = (Behavior == EngineBehavior::DatagenNormal) ? DatagenLaunchMode::Normal : DatagenLaunchMode::DFRC;
 		StartDatagen(launchMode);
+		SearchThreads.StopThreads();
 		return;
-	}*/
+	}
 
 	Position position = Position(FEN::StartPos);
 	std::string cmd;
@@ -47,6 +48,7 @@ void Engine::Start() {
 		std::vector<std::string> parts = Split(cmd);
 
 		if (cmd == "quit" || cmd == "q") {
+			SearchThreads.StopSearch();
 			break;
 		}
 
@@ -58,7 +60,7 @@ void Engine::Start() {
 			cout << "option name Threads type spin default " << ThreadsDefault << " min " << ThreadsMin << " max " << ThreadsMax << '\n';
 			cout << "option name UCI_ShowWDL type check default " << (ShowWDLDefault ? "true" : "false") << '\n';
 			cout << "option name UCI_Chess960 type check default " << (Chess960Default ? "true" : "false") << '\n';
-			if (Tune::Active()) Tune::PrintOptions();
+			if (IsTuningActive()) PrintTunableParameters();
 			cout << "uciok" << endl;
 			Settings::UseUCI = true;
 			continue;
@@ -77,23 +79,21 @@ void Engine::Start() {
 
 		if (cmd == "stop" || cmd == "s") {
 			SearchThreads.StopSearch();
-			SearchThreads.WaitUntilReady();
 			continue;
 		}
 
-		/*
 		if (cmd == "datagen") {
 			StartDatagen(DatagenLaunchMode::Ask);
-			return;
+			break;
 		}
 
 		if (cmd == "merge") {
 			MergeDatagenFiles();
-			return;
-		}*/
+			break;
+		}
 
 		if (cmd == "tunetext") {
-			Tune::GenerateString();
+			GenerateOpenBenchTuningString();
 			continue;
 		}
 
@@ -142,8 +142,8 @@ void Engine::Start() {
 				SearchThreads.SetThreadCount(Settings::Threads);
 				valid = true;
 			}
-			else if (Tune::List.find(parts[2]) != Tune::List.end()) {
-				Tune::List.at(parts[2]).value = stoi(parts[4]);
+			else if (parts.size() >= 5 && IsTuningActive() && HasTunableParameter(parts[2])) {
+				SetTunableParameter(parts[2], std::stoi(parts[4]));
 				valid = true;
 			}
 			
@@ -177,7 +177,7 @@ void Engine::Start() {
 				cout << "Chess960:  " << Settings::Chess960 << endl;
 				cout << "Using UCI: " << Settings::UseUCI << endl;
 				cout << std::noboolalpha;
-				for (const auto& [name, param] : Tune::List) cout << name << " -> " << param.value << endl;
+				for (const auto& [name, param] : TunableParameterList) cout << name << " -> " << param.value << endl;
 			}
 			if (parts[1] == "sizeof") {
 				cout << "sizeof TranspositionEntry: " << sizeof(TranspositionEntry) << endl;
@@ -260,12 +260,7 @@ void Engine::Start() {
 
 			SearchThreads.WaitUntilReady();
 
-			/*if (!SearchThreads.Aborting.load(std::memory_order_relaxed)) {
-				std::cerr << "info string Search is busy!" << endl;
-				continue;
-			}*/
-
-			if ((parts[1] == "startpos") || (parts[1] == "kiwipete") || (parts[1] == "lasker") || (parts[1] == "frc")) {
+			if (parts[1] == "startpos" || parts[1] == "kiwipete" || parts[1] == "lasker" || parts[1] == "frc") {
 				if (parts[1] == "startpos") position = Position(FEN::StartPos);
 				else if (parts[1] == "kiwipete") position = Position(FEN::Kiwipete);
 				else if (parts[1] == "lasker") position = Position(FEN::Lasker);
@@ -276,7 +271,7 @@ void Engine::Start() {
 					continue;
 				}
 
-				if ((parts.size() > 2) && (parts[2] == "moves")) {
+				if (parts.size() > 2 && parts[2] == "moves") {
 					for (int i = 3; i < parts.size(); i++) {
 						const bool r = position.PushUCI(parts[i]);
 						if (!r) cout << "!!! Error: invalid pushuci move: '" << parts[i] << "' at position '" << position.GetFEN() << "' !!!" << endl;
@@ -291,7 +286,7 @@ void Engine::Start() {
 				}();
 				position = Position(fen);
 
-				if ((parts.size() > 8) && (parts[8] == "moves")) {
+				if (parts.size() > 8 && parts[8] == "moves") {
 					for (int i = 9; i < parts.size(); i++) {
 						const bool r = position.PushUCI(parts[i]);
 						if (!r) cout << "!!! Error: invalid pushuci move !!!" << endl;
@@ -307,13 +302,7 @@ void Engine::Start() {
 
 			SearchThreads.WaitUntilReady();
 
-			/*if (!Search.Aborting.load(std::memory_order_relaxed)) {
-				std::cerr << "info string Search is busy!" << endl;
-				continue;
-			}
-			if (SearchThread.joinable()) SearchThread.join();*/
-
-			if ((parts.size() == 3) && (parts[1] == "perft" || parts[1] == "perftdiv")) {
+			if (parts.size() == 3 && (parts[1] == "perft" || parts[1] == "perftdiv")) {
 				const int depth = stoi(parts[2]);
 				const PerftType type = (parts[1] == "perftdiv") ? PerftType::PerftDiv : PerftType::Normal;
 				SearchThreads.Perft(position, depth, type);
@@ -322,25 +311,16 @@ void Engine::Start() {
 
 			params = SearchParams();
 			for (int i = 1; i < parts.size(); i++) {
-				// This looks ugly, but I'll rewrite it
-				if (parts[i] == "wtime") { 
-					const int t = stoi(parts[i + 1]);
-					params.wtime = (t > 0) ? t : 1;
-					i++;
-				}
-				if (parts[i] == "btime") { 
-					const int t = stoi(parts[i + 1]);
-					params.btime = (t > 0) ? t : 1;
-					i++;
-				}
-				if (parts[i] == "movestogo") { params.movestogo = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "winc") { params.winc = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "binc") { params.binc = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "nodes") { params.nodes = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "softnodes") { params.softnodes = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "depth") { params.depth = stoi(parts[i + 1]); i++; }
-				if (parts[i] == "mate") { params.depth = stoi(parts[i + 1]); i++; } // To do: search for mates only
-				if (parts[i] == "movetime") { params.movetime = stoi(parts[i + 1]); i++; }
+				if (parts[i] == "wtime") params.wtime = std::max(std::stoi(parts[++i]), 1);
+				if (parts[i] == "btime") params.btime = std::max(std::stoi(parts[++i]), 1);
+				if (parts[i] == "movestogo") params.movestogo = std::stoi(parts[++i]);
+				if (parts[i] == "winc") params.winc = std::stoi(parts[++i]);
+				if (parts[i] == "binc") params.binc = std::stoi(parts[++i]);
+				if (parts[i] == "nodes") params.nodes = std::stoi(parts[++i]);
+				if (parts[i] == "softnodes") params.softnodes = std::stoi(parts[++i]);
+				if (parts[i] == "depth") params.depth = std::stoi(parts[++i]);
+				if (parts[i] == "mate") params.depth = std::stoi(parts[++i]); // To do: search for mates only
+				if (parts[i] == "movetime") params.movetime = std::stoi(parts[++i]);
 				if (parts[i] == "searchmoves") { cout << "info string Searchmoves parameter is not yet implemented!" << endl; }
 			}
 
@@ -376,7 +356,7 @@ void Engine::Start() {
 		cout << "Unknown command: '" << parts[0] << "'" << endl;
 
 	}
-	cout << "Stopping engine." << endl;
+
 	SearchThreads.StopThreads();
 }
 
@@ -523,10 +503,8 @@ void Engine::HandleBench() {
 	SearchThreads.ResetState(false);
 	Settings::Hash = oldHashSize;
 	SearchThreads.TranspositionTable.SetSize(oldHashSize); // also clears the transposition table
-	// Some issues with the following code, but only when starting from the command line:
-	// Settings::Threads = oldThreadCount;
-	// SearchThreads.SetThreadCount(oldThreadCount);
-	// possibly starting and shutting down a thread too quickly?
+	Settings::Threads = oldThreadCount;
+	SearchThreads.SetThreadCount(oldThreadCount);
 	Settings::Chess960 = oldChess960Setting;
 }
 
