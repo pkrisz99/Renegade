@@ -83,6 +83,6 @@ inline void SetTunableParameter(const std::string name, const int value) {
 	TunableParameterList.at(name).value = value;
 }
 
-// Set tunable parameters here --------------------------------------------------------------------
+// Add tunable parameters here --------------------------------------------------------------------
 // Definition here: ADD_TUNABLE(name, default, min, max, step)
 // Usage in code:   tune_name()
