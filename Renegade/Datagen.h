@@ -18,10 +18,11 @@ enum class DatagenLaunchMode { Ask, Normal, DFRC };
 
 // Datagen settings:
 constexpr int startingEvalLimit = 500;
-constexpr int verificationDepth = 10;
-constexpr int softNodeLimit = 5000;
+constexpr int verificationSoftNodeLimit = 20000;
+constexpr int verificationHardNodeLimit = 500000;
+constexpr int softNodeLimit = 10000;
 constexpr int hardNodeLimit = 500000;
-constexpr int depthLimit = 20;
+constexpr int depthLimit = 25;
 constexpr int randomPlyBaseNormal = 2;
 constexpr int randomPlyBaseDFRC = 4;
 constexpr int minSavePly = 16;

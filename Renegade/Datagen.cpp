@@ -91,8 +91,8 @@ void StartDatagen(const DatagenLaunchMode launchMode) {
 	if (!DFRC) cout << " - After the book exit do " << Console::Yellow << randomPlyBaseNormal << Console::White << " plies of random moves, then play normally" << endl;
 	else cout << " - " << Console::Yellow << randomPlyBaseDFRC << Console::White << " or " << Console::Yellow << randomPlyBaseDFRC + 1
 		<< Console::White << " plies of random rollout, then normal playout" << endl;
-	cout << " - Verification at depth " << Console::Yellow << verificationDepth << Console::White
-		<< " with a threshold of " << Console::Yellow << startingEvalLimit << Console::White << endl;
+	//cout << " - Verification at depth " << Console::Yellow << verificationDepth << Console::White
+	//	<< " with a threshold of " << Console::Yellow << startingEvalLimit << Console::White << endl;
 	cout << " - Playing with a soft node limit of " << Console::Yellow << softNodeLimit << Console::White << endl;
 	cout << " - Using DFRC starting positions: " << Console::Yellow << std::boolalpha << DFRC
 		<< std::noboolalpha << Console::White << endl;
@@ -127,7 +127,8 @@ void SelfPlay(const std::string filename) {
 	params.nodes = hardNodeLimit;
 	params.depth = depthLimit;
 	SearchParams verificationParams = SearchParams();
-	verificationParams.depth = verificationDepth;
+	verificationParams.softnodes = verificationSoftNodeLimit;
+	verificationParams.nodes = verificationHardNodeLimit;
 	std::uniform_int_distribution<std::size_t> nodesDistribution(softNodeLimit - 100, softNodeLimit + 100);
 	const int randomPlyBase = DFRC ? randomPlyBaseDFRC : randomPlyBaseNormal;
 	
