@@ -831,7 +831,7 @@ bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
 	// This is more or less the standard way of doing this
 	// The implementation follows Ethereal's method
 
-	constexpr auto seeValues = std::array{ 0, 100, 300, 300, 500, 1000, 999999 };
+	constexpr auto seeValues = std::array{ 0, 100, 400, 400, 600, 1100, 999999 };
 
 	// Get the initial piece
 	uint8_t victim = TypeOfPiece(GetPieceAt(move.from));
