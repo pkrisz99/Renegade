@@ -485,7 +485,6 @@ void Viriformat::WriteToFile(std::ofstream& stream) const {
 
 // Returns true if the position should be trained on
 bool TextformatFilter(const Position& pos, const Move& move, const int eval) {
-	return true;
 	if (std::abs(eval) > MateThreshold) return false;
 	if (pos.GetPly() < minSavePly) return false;
 	if (DFRC && move.IsCastling()) return false;
