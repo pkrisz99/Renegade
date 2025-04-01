@@ -484,7 +484,7 @@ void Viriformat::WriteToFile(std::ofstream& stream) const {
 }
 
 // Returns true if the position should be trained on
-static bool TextformatFilter(const Position& pos, const Move& move, const int eval) {
+bool TextformatFilter(const Position& pos, const Move& move, const int eval) {
 	return true;
 	if (std::abs(eval) > MateThreshold) return false;
 	if (pos.GetPly() < minSavePly) return false;
@@ -496,7 +496,7 @@ static bool TextformatFilter(const Position& pos, const Move& move, const int ev
 
 // Creates a textformat entry
 // "<fen> | <eval> | <wdl>" where eval: white pov in cp & wdl: 1.0 = white win, 0.0 = black win, 0.5 = drawn
-static std::string ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome) {
+std::string ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome) {
 	const std::string outcomeStr = [&] {
 		switch (outcome) {
 		case GameState::WhiteVictory: return "1.0";
