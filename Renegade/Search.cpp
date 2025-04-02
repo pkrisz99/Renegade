@@ -459,6 +459,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
 	bool futilityPrunable = false;
+	int futilityScoreValue = NoEval;
 
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
@@ -490,6 +491,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (depth <= 5 && !IsMateScore(beta)) {
 			const int futilityMargin = 52 + depth * 110;
 			futilityPrunable = (eval + futilityMargin < alpha);
+			futilityScoreValue = eval + futilityMargin;
 		}
 	}
 
@@ -538,8 +540,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			// Performing futility pruning
 			if (futilityPrunable && isQuiet && order < 32768 && alpha < MateThreshold) {
-				const int futilityMargin = 52 + depth * 110;
-				bestScore = eval + futilityMargin;
+				bestScore = futilityScoreValue;
 				break;
 			}
 
