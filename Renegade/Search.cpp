@@ -459,10 +459,11 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
 	const int granularImproving = [&] {
-		if (!improving) return 0;
-		return std::min(t.StaticEvalStack[level] - t.StaticEvalStack[level - 2] + 16, 32);
+		if (level < 2 || inCheck) return 0;
+		return std::clamp(t.StaticEvalStack[level] - t.StaticEvalStack[level - 2], -16, 16) + 16;
 	}();
 	bool futilityPrunable = false;
+	//cout << granularImproving << endl;
 
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
@@ -470,7 +471,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Reverse futility pruning
 		if (depth <= 7 && !IsMateScore(beta)) {
 			const int rfpMarginDefault = depth * 99;
-			const int rfpMarginImproving = rfpMarginDefault - improving * 87;
+			const int rfpMarginImproving = rfpMarginDefault - 87;
 			const int rfpMargin = LinearInterpolation(rfpMarginDefault, rfpMarginImproving, granularImproving, 32);
 			if (eval - rfpMargin > beta) return (eval + beta) / 2;
 		}
