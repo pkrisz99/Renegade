@@ -59,6 +59,11 @@ static inline int LosingMateScore(const int level) {
 	return -MateEval + level;
 }
 
+static inline int LinearInterpolation(const int y0, const int y1, const int t, const int t1) {
+	assert(t <= t1);
+	return (y0 * (t1 - t) + y1 * t) / t1;
+}
+
 // Board constants --------------------------------------------------------------------------------
 
 namespace MoveFlag {
