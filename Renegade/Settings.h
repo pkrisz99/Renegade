@@ -9,10 +9,10 @@
 
 constexpr int HashMin = 1;
 constexpr int HashDefault = 64;
-constexpr int HashMax = 65536;
+constexpr int HashMax = 1048576;
 constexpr int ThreadsMin = 1;
 constexpr int ThreadsDefault = 1;
-constexpr int ThreadsMax = 256;
+constexpr int ThreadsMax = 1024;
 constexpr bool Chess960Default = false;
 constexpr bool ShowWDLDefault = true;
 
