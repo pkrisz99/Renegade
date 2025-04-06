@@ -460,7 +460,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
 	const int granularImproving = [&] {
 		if (level < 2 || inCheck) return 0;
-		return std::clamp(t.StaticEvalStack[level] - t.StaticEvalStack[level - 2], -16, 16) + 16;
+		return std::clamp(t.StaticEvalStack[level] - t.StaticEvalStack[level - 2] + 8, 0, 32);
 	}();
 	bool futilityPrunable = false;
 	//cout << granularImproving << endl;
