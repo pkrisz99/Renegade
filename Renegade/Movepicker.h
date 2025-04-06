@@ -79,14 +79,11 @@ private:
 			else return -200000 + values[capturedPieceType] * 14 + hist.GetCaptureHistoryScore(pos, m);
 		}
 
-		// Quiet killer moves
-		if (m == killerMove) return 100000;
-
-		// Countermove heuristic
-		if (m == counterMove) return 99000;
-
 		// Quiet moves
-		const int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
+		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
+		if (m == killerMove) historyScore += 32768;
+		else if (m == counterMove) historyScore += 16384;
+
 		return historyScore;
 	}
 
