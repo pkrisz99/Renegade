@@ -1,7 +1,7 @@
 #include "Transpositions.h"
 
 Transpositions::Transpositions() {
-	SetSize(1); // set an initial size, it will be resized before using
+	SetSize(1, 1); // set an initial size, it will be resized before using
 }
 
 void Transpositions::Store(const uint64_t hash, const int depth, const int16_t score, const int scoreType, const int16_t rawEval, const Move& bestMove, const int level, const bool ttPv) {
@@ -94,19 +94,37 @@ void Transpositions::IncreaseAge() {
 	if (CurrentGeneration < 65000) CurrentGeneration += 1;
 }
 
-void Transpositions::SetSize(const int megabytes) {
+void Transpositions::SetSize(const int megabytes, const int threadCount) {
 	assert(megabytes > 0);
 	const uint64_t theoreticalClusterCount = static_cast<uint64_t>(megabytes) * 1024 * 1024 / sizeof(TranspositionCluster);
 	const uint64_t actualClusterCount = std::bit_floor(theoreticalClusterCount);
 	HashMask = actualClusterCount - 1;
-	Clear();
+
+	if (Table.size() != actualClusterCount) {
+		Table.resize(actualClusterCount);
+		Table.shrink_to_fit();
+	}
+	Clear(threadCount);
 }
 
-void Transpositions::Clear() {
-	Table.clear();
-	Table.reserve(HashMask + 1);
-	for (uint64_t i = 0; i < HashMask + 1; i++) Table.push_back(TranspositionCluster());
-	Table.shrink_to_fit(); // I don't think that's needed
+void Transpositions::Clear(const int threadCount) {
+	// Clear entries, potentially in parallel, with as many threads as set to do search
+	// This speeds up initialization significantly for large hash sizes
+
+	const uint64_t clusterCount = Table.size();
+	const uint64_t chunkSize = (clusterCount + threadCount - 1) / threadCount; // ceil division
+	std::vector<std::thread> threads;
+
+	for (int i = 0; i < threadCount; i++) {
+		threads.emplace_back([this, i, chunkSize, clusterCount]() {
+			const uint64_t startIndex = chunkSize * i;
+			const uint64_t endIndex = std::min(startIndex + chunkSize, clusterCount);
+			const uint64_t length = endIndex - startIndex;
+			std::memset(&Table[startIndex], 0, length * sizeof(TranspositionCluster));
+		});
+	}
+	for (auto& t : threads) t.join();
+
 	CurrentGeneration = 0;
 }
 

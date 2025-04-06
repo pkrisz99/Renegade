@@ -30,7 +30,7 @@ void ThreadData::ResetStatistics() {
 
 void Search::ResetState(const bool clearTT) {
 	for (ThreadData& t : Threads) t.History.ClearAll();
-	if (clearTT) TranspositionTable.Clear();
+	if (clearTT) TranspositionTable.Clear(Settings::Threads);
 }
 
 void Search::StartThreads(const int threadCount) {
