@@ -86,3 +86,7 @@ inline void SetTunableParameter(const std::string name, const int value) {
 // Add tunable parameters here --------------------------------------------------------------------
 // Definition here: ADD_TUNABLE(name, default, min, max, step)
 // Usage in code:   tune_name()
+
+ADD_TUNABLE(rfp_margin, 99, 70, 130, 15)
+ADD_TUNABLE(rfp_improving, 87, 60, 120, 15)
+ADD_TUNABLE(improving_delta, 32, 8, 128, 16)

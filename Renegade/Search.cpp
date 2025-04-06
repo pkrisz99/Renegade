@@ -460,7 +460,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
 	const int granularImproving = [&] {
 		if (level < 2 || inCheck) return 0;
-		return std::clamp(t.StaticEvalStack[level] - t.StaticEvalStack[level - 2], -16, 16) + 16;
+		const int d = tune_improving_delta() / 2;
+		return std::clamp(t.StaticEvalStack[level] - t.StaticEvalStack[level - 2], -d, d) + d;
 	}();
 	bool futilityPrunable = false;
 	//cout << granularImproving << endl;
@@ -470,9 +471,9 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Reverse futility pruning
 		if (depth <= 7 && !IsMateScore(beta)) {
-			const int rfpMarginDefault = depth * 99;
-			const int rfpMarginImproving = rfpMarginDefault - 87;
-			const int rfpMargin = LinearInterpolation(rfpMarginDefault, rfpMarginImproving, granularImproving, 32);
+			const int rfpMarginDefault = depth * tune_rfp_margin();
+			const int rfpMarginImproving = rfpMarginDefault - tune_rfp_improving();
+			const int rfpMargin = LinearInterpolation(rfpMarginDefault, rfpMarginImproving, granularImproving, tune_improving_delta());
 			if (eval - rfpMargin > beta) return (eval + beta) / 2;
 		}
 
