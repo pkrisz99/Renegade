@@ -3,7 +3,9 @@
 #include "Utils.h"
 #include <algorithm>
 #include <array>
+#include <cstdlib>
 #include <memory>
+#include <thread>
 
 namespace ScoreType {
 	constexpr int Invalid = 0;
@@ -40,6 +42,7 @@ class Transpositions
 {
 public:
 	Transpositions();
+	~Transpositions();
 	void Store(const uint64_t hash, const int depth, const int16_t score, const int scoreType, const int16_t rawEval, const Move& bestMove, const int level, const bool ttPv);
 	bool Probe(const uint64_t hash, TranspositionEntry& entry, const int level) const;
 	void Prefetch(const uint64_t hash) const;
@@ -49,12 +52,17 @@ public:
 	int GetHashfull() const;
 
 private:
-	std::vector<TranspositionCluster> Table;
-	uint64_t HashMask;
+	TranspositionCluster* Table = nullptr;
+	uint64_t TableSize = 0;
 	uint16_t CurrentGeneration;
 
+	// Handles direct memory allocation and freeing, required for multiplatform and performance reasons:
+	void AllocateTable(const uint64_t clusterCount);
+	void FreeTable();
+
 	inline uint64_t GetClusterIndex(const uint64_t hash) const {
-		return hash & HashMask;
+		assert((TableSize & (TableSize - 1)) == 0);
+		return hash & (TableSize - 1);
 	}
 
 	inline uint32_t GetStoredHash(const uint64_t hash) const {

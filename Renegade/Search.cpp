@@ -427,7 +427,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 7)
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && !IsMateScore(ttEval);
-	const bool ttPV = pvNode || ttEntry.ttPv;
+	const bool ttPV = pvNode || (found && ttEntry.ttPv);
 	
 	// Obtain the evaluation of the position
 	int rawEval = NoEval;
@@ -714,7 +714,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (!pvNode && found && ttEntry.IsCutoffPermitted(0, alpha, beta)) return ttEntry.score;
 	Move ttMove = NullMove;
 	if (found) ttMove = Move(ttEntry.packedMove);
-	const bool ttPV = pvNode || ttEntry.ttPv;
+	const bool ttPV = pvNode || (found && ttEntry.ttPv);
 
 	// Update alpha-beta bounds
 	const int rawEval = [&] {

@@ -4,13 +4,17 @@ Transpositions::Transpositions() {
 	SetSize(1, 1); // set an initial size, it will be resized before using
 }
 
+Transpositions::~Transpositions() {
+	FreeTable();
+}
+
 void Transpositions::Store(const uint64_t hash, const int depth, const int16_t score, const int scoreType, const int16_t rawEval, const Move& bestMove, const int level, const bool ttPv) {
 
 	//assert(std::abs(score) < MateEval); <-- only good if not aborting
-	assert(HashMask != 0);
+	assert(TableSize > 1);
 	if (std::abs(score) > MateEval) return;
 
-	const uint64_t key = hash & HashMask;
+	const uint64_t key = GetClusterIndex(hash);
 	const int quality = RecordingQuality(CurrentGeneration, depth);
 	const uint32_t storedHash = GetStoredHash(hash);
 	const TranspositionCluster& cluster = Table[key];
@@ -63,7 +67,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 }
 
 bool Transpositions::Probe(const uint64_t hash, TranspositionEntry& returned, const int level) const {
-	assert(HashMask != 0);
+	assert(TableSize > 1);
 	const uint64_t key = GetClusterIndex(hash);
 	const uint32_t storedHash = GetStoredHash(hash);
 	const TranspositionCluster& cluster = Table[key];
@@ -90,6 +94,24 @@ void Transpositions::Prefetch(const uint64_t hash) const {
 #endif
 }
 
+void Transpositions::AllocateTable(const uint64_t clusterCount) {
+#if defined(_MSC_VER) || defined(_WIN32)
+	Table = static_cast<TranspositionCluster*>(_aligned_malloc(clusterCount * sizeof(TranspositionCluster), 64));
+#elif
+	Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, clusterCount * sizeof(TranspositionCluster)));
+#endif
+	TableSize = clusterCount;
+}
+
+void Transpositions::FreeTable() {
+#if defined(_MSC_VER) || defined(_WIN32)
+	if (Table != nullptr) _aligned_free(Table);
+#elif
+	if (Table != nullptr) std::free(Table);
+#endif
+	TableSize = 0;
+}
+
 void Transpositions::IncreaseAge() {
 	if (CurrentGeneration < 65000) CurrentGeneration += 1;
 }
@@ -98,11 +120,10 @@ void Transpositions::SetSize(const int megabytes, const int threadCount) {
 	assert(megabytes > 0);
 	const uint64_t theoreticalClusterCount = static_cast<uint64_t>(megabytes) * 1024 * 1024 / sizeof(TranspositionCluster);
 	const uint64_t actualClusterCount = std::bit_floor(theoreticalClusterCount);
-	HashMask = actualClusterCount - 1;
 
-	if (Table.size() != actualClusterCount) {
-		Table.resize(actualClusterCount);
-		Table.shrink_to_fit();
+	if (TableSize != actualClusterCount) {
+		FreeTable();
+		AllocateTable(actualClusterCount);
 	}
 	Clear(threadCount);
 }
@@ -111,14 +132,13 @@ void Transpositions::Clear(const int threadCount) {
 	// Clear entries, potentially in parallel, with as many threads as set to do search
 	// This speeds up initialization significantly for large hash sizes
 
-	const uint64_t clusterCount = Table.size();
-	const uint64_t chunkSize = (clusterCount + threadCount - 1) / threadCount; // ceil division
+	const uint64_t chunkSize = (TableSize + threadCount - 1) / threadCount; // ceil division
 	std::vector<std::thread> threads;
 
 	for (int i = 0; i < threadCount; i++) {
-		threads.emplace_back([this, i, chunkSize, clusterCount]() {
+		threads.emplace_back([this, i, chunkSize]() {
 			const uint64_t startIndex = chunkSize * i;
-			const uint64_t endIndex = std::min(startIndex + chunkSize, clusterCount);
+			const uint64_t endIndex = std::min(startIndex + chunkSize, TableSize);
 			const uint64_t length = endIndex - startIndex;
 			std::memset(&Table[startIndex], 0, length * sizeof(TranspositionCluster));
 		});

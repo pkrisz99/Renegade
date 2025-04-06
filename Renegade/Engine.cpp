@@ -225,18 +225,6 @@ void Engine::Start() {
 			cout << "Transposition table cleared." << endl;
 			continue;
 		}
-		if (parts[0] == "bighash") {
-			Settings::Hash = 1024;
-			SearchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
-			cout << "Using big hash: 1024 MB" << endl;
-			continue;
-		}
-		if (parts[0] == "hugehash") {
-			Settings::Hash = 4096;
-			SearchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
-			cout << "Using huge hash: 4096 MB" << endl;
-			continue;
-		}
 		if (parts[0] == "frc") {
 			if (parts[1] == "on") {
 				Settings::Chess960 = true;
@@ -250,8 +238,14 @@ void Engine::Start() {
 		}
 		if (parts[0] == "th") {
 			Settings::Threads = stoi(parts[1]);
-			cout << "-> Set thread count to " << Settings::Threads << endl;
 			SearchThreads.SetThreadCount(Settings::Threads);
+			cout << "-> Set thread count to " << Settings::Threads << endl;
+			continue;
+		}
+		if (parts[0] == "hash") {
+			Settings::Hash = stoi(parts[1]);
+			SearchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
+			cout << "-> Set hash size to " << Settings::Hash << endl;
 			continue;
 		}
 
