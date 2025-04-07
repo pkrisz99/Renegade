@@ -2,7 +2,7 @@
 
 Engine::Engine(int argc, char* argv[]) {
 	Settings::UseUCI = !PrettySupport;
-	SearchThreads.TranspositionTable.SetSize(Settings::Hash);
+	SearchThreads.TranspositionTable.SetSize(Settings::Hash, 1);
 
 	if (argc == 2 && std::string(argv[1]) == "bench") Behavior = EngineBehavior::Bench;
 	else if (argc == 2 && std::string(argv[1]) == "datagen") Behavior = EngineBehavior::DatagenNormal;
@@ -105,7 +105,7 @@ void Engine::Start() {
 
 			if (parts[2] == "hash") {
 				Settings::Hash = stoi(parts[4]);
-				SearchThreads.TranspositionTable.SetSize(Settings::Hash);
+				SearchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
 				valid = true;
 			}
 			else if (parts[2] == "clear") {
@@ -225,18 +225,6 @@ void Engine::Start() {
 			cout << "Transposition table cleared." << endl;
 			continue;
 		}
-		if (parts[0] == "bighash") {
-			Settings::Hash = 1024;
-			SearchThreads.TranspositionTable.SetSize(Settings::Hash);
-			cout << "Using big hash: 1024 MB" << endl;
-			continue;
-		}
-		if (parts[0] == "hugehash") {
-			Settings::Hash = 4096;
-			SearchThreads.TranspositionTable.SetSize(Settings::Hash);
-			cout << "Using huge hash: 4096 MB" << endl;
-			continue;
-		}
 		if (parts[0] == "frc") {
 			if (parts[1] == "on") {
 				Settings::Chess960 = true;
@@ -250,8 +238,14 @@ void Engine::Start() {
 		}
 		if (parts[0] == "th") {
 			Settings::Threads = stoi(parts[1]);
-			cout << "-> Set thread count to " << Settings::Threads << endl;
 			SearchThreads.SetThreadCount(Settings::Threads);
+			cout << "-> Set thread count to " << Settings::Threads << endl;
+			continue;
+		}
+		if (parts[0] == "hash") {
+			Settings::Hash = stoi(parts[1]);
+			SearchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
+			cout << "-> Set hash size to " << Settings::Hash << endl;
 			continue;
 		}
 
@@ -478,7 +472,7 @@ void Engine::HandleBench() {
 	const int oldThreadCount = Settings::Threads;
 	Settings::Threads = 1;
 	Settings::Hash = 16;
-	SearchThreads.TranspositionTable.SetSize(16);
+	SearchThreads.TranspositionTable.SetSize(16, 1);
 	SearchThreads.SetThreadCount(1);
 
 	uint64_t nodes = 0;
@@ -501,10 +495,10 @@ void Engine::HandleBench() {
 	cout << nodes << " nodes " << nps << " nps" << endl;
 
 	SearchThreads.ResetState(false);
-	Settings::Hash = oldHashSize;
-	SearchThreads.TranspositionTable.SetSize(oldHashSize); // also clears the transposition table
 	Settings::Threads = oldThreadCount;
 	SearchThreads.SetThreadCount(oldThreadCount);
+	Settings::Hash = oldHashSize;
+	SearchThreads.TranspositionTable.SetSize(oldHashSize, oldThreadCount); // also clears the transposition table
 	Settings::Chess960 = oldChess960Setting;
 }
 

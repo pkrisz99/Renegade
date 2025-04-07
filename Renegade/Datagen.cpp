@@ -133,9 +133,9 @@ void SelfPlay(const std::string filename) {
 	Search* Searcher1 = new Search;
 	Search* Searcher2 = new Search;
 	Search* SearcherV = new Search;
-	Searcher1->TranspositionTable.SetSize(1);
-	Searcher2->TranspositionTable.SetSize(1);
-	SearcherV->TranspositionTable.SetSize(1);
+	Searcher1->TranspositionTable.SetSize(1, 1);
+	Searcher2->TranspositionTable.SetSize(1, 1);
+	SearcherV->TranspositionTable.SetSize(1, 1);
 	Searcher1->SetThreadCount(1);
 	Searcher2->SetThreadCount(1);
 	SearcherV->SetThreadCount(1);
