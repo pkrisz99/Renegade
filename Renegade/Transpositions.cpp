@@ -97,7 +97,7 @@ void Transpositions::Prefetch(const uint64_t hash) const {
 void Transpositions::AllocateTable(const uint64_t clusterCount) {
 #if defined(_MSC_VER) || defined(_WIN32)
 	Table = static_cast<TranspositionCluster*>(_aligned_malloc(clusterCount * sizeof(TranspositionCluster), 64));
-#elif
+#else
 	Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, clusterCount * sizeof(TranspositionCluster)));
 #endif
 	TableSize = clusterCount;
@@ -106,7 +106,7 @@ void Transpositions::AllocateTable(const uint64_t clusterCount) {
 void Transpositions::FreeTable() {
 #if defined(_MSC_VER) || defined(_WIN32)
 	if (Table != nullptr) _aligned_free(Table);
-#elif
+#else
 	if (Table != nullptr) std::free(Table);
 #endif
 	TableSize = 0;
