@@ -21,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.1.95";
+constexpr std::string_view Version = "dev 1.1.109";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -370,7 +370,7 @@ struct StaticVector {
 		return items[index];
 	}
 
-	inline std::size_t size() {
+	inline std::size_t size() const {
 		return count;
 	}
 

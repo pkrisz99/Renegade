@@ -7,9 +7,7 @@ Position::Position(const std::string& fen) {
 
 	// Reserve memory, add starting state
 	States.reserve(512);
-	Hashes.reserve(512);
 	Moves.reserve(512);
-	Threats.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
 	
@@ -108,9 +106,8 @@ Position::Position(const std::string& fen) {
 
 	board.HalfmoveClock = stoi(parts[4]);
 	board.FullmoveClock = stoi(parts[5]);
-
-	Hashes.push_back(board.CalculateHash());
-	Threats.push_back(CalculateAttackedSquares(!Turn()));
+	board.Threats = CalculateAttackedSquares(!Turn());
+	board.BoardHash = board.CalculateHash();
 }
 
 Position::Position(const int frcWhite, const int frcBlack) {
@@ -121,9 +118,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 
 	// Reserve memory, add starting state
 	States.reserve(512);
-	Hashes.reserve(512);
 	Moves.reserve(512);
-	Threats.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
 
@@ -201,9 +196,8 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	board.EnPassantSquare = -1;
 	board.HalfmoveClock = 0;
 	board.FullmoveClock = 1;
-
-	Hashes.push_back(board.CalculateHash());
-	Threats.push_back(CalculateAttackedSquares(!Turn()));
+	board.Threats = CalculateAttackedSquares(!Turn());
+	board.BoardHash = board.CalculateHash();
 }
 
 // Pushing moves ----------------------------------------------------------------------------------
@@ -216,11 +210,11 @@ void Position::PushMove(const Move& move) {
 	const uint8_t movedPiece = board.GetPieceAt(move.from);
 
 	board.ApplyMove(move, CastlingConfig);
+	board.Threats = CalculateAttackedSquares(!Turn());
+	board.BoardHash = board.CalculateHash();
 
-	Hashes.push_back(board.CalculateHash());
 	Moves.push_back({ move, movedPiece });
-	Threats.push_back(CalculateAttackedSquares(!Turn()));
-	assert(States.size() == Hashes.size() && States.size() - 1 == Moves.size() && States.size() == Threats.size());
+	assert(States.size() - 1 == Moves.size());
 }
 
 void Position::PushNullMove() {
@@ -229,16 +223,17 @@ void Position::PushNullMove() {
 
 	board.Turn = !board.Turn;
 	if (board.Turn == Side::White) board.FullmoveClock += 1;
+	board.Threats = CalculateAttackedSquares(!Turn());
 
 	if (board.EnPassantSquare == -1) {
-		Hashes.push_back(Hashes.back() ^ Zobrist[780]);
+		board.BoardHash = board.BoardHash ^ Zobrist[780];
 	}
 	else {
 		board.EnPassantSquare = -1;
-		Hashes.push_back(board.CalculateHash());
+		board.BoardHash = board.CalculateHash();
 	}
+
 	Moves.push_back({ NullMove, Piece::None });
-	Threats.push_back(CalculateAttackedSquares(!Turn()));
 	return;
 }
 
@@ -308,9 +303,7 @@ bool Position::PushUCI(const std::string& str) {
 
 void Position::PopMove() {
 	States.pop_back();
-	Hashes.pop_back();
 	Moves.pop_back();
-	Threats.pop_back();
 }
 
 // Generating moves -------------------------------------------------------------------------------
@@ -456,7 +449,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & fakeOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = Threats.back();
+			const uint64_t opponentAttacks = b.Threats;
 			const bool safe = !(opponentAttacks & rayBetweenKingAndG);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::ShortCastle));
 		}
@@ -474,7 +467,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & fakeOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = Threats.back();
+			const uint64_t opponentAttacks = b.Threats;
 			const bool safe = !(opponentAttacks & rayBetweenKingAndC);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::LongCastle));
 		}
@@ -733,12 +726,12 @@ bool Position::IsDrawn(const bool threefold) const {
 
 	// 2. Threefold repetitions
 	const uint64_t hash = Hash();
-	const int length = Hashes.size();
+	const int length = States.size();
 	const int threshold = threefold ? 3 : 2;
 	int repeated = 0;
 
 	for (int i = length - 1; i >= std::max(0, length - b.HalfmoveClock - 2); i -= 2) {
-		if (Hashes[i] == hash) {
+		if (States[i].BoardHash == hash) {
 			repeated += 1;
 			if (repeated >= threshold) return true;
 		}
@@ -830,4 +823,100 @@ GameState Position::GetGameState() const {
 	// Check other types of draws
 	if (IsDrawn(true)) return GameState::Drawn;
 	else return GameState::Playing;
+}
+
+// Static exchange evaluation (SEE) ---------------------------------------------------------------
+
+bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
+	// This is more or less the standard way of doing this
+	// The implementation follows Ethereal's method
+
+	constexpr auto seeValues = std::array{ 0, 100, 300, 300, 500, 1000, 999999 };
+
+	// Get the initial piece
+	uint8_t victim = TypeOfPiece(GetPieceAt(move.from));
+	if (move.IsPromotion()) victim = move.GetPromotionPieceType();
+
+	// Get estimated move value
+	int estimatedMoveValue = seeValues[TypeOfPiece(GetPieceAt(move.to))];
+	if (move.IsPromotion()) estimatedMoveValue += seeValues[move.GetPromotionPieceType()] - seeValues[PieceType::Pawn];
+	else if (move.flag == MoveFlag::EnPassantPerformed) estimatedMoveValue = seeValues[PieceType::Pawn];
+	else if (move.IsCastling()) estimatedMoveValue = 0;
+
+	// Handle trivial cases (losing the piece for nothing still above / having initial gain below threshold)
+	int score = -threshold;
+	score += estimatedMoveValue;
+	if (score < 0) return false;
+	score -= seeValues[victim];
+	if (score >= 0) return true;
+
+	// Lookups (should be optimized) 
+	const uint64_t whitePieces = GetOccupancy(Side::White);
+	const uint64_t blackPieces = GetOccupancy(Side::Black);
+	const uint64_t parallels = WhiteRookBits() | BlackRookBits() | WhiteQueenBits() | BlackQueenBits();
+	const uint64_t diagonals = WhiteBishopBits() | BlackBishopBits() | WhiteQueenBits() | BlackQueenBits();
+	uint64_t occupancy = whitePieces | blackPieces;
+	SetBitFalse(occupancy, move.from);
+	SetBitTrue(occupancy, move.to);
+	bool turn = Turn();
+	if (move.flag == MoveFlag::EnPassantPerformed) {
+		SetBitFalse(occupancy, (turn == Side::White) ? move.to - 8 : move.to + 8);
+	}
+	turn = !turn;
+	uint64_t attackers = GetAttackersOfSquare(move.to, occupancy) & occupancy;
+
+	// Pseudo-generating steps
+	while (true) {
+
+		uint64_t currentAttackers = attackers & ((turn == Side::White) ? whitePieces : blackPieces);
+		if (!currentAttackers) break;
+
+		// Retrieve the location of the least valuable attacking piece type
+		int sq = -1;
+		if (turn == Side::White) {
+			if (currentAttackers & WhitePawnBits()) sq = LsbSquare(currentAttackers & WhitePawnBits());
+			else if (currentAttackers & WhiteKnightBits()) sq = LsbSquare(currentAttackers & WhiteKnightBits());
+			else if (currentAttackers & WhiteBishopBits()) sq = LsbSquare(currentAttackers & WhiteBishopBits());
+			else if (currentAttackers & WhiteRookBits()) sq = LsbSquare(currentAttackers & WhiteRookBits());
+			else if (currentAttackers & WhiteQueenBits()) sq = LsbSquare(currentAttackers & WhiteQueenBits());
+			else if (currentAttackers & WhiteKingBits()) sq = LsbSquare(currentAttackers & WhiteKingBits());
+		}
+		else {
+			if (currentAttackers & BlackPawnBits()) sq = LsbSquare(currentAttackers & BlackPawnBits());
+			else if (currentAttackers & BlackKnightBits()) sq = LsbSquare(currentAttackers & BlackKnightBits());
+			else if (currentAttackers & BlackBishopBits()) sq = LsbSquare(currentAttackers & BlackBishopBits());
+			else if (currentAttackers & BlackRookBits()) sq = LsbSquare(currentAttackers & BlackRookBits());
+			else if (currentAttackers & BlackQueenBits()) sq = LsbSquare(currentAttackers & BlackQueenBits());
+			else if (currentAttackers & BlackKingBits()) sq = LsbSquare(currentAttackers & BlackKingBits());
+		}
+		assert(sq != -1);
+
+		// Update fields
+		victim = TypeOfPiece(GetPieceAt(sq));
+		SetBitFalse(occupancy, sq);
+
+		// Update potentially uncovered sliding pieces
+		if (victim == PieceType::Pawn || victim == PieceType::Bishop || victim == PieceType::Queen) {
+			attackers |= GetBishopAttacks(move.to, occupancy) & diagonals;
+		}
+		if (victim == PieceType::Rook || victim == PieceType::Queen) {
+			attackers |= GetRookAttacks(move.to, occupancy) & parallels;
+		}
+
+		attackers &= occupancy;
+		turn = !turn;
+
+		// Break conditions
+		score = -score - seeValues[victim] - 1;
+		if (score >= 0) {
+			const uint64_t upcomingOccupancy = (turn == Side::White) ? whitePieces : blackPieces;
+			if (victim == PieceType::King && (currentAttackers & upcomingOccupancy)) {
+				turn = !turn;
+			}
+			break;
+		}
+	}
+
+	// If after the exchange it's our opponent's turn, that means we won
+	return turn != Turn();
 }

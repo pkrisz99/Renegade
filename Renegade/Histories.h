@@ -4,7 +4,7 @@
 #include "Utils.h"
 #include <memory>
 
-// Aliases for readabiliy
+// Aliases for readability
 constexpr bool Bonus = true;
 constexpr bool Penalty = false;
 
@@ -19,12 +19,12 @@ public:
 
 	// Killer move heuristic:
 	void SetKillerMove(const Move& move, const int level);
-	bool IsKillerMove(const Move& move, const int level) const;
+	Move GetKillerMove(const int level) const;
 	void ResetKillerForPly(const int level);
 
 	// Countermove heuristic:
 	void SetCountermove(const Move& previousMove, const Move& thisMove);
-	bool IsCountermove(const Move& previousMove, const Move& thisMove) const;
+	Move GetCountermove(const Move& previousMove) const;
 
 	// History heuristic:
 	template <bool bonus> void UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth);
@@ -39,7 +39,7 @@ public:
 private:
 
 	inline void UpdateHistoryValue(int16_t& value, const int amount) {
-		const int gravity = value * std::abs(amount) / 16384;
+		const int gravity = value * std::abs(amount) / 14300;
 		value += amount - gravity;
 	}
 
@@ -48,19 +48,13 @@ private:
 	MultiArray<Move, 64, 64> CounterMoves;
 
 	// Move ordering history:
-	using QuietHistoryTable = MultiArray<int16_t, 15, 64, 2, 2>;
-	using CaptureHistoryTable = MultiArray<int16_t, 15, 64, 15, 2, 2>; // [attacking piece][square to][captured piece]
-	using ContinuationHistoryTable = MultiArray<int16_t, 15, 64, 15, 64>;
-	QuietHistoryTable QuietHistory;
-	CaptureHistoryTable CaptureHistory;
-	ContinuationHistoryTable ContinuationHistory;
+	MultiArray<int16_t, 15, 64, 2, 2> QuietHistory;
+	MultiArray<int16_t, 15, 64, 15, 2, 2> CaptureHistory; // [attacking piece][square to][captured piece][from treat][to threat]
+	MultiArray<int16_t, 15, 64, 15, 64> ContinuationHistory;
 
 	// Evaluation correction history:
-	using MaterialCorrectionTable = MultiArray<int32_t, 2, 32768>;
-	using PawnsCorrectionTable = MultiArray<int32_t, 2, 16384>;
-	using FollowUpCorrectionTable = MultiArray<int32_t, 15, 64, 15, 64>;
-	MaterialCorrectionTable MaterialCorrectionHistory;
-	PawnsCorrectionTable PawnsCorrectionHistory;
-	FollowUpCorrectionTable FollowUpCorrectionHistory;
+	MultiArray<int32_t, 2, 32768> MaterialCorrectionHistory;
+	MultiArray<int32_t, 2, 16384> PawnsCorrectionHistory;
+	MultiArray<int32_t, 15, 64, 15, 64> FollowUpCorrectionHistory;
 };
 
