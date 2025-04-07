@@ -91,16 +91,14 @@ void Search::StartSearch(Position& position, const SearchParams params, const bo
 		return;
 	}
 
-	// Early exit for only one legal move
-	if (rootLegalMoves.size() == 1 && !DatagenMode && (params.wtime != 0 || params.btime != 0)) {
-		const Move onlyMove = rootLegalMoves[0].move;
-		cout << "info string Only one legal move!" << endl;
-		cout << "info depth 1 nodes 0 pv " << onlyMove.ToString(Settings::Chess960) << endl;
-		PrintBestmove(onlyMove);
-		return;
-	}
-
 	Constraints = CalculateConstraints(params, position.Turn());
+
+	// Reduce time for one legal move
+	if (rootLegalMoves.size() == 1 && (params.wtime != 0 || params.btime != 0)) {
+		cout << "info string Only one legal move, time allocated for search is reduced" << endl;
+		Constraints.SearchTimeMin = std::min(Constraints.SearchTimeMin, 200);
+		Constraints.SearchTimeMax = std::min(Constraints.SearchTimeMax, 2000);
+	}
 
 	// Fire up the threads
 	Aborting.store(false);
