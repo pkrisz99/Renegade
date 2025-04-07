@@ -95,7 +95,7 @@ void Search::StartSearch(Position& position, const SearchParams params, const bo
 
 	// Reduce time for one legal move
 	if (rootLegalMoves.size() == 1 && (params.wtime != 0 || params.btime != 0)) {
-		cout << "info string Only one legal move, reduced search time" << endl;
+		cout << "info string Only one legal move, time allocated for search is reduced" << endl;
 		Constraints.SearchTimeMin = std::min(Constraints.SearchTimeMin, 200);
 		Constraints.SearchTimeMax = std::min(Constraints.SearchTimeMax, 2000);
 	}
