@@ -270,7 +270,7 @@ void Search::SearchMoves(ThreadData& t) {
 
 				if (score <= alpha) {
 					alpha = std::max(alpha - windowSize, NegativeInfinity);
-					beta = (alpha + beta) / 2;
+					beta = (alpha + beta + score) / 3;
 					searchDepth = t.RootDepth;
 				}
 				else if (score >= beta) {
