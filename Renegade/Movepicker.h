@@ -13,6 +13,7 @@ public:
 		this->ttMove = ttMove;
 		this->killerMove = hist.GetKillerMove(level);
 		this->counterMove = (level > 0) ? hist.GetCountermove(pos.GetPreviousMove(1).move) : NullMove;
+		this->positionalMove = hist.GetPositionalMove(pos);
 		this->level = level;
 		this->moveGen = moveGen;
 		this->moves.clear();
@@ -84,12 +85,13 @@ private:
 
 		if (m == killerMove) historyScore += 32768;
 		else if (m == counterMove) historyScore += 16384;
+		else if (m == positionalMove) historyScore += 16384;
 
 		return historyScore;
 	}
 
 
-	Move ttMove{}, killerMove{}, counterMove{};
+	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
 	MoveList moves{};
 	int level = 0;
 	MoveGen moveGen = MoveGen::All;
