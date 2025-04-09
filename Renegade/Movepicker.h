@@ -12,6 +12,7 @@ public:
 	void Initialize(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
 		this->ttMove = ttMove;
 		this->killerMove = hist.GetKillerMove(level);
+		this->grandparentKillerMove = (level >= 2) ? hist.GetKillerMove(level - 2) : NullMove;
 		this->counterMove = (level > 0) ? hist.GetCountermove(pos.GetPreviousMove(1).move) : NullMove;
 		this->positionalMove = hist.GetPositionalMove(pos);
 		this->level = level;
@@ -86,12 +87,13 @@ private:
 		if (m == killerMove) historyScore += 32768;
 		else if (m == counterMove) historyScore += 16384;
 		else if (m == positionalMove) historyScore += 16384;
+		else if (m == grandparentKillerMove) historyScore += 8192;
 
 		return historyScore;
 	}
 
 
-	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
+	Move ttMove{}, killerMove{}, grandparentKillerMove{}, counterMove{}, positionalMove{};
 	MoveList moves{};
 	int level = 0;
 	MoveGen moveGen = MoveGen::All;
