@@ -3,12 +3,11 @@
 # -----------------------------------------------------------------------------
 
 TARGET    := Renegade
-NAME      := Renegade
 _THIS     := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 _ROOT     := $(_THIS)
 CXX       := clang++
 CXXFLAGS  := -std=c++20 -O3 -flto -funroll-loops -fno-exceptions -DNDEBUG -Wall -Wextra
-NATIVE    := -march=native
+NATIVE    := -march=native -mtune=native
 
 
 # System dependent flags -------------------------------------------------------
@@ -23,7 +22,7 @@ else
 	LDFLAGS := -pthread
 endif
 
-# Use LLD for Clang on non-MacOS systems
+# Use LLD for Clang on non-macOS systems
 CXX_VERSION := $(shell $(CXX) --version)
 ifneq ($(DETECTED_OS), Darwin)
 	ifneq (, $(findstring clang, $(CXX_VERSION)))
@@ -36,31 +35,31 @@ endif
 # (as of 2025, the default release build is bmi2)
 
 ifeq ($(build), native)
-	NATIVE   = -march=native
+	NATIVE   = -march=native -mtune=native
 endif
 
 ifeq ($(build), debug)
 	CXXFLAGS = -std=c++20 -O3 -g3 -fno-omit-frame-pointer -fsanitize=address -fsanitize=leak -fsanitize=undefined
-	NATIVE   = -march=haswell
-	LDFLAGS  = -lpthread -lstdc++
+	NATIVE   = -march=haswell -mtune=haswell
+	LDFLAGS  = -pthread -lstdc++
 endif
 
 ifeq ($(build), x86-64)
-	NATIVE   = -mtune=znver1
+	NATIVE   = -msse -msse2 -mtune=sandybridge
 endif
 
 ifeq ($(build), x86-64-bmi2)
-	NATIVE   = -march=haswell
+	NATIVE   = -march=haswell -mtune=haswell
 endif
 
 
 # Running build commands ------------------------------------------------------
-# (Utils.h is always recompiled to include the correct date and time) 
+# (Engine.cpp is always recompiled to include the correct date and time) 
 
 SOURCES := $(wildcard *.cpp)
 OBJECTS := $(patsubst %.cpp,%.o,$(SOURCES))
 DEPENDS := $(patsubst %.cpp,%.d,$(SOURCES))
-EXE     := $(NAME)
+EXE     := $(TARGET)
 
 all: $(TARGET)
 
@@ -79,5 +78,5 @@ $(TARGET): $(OBJECTS)
 
 -include $(DEPENDS)
 
-Utils.o: FORCE
+Engine.o: FORCE
 FORCE:
