@@ -1,9 +1,14 @@
-/*#pragma once
+#pragma once
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <optional>
 #include <thread>
+
+#ifdef __cpp_lib_format
+#include <format>
+#endif
+
 #include "Position.h"
 #include "Search.h"
 #include "Settings.h"
@@ -29,4 +34,3 @@ enum class DatagenLaunchMode { Ask, Normal, DFRC };
 
 void MergeDatagenFiles();
 void StartDatagen(const DatagenLaunchMode launchMode);
-*/

@@ -72,21 +72,19 @@ private:
 				if (moveGen == MoveGen::Noisy) return false;
 				if (pos.IsMoveQuiet(m)) return false;
 				const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
-				return !pos.StaticExchangeEval(m, -captureScore / 32);
+				return !pos.StaticExchangeEval(m, -captureScore / 36);
 			}();
 
-			if (!losingCapture) return 600000 + values[capturedPieceType] * 16 + hist.GetCaptureHistoryScore(pos, m);
-			else return -200000 + values[capturedPieceType] * 16 + hist.GetCaptureHistoryScore(pos, m);
+			if (!losingCapture) return 600000 + values[capturedPieceType] * 14 + hist.GetCaptureHistoryScore(pos, m);
+			else return -200000 + values[capturedPieceType] * 14 + hist.GetCaptureHistoryScore(pos, m);
 		}
 
-		// Quiet killer moves
-		if (m == killerMove) return 100000;
+		// Quiet moves, potentially apply a bonus for being a refutation (killer or counter move)
+		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 
-		// Countermove heuristic
-		if (m == counterMove) return 99000;
+		if (m == killerMove) historyScore += 32768;
+		else if (m == counterMove) historyScore += 16384;
 
-		// Quiet moves
-		const int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 		return historyScore;
 	}
 

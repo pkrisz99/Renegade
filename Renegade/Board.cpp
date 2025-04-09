@@ -226,19 +226,16 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 }
 
 uint64_t Board::CalculateMaterialKey() const {
-	uint64_t material_key = 0;
-
-	material_key |= static_cast<uint64_t>(Popcount(WhitePawnBits));
-	material_key |= (static_cast<uint64_t>(Popcount(WhiteKnightBits)) << 6);
-	material_key |= (static_cast<uint64_t>(Popcount(WhiteBishopBits)) << 12);
-	material_key |= (static_cast<uint64_t>(Popcount(WhiteRookBits)) << 18);
-	material_key |= (static_cast<uint64_t>(Popcount(WhiteQueenBits)) << 24);
-
-	material_key |= (static_cast<uint64_t>(Popcount(BlackPawnBits)) << 30);
-	material_key |= (static_cast<uint64_t>(Popcount(BlackKnightBits)) << 36);
-	material_key |= (static_cast<uint64_t>(Popcount(BlackBishopBits)) << 42);
-	material_key |= (static_cast<uint64_t>(Popcount(BlackRookBits)) << 48);
-	material_key |= (static_cast<uint64_t>(Popcount(BlackQueenBits)) << 54);
-
-	return MurmurHash3(material_key);
+	uint64_t materialKey = 0;
+	materialKey |= static_cast<uint64_t>(Popcount(WhitePawnBits));
+	materialKey |= static_cast<uint64_t>(Popcount(WhiteKnightBits)) << 6;
+	materialKey |= static_cast<uint64_t>(Popcount(WhiteBishopBits)) << 12;
+	materialKey |= static_cast<uint64_t>(Popcount(WhiteRookBits)) << 18;
+	materialKey |= static_cast<uint64_t>(Popcount(WhiteQueenBits)) << 24;
+	materialKey |= static_cast<uint64_t>(Popcount(BlackPawnBits)) << 30;
+	materialKey |= static_cast<uint64_t>(Popcount(BlackKnightBits)) << 36;
+	materialKey |= static_cast<uint64_t>(Popcount(BlackBishopBits)) << 42;
+	materialKey |= static_cast<uint64_t>(Popcount(BlackRookBits)) << 48;
+	materialKey |= static_cast<uint64_t>(Popcount(BlackQueenBits)) << 54;
+	return MurmurHash3(materialKey);
 }

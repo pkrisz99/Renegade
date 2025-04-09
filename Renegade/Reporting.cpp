@@ -72,7 +72,7 @@ void PrintInfo(const Results& e) {
 // Printing current search results ----------------------------------------------------------------
 
 void PrintPretty(const Results& e) {
-#if defined(_MSC_VER)
+#if __cpp_lib_format
 
 	// Basic search information:
 

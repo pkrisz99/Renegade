@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cpp_lib_format
+#include <format>
+#endif
+
 #include "Move.h"
 #include "Settings.h"
 
