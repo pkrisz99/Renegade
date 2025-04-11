@@ -18,6 +18,7 @@ void Histories::ClearKillerAndCounterMoves() {
 	std::memset(&KillerMoves, 0, sizeof(KillerMoves));
 	std::memset(&CounterMoves, 0, sizeof(CounterMoves));
 	std::memset(&PositionalMoves, 0, sizeof(PositionalMoves));
+	std::memset(&MaterialKeyMoves, 0, sizeof(MaterialKeyMoves));
 }
 
 // Killer and countermoves ------------------------------------------------------------------------
@@ -49,6 +50,14 @@ void Histories::SetPositionalMove(const Position& pos, const Move& thisMove) {
 
 Move Histories::GetPositionalMove(const Position& pos) const {
 	return PositionalMoves[pos.Turn()][pos.GetPawnKey() % 8192];
+}
+
+void Histories::SetMaterialKeyMove(const Position& pos, const Move& thisMove) {
+	MaterialKeyMoves[pos.Turn()][pos.GetMaterialKey() % 8192] = thisMove;
+}
+
+Move Histories::GetMaterialKeyMove(const Position& pos) const {
+	return MaterialKeyMoves[pos.Turn()][pos.GetMaterialKey() % 8192];
 }
 
 // History heuristic ------------------------------------------------------------------------------

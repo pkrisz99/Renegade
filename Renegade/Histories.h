@@ -30,6 +30,9 @@ public:
 	void SetPositionalMove(const Position& pos, const Move& thisMove);
 	Move GetPositionalMove(const Position& pos) const;
 
+	void SetMaterialKeyMove(const Position& pos, const Move& thisMove);
+	Move GetMaterialKeyMove(const Position& pos) const;
+
 	// History heuristic:
 	template <bool bonus> void UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth);
 	template <bool bonus> void UpdateCaptureHistory(const Position& position, const Move& m, const int depth);
@@ -51,6 +54,7 @@ private:
 	std::array<Move, MaxDepth> KillerMoves;
 	MultiArray<Move, 64, 64> CounterMoves;
 	MultiArray<Move, 2, 8192> PositionalMoves;
+	MultiArray<Move, 2, 8192> MaterialKeyMoves;
 
 	// Move ordering history:
 	MultiArray<int16_t, 15, 64, 2, 2> QuietHistory;
