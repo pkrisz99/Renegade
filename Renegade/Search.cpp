@@ -67,6 +67,7 @@ Results Search::SearchSinglethreaded(const Position& pos, const SearchParams& pa
 	ThreadData& t = Threads.front();
 	t.singlethreaded = true;
 	t.CurrentPosition = pos;
+	t.InitialPawnHash = pos.GetPawnKey();
 	t.result = {};
 	t.ResetStatistics();
 	Constraints = CalculateConstraints(params, pos.Turn());
@@ -105,6 +106,7 @@ void Search::StartSearch(Position& position, const SearchParams params, const bo
 	ActiveThreadCount.store(Threads.size());
 	for (ThreadData& t : Threads) {
 		t.CurrentPosition = position;
+		t.InitialPawnHash = position.GetPawnKey();
 		t.result = {};
 		t.ResetStatistics();
 	}
@@ -498,7 +500,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Initialize variables, generate and order moves (in singular search we've already done these)
 	if (!singularSearch) {
-		movePicker.Initialize(MoveGen::All, position, t.History, ttMove, level);
+		movePicker.Initialize(MoveGen::All, position, t.History, ttMove, level, position.GetPawnKey() != t.InitialPawnHash);
 
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
@@ -728,7 +730,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 	// Generate noisy moves and order them
 	MovePicker& movePicker = t.MovePickerStack[level];
-	movePicker.Initialize(MoveGen::Noisy, position, t.History, ttMove, level);
+	movePicker.Initialize(MoveGen::Noisy, position, t.History, ttMove, level, false);
 
 	// Search recursively
 	int bestScore = staticEval;

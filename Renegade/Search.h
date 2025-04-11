@@ -52,6 +52,7 @@ public:
 	std::array<bool, MaxDepth> SuperSingular;
 
 	Position CurrentPosition;
+	uint64_t InitialPawnHash = 0;
 
 	std::thread Thread;
 	int threadId;

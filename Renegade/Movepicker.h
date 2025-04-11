@@ -9,11 +9,11 @@ class MovePicker {
 public:
 	MovePicker() = default;
 
-	void Initialize(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
+	void Initialize(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level, const bool usePosRef) {
 		this->ttMove = ttMove;
 		this->killerMove = hist.GetKillerMove(level);
 		this->counterMove = (level > 0) ? hist.GetCountermove(pos.GetPreviousMove(1).move) : NullMove;
-		this->positionalMove = hist.GetPositionalMove(pos);
+		this->positionalMove = usePosRef ? hist.GetPositionalMove(pos) : NullMove;
 		this->level = level;
 		this->moveGen = moveGen;
 		this->moves.clear();
