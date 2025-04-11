@@ -139,9 +139,6 @@ void SelfPlay(const std::string filename) {
 	Searcher1->SetThreadCount(1);
 	Searcher2->SetThreadCount(1);
 	SearcherV->SetThreadCount(1);
-	Searcher1->DatagenMode = true;
-	Searcher2->DatagenMode = true;
-	SearcherV->DatagenMode = true;
 
 	SearchParams params = SearchParams();
 	params.softnodes = softNodeLimit;

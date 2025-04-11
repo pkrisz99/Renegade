@@ -83,11 +83,11 @@ public:
 	void Loop(ThreadData& t);
 	Results SearchSinglethreaded(const Position& pos, const SearchParams& params);
 	void WaitUntilReady();
-
 	void Perft(Position& position, const int depth, const PerftType type) const;
 
+	static constexpr bool DatagenMode = false; // <-- for datagen, set this to true
+
 	std::atomic<bool> Aborting = true;
-	bool DatagenMode = false;
 	Transpositions TranspositionTable;
 
 	std::list<ThreadData> Threads;
