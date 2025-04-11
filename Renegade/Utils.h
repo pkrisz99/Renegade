@@ -21,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.1.114";
+constexpr std::string_view Version = "dev 1.1.115";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -302,11 +302,11 @@ namespace Console {
 
 	const std::string Highlight = "\x1b[30;103m";
 
-	static void ClearScreen() {
+	inline void ClearScreen() {
 		cout << "\033[2J\033[1;1H" << std::flush;
 	};
 
-	static std::string FormatInteger(const uint64_t number) {
+	inline std::string FormatInteger(const uint64_t number) {
 		struct FormattingPunct : std::numpunct<char> {
 			char do_thousands_sep() const override { return ','; }
 			std::string do_grouping() const override { return "\3"; }

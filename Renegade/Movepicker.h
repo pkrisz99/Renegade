@@ -56,7 +56,6 @@ private:
 
 		constexpr std::array<int, 7> values = { 0, 100, 300, 300, 500, 900, 0 };
 		const uint8_t movedPiece = pos.GetPieceAt(m.from);
-		const uint8_t attackingPieceType = TypeOfPiece(movedPiece);
 		const uint8_t capturedPieceType = [&] {
 			if (m.IsCastling()) return PieceType::None;
 			if (m.flag == MoveFlag::EnPassantPerformed) return PieceType::Pawn;

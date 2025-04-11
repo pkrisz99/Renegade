@@ -610,7 +610,6 @@ bool Position::IsLegalMove(const Move& m) const {
 		return !IsSquareAttacked(!board.Turn, m.to, occupancy);
 	}
 
-	const uint8_t capturedPiece = GetPieceAt(m.to);
 	const uint8_t kingSq = (board.Turn == Side::White) ? LsbSquare(board.WhiteKingBits) : LsbSquare(board.BlackKingBits);
 	const uint64_t occupancy = GetOccupancy();
 
@@ -620,7 +619,7 @@ bool Position::IsLegalMove(const Move& m) const {
 		const uint8_t epVictimSq = (board.Turn == Side::White) ? board.EnPassantSquare - 8 : board.EnPassantSquare + 8;
 		const uint64_t parallelSliders = (board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits);
 		const uint64_t diagonalSliders = (board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits);
-		const uint64_t approxOccupancy = occupancy ^ SquareBit(m.from) ^ SquareBit(epVictimSq) | SquareBit(m.to);
+		const uint64_t approxOccupancy = (occupancy ^ SquareBit(m.from) ^ SquareBit(epVictimSq)) | SquareBit(m.to);
 		return !(GetRookAttacks(kingSq, approxOccupancy) & parallelSliders) && !(GetBishopAttacks(kingSq, approxOccupancy) & diagonalSliders);
 	}
 
@@ -753,7 +752,6 @@ bool Position::IsDrawn(const bool threefold) const {
 
 bool Position::IsMoveQuiet(const Move& move) const {
 	if (move.IsCastling()) return true;
-	const uint8_t movedPiece = GetPieceAt(move.from);
 	const uint8_t targetPiece = GetPieceAt(move.to);
 	if (targetPiece != Piece::None) return false;
 	if (move.flag == MoveFlag::PromotionToQueen) return false;

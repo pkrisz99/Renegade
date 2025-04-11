@@ -14,7 +14,6 @@ int ClassicalEvaluate(const Position& position) {
 	const uint64_t blackPieces = position.GetOccupancy(Side::Black);
 	const uint64_t whitePawnAttacks = position.GetPawnAttacks<Side::White>();
 	const uint64_t blackPawnAttacks = position.GetPawnAttacks<Side::Black>();
-	uint64_t whiteAttacks = 0, blackAttacks = 0;
 
 	const float phase = [&] {
 		const int remainingPawns = Popcount(position.WhitePawnBits() | position.BlackPawnBits());
@@ -61,7 +60,6 @@ int ClassicalEvaluate(const Position& position) {
 		case Piece::WhitePawn:
 			// Get attacks & update king danger scores
 			attacks = WhitePawnAttacks[sq] & ~whitePieces;
-			whiteAttacks |= attacks;
 			if ((blackKingZone & attacks) != 0) {
 				blackDangerScore += weights.PieceDangers[PieceType::Pawn];
 				blackDangerPieces += 1;
@@ -89,7 +87,6 @@ int ClassicalEvaluate(const Position& position) {
 		case Piece::BlackPawn:
 			// Get attacks & update king danger scores
 			attacks = BlackPawnAttacks[sq] & ~blackPieces;
-			blackAttacks |= attacks;
 			if ((whiteKingZone & attacks) != 0) {
 				whiteDangerScore += weights.PieceDangers[PieceType::Pawn];
 				whiteDangerPieces += 1;
@@ -118,7 +115,6 @@ int ClassicalEvaluate(const Position& position) {
 			// Get attacks, mobility & update king danger scores
 			attacks = KnightMoveBits[sq];
 			mobility = attacks & ~whitePieces;
-			whiteAttacks |= mobility;
 			mobilityScore += weights.GetKnightMobility(Popcount(mobility & ~blackPawnAttacks));
 			if ((blackKingZone & mobility) != 0) {
 				blackDangerScore += weights.PieceDangers[PieceType::Knight];
@@ -141,7 +137,6 @@ int ClassicalEvaluate(const Position& position) {
 			// Get attacks, mobility & update king danger scores
 			attacks = KnightMoveBits[sq];
 			mobility = attacks & ~blackPieces;
-			blackAttacks |= mobility;
 			mobilityScore -= weights.GetKnightMobility(Popcount(mobility & ~whitePawnAttacks));
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += weights.PieceDangers[PieceType::Knight];
@@ -164,7 +159,6 @@ int ClassicalEvaluate(const Position& position) {
 			// Get attacks, mobility & update king danger scores
 			attacks = GetBishopAttacks(sq, occupancy);
 			mobility = attacks & ~whitePieces;
-			whiteAttacks |= mobility;
 			mobilityScore += weights.GetBishopMobility(Popcount(mobility & ~blackPawnAttacks));
 			if ((blackKingZone & mobility) != 0) {
 				blackDangerScore += weights.PieceDangers[PieceType::Bishop];
@@ -181,7 +175,6 @@ int ClassicalEvaluate(const Position& position) {
 			// Get attacks, mobility & update king danger scores
 			attacks = GetBishopAttacks(sq, occupancy);
 			mobility = attacks & ~blackPieces;
-			blackAttacks |= mobility;
 			mobilityScore -= weights.GetBishopMobility(Popcount(mobility & ~whitePawnAttacks));
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += weights.PieceDangers[PieceType::Bishop];
@@ -198,7 +191,6 @@ int ClassicalEvaluate(const Position& position) {
 			// Get attacks, mobility & update king danger scores
 			attacks = GetRookAttacks(sq, occupancy);
 			mobility = attacks & ~whitePieces;
-			whiteAttacks |= mobility;
 			mobilityScore += weights.GetRookMobility(Popcount(mobility & ~blackPawnAttacks));
 			if ((blackKingZone & mobility) != 0) {
 				blackDangerScore += weights.PieceDangers[PieceType::Rook];
@@ -224,7 +216,6 @@ int ClassicalEvaluate(const Position& position) {
 			// Get attacks, mobility & update king danger scores
 			attacks = GetRookAttacks(sq, occupancy);
 			mobility = attacks & ~blackPieces;
-			blackAttacks |= mobility;
 			mobilityScore -= weights.GetRookMobility(Popcount(mobility & ~whitePawnAttacks));
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += weights.PieceDangers[PieceType::Rook];
@@ -250,7 +241,6 @@ int ClassicalEvaluate(const Position& position) {
 			// Get attacks, mobility & update king danger scores
 			attacks = GetQueenAttacks(sq, occupancy);
 			mobility = attacks & ~whitePieces;
-			whiteAttacks |= mobility;
 			mobilityScore += weights.GetQueenMobility(Popcount(mobility & ~blackPawnAttacks));
 			if ((blackKingZone & mobility) != 0) {
 				blackDangerScore += weights.PieceDangers[PieceType::Queen];
@@ -267,7 +257,6 @@ int ClassicalEvaluate(const Position& position) {
 			// Get attacks, mobility & update king danger scores
 			attacks = GetQueenAttacks(sq, occupancy);
 			mobility = attacks & ~blackPieces;
-			blackAttacks |= mobility;
 			mobilityScore -= weights.GetQueenMobility(Popcount(mobility & ~whitePawnAttacks));
 			if ((whiteKingZone & mobility) != 0) {
 				whiteDangerScore += weights.PieceDangers[PieceType::Queen];

@@ -85,7 +85,7 @@ struct Board {
 		case Piece::BlackRook: return BlackRookBits;
 		case Piece::BlackQueen: return BlackQueenBits;
 		case Piece::BlackKing: return BlackKingBits;
-		default: assert(false);
+		default: assert(false); return WhitePawnBits; // return something to silence warnings
 		}
 	}
 

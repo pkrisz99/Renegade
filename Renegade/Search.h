@@ -101,7 +101,7 @@ private:
 	int SearchRecursive(ThreadData& t, int depth, const int level, int alpha, int beta, const bool pvNode, const bool cutNode);
 	int SearchQuiescence(ThreadData& t, const int level, int alpha, int beta, const bool pvNode);
 
-	int16_t Evaluate(ThreadData& t, const Position& position, const int level);
+	int16_t Evaluate(ThreadData& t, const Position& position);
 	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	bool ShouldAbort(const ThreadData& t);

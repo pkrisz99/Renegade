@@ -277,7 +277,7 @@ void Search::SearchMoves(ThreadData& t) {
 					beta = std::min(beta + windowSize, PositiveInfinity);
 					
 					// Reduce depth on fail-high
-					if (!IsMateScore(score) && (searchDepth > 1)) searchDepth -= 1;
+					if (!IsMateScore(score) && searchDepth > 1) searchDepth -= 1;
 				}
 				else {
 					// Success!
@@ -378,7 +378,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	const bool aborting = ShouldAbort(t);
 	if (aborting) return NoEval;
 	t.InitPvLength(level);
-	if (level >= MaxDepth) return Evaluate(t, position, level);
+	if (level >= MaxDepth) return Evaluate(t, position);
 	if (level > t.SelDepth) t.SelDepth = level;
 
 	// Mate distance pruning
@@ -436,7 +436,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		rawEval = [&] {
 			if (inCheck) return static_cast<int16_t>(NoEval);
 			if (found) return ttEntry.rawEval;
-			return static_cast<int16_t>(Evaluate(t, position, level));
+			return static_cast<int16_t>(Evaluate(t, position));
 		}();
 		staticEval = t.History.ApplyCorrection(position, rawEval);
 		eval = staticEval;
@@ -718,7 +718,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	// Update alpha-beta bounds
 	const int rawEval = [&] {
 		if (found && !position.IsInCheck()) return ttEntry.rawEval;
-		return static_cast<int16_t>(Evaluate(t, position, level));
+		return static_cast<int16_t>(Evaluate(t, position));
 	}();
 	const int staticEval = t.History.ApplyCorrection(position, rawEval);
 	if (staticEval >= beta) return staticEval;
@@ -768,7 +768,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	return bestScore;
 }
 
-int16_t Search::Evaluate(ThreadData& t, const Position& position, const int level) {
+int16_t Search::Evaluate(ThreadData& t, const Position& position) {
 	return t.EvalState.Evaluate(position);
 }
 
