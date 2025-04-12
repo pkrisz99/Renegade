@@ -87,6 +87,6 @@ inline void SetTunableParameter(const std::string name, const int value) {
 // Definition here: ADD_TUNABLE(name, default, min, max, step)
 // Usage in code:   tune_name()
 
-ADD_TUNABLE(refut_killer, 32768, 8192, 65536, 10000)
-ADD_TUNABLE(refut_counter, 16384, 4096, 65536, 6000)
-ADD_TUNABLE(refut_positional, 16384, 4096, 65536, 6000)
+ADD_TUNABLE(refut_killer, 30000, 8192, 65536, 10000)
+ADD_TUNABLE(refut_counter, 14000, 4096, 65536, 6000)
+ADD_TUNABLE(refut_positional, 15000, 4096, 65536, 6000)
