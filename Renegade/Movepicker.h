@@ -82,9 +82,9 @@ private:
 		// Quiet moves, potentially apply a bonus for being a refutation (killer or counter move)
 		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 
-		if (m == killerMove) historyScore += 32768;
-		else if (m == counterMove) historyScore += 16384;
-		else if (m == positionalMove) historyScore += 16384;
+		if (m == killerMove) historyScore += 22000;
+		else if (m == counterMove) historyScore += 16000;
+		else if (m == positionalMove) historyScore += 16000;
 
 		return historyScore;
 	}
