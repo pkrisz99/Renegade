@@ -580,6 +580,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		position.PushMove(m);
 		t.Nodes += 1;
 		int score = NoEval;
+		failHighCount = 0;
 		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
 		bool deepen = false;
 
@@ -662,13 +663,13 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Increment history scores for the move causing the cutoff 
 		if (quietBestMove) {
-			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth, failLowCount);
+			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth, failHighCount);
 			t.History.SetKillerMove(bestMove, level);
 			t.History.SetPositionalMove(position, bestMove);
 			if (level > 0) t.History.SetCountermove(position.GetPreviousMove(1).move, bestMove);
 		}
 		else {
-			t.History.UpdateCaptureHistory<Bonus>(position, bestMove, depth, failLowCount);
+			t.History.UpdateCaptureHistory<Bonus>(position, bestMove, depth, failHighCount);
 		}
 
 		// Decrement history scores for all previously tried moves
