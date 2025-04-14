@@ -613,7 +613,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		if (pvNode && (legalMoveCount == 1 || score > alpha)) {
 			score = -SearchRecursive(t, depth - 1 + extension + deepen, level + 1, -beta, -alpha, true, false);
-			failHighCount += (score > alpha);
+			failHighCount += (score >= beta);
 		}
 
 		position.PopMove();
