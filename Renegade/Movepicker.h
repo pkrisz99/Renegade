@@ -90,7 +90,7 @@ private:
 					break;
 				}
 			}
-			historyScore += 22000 - badKiller * 11000;
+			historyScore += 22000 - badKiller * 22000;
 		}
 		else if (m == counterMove) historyScore += 16000;
 		else if (m == positionalMove) historyScore += 16000;
