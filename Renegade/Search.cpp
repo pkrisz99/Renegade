@@ -509,6 +509,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
 	int failLowCount = 0;
+	int failHighCount = 0;
 	Move bestMove = NullMove;
 	int bestScore = NegativeInfinity;
 
@@ -596,18 +597,22 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
 			score = -SearchRecursive(t, reducedDepth, level + 1, -alpha - 1, -alpha, false, true);
+			failHighCount += (score > alpha);
 
 			if (score > alpha && reducedDepth < depth - 1) {
 				deepen = score > (bestScore + 42 + (depth - 1) * 5);
 				score = -SearchRecursive(t, depth - 1 + deepen, level + 1, -alpha - 1, -alpha, false, !cutNode);
+				failHighCount += (score > alpha);
 			}
 		}
 		else if (!pvNode || legalMoveCount > 1) {
 			score = -SearchRecursive(t, depth - 1 + extension, level + 1, -alpha - 1, -alpha, false, !cutNode);
+			failHighCount += (score > alpha);
 		}
 
 		if (pvNode && (legalMoveCount == 1 || score > alpha)) {
 			score = -SearchRecursive(t, depth - 1 + extension + deepen, level + 1, -beta, -alpha, true, false);
+			failHighCount += (score > alpha);
 		}
 
 		position.PopMove();
@@ -657,21 +662,21 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Increment history scores for the move causing the cutoff 
 		if (quietBestMove) {
-			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth);
+			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth, failLowCount);
 			t.History.SetKillerMove(bestMove, level);
 			t.History.SetPositionalMove(position, bestMove);
 			if (level > 0) t.History.SetCountermove(position.GetPreviousMove(1).move, bestMove);
 		}
 		else {
-			t.History.UpdateCaptureHistory<Bonus>(position, bestMove, depth);
+			t.History.UpdateCaptureHistory<Bonus>(position, bestMove, depth, failLowCount);
 		}
 
 		// Decrement history scores for all previously tried moves
 		if (quietBestMove) quietsTried.pop(); // don't decrement for the current move
 		else capturesTried.pop();
 
-		for (const Move& qt : quietsTried) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth);
-		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth);
+		for (const Move& qt : quietsTried) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth, failLowCount);
+		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth, failLowCount);
 	}
 
 	// Update evaluation correction
