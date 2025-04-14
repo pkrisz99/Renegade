@@ -512,6 +512,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	int failHighCount = 0;
 	Move bestMove = NullMove;
 	int bestScore = NegativeInfinity;
+	bool skipQuiets = false;
 
 	StaticVector<Move, MaxMoveCount> quietsTried;
 	StaticVector<Move, MaxMoveCount> capturesTried;
@@ -520,8 +521,9 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		const auto& [m, order] = movePicker.Get();
 		if (m == excludedMove) continue;
 		if (!position.IsLegalMove(m)) continue;
-		legalMoveCount += 1;
 		const bool isQuiet = position.IsMoveQuiet(m);
+		if (skipQuiets && isQuiet) continue;
+		legalMoveCount += 1;
 
 		if (isQuiet) quietsTried.push(m);
 		else capturesTried.push(m);
@@ -538,7 +540,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			// Performing futility pruning
 			if (futilityPrunable && isQuiet && order < 32768 && alpha < MateThreshold) {
 				bestScore = (bestScore + alpha) / 2;
-				break;
+				skipQuiets = true;
+				continue;
 			}
 
 			// Main search SEE pruning
