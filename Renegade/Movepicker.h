@@ -93,7 +93,7 @@ private:
 				break;
 			}
 		}
-		if (badMove) historyScore -= 10000;
+		if (badMove) historyScore -= 5000;
 
 
 		return historyScore;
