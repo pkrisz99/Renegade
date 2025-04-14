@@ -40,6 +40,8 @@ public:
 	void UpdateCorrection(const Position& position, const int16_t refEval, const int16_t score, const int depth);
 	int16_t ApplyCorrection(const Position& position, const int16_t rawEval) const;
 
+	std::array<StaticVector<Move, 256>, MaxDepth> BadMoves;
+
 private:
 
 	inline void UpdateHistoryValue(int16_t& value, const int amount) {

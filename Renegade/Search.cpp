@@ -503,6 +503,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
 		if (level + 1 < MaxDepth) t.CutoffCount[level + 1] = 0;
+		if (level + 2 < MaxDepth) t.History.BadMoves[level + 2].clear();
 	}
 	
 	// Iterate through legal moves
@@ -670,7 +671,11 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (quietBestMove) quietsTried.pop(); // don't decrement for the current move
 		else capturesTried.pop();
 
-		for (const Move& qt : quietsTried) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth);
+		t.History.BadMoves[level].clear();
+		for (const Move& qt : quietsTried) {
+			t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth);
+			t.History.BadMoves[level].push(qt);
+		}
 		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth);
 	}
 

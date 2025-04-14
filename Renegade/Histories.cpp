@@ -18,6 +18,7 @@ void Histories::ClearKillerAndCounterMoves() {
 	std::memset(&KillerMoves, 0, sizeof(KillerMoves));
 	std::memset(&CounterMoves, 0, sizeof(CounterMoves));
 	std::memset(&PositionalMoves, 0, sizeof(PositionalMoves));
+	std::memset(&BadMoves, 0, sizeof(BadMoves));
 }
 
 // Killer and countermoves ------------------------------------------------------------------------

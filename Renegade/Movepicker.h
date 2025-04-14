@@ -82,7 +82,16 @@ private:
 		// Quiet moves, potentially apply a bonus for being a refutation (killer or counter move)
 		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 
-		if (m == killerMove) historyScore += 22000;
+		if (m == killerMove) {
+			bool badKiller = false;
+			for (const auto& badKillers : hist.BadMoves[level]) {
+				if (killerMove == badKillers) {
+					badKiller = true;
+					break;
+				}
+			}
+			historyScore += 22000 - badKiller * 11000;
+		}
 		else if (m == counterMove) historyScore += 16000;
 		else if (m == positionalMove) historyScore += 16000;
 
