@@ -53,15 +53,16 @@ Move Histories::GetPositionalMove(const Position& pos) const {
 
 // History heuristic ------------------------------------------------------------------------------
 
-template void Histories::UpdateQuietHistory<Bonus>(const Position&, const Move&, int, int);
-template void Histories::UpdateQuietHistory<Penalty>(const Position&, const Move&, int, int);
-template void Histories::UpdateCaptureHistory<Bonus>(const Position&, const Move&, int);
-template void Histories::UpdateCaptureHistory<Penalty>(const Position&, const Move&, int);
+template void Histories::UpdateQuietHistory<Bonus>(const Position&, const Move&, int, int, int);
+template void Histories::UpdateQuietHistory<Penalty>(const Position&, const Move&, int, int, int);
+template void Histories::UpdateCaptureHistory<Bonus>(const Position&, const Move&, int, int);
+template void Histories::UpdateCaptureHistory<Penalty>(const Position&, const Move&, int, int);
 
 template <bool bonus>
-void Histories::UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth) {
+void Histories::UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth, const int times) {
 	
-	const int delta = std::min(300 * depth, 2600) * (bonus ? 1 : -1);
+	const int delta = std::min(300 * depth, 2600) * times * (bonus ? 1 : -1);
+	//cout << times;
 
 	// Main quiet history
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
@@ -81,9 +82,10 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 }
 
 template <bool bonus>
-void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth) {
-	const int delta = std::min(300 * depth, 2600) * (bonus ? 1 : -1);
+void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth, const int times) {
+	const int delta = std::min(300 * depth, 2600) * times * (bonus ? 1 : -1);
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
+	//cout << times;
 	const uint8_t targetSquare = m.to;
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);

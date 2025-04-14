@@ -31,8 +31,8 @@ public:
 	Move GetPositionalMove(const Position& pos) const;
 
 	// History heuristic:
-	template <bool bonus> void UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth);
-	template <bool bonus> void UpdateCaptureHistory(const Position& position, const Move& m, const int depth);
+	template <bool bonus> void UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth, const int times);
+	template <bool bonus> void UpdateCaptureHistory(const Position& position, const Move& m, const int depth, const int times);
 	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
 	int GetCaptureHistoryScore(const Position& position, const Move& m) const;
 
