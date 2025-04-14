@@ -675,8 +675,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (quietBestMove) quietsTried.pop(); // don't decrement for the current move
 		else capturesTried.pop();
 
-		for (const Move& qt : quietsTried) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth, failLowCount);
-		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth, failLowCount);
+		for (const Move& qt : quietsTried) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth, 1);
+		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth, 1);
 	}
 
 	// Update evaluation correction
