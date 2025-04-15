@@ -375,8 +375,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	assert(!pvNode || !cutNode);
 
 	// Check search limits
-	const bool aborting = ShouldAbort(t);
-	if (aborting) return NoEval;
+	if (ShouldAbort(t)) return NoEval;
 	t.InitPvLength(level);
 	if (level >= MaxDepth) return Evaluate(t, position);
 	if (level > t.SelDepth) t.SelDepth = level;
@@ -628,7 +627,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (score > bestScore) {
 			bestScore = score;
 
-			if (!aborting && pvNode) t.UpdatePvTable(m, level);
+			if (pvNode && !ShouldAbort(t)) t.UpdatePvTable(m, level);
 
 			// Raise alpha
 			if (score > alpha) {
@@ -654,6 +653,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 		return inCheck ? LosingMateScore(level) : 0;
 	}
+
+	const bool aborting = ShouldAbort(t);
 
 	// Update search history and statistics when having a cutoff
 	if (bestScore >= beta && !aborting) {
@@ -708,8 +709,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	assert(pvNode || beta - alpha == 1);
 
 	// Check search limits
-	const bool aborting = ShouldAbort(t);
-	if (aborting) return NoEval;
+	if (ShouldAbort(t)) return NoEval;
 	if (level > t.SelDepth) t.SelDepth = level;
 
 	// Probe the transposition table
@@ -770,7 +770,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 			}
 		}
 	}
-	if (!aborting) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, bestMove, level, ttPV);
+	if (!ShouldAbort(t)) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, bestMove, level, ttPV);
 	return bestScore;
 }
 
