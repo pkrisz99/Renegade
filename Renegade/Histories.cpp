@@ -69,6 +69,8 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
 	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened], delta);
+	UpdateHistoryValue(QuietHistory[movedPiece][m.to][!fromSquareThreatened][toSquareThreatened], delta / 4);
+	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][!toSquareThreatened], delta / 4);
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
