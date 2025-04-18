@@ -66,11 +66,11 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 
 	// Main quiet history
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
-	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
-	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
+	const int fromSquareThreatened = static_cast<int>(position.IsSquareThreatened(m.from));
+	const int toSquareThreatened = static_cast<int>(position.IsSquareThreatened(m.to));
 	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened], delta);
-	UpdateHistoryValue(QuietHistory[movedPiece][m.to][!fromSquareThreatened][toSquareThreatened], delta / 4);
-	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][!toSquareThreatened], delta / 4);
+
+
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
@@ -81,6 +81,10 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 			UpdateHistoryValue(value, delta);
 		}
 	}
+
+	UpdateHistoryValue(QuietHistory[movedPiece][m.to][!fromSquareThreatened][toSquareThreatened], delta / 4);
+
+	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][!toSquareThreatened], delta / 4);
 }
 
 template <bool bonus>
