@@ -16,7 +16,7 @@
 #endif
 
 INCBIN(DefaultNetwork, NETWORK_NAME);
-const NetworkRepresentation* Network;
+const NetworkRepresentation* Network = reinterpret_cast<const NetworkRepresentation*>(gDefaultNetworkData);
 std::unique_ptr<NetworkRepresentation> ExternalNetwork;
 
 // Evaluating the position ------------------------------------------------------------------------
@@ -275,7 +275,7 @@ void EvaluationState::UpdateFromBucketCache(const Position& pos, const int accIn
 void LoadDefaultNetwork() {
 #if !defined(_MSC_VER) || defined(__clang__)
 	// Include binary in the executable file via incbin (good)
-	Network = reinterpret_cast<const NetworkRepresentation*>(gDefaultNetworkData);
+	//Network = reinterpret_cast<const NetworkRepresentation*>(gDefaultNetworkData);
 #else
 	// Load network file from disk at runtime (bad)
 	std::ifstream ifs(NETWORK_NAME, std::ios::binary);
