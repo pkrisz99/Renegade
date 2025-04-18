@@ -457,14 +457,17 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
 	bool futilityPrunable = false;
 
+	// Reverse futility pruning
+	if (depth <= 7 && !IsMateScore(beta) && !singularSearch && !inCheck) {
+		const int rfpMargin = depth * 99 - improving * 87;
+		if (eval - rfpMargin > beta) {
+			if (!pvNode) return (eval + beta) / 2;
+			else depth -= 1;
+		}
+	}
+
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
-
-		// Reverse futility pruning
-		if (depth <= 7 && !IsMateScore(beta)) {
-			const int rfpMargin = depth * 99 - improving * 87;
-			if (eval - rfpMargin > beta) return (eval + beta) / 2;
-		}
 
 		// Null-move pruning
 		if (depth >= 3 && eval >= beta && !position.IsPreviousMoveNull() && position.ZugzwangUnlikely()) {
