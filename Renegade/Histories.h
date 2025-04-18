@@ -43,8 +43,9 @@ public:
 private:
 
 	void UpdateHistoryValue(int16_t& value, const int amount) {
-		const int gravity = value * std::abs(amount) / 14300;
-		value += static_cast<int16_t>(amount - gravity);
+		const int16_t original = value;
+		const int gravity = static_cast<int>(original) * std::abs(amount) / 14300;
+		value = original + static_cast<int16_t>(amount - gravity);
 	}
 
 	// Refutations:
