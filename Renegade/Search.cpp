@@ -535,7 +535,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 
 			// Performing futility pruning
-			if (futilityPrunable && isQuiet && order < 32768 && alpha < MateThreshold) {
+			if (futilityPrunable && isQuiet && order < 0 && alpha < MateThreshold) {
 				bestScore = (bestScore + alpha) / 2;
 				break;
 			}
