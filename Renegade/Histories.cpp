@@ -11,6 +11,7 @@ void Histories::ClearAll() {
 	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistory));
 	std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionHistory));
 	std::memset(&PawnsCorrectionHistory, 0, sizeof(PawnsCorrectionHistory));
+	std::memset(&NonPawnCorrectionHistory, 0, sizeof(NonPawnCorrectionHistory));
 	std::memset(&FollowUpCorrectionHistory, 0, sizeof(FollowUpCorrectionHistory));
 }
 
@@ -136,6 +137,11 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 	pawnValue = ((226 - weight) * pawnValue + weight * diff) / 226;
 	pawnValue = std::clamp(pawnValue, -8350, 8350);
 
+	const uint64_t nonPawnKey = position.GetNonPawnKey() % 131072;
+	int32_t& nonPawnValue = NonPawnCorrectionHistory[position.Turn()][nonPawnKey];
+	nonPawnValue = ((226 - weight) * nonPawnValue + weight * diff) / 226;
+	nonPawnValue = std::clamp(nonPawnValue, -8350, 8350);
+
 	if (position.Moves.size() >= 2) {
 		const MoveAndPiece& prev1 = position.GetPreviousMove(1);
 		const MoveAndPiece& prev2 = position.GetPreviousMove(2);
@@ -154,6 +160,8 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 	const uint64_t pawnKey = position.GetPawnKey() % 16384;
 	const int pawnCorrection = PawnsCorrectionHistory[position.Turn()][pawnKey] / 256;
 
+	const uint64_t nonPawnKey = position.GetNonPawnKey() % 131072;
+	const int nonPawnCorrection = NonPawnCorrectionHistory[position.Turn()][nonPawnKey] / 256;
 
 	const int lastMoveCorrection = [&] {
 		if (position.Moves.size() < 2) return 0;
@@ -162,6 +170,6 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 		return FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to] / 256;
 	}();
 
-	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection);
+	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection + nonPawnCorrection);
 	return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
 }
