@@ -721,20 +721,24 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (found) ttMove = Move(ttEntry.packedMove);
 	const bool ttPV = pvNode || (found && ttEntry.ttPv);
 
-	// Update alpha-beta bounds
+	// Get node evaluation
+	const bool inCheck = position.IsInCheck();
 	const int rawEval = [&] {
-		if (found && !position.IsInCheck()) return ttEntry.rawEval;
+		if (inCheck) return static_cast<int16_t>(NoEval);
+		if (found) return ttEntry.rawEval;
 		return static_cast<int16_t>(Evaluate(t, position));
 	}();
-	const int staticEval = t.History.ApplyCorrection(position, rawEval);
+	const int staticEval = (!inCheck) ? t.History.ApplyCorrection(position, rawEval) : LosingMateScore(level);
+
+	// Check alpha-beta bounds
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
-	if (level >= MaxDepth) return staticEval;
+	if (level >= MaxDepth) return inCheck ? 0 : staticEval;
 	if (position.IsDrawn(false)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them
 	MovePicker& movePicker = t.MovePickerStack[level];
-	movePicker.Initialize(MoveGen::Noisy, position, t.History, ttMove, level);
+	movePicker.Initialize(inCheck ? MoveGen::All : MoveGen::Noisy, position, t.History, ttMove, level);
 
 	// Search recursively
 	int bestScore = staticEval;
