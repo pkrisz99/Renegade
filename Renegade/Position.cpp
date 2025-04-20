@@ -107,7 +107,7 @@ Position::Position(const std::string& fen) {
 	board.HalfmoveClock = stoi(parts[4]);
 	board.FullmoveClock = stoi(parts[5]);
 	board.Threats = CalculateAttackedSquares(!Turn());
-	board.BoardHash = board.CalculateHash();
+	std::tie(board.BoardHash, board.NonPawnHash) = board.CalculateHashes();
 }
 
 Position::Position(const int frcWhite, const int frcBlack) {
@@ -198,7 +198,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	board.HalfmoveClock = 0;
 	board.FullmoveClock = 1;
 	board.Threats = CalculateAttackedSquares(!Turn());
-	board.BoardHash = board.CalculateHash();
+	std::tie(board.BoardHash, board.NonPawnHash) = board.CalculateHashes();
 }
 
 // Pushing moves ----------------------------------------------------------------------------------
@@ -212,7 +212,7 @@ void Position::PushMove(const Move& move) {
 
 	board.ApplyMove(move, CastlingConfig);
 	board.Threats = CalculateAttackedSquares(!Turn());
-	board.BoardHash = board.CalculateHash();
+	std::tie(board.BoardHash, board.NonPawnHash) = board.CalculateHashes();
 
 	Moves.push_back({ move, movedPiece });
 	assert(States.size() - 1 == Moves.size());
@@ -231,7 +231,7 @@ void Position::PushNullMove() {
 	}
 	else {
 		board.EnPassantSquare = -1;
-		board.BoardHash = board.CalculateHash();
+		std::tie(board.BoardHash, board.NonPawnHash) = board.CalculateHashes();
 	}
 
 	Moves.push_back({ NullMove, Piece::None });
