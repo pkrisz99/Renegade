@@ -2,10 +2,9 @@
 
 // https://stackoverflow.com/questions/25829143/trim-whitespace-from-a-string
 std::string Trim(const std::string& str) {
-	size_t first = str.find_first_not_of(' ');
+	const size_t first = str.find_first_not_of(' ');
+	const size_t last = str.find_last_not_of(' ');
 	if (first == std::string::npos) return "";
-	if (std::string::npos == first) return str;
-	size_t last = str.find_last_not_of(' ');
 	return str.substr(first, (last - first + 1));
 }
 
@@ -22,10 +21,10 @@ bool StartsWith(const std::string& big, const std::string& small) {
 }
 
 void ConvertToLowercase(std::string& str) {
-	for (int x = 0; x < str.length(); x++) str[x] = tolower(str[x]);
+	for (size_t x = 0; x < str.length(); x++) str[x] = std::tolower(str[x]);
 }
 
-void PrintBitboard(const uint64_t bits) {
+[[maybe_unused]] void PrintBitboard(const uint64_t bits) {
 	cout << "\n" << bits << '\n';
 	for (int r = 7; r >= 0; r--) {
 		for (int f = 0; f < 8; f++) {

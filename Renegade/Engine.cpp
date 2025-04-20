@@ -104,7 +104,7 @@ void Engine::Start() {
 			bool valid = false;
 
 			if (parts[2] == "hash") {
-				Settings::Hash = stoi(parts[4]);
+				Settings::Hash = std::stoi(parts[4]);
 				SearchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
 				valid = true;
 			}
@@ -138,7 +138,7 @@ void Engine::Start() {
 				}
 			}
 			else if (parts[2] == "threads") {
-				Settings::Threads = stoi(parts[4]);
+				Settings::Threads = std::stoi(parts[4]);
 				SearchThreads.SetThreadCount(Settings::Threads);
 				valid = true;
 			}
@@ -161,13 +161,13 @@ void Engine::Start() {
 			if (parts[1] == "pseudolegal") {
 				MoveList pseudoMoves{};
 				position.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
-				for (const auto& m : pseudoMoves) cout << m.move.ToString(Settings::Chess960) << " ";
+				for (const ScoredMove& m : pseudoMoves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
 			}
 			if (parts[1] == "legal") {
 				MoveList moves{};
 				position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
-				for (const auto& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
+				for (const ScoredMove& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
 			}
 			if (parts[1] == "settings") {
@@ -187,7 +187,7 @@ void Engine::Start() {
 			}
 			if (parts[1] == "pasthashes") {
 				cout << "Past hashes size: " << position.States.size() << endl;
-				for (int i = 0; i < position.States.size(); i++) {
+				for (size_t i = 0; i < position.States.size(); i++) {
 					cout << "- entry " << i << ": " << std::hex << position.States[i].BoardHash << std::dec << endl;
 				}
 			}
@@ -237,13 +237,13 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "th") {
-			Settings::Threads = stoi(parts[1]);
+			Settings::Threads = std::stoi(parts[1]);
 			SearchThreads.SetThreadCount(Settings::Threads);
 			cout << "-> Set thread count to " << Settings::Threads << endl;
 			continue;
 		}
 		if (parts[0] == "hash") {
-			Settings::Hash = stoi(parts[1]);
+			Settings::Hash = std::stoi(parts[1]);
 			SearchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
 			cout << "-> Set hash size to " << Settings::Hash << endl;
 			continue;
@@ -260,13 +260,13 @@ void Engine::Start() {
 				else if (parts[1] == "lasker") position = Position(FEN::Lasker);
 				else if (parts[1] == "frc") {
 					Settings::Chess960 = true;
-					position = Position(stoi(parts[2]), stoi(parts[3]));
+					position = Position(std::stoi(parts[2]), std::stoi(parts[3]));
 					cout << "-> FEN: " << position.GetFEN() << endl;
 					continue;
 				}
 
 				if (parts.size() > 2 && parts[2] == "moves") {
-					for (int i = 3; i < parts.size(); i++) {
+					for (size_t i = 3; i < parts.size(); i++) {
 						const bool r = position.PushUCI(parts[i]);
 						if (!r) cout << "!!! Error: invalid pushuci move: '" << parts[i] << "' at position '" << position.GetFEN() << "' !!!" << endl;
 					}
@@ -281,7 +281,7 @@ void Engine::Start() {
 				position = Position(fen);
 
 				if (parts.size() > 8 && parts[8] == "moves") {
-					for (int i = 9; i < parts.size(); i++) {
+					for (size_t i = 9; i < parts.size(); i++) {
 						const bool r = position.PushUCI(parts[i]);
 						if (!r) cout << "!!! Error: invalid pushuci move !!!" << endl;
 					}
@@ -297,14 +297,14 @@ void Engine::Start() {
 			SearchThreads.WaitUntilReady();
 
 			if (parts.size() == 3 && (parts[1] == "perft" || parts[1] == "perftdiv")) {
-				const int depth = stoi(parts[2]);
+				const int depth = std::stoi(parts[2]);
 				const PerftType type = (parts[1] == "perftdiv") ? PerftType::PerftDiv : PerftType::Normal;
 				SearchThreads.Perft(position, depth, type);
 				continue;
 			}
 
 			params = SearchParams();
-			for (int i = 1; i < parts.size(); i++) {
+			for (size_t i = 1; i < parts.size(); i++) {
 				if (parts[i] == "wtime") params.wtime = std::max(std::stoi(parts[++i]), 1);
 				if (parts[i] == "btime") params.btime = std::max(std::stoi(parts[++i]), 1);
 				if (parts[i] == "movestogo") params.movestogo = std::stoi(parts[++i]);
@@ -319,7 +319,7 @@ void Engine::Start() {
 			}
 
 			// Starting the search thread
-			SearchThreads.StartSearch(position, params, true);
+			SearchThreads.StartSearch(position, params);
 			continue;
 		}
 

@@ -131,6 +131,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 			i += 1;
 		}
 		assert(false);
+		return 0;
 	};
 
 	// Generate an array of piece types

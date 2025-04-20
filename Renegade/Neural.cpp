@@ -120,6 +120,7 @@ int16_t EvaluationState::Evaluate(const Position& pos) {
 					}
 				}
 				assert(false);
+				return std::optional<int>(std::nullopt);
 			}();
 
 			if (latestUpdated.has_value()) {

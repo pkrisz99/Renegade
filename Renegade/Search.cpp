@@ -41,7 +41,7 @@ void Search::StartThreads(const int threadCount) {
 		t.threadId = i;
 		t.Thread = std::thread([&] { Loop(t); });
 	}
-	while (LoadedThreadCount.load() < Threads.size()) {};
+	while (LoadedThreadCount.load() < static_cast<int>(Threads.size())) {};
 }
 
 void Search::StopThreads() {
@@ -76,7 +76,7 @@ Results Search::SearchSinglethreaded(const Position& pos, const SearchParams& pa
 	return t.result;
 }
 
-void Search::StartSearch(Position& position, const SearchParams params, const bool display) {
+void Search::StartSearch(Position& position, const SearchParams params) {
 
 	StartSearchTime = Clock::now();
 	TranspositionTable.IncreaseAge();
@@ -201,11 +201,11 @@ bool Search::ShouldAbort(const ThreadData& t) {
 	if (Aborting.load(std::memory_order_relaxed) && (t.RootDepth > 1 || !t.IsMainThread())) return true;
 	if (!t.IsMainThread()) return false; // TODO: ensure limits when multithreaded
 
-	if ((Constraints.MaxNodes != -1) && (t.Nodes >= Constraints.MaxNodes) && (t.RootDepth > 1)) {
+	if (Constraints.MaxNodes != -1 && t.Nodes >= Constraints.MaxNodes && t.RootDepth > 1) {
 		Aborting.store(true, std::memory_order_relaxed);
 		return true;
 	}
-	if ((t.Nodes % 1024 == 0) && (Constraints.SearchTimeMax != -1) && (t.RootDepth > 1)) {
+	if (t.Nodes % 1024 == 0 && Constraints.SearchTimeMax != -1 && t.RootDepth > 1) {
 		const auto now = Clock::now();
 		const int elapsedMs = static_cast<int>((now - StartSearchTime).count() / 1e6);
 		if (elapsedMs >= Constraints.SearchTimeMax) {
@@ -309,7 +309,7 @@ void Search::SearchMoves(ThreadData& t) {
 		if (Aborting.load(std::memory_order_relaxed) && !t.singlethreaded && t.RootDepth > 1) {
 			t.result.nodes = t.Nodes;
 			t.result.time = elapsedMs;
-			t.result.nps = static_cast<int>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
+			t.result.nps = static_cast<uint64_t>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
 			t.result.hashfull = TranspositionTable.GetHashfull();
 			break;
 		}
@@ -830,7 +830,7 @@ void Search::Perft(Position& position, const int depth, const PerftType type) co
 		<< std::setprecision(2) << std::fixed << seconds << " s | "
 		<< std::setprecision(3) << speed << " mnps | No bulk counting" << endl;
 
-	if (isStartpos && depth < startposPerfts.size() && startposPerfts[depth] != r)
+	if (isStartpos && depth < static_cast<int>(startposPerfts.size()) && startposPerfts[depth] != r)
 		cout << "-> Uh-oh. (expected: " << Console::FormatInteger(startposPerfts[depth]) << ")" << endl;
 }
 
