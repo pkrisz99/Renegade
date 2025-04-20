@@ -749,6 +749,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 		const auto& [m, order] = movePicker.Get();
 		if (!position.IsLegalMove(m)) continue;
 		if (!position.StaticExchangeEval(m, 0)) continue; // Quiescence search SEE pruning
+		if (bestScore > -MateThreshold && position.IsMoveQuiet(m)) continue;
 		t.Nodes += 1;
 
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
