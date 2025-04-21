@@ -718,7 +718,7 @@ uint64_t Position::AttackersOfSquare(const bool attackingSide, const uint8_t squ
 
 // Getting information ----------------------------------------------------------------------------
 
-bool Position::IsDrawn(const bool threefold) const {
+bool Position::IsDrawn(const int level) const {
 	const Board& b = CurrentState();
 
 	// 1. Fifty moves without progress
@@ -727,13 +727,15 @@ bool Position::IsDrawn(const bool threefold) const {
 	// 2. Threefold repetitions
 	const uint64_t hash = Hash();
 	const int length = States.size();
-	const int threshold = threefold ? 3 : 2;
-	int repeated = 0;
+	const int currentIndex = length - 1;
+	const int materializedUntil = currentIndex - level; // highest index materialized
+	int repeated = 1;
 
-	for (int i = length - 1; i >= std::max(0, length - b.HalfmoveClock - 2); i -= 2) {
+	for (int i = currentIndex - 4; i >= std::max(0, currentIndex - b.HalfmoveClock); i -= 2) {
 		if (States[i].BoardHash == hash) {
 			repeated += 1;
-			if (repeated >= threshold) return true;
+			const bool materialized = materializedUntil >= i;
+			if (repeated >= (2 + materialized)) return true;
 		}
 	}
 
@@ -820,7 +822,7 @@ GameState Position::GetGameState() const {
 	}
 
 	// Check other types of draws
-	if (IsDrawn(true)) return GameState::Drawn;
+	if (IsDrawn(0)) return GameState::Drawn;
 	else return GameState::Playing;
 }
 
