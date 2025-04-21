@@ -158,8 +158,8 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEval) const {
 	if (std::abs(rawEval) >= MateThreshold) return rawEval;
 
-	const uint64_t materialKey = position.GetMaterialKey() % 32768;
-	const int materialCorrection = MaterialCorrectionHistory[position.Turn()][materialKey] / 256;
+	//const uint64_t materialKey = position.GetMaterialKey() % 32768;
+	//const int materialCorrection = MaterialCorrectionHistory[position.Turn()][materialKey] / 256;
 
 	const uint64_t pawnKey = position.GetPawnKey() % 16384;
 	const int pawnCorrection = PawnsCorrectionHistory[position.Turn()][pawnKey] / 256;
@@ -167,7 +167,7 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 	const auto [whiteNonPawnHash, blackNonPawnHash] = position.GetNonPawnKeys();
 	const uint64_t whiteNonPawnKey = whiteNonPawnHash % 65536, blackNonPawnKey = blackNonPawnHash % 65536;
 	const int nonPawnCorrection = (NonPawnCorrectionHistory[position.Turn()][Side::White][whiteNonPawnKey]
-		+ NonPawnCorrectionHistory[position.Turn()][Side::Black][blackNonPawnKey]) / (256 * 2);
+		+ NonPawnCorrectionHistory[position.Turn()][Side::Black][blackNonPawnKey]) / 256;
 
 	const int lastMoveCorrection = [&] {
 		if (position.Moves.size() < 2) return 0;
@@ -176,6 +176,6 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 		return FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to] / 256;
 	}();
 
-	const int correctedEval = rawEval + (materialCorrection + pawnCorrection + lastMoveCorrection + nonPawnCorrection);
+	const int correctedEval = rawEval + (pawnCorrection + lastMoveCorrection + nonPawnCorrection);
 	return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
 }
