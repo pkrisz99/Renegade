@@ -98,8 +98,8 @@ private:
 	Results AggregateThreadResults() const;
 
 	void SearchMoves(ThreadData& t);
-	int SearchRecursive(ThreadData& t, int depth, const int level, int alpha, int beta, const bool pvNode, const bool cutNode);
-	int SearchQuiescence(ThreadData& t, const int level, int alpha, int beta, const bool pvNode);
+	template<bool pvNode> int SearchRecursive(ThreadData& t, int depth, const int level, int alpha, int beta, const bool cutNode);
+	template<bool pvNode> int SearchQuiescence(ThreadData& t, const int level, int alpha, int beta);
 
 	int16_t Evaluate(ThreadData& t, const Position& position);
 	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
