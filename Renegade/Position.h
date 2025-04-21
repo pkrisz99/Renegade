@@ -126,8 +126,8 @@ public:
 		return MurmurHash3(WhitePawnBits()) ^ MurmurHash3(BlackPawnBits() ^ Zobrist[780]);
 	}
 
-	inline uint64_t GetNonPawnKey() const {
-		return States.back().NonPawnHash;
+	inline std::pair<uint64_t, uint64_t> GetNonPawnKeys() const {
+		return { States.back().WhiteNonPawnHash, States.back().BlackNonPawnHash };
 	}
 
 	inline uint64_t ApproximateHashAfterMove(const Move& move) const {

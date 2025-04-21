@@ -36,7 +36,8 @@ struct Board {
 
 	uint64_t Threats = 0;
 	uint64_t BoardHash = 0;
-	uint64_t NonPawnHash = 0;
+	uint64_t WhiteNonPawnHash = 0;
+	uint64_t BlackNonPawnHash = 0;
 
 	uint8_t HalfmoveClock = 0;
 	uint16_t FullmoveClock = 0;
@@ -95,11 +96,11 @@ struct Board {
 			| BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 	}
 
-	std::pair<uint64_t, uint64_t> CalculateHashes() const;
+	std::tuple<uint64_t, uint64_t, uint64_t> CalculateHashes() const;
 	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
 
 	uint64_t CalculateMaterialKey() const;
 
 };
 
-static_assert(sizeof(Board) == 200);
+static_assert(sizeof(Board) == 208);
