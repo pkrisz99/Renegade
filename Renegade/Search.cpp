@@ -389,7 +389,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	// Check for draws
-	if (!rootNode && position.IsDrawn(false)) return DrawEvaluation(t);
+	if (!rootNode && position.IsDrawn(level)) return DrawEvaluation(t);
 
 	// Check extensions
 	const bool inCheck = position.IsInCheck();
@@ -736,7 +736,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
 	if (level >= MaxDepth) return inCheck ? 0 : staticEval;
-	if (position.IsDrawn(false)) return DrawEvaluation(t);
+	if (position.IsDrawn(level)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them
 	MovePicker& movePicker = t.MovePickerStack[level];
