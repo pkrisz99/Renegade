@@ -53,23 +53,29 @@ struct Board {
 
 	template<const uint8_t piece>
 	inline void AddPiece(const uint8_t square) {
+		assert(ValidPiece(piece));
+		assert(square >= 0 && square < 64);
 		SetBitTrue(PieceBitboard(piece), square);
 		Mailbox[square] = piece;
-	}
-
-	inline void AddPiece(const uint8_t piece, const uint8_t square) {
-		SetBitTrue(PieceBitboard(piece), square);
-		Mailbox[square] = piece;
+		BoardHash ^= Zobrist.PieceSquare[piece][square];
+		if constexpr (ColorOfPiece(piece) == PieceColor::White && IsNonPawn(piece)) WhiteNonPawnHash ^= Zobrist.PieceSquare[piece][square];
+		if constexpr (ColorOfPiece(piece) == PieceColor::Black && IsNonPawn(piece)) BlackNonPawnHash ^= Zobrist.PieceSquare[piece][square];
 	}
 
 	template<const uint8_t piece>
 	inline void RemovePiece(const uint8_t square) {
+		assert(ValidPiece(piece));
+		assert(square >= 0 && square < 64);
 		SetBitFalse(PieceBitboard(piece), square);
 		Mailbox[square] = Piece::None;
+		BoardHash ^= Zobrist.PieceSquare[piece][square];
+		if constexpr (ColorOfPiece(piece) == PieceColor::White && IsNonPawn(piece)) WhiteNonPawnHash ^= Zobrist.PieceSquare[piece][square];
+		if constexpr (ColorOfPiece(piece) == PieceColor::Black && IsNonPawn(piece)) BlackNonPawnHash ^= Zobrist.PieceSquare[piece][square];
 	}
 
 	inline uint8_t GetPieceAt(const uint8_t square) const {
 		assert(square >= 0 && square < 64);
+		assert(IsValidPieceOrNone(Mailbox[square]));
 		return Mailbox[square];
 	}
 
@@ -91,12 +97,44 @@ struct Board {
 		}
 	}
 
+	template<const bool state>
+	inline void SetWhiteShortCastlingRight() {
+		if (state != WhiteRightToShortCastle) {
+			WhiteRightToShortCastle = state;
+			BoardHash ^= Zobrist.Castling[0];
+		}
+	}
+
+	template<const bool state>
+	inline void SetWhiteLongCastlingRight() {
+		if (state != WhiteRightToLongCastle) {
+			WhiteRightToLongCastle = state;
+			BoardHash ^= Zobrist.Castling[1];
+		}
+	}
+
+	template<const bool state>
+	inline void SetBlackShortCastlingRight() {
+		if (state != BlackRightToShortCastle) {
+			BlackRightToShortCastle = state;
+			BoardHash ^= Zobrist.Castling[2];
+		}
+	}
+
+	template<const bool state>
+	inline void SetBlackLongCastlingRight() {
+		if (state != BlackRightToLongCastle) {
+			BlackRightToLongCastle = state;
+			BoardHash ^= Zobrist.Castling[3];
+		}
+	}
+
 	inline uint64_t GetOccupancy() const {
 		return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits
 			| BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 	}
 
-	std::tuple<uint64_t, uint64_t, uint64_t> CalculateHashes() const;
+	//uint64_t CalculateHash() const;
 	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
 
 	[[maybe_unused]] uint64_t CalculateMaterialHash() const;
