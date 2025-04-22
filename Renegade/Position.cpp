@@ -39,8 +39,8 @@ Position::Position(const std::string& fen) {
 		}
 	}
 
-	// Other information
 	board.Turn = (parts[1] == "w") ? Side::White : Side::Black;
+	if (board.Turn == Side::White) board.BoardHash ^= Zobrist.SideToMove;
 
 	// Castling rights
 
@@ -55,35 +55,39 @@ Position::Position(const std::string& fen) {
 			if (f >= 'A' && f <= 'H') {
 				const uint8_t rookFile = f - 'A';
 				const uint8_t kingFile = GetSquareFile(LsbSquare(board.WhiteKingBits));
-				if (rookFile < kingFile) {
-					board.WhiteRightToLongCastle = true;
-					CastlingConfig.WhiteLongCastleRookSquare = rookFile;
+				if (rookFile > kingFile) {
+					board.WhiteRightToShortCastle = true;
+					board.BoardHash ^= Zobrist.Castling[0];
+					CastlingConfig.WhiteShortCastleRookSquare = rookFile;
 				}
 				else {
-					board.WhiteRightToShortCastle = true;
-					CastlingConfig.WhiteShortCastleRookSquare = rookFile;
+					board.WhiteRightToLongCastle = true;
+					board.BoardHash ^= Zobrist.Castling[1];
+					CastlingConfig.WhiteLongCastleRookSquare = rookFile;
 				}
 			}
 			else if (f >= 'a' && f <= 'h') {
 				const uint8_t rookFile = f - 'a';
 				const uint8_t kingFile = GetSquareFile(LsbSquare(board.BlackKingBits));
-				if (rookFile < kingFile) {
-					board.BlackRightToLongCastle = true;
-					CastlingConfig.BlackLongCastleRookSquare = rookFile + 56;
+				if (rookFile > kingFile) {
+					board.BlackRightToShortCastle = true;
+					board.BoardHash ^= Zobrist.Castling[2];
+					CastlingConfig.BlackShortCastleRookSquare = rookFile + 56;
 				}
 				else {
-					board.BlackRightToShortCastle = true;
-					CastlingConfig.BlackShortCastleRookSquare = rookFile + 56;
+					board.BlackRightToLongCastle = true;
+					board.BoardHash ^= Zobrist.Castling[3];
+					CastlingConfig.BlackLongCastleRookSquare = rookFile + 56;
 				}
 			}
 		}
 		else {
 			// Normal chess
 			switch (f) {
-			case 'K': board.WhiteRightToShortCastle = true; break;
-			case 'Q': board.WhiteRightToLongCastle = true; break;
-			case 'k': board.BlackRightToShortCastle = true; break;
-			case 'q': board.BlackRightToLongCastle = true; break;
+			case 'K': board.WhiteRightToShortCastle = true; board.BoardHash ^= Zobrist.Castling[0]; break;
+			case 'Q': board.WhiteRightToLongCastle = true; board.BoardHash ^= Zobrist.Castling[1]; break;
+			case 'k': board.BlackRightToShortCastle = true; board.BoardHash ^= Zobrist.Castling[2]; break;
+			case 'q': board.BlackRightToLongCastle = true; board.BoardHash ^= Zobrist.Castling[3]; break;
 			}
 		}
 	}
@@ -95,19 +99,24 @@ Position::Position(const std::string& fen) {
 		if (board.Turn == Side::White) {
 			const bool pawnOnLeft = GetSquareFile(epSquare) != 0 && GetPieceAt(epSquare - 9) == Piece::WhitePawn;
 			const bool pawnOnRight = GetSquareFile(epSquare) != 7 && GetPieceAt(epSquare - 7) == Piece::WhitePawn;
-			if (pawnOnLeft || pawnOnRight) board.EnPassantSquare = epSquare;
+			if (pawnOnLeft || pawnOnRight) {
+				board.EnPassantSquare = epSquare;
+				board.BoardHash ^= Zobrist.EnPassant[GetSquareFile(epSquare)];
+			}
 		}
 		else {
 			const bool pawnOnLeft = GetSquareFile(epSquare) != 0 && GetPieceAt(epSquare + 7) == Piece::BlackPawn;
 			const bool pawnOnRight = GetSquareFile(epSquare) != 7 && GetPieceAt(epSquare + 9) == Piece::BlackPawn;
-			if (pawnOnLeft || pawnOnRight) board.EnPassantSquare = epSquare;
+			if (pawnOnLeft || pawnOnRight) {
+				board.EnPassantSquare = epSquare;
+				board.BoardHash ^= Zobrist.EnPassant[GetSquareFile(epSquare)];
+			}
 		}
 	}
 
 	board.HalfmoveClock = std::stoi(parts[4]);
 	board.FullmoveClock = std::stoi(parts[5]);
 	board.Threats = CalculateAttackedSquares(!Turn());
-	board.BoardHash = board.CalculateHash();
 }
 
 Position::Position(const int frcWhite, const int frcBlack) {
@@ -207,14 +216,15 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	CastlingConfig.WhiteShortCastleRookSquare = MsbSquare(board.WhiteRookBits);
 	CastlingConfig.BlackLongCastleRookSquare = LsbSquare(board.BlackRookBits);
 	CastlingConfig.BlackShortCastleRookSquare = MsbSquare(board.BlackRookBits);
+	board.BoardHash ^= Zobrist.Castling[0] ^ Zobrist.Castling[1] ^ Zobrist.Castling[2] ^ Zobrist.Castling[3];
 
 	// Other
 	board.Turn = Side::White;
+	board.BoardHash ^= Zobrist.SideToMove;
 	board.EnPassantSquare = -1;
 	board.HalfmoveClock = 0;
 	board.FullmoveClock = 1;
 	board.Threats = CalculateAttackedSquares(!Turn());
-	board.BoardHash = board.CalculateHash();
 }
 
 // Pushing moves ----------------------------------------------------------------------------------

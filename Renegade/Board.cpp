@@ -1,6 +1,6 @@
 #include "Board.h"
 
-uint64_t Board::CalculateHash() const {
+/*uint64_t Board::CalculateHash() const {
 	uint64_t boardHash = 0;
 
 	uint64_t bits = WhitePawnBits;
@@ -68,7 +68,7 @@ uint64_t Board::CalculateHash() const {
 	if (Turn == Side::White) boardHash ^= Zobrist.SideToMove;
 
 	return boardHash;
-}
+}*/
 
 void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 
