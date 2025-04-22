@@ -126,6 +126,10 @@ public:
 		return MurmurHash3(WhitePawnBits()) ^ MurmurHash3(BlackPawnBits() ^ Zobrist[780]);
 	}
 
+	inline std::pair<uint64_t, uint64_t> GetNonPawnKeys() const {
+		return { States.back().WhiteNonPawnHash, States.back().BlackNonPawnHash };
+	}
+
 	inline uint64_t ApproximateHashAfterMove(const Move& move) const {
 		// Calculate the approximate hash after a move on the current board
 		// This is to make prefetching more efficient

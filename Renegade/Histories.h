@@ -58,8 +58,8 @@ private:
 	MultiArray<int16_t, 15, 64, 15, 64> ContinuationHistory;
 
 	// Evaluation correction history:
-	MultiArray<int32_t, 2, 32768> MaterialCorrectionHistory;
 	MultiArray<int32_t, 2, 16384> PawnsCorrectionHistory;
+	MultiArray<int32_t, 2, 2, 65536> NonPawnCorrectionHistory;
 	MultiArray<int32_t, 15, 64, 15, 64> FollowUpCorrectionHistory;
 };
 
