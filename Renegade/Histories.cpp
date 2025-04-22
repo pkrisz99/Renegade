@@ -9,7 +9,6 @@ void Histories::ClearAll() {
 	std::memset(&QuietHistory, 0, sizeof(QuietHistory));
 	std::memset(&CaptureHistory, 0, sizeof(CaptureHistory));
 	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistory));
-	std::memset(&MaterialCorrectionHistory, 0, sizeof(MaterialCorrectionHistory));
 	std::memset(&PawnsCorrectionHistory, 0, sizeof(PawnsCorrectionHistory));
 	std::memset(&NonPawnCorrectionHistory, 0, sizeof(NonPawnCorrectionHistory));
 	std::memset(&FollowUpCorrectionHistory, 0, sizeof(FollowUpCorrectionHistory));
@@ -127,11 +126,6 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 	const int diff = (score - refEval) * 256;
 	const int weight = std::min(16, depth + 1);
 
-	const uint64_t materialKey = position.GetMaterialKey() % 32768;
-	int32_t& materialValue = MaterialCorrectionHistory[position.Turn()][materialKey];
-	materialValue = ((226 - weight) * materialValue + weight * diff) / 226;
-	materialValue = std::clamp(materialValue, -8350, 8350);
-
 	const uint64_t pawnKey = position.GetPawnKey() % 16384;
 	int32_t& pawnValue = PawnsCorrectionHistory[position.Turn()][pawnKey];
 	pawnValue = ((226 - weight) * pawnValue + weight * diff) / 226;
@@ -157,9 +151,6 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 
 int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEval) const {
 	if (std::abs(rawEval) >= MateThreshold) return rawEval;
-
-	//const uint64_t materialKey = position.GetMaterialKey() % 32768;
-	//const int materialCorrection = MaterialCorrectionHistory[position.Turn()][materialKey] / 256;
 
 	const uint64_t pawnKey = position.GetPawnKey() % 16384;
 	const int pawnCorrection = PawnsCorrectionHistory[position.Turn()][pawnKey] / 256;
