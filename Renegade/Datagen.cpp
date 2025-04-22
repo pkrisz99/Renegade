@@ -342,7 +342,7 @@ void MergeDatagenFiles() {
 	cout << "\nWhat is the base name of the generated files? " << Console::Yellow;
 	cin >> name;
 
-	uint64_t limit = -1;
+	int64_t limit = -1;
 	cout << Console::White << "How many positions maximum (-1 for no limit)? " << Console::Yellow;
 	cin >> limit;
 
@@ -360,7 +360,7 @@ void MergeDatagenFiles() {
 	const std::string mergedName = name + "_merged";
 	std::ofstream output;
 	output.open(mergedName, std::ios_base::app);
-	int counter = 0;
+	int64_t counter = 0;
 
 	for (const auto& filename : found) {
 		std::ifstream ifs(filename);

@@ -118,12 +118,12 @@ struct EvaluationFeatures {
 	inline const TaperedScore& GetKingOnSemiOpenFileEval(const uint8_t sq) const { return Weights[IndexKingOnSemiOpenFile(sq)]; }
 };
 
-constexpr EvaluationFeatures Weights = {
+constexpr EvaluationFeatures Weights = {{
 	// These are the weights used in the hand-crafted evaluation
 	// It is a bit messy, but life is short and organizing them takes a while
 	
 	// 1. Material values (pawn, knight, bishop, rook, queen, king)
-	S(80, 92), S(356, 355), S(368, 380), S(479, 684), S(1107, 1245), S(0, 0), 
+	S(80, 92), S(356, 355), S(368, 380), S(479, 684), S(1107, 1245), S(0, 0),
 
 	// 2. Piece-square tables
 	// Be careful, counter-intuitively the first element corresponds to white's bottom-left corner
@@ -313,7 +313,7 @@ constexpr EvaluationFeatures Weights = {
 	S(-56, -4), S(-17, -29), S(-104, -42), S(-9, -59), S(-5, -58), S(-50, -34), S(-12, -25), S(-21, -12),
 	S(-6, -15), S(42, -39), S(-74, -64), S(-55, -34), S(-25, -39), S(-26, -29), S(-18, -26), S(-17, -54),
 	S(12, 55), S(-14, 28), S(56, -83), S(-69, 19), S(-76, -68), S(-43, -31), S(-7, 42), S(-15, 17),
-};
+}};
 
 // Lookup bitboards -------------------------------------------------------------------------------
 

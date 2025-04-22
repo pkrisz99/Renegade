@@ -10,19 +10,19 @@ Transpositions::~Transpositions() {
 
 void Transpositions::Store(const uint64_t hash, const int depth, const int16_t score, const int scoreType, const int16_t rawEval, const Move& bestMove, const int level, const bool ttPv) {
 
-	//assert(std::abs(score) < MateEval); <-- only good if not aborting
+	assert(std::abs(score) < MateEval);
 	assert(TableSize > 1);
-	if (std::abs(score) > MateEval) return;
 
 	const uint64_t key = GetClusterIndex(hash);
-	const int quality = RecordingQuality(CurrentGeneration, depth);
 	const uint32_t storedHash = GetStoredHash(hash);
 	const TranspositionCluster& cluster = Table[key];
 
 	// Find the slot to use
-	const int candidateSlot = [&] {
-		int currentWorst = -1, currentWorstQuality = 1000000;
-		for (int i = 0; i < cluster.entries.size(); i++) {
+	const int candidateSlot = [&]() -> int {
+		int currentWorst = -1;
+		int currentWorstQuality = std::numeric_limits<int>::max();
+
+		for (size_t i = 0; i < cluster.entries.size(); i++) {
 			const TranspositionEntry& entry = cluster.entries[i];
 			if (entry.scoreType == ScoreType::Invalid) return i;
 			if (entry.hash == storedHash) return i;

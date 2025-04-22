@@ -11,13 +11,11 @@ public:
 
 	void Initialize(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
 		this->ttMove = ttMove;
-		this->killerMove = hist.GetKillerMove(level);
-		this->counterMove = (level > 0) ? hist.GetCountermove(pos.GetPreviousMove(1).move) : NullMove;
-		this->positionalMove = hist.GetPositionalMove(pos);
+		std::tie(killerMove, counterMove, positionalMove) = hist.GetRefutationMoves(pos, level);
 		this->level = level;
 		this->moveGen = moveGen;
 		this->moves.clear();
-		index = 0;
+		this->index = 0;
 
 		pos.GenerateMoves(moves, moveGen, Legality::Pseudolegal);
 		for (auto& m : moves) m.orderScore = GetMoveScore(pos, hist, m.move);
@@ -29,7 +27,7 @@ public:
 		int bestOrderScore = moves[index].orderScore;
 		int bestIndex = index;
 
-		for (int i = index + 1; i < moves.size(); i++) {
+		for (int i = index + 1; i < static_cast<int>(moves.size()); i++) {
 			if (moves[i].orderScore > bestOrderScore) {
 				bestOrderScore = moves[i].orderScore;
 				bestIndex = i;
@@ -42,10 +40,10 @@ public:
 	}
 
 	bool HasNext() const {
-		return index < moves.size();
+		return index < static_cast<int>(moves.size());
 	}
 
-	int index;
+	int index = 0;
 
 private:
 
@@ -79,7 +77,7 @@ private:
 			else return -200000 + values[capturedPieceType] * 14 + hist.GetCaptureHistoryScore(pos, m);
 		}
 
-		// Quiet moves, potentially apply a bonus for being a refutation (killer or counter move)
+		// Quiet moves: take the history score and potentially apply a bonus for being a refutation
 		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 
 		if (m == killerMove) historyScore += 22000;

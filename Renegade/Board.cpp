@@ -1,78 +1,75 @@
 #include "Board.h"
 
-uint64_t Board::CalculateHash() const {
-	uint64_t hash = 0;
+std::tuple<uint64_t, uint64_t, uint64_t> Board::CalculateHashes() const {
+	uint64_t boardHash = 0, whiteNonPawnHash = 0, blackNonPawnHash = 0;
 
 	uint64_t bits = WhitePawnBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 0 + sq];
+		boardHash ^= Zobrist[64 * 0 + sq];
 	}
 	bits = WhiteKnightBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 1 + sq];
+		whiteNonPawnHash ^= Zobrist[64 * 1 + sq];
 	}
 	bits = WhiteBishopBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 2 + sq];
+		whiteNonPawnHash ^= Zobrist[64 * 2 + sq];
 	}
 	bits = WhiteRookBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 3 + sq];
+		whiteNonPawnHash ^= Zobrist[64 * 3 + sq];
 	}
 	bits = WhiteQueenBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 4 + sq];
+		whiteNonPawnHash ^= Zobrist[64 * 4 + sq];
 	}
 	int sq = LsbSquare(WhiteKingBits);
-	hash ^= Zobrist[64 * 5 + sq];
+	whiteNonPawnHash ^= Zobrist[64 * 5 + sq];
 
 	bits = BlackPawnBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 6 + sq];
+		boardHash ^= Zobrist[64 * 6 + sq];
 	}
 	bits = BlackKnightBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 7 + sq];
+		blackNonPawnHash ^= Zobrist[64 * 7 + sq];
 	}
 	bits = BlackBishopBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 8 + sq];
+		blackNonPawnHash ^= Zobrist[64 * 8 + sq];
 	}
 	bits = BlackRookBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 9 + sq];
+		blackNonPawnHash ^= Zobrist[64 * 9 + sq];
 	}
 	bits = BlackQueenBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 10 + sq];
+		blackNonPawnHash ^= Zobrist[64 * 10 + sq];
 	}
 	sq = LsbSquare(BlackKingBits);
-	hash ^= Zobrist[64 * 11 + sq];
+	blackNonPawnHash ^= Zobrist[64 * 11 + sq];
 
-	// Castling
-	if (WhiteRightToShortCastle) hash ^= Zobrist[768];
-	if (WhiteRightToLongCastle) hash ^= Zobrist[769];
-	if (BlackRightToShortCastle) hash ^= Zobrist[770];
-	if (BlackRightToLongCastle) hash ^= Zobrist[771];
+	boardHash ^= whiteNonPawnHash ^ blackNonPawnHash;
 
-	// En passant
-	if (EnPassantSquare != -1) {
-		hash ^= Zobrist[772 + GetSquareFile(EnPassantSquare)];
-	}
+	// Castling, en passant, and side to move
+	if (WhiteRightToShortCastle) boardHash ^= Zobrist[768];
+	if (WhiteRightToLongCastle) boardHash ^= Zobrist[769];
+	if (BlackRightToShortCastle) boardHash ^= Zobrist[770];
+	if (BlackRightToLongCastle) boardHash ^= Zobrist[771];
+	if (EnPassantSquare != -1) boardHash ^= Zobrist[772 + GetSquareFile(EnPassantSquare)];
+	if (Turn == Side::White) boardHash ^= Zobrist[780];
 
-	if (Turn == Side::White) hash ^= Zobrist[780];
-
-	return hash;
+	return { boardHash, whiteNonPawnHash, blackNonPawnHash };
 }
 
 void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
@@ -225,17 +222,21 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 	assert(Popcount(WhiteKingBits) == 1 && Popcount(BlackKingBits) == 1);
 }
 
-uint64_t Board::CalculateMaterialKey() const {
-	uint64_t materialKey = 0;
-	materialKey |= static_cast<uint64_t>(Popcount(WhitePawnBits));
-	materialKey |= static_cast<uint64_t>(Popcount(WhiteKnightBits)) << 6;
-	materialKey |= static_cast<uint64_t>(Popcount(WhiteBishopBits)) << 12;
-	materialKey |= static_cast<uint64_t>(Popcount(WhiteRookBits)) << 18;
-	materialKey |= static_cast<uint64_t>(Popcount(WhiteQueenBits)) << 24;
-	materialKey |= static_cast<uint64_t>(Popcount(BlackPawnBits)) << 30;
-	materialKey |= static_cast<uint64_t>(Popcount(BlackKnightBits)) << 36;
-	materialKey |= static_cast<uint64_t>(Popcount(BlackBishopBits)) << 42;
-	materialKey |= static_cast<uint64_t>(Popcount(BlackRookBits)) << 48;
-	materialKey |= static_cast<uint64_t>(Popcount(BlackQueenBits)) << 54;
-	return MurmurHash3(materialKey);
+uint64_t Board::CalculateMaterialHash() const {
+	uint64_t materialHash = 0;
+	materialHash |= static_cast<uint64_t>(Popcount(WhitePawnBits));
+	materialHash |= static_cast<uint64_t>(Popcount(WhiteKnightBits)) << 6;
+	materialHash |= static_cast<uint64_t>(Popcount(WhiteBishopBits)) << 12;
+	materialHash |= static_cast<uint64_t>(Popcount(WhiteRookBits)) << 18;
+	materialHash |= static_cast<uint64_t>(Popcount(WhiteQueenBits)) << 24;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackPawnBits)) << 30;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackKnightBits)) << 36;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackBishopBits)) << 42;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackRookBits)) << 48;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackQueenBits)) << 54;
+	return MurmurHash3(materialHash);
+}
+
+uint64_t Board::CalculatePawnHash() const {
+	return MurmurHash3(WhitePawnBits) ^ MurmurHash3(BlackPawnBits ^ Zobrist[780]);
 }

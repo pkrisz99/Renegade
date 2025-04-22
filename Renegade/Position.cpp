@@ -107,7 +107,7 @@ Position::Position(const std::string& fen) {
 	board.HalfmoveClock = stoi(parts[4]);
 	board.FullmoveClock = stoi(parts[5]);
 	board.Threats = CalculateAttackedSquares(!Turn());
-	board.BoardHash = board.CalculateHash();
+	std::tie(board.BoardHash, board.WhiteNonPawnHash, board.BlackNonPawnHash) = board.CalculateHashes();
 }
 
 Position::Position(const int frcWhite, const int frcBlack) {
@@ -131,6 +131,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 			i += 1;
 		}
 		assert(false);
+		return 0;
 	};
 
 	// Generate an array of piece types
@@ -197,7 +198,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	board.HalfmoveClock = 0;
 	board.FullmoveClock = 1;
 	board.Threats = CalculateAttackedSquares(!Turn());
-	board.BoardHash = board.CalculateHash();
+	std::tie(board.BoardHash, board.WhiteNonPawnHash, board.BlackNonPawnHash) = board.CalculateHashes();
 }
 
 // Pushing moves ----------------------------------------------------------------------------------
@@ -211,7 +212,7 @@ void Position::PushMove(const Move& move) {
 
 	board.ApplyMove(move, CastlingConfig);
 	board.Threats = CalculateAttackedSquares(!Turn());
-	board.BoardHash = board.CalculateHash();
+	std::tie(board.BoardHash, board.WhiteNonPawnHash, board.BlackNonPawnHash) = board.CalculateHashes();
 
 	Moves.push_back({ move, movedPiece });
 	assert(States.size() - 1 == Moves.size());
@@ -230,7 +231,7 @@ void Position::PushNullMove() {
 	}
 	else {
 		board.EnPassantSquare = -1;
-		board.BoardHash = board.CalculateHash();
+		std::tie(board.BoardHash, board.WhiteNonPawnHash, board.BlackNonPawnHash) = board.CalculateHashes();
 	}
 
 	Moves.push_back({ NullMove, Piece::None });
@@ -717,7 +718,7 @@ uint64_t Position::AttackersOfSquare(const bool attackingSide, const uint8_t squ
 
 // Getting information ----------------------------------------------------------------------------
 
-bool Position::IsDrawn(const bool threefold) const {
+bool Position::IsDrawn(const int level) const {
 	const Board& b = CurrentState();
 
 	// 1. Fifty moves without progress
@@ -726,13 +727,15 @@ bool Position::IsDrawn(const bool threefold) const {
 	// 2. Threefold repetitions
 	const uint64_t hash = Hash();
 	const int length = States.size();
-	const int threshold = threefold ? 3 : 2;
-	int repeated = 0;
+	const int currentIndex = length - 1;
+	const int materializedUntil = currentIndex - level; // highest index materialized
+	int repeated = 1;
 
-	for (int i = length - 1; i >= std::max(0, length - b.HalfmoveClock - 2); i -= 2) {
+	for (int i = currentIndex - 4; i >= std::max(0, currentIndex - b.HalfmoveClock); i -= 2) {
 		if (States[i].BoardHash == hash) {
 			repeated += 1;
-			if (repeated >= threshold) return true;
+			const bool materialized = materializedUntil >= i;
+			if (repeated >= (2 + materialized)) return true;
 		}
 	}
 
@@ -819,7 +822,7 @@ GameState Position::GetGameState() const {
 	}
 
 	// Check other types of draws
-	if (IsDrawn(true)) return GameState::Drawn;
+	if (IsDrawn(0)) return GameState::Drawn;
 	else return GameState::Playing;
 }
 
