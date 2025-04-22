@@ -6,68 +6,68 @@ std::tuple<uint64_t, uint64_t, uint64_t> Board::CalculateHashes() const {
 	uint64_t bits = WhitePawnBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		boardHash ^= Zobrist[64 * 0 + sq];
+		boardHash ^= Zobrist.PieceSquare[Piece::WhitePawn][sq];
 	}
 	bits = WhiteKnightBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		whiteNonPawnHash ^= Zobrist[64 * 1 + sq];
+		whiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteKnight][sq];
 	}
 	bits = WhiteBishopBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		whiteNonPawnHash ^= Zobrist[64 * 2 + sq];
+		whiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteBishop][sq];
 	}
 	bits = WhiteRookBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		whiteNonPawnHash ^= Zobrist[64 * 3 + sq];
+		whiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteRook][sq];
 	}
 	bits = WhiteQueenBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		whiteNonPawnHash ^= Zobrist[64 * 4 + sq];
+		whiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteQueen][sq];
 	}
 	int sq = LsbSquare(WhiteKingBits);
-	whiteNonPawnHash ^= Zobrist[64 * 5 + sq];
+	whiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteKing][sq];
 
 	bits = BlackPawnBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		boardHash ^= Zobrist[64 * 6 + sq];
+		boardHash ^= Zobrist.PieceSquare[Piece::BlackPawn][sq];
 	}
 	bits = BlackKnightBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		blackNonPawnHash ^= Zobrist[64 * 7 + sq];
+		blackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackKnight][sq];
 	}
 	bits = BlackBishopBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		blackNonPawnHash ^= Zobrist[64 * 8 + sq];
+		blackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackBishop][sq];
 	}
 	bits = BlackRookBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		blackNonPawnHash ^= Zobrist[64 * 9 + sq];
+		blackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackRook][sq];
 	}
 	bits = BlackQueenBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		blackNonPawnHash ^= Zobrist[64 * 10 + sq];
+		blackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackQueen][sq];
 	}
 	sq = LsbSquare(BlackKingBits);
-	blackNonPawnHash ^= Zobrist[64 * 11 + sq];
+	blackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackKing][sq];
 
 	boardHash ^= whiteNonPawnHash ^ blackNonPawnHash;
 
 	// Castling, en passant, and side to move
-	if (WhiteRightToShortCastle) boardHash ^= Zobrist[768];
-	if (WhiteRightToLongCastle) boardHash ^= Zobrist[769];
-	if (BlackRightToShortCastle) boardHash ^= Zobrist[770];
-	if (BlackRightToLongCastle) boardHash ^= Zobrist[771];
-	if (EnPassantSquare != -1) boardHash ^= Zobrist[772 + GetSquareFile(EnPassantSquare)];
-	if (Turn == Side::White) boardHash ^= Zobrist[780];
+	if (WhiteRightToShortCastle) boardHash ^= Zobrist.Castling[0];
+	if (WhiteRightToLongCastle) boardHash ^= Zobrist.Castling[1];
+	if (BlackRightToShortCastle) boardHash ^= Zobrist.Castling[2];
+	if (BlackRightToLongCastle) boardHash ^= Zobrist.Castling[3];
+	if (EnPassantSquare != -1) boardHash ^= Zobrist.EnPassant[GetSquareFile(EnPassantSquare)];
+	if (Turn == Side::White) boardHash ^= Zobrist.SideToMove;
 
 	return { boardHash, whiteNonPawnHash, blackNonPawnHash };
 }
@@ -238,5 +238,5 @@ uint64_t Board::CalculateMaterialHash() const {
 }
 
 uint64_t Board::CalculatePawnHash() const {
-	return MurmurHash3(WhitePawnBits) ^ MurmurHash3(BlackPawnBits ^ Zobrist[780]);
+	return MurmurHash3(WhitePawnBits) ^ MurmurHash3(BlackPawnBits ^ Zobrist.SideToMove);
 }

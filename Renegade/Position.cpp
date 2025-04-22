@@ -227,7 +227,7 @@ void Position::PushNullMove() {
 	board.Threats = CalculateAttackedSquares(!Turn());
 
 	if (board.EnPassantSquare == -1) {
-		board.BoardHash = board.BoardHash ^ Zobrist[780];
+		board.BoardHash = board.BoardHash ^ Zobrist.SideToMove;
 	}
 	else {
 		board.EnPassantSquare = -1;
