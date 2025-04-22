@@ -60,9 +60,9 @@ void PrintInfo(const Results& r) {
 		r.depth, r.seldepth, score, wdlOutput, r.nodes, r.nps, r.time, r.hashfull, pvString);
 
 #else
-	const std::string output = "info depth " + std::to_string(e.depth) + " seldepth " + std::to_string(e.seldepth)
-		+ " score " + score + wdlOutput + " nodes " + std::to_string(e.nodes) + " nps " + std::to_string(e.nps)
-		+ " time " + std::to_string(e.time) + " hashfull " + std::to_string(e.hashfull)
+	const std::string output = "info depth " + std::to_string(r.depth) + " seldepth " + std::to_string(r.seldepth)
+		+ " score " + score + wdlOutput + " nodes " + std::to_string(r.nodes) + " nps " + std::to_string(r.nps)
+		+ " time " + std::to_string(r.time) + " hashfull " + std::to_string(r.hashfull)
 		+ " pv" + pvString;
 #endif
 
