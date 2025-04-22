@@ -56,13 +56,11 @@ Position::Position(const std::string& fen) {
 				const uint8_t rookFile = f - 'A';
 				const uint8_t kingFile = GetSquareFile(LsbSquare(board.WhiteKingBits));
 				if (rookFile > kingFile) {
-					board.WhiteRightToShortCastle = true;
-					board.BoardHash ^= Zobrist.Castling[0];
+					board.SetWhiteShortCastlingRight<true>();
 					CastlingConfig.WhiteShortCastleRookSquare = rookFile;
 				}
 				else {
-					board.WhiteRightToLongCastle = true;
-					board.BoardHash ^= Zobrist.Castling[1];
+					board.SetWhiteLongCastlingRight<true>();
 					CastlingConfig.WhiteLongCastleRookSquare = rookFile;
 				}
 			}
@@ -70,13 +68,11 @@ Position::Position(const std::string& fen) {
 				const uint8_t rookFile = f - 'a';
 				const uint8_t kingFile = GetSquareFile(LsbSquare(board.BlackKingBits));
 				if (rookFile > kingFile) {
-					board.BlackRightToShortCastle = true;
-					board.BoardHash ^= Zobrist.Castling[2];
+					board.SetBlackShortCastlingRight<true>();
 					CastlingConfig.BlackShortCastleRookSquare = rookFile + 56;
 				}
 				else {
-					board.BlackRightToLongCastle = true;
-					board.BoardHash ^= Zobrist.Castling[3];
+					board.SetBlackLongCastlingRight<true>();
 					CastlingConfig.BlackLongCastleRookSquare = rookFile + 56;
 				}
 			}
@@ -84,10 +80,10 @@ Position::Position(const std::string& fen) {
 		else {
 			// Normal chess
 			switch (f) {
-			case 'K': board.WhiteRightToShortCastle = true; board.BoardHash ^= Zobrist.Castling[0]; break;
-			case 'Q': board.WhiteRightToLongCastle = true; board.BoardHash ^= Zobrist.Castling[1]; break;
-			case 'k': board.BlackRightToShortCastle = true; board.BoardHash ^= Zobrist.Castling[2]; break;
-			case 'q': board.BlackRightToLongCastle = true; board.BoardHash ^= Zobrist.Castling[3]; break;
+			case 'K': board.SetWhiteShortCastlingRight<true>(); break;
+			case 'Q': board.SetWhiteLongCastlingRight<true>(); break;
+			case 'k': board.SetBlackShortCastlingRight<true>(); break;
+			case 'q': board.SetBlackLongCastlingRight<true>(); break;
 			}
 		}
 	}
@@ -208,15 +204,14 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	}
 
 	// Castling
-	board.WhiteRightToShortCastle = true;
-	board.WhiteRightToLongCastle = true;
-	board.BlackRightToShortCastle = true;
-	board.BlackRightToLongCastle = true;
+	board.SetWhiteShortCastlingRight<true>();
+	board.SetWhiteLongCastlingRight<true>();
+	board.SetBlackShortCastlingRight<true>();
+	board.SetBlackLongCastlingRight<true>();
 	CastlingConfig.WhiteLongCastleRookSquare = LsbSquare(board.WhiteRookBits);
 	CastlingConfig.WhiteShortCastleRookSquare = MsbSquare(board.WhiteRookBits);
 	CastlingConfig.BlackLongCastleRookSquare = LsbSquare(board.BlackRookBits);
 	CastlingConfig.BlackShortCastleRookSquare = MsbSquare(board.BlackRookBits);
-	board.BoardHash ^= Zobrist.Castling[0] ^ Zobrist.Castling[1] ^ Zobrist.Castling[2] ^ Zobrist.Castling[3];
 
 	// Other
 	board.Turn = Side::White;

@@ -97,6 +97,38 @@ struct Board {
 		}
 	}
 
+	template<const bool state>
+	inline void SetWhiteShortCastlingRight() {
+		if (state != WhiteRightToShortCastle) {
+			WhiteRightToShortCastle = state;
+			BoardHash ^= Zobrist.Castling[0];
+		}
+	}
+
+	template<const bool state>
+	inline void SetWhiteLongCastlingRight() {
+		if (state != WhiteRightToLongCastle) {
+			WhiteRightToLongCastle = state;
+			BoardHash ^= Zobrist.Castling[1];
+		}
+	}
+
+	template<const bool state>
+	inline void SetBlackShortCastlingRight() {
+		if (state != BlackRightToShortCastle) {
+			BlackRightToShortCastle = state;
+			BoardHash ^= Zobrist.Castling[2];
+		}
+	}
+
+	template<const bool state>
+	inline void SetBlackLongCastlingRight() {
+		if (state != BlackRightToLongCastle) {
+			BlackRightToLongCastle = state;
+			BoardHash ^= Zobrist.Castling[3];
+		}
+	}
+
 	inline uint64_t GetOccupancy() const {
 		return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits
 			| BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
