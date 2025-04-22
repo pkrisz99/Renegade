@@ -228,7 +228,6 @@ void Position::PushMove(const Move& move) {
 
 	board.ApplyMove(move, CastlingConfig);
 	board.Threats = CalculateAttackedSquares(!Turn());
-	board.BoardHash = board.CalculateHash();
 
 	Moves.push_back({ move, movedPiece });
 	assert(States.size() - 1 == Moves.size());
@@ -241,13 +240,11 @@ void Position::PushNullMove() {
 	board.Turn = !board.Turn;
 	if (board.Turn == Side::White) board.FullmoveClock += 1;
 	board.Threats = CalculateAttackedSquares(!Turn());
+	board.BoardHash ^= Zobrist.SideToMove;
 
-	if (board.EnPassantSquare == -1) {
-		board.BoardHash = board.BoardHash ^ Zobrist.SideToMove;
-	}
-	else {
+	if (board.EnPassantSquare != -1) {
+		board.BoardHash ^= Zobrist.EnPassant[GetSquareFile(board.EnPassantSquare)];
 		board.EnPassantSquare = -1;
-		board.BoardHash = board.CalculateHash();
 	}
 
 	Moves.push_back({ NullMove, Piece::None });
