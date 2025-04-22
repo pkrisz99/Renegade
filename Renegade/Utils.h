@@ -112,6 +112,18 @@ namespace Piece {
 	constexpr uint8_t BlackKing = BlackPieceOffset + PieceType::King;
 }
 
+constexpr bool IsValidPiece(const uint8_t piece) {
+	return (1 <= piece && piece <= 6) || (9 <= piece && piece <= 14);
+};
+
+constexpr bool IsValidPieceOrNone(const uint8_t piece) {
+	return piece == Piece::None || IsValidPiece(piece);
+};
+
+constexpr bool IsNonPawn(const uint8_t piece) {
+	return piece != Piece::WhitePawn && piece != Piece::BlackPawn;
+};
+
 constexpr uint64_t LightSquares = 0b0101010110101010010101011010101001010101101010100101010110101010;
 constexpr uint64_t DarkSquares = 0b1010101001010101101010100101010110101010010101011010101001010101;
 
