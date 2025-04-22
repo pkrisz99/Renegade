@@ -222,17 +222,21 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 	assert(Popcount(WhiteKingBits) == 1 && Popcount(BlackKingBits) == 1);
 }
 
-uint64_t Board::CalculateMaterialKey() const {
-	uint64_t materialKey = 0;
-	materialKey |= static_cast<uint64_t>(Popcount(WhitePawnBits));
-	materialKey |= static_cast<uint64_t>(Popcount(WhiteKnightBits)) << 6;
-	materialKey |= static_cast<uint64_t>(Popcount(WhiteBishopBits)) << 12;
-	materialKey |= static_cast<uint64_t>(Popcount(WhiteRookBits)) << 18;
-	materialKey |= static_cast<uint64_t>(Popcount(WhiteQueenBits)) << 24;
-	materialKey |= static_cast<uint64_t>(Popcount(BlackPawnBits)) << 30;
-	materialKey |= static_cast<uint64_t>(Popcount(BlackKnightBits)) << 36;
-	materialKey |= static_cast<uint64_t>(Popcount(BlackBishopBits)) << 42;
-	materialKey |= static_cast<uint64_t>(Popcount(BlackRookBits)) << 48;
-	materialKey |= static_cast<uint64_t>(Popcount(BlackQueenBits)) << 54;
-	return MurmurHash3(materialKey);
+uint64_t Board::CalculateMaterialHash() const {
+	uint64_t materialHash = 0;
+	materialHash |= static_cast<uint64_t>(Popcount(WhitePawnBits));
+	materialHash |= static_cast<uint64_t>(Popcount(WhiteKnightBits)) << 6;
+	materialHash |= static_cast<uint64_t>(Popcount(WhiteBishopBits)) << 12;
+	materialHash |= static_cast<uint64_t>(Popcount(WhiteRookBits)) << 18;
+	materialHash |= static_cast<uint64_t>(Popcount(WhiteQueenBits)) << 24;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackPawnBits)) << 30;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackKnightBits)) << 36;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackBishopBits)) << 42;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackRookBits)) << 48;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackQueenBits)) << 54;
+	return MurmurHash3(materialHash);
+}
+
+uint64_t Board::CalculatePawnHash() const {
+	return MurmurHash3(WhitePawnBits) ^ MurmurHash3(BlackPawnBits ^ Zobrist[780]);
 }

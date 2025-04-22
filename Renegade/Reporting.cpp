@@ -27,18 +27,18 @@ Move Results::BestMove() const {
 
 // Communicating the search results ---------------------------------------------------------------
 
-void PrintInfo(const Results& e) {
+void PrintInfo(const Results& r) {
 	if (!Settings::UseUCI) {
-		PrintPretty(e);
+		PrintPretty(r);
 		return;
 	}
 
-	const int normalizedScore = ToCentipawns(e.score, e.ply);
+	const int normalizedScore = ToCentipawns(r.score, r.ply);
 
 	std::string score{};
-	if (IsMateScore(e.score)) {
-		const int movesToMate = (MateEval - std::abs(e.score) + 1) / 2;
-		if (e.score > 0) score = "mate " + std::to_string(movesToMate);
+	if (IsMateScore(r.score)) {
+		const int movesToMate = (MateEval - std::abs(r.score) + 1) / 2;
+		if (r.score > 0) score = "mate " + std::to_string(movesToMate);
 		else score = "mate -" + std::to_string(movesToMate);
 	}
 	else {
@@ -46,18 +46,18 @@ void PrintInfo(const Results& e) {
 	}
 
 	std::string pvString{};
-	for (const Move& move : e.pv)
+	for (const Move& move : r.pv)
 		pvString += " " + move.ToString(Settings::Chess960);
 
 	std::string wdlOutput{};
 	if (Settings::ShowWDL) {
-		const auto [w, d, l] = GetWDL(e.score, e.ply);
+		const auto [w, d, l] = GetWDL(r.score, r.ply);
 		wdlOutput = " wdl " + std::to_string(w) + " " + std::to_string(d) + " " + std::to_string(l);
 	}
 
 #if defined(_MSC_VER)
 	const std::string output = std::format("info depth {} seldepth {} score {}{} nodes {} nps {} time {} hashfull {} pv{}",
-		e.depth, e.seldepth, score, wdlOutput, e.nodes, e.nps, e.time, e.hashfull, pvString);
+		r.depth, r.seldepth, score, wdlOutput, r.nodes, r.nps, r.time, r.hashfull, pvString);
 
 #else
 	const std::string output = "info depth " + std::to_string(e.depth) + " seldepth " + std::to_string(e.seldepth)
@@ -71,27 +71,27 @@ void PrintInfo(const Results& e) {
 
 // Printing current search results ----------------------------------------------------------------
 
-void PrintPretty(const Results& e) {
+void PrintPretty(const Results& r) {
 #if __cpp_lib_format
 
 	// Basic search information:
 
-	const std::string outputDepth = std::format("{:2d}/{:2d}", e.depth, e.seldepth);
+	const std::string outputDepth = std::format("{:2d}/{:2d}", r.depth, r.seldepth);
 
-	const std::string outputNodes = Console::FormatInteger(e.nodes);
+	const std::string outputNodes = Console::FormatInteger(r.nodes);
 
 	const std::string outputTime = [&] {
-		if (e.time < 60000) return std::format("{:>5.2f}s", e.time / 1000.0);
-		const int seconds = e.time / 1000;
+		if (r.time < 60000) return std::format("{:>5.2f}s", r.time / 1000.0);
+		const int seconds = r.time / 1000;
 		const auto [m, s] = std::div(seconds, 60);
 		return std::format("{}m{:02d}s", m, s);
 	}();
 
-	const std::string outputHash = std::format("{:>2d}", std::min(e.hashfull / 10, 99));
+	const std::string outputHash = std::format("{:>2d}", std::min(r.hashfull / 10, 99));
 
 	const std::string outputNps = [&] {
-		if (e.threads == 1) return std::format("{:>4d}knps", e.nps / 1000);
-		else return std::format("{:>4.1f}mnps", e.nps / 1e6);
+		if (r.threads == 1) return std::format("{:>4d}knps", r.nps / 1000);
+		else return std::format("{:>4.1f}mnps", r.nps / 1e6);
 	}();
 
 	const std::string outputSearch = std::format(" {}{} {}{:>13} {:>7} {:>9}  h={}%  {}->",
@@ -100,7 +100,7 @@ void PrintPretty(const Results& e) {
 	// Evaluation and win-draw-loss:
 
 	constexpr int neutralMargin = 50;
-	const int normalizedScore = ToCentipawns(e.score, e.ply);
+	const int normalizedScore = ToCentipawns(r.score, r.ply);
 
 	const std::string scoreColor = [&] {
 		if (IsMateScore(normalizedScore)) return Console::Yellow;
@@ -120,7 +120,7 @@ void PrintPretty(const Results& e) {
 		}
 	}();
 
-	const auto [modelW, modelD, modelL] = GetWDL(e.score, e.ply);
+	const auto [modelW, modelD, modelL] = GetWDL(r.score, r.ply);
 	const int w = static_cast<int>(std::round(modelW / 10.0));
 	const int d = static_cast<int>(std::round(modelD / 10.0));
 	const int l = static_cast<int>(std::round(modelL / 10.0));
@@ -130,7 +130,7 @@ void PrintPretty(const Results& e) {
 	// Principal variation:
 
 	constexpr int movesShown = 5;
-	const int pvMoveCount = e.pv.size();
+	const int pvMoveCount = r.pv.size();
 
 	const std::string outputPv = [&] {
 		if (pvMoveCount == 0) return "  " + Console::White;
@@ -138,7 +138,7 @@ void PrintPretty(const Results& e) {
 		std::string list{};
 		for (int i = 0; i < movesShown; i++) {
 			if (i >= pvMoveCount) break;
-			list += e.pv[i].ToString(Settings::Chess960) + " ";
+			list += r.pv[i].ToString(Settings::Chess960) + " ";
 		}
 		list.pop_back();
 		if (pvMoveCount > movesShown) list += Console::Gray + " +" + std::to_string(pvMoveCount - movesShown) + Console::White;

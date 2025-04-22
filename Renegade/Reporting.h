@@ -25,6 +25,6 @@ struct Results {
 	Move BestMove() const;
 };
 
-void PrintInfo(const Results& e);
-void PrintPretty(const Results& e);
+void PrintInfo(const Results& r);
+void PrintPretty(const Results& r);
 void PrintBestmove(const Move& move);

@@ -13,22 +13,15 @@ class Histories
 public:
 	
 	Histories();
-
 	void ClearAll();
-	void ClearKillerAndCounterMoves();
+	void ClearRefutations();
 
-	// Killer move heuristic:
+	// Refutation moves:
 	void SetKillerMove(const Move& move, const int level);
-	Move GetKillerMove(const int level) const;
-	void ResetKillerForPly(const int level);
-
-	// Countermove heuristic:
 	void SetCountermove(const Move& previousMove, const Move& thisMove);
-	Move GetCountermove(const Move& previousMove) const;
-
-	// Positional move heuristic: - name ideas welcome
 	void SetPositionalMove(const Position& pos, const Move& thisMove);
-	Move GetPositionalMove(const Position& pos) const;
+	std::tuple<Move, Move, Move> GetRefutationMoves(const Position& pos, const int level) const;
+	void ResetKillerForPly(const int level);
 
 	// History heuristic:
 	template <bool bonus> void UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth, const int times);
@@ -58,7 +51,7 @@ private:
 	MultiArray<int16_t, 15, 64, 15, 64> ContinuationHistory;
 
 	// Evaluation correction history:
-	MultiArray<int32_t, 2, 16384> PawnsCorrectionHistory;
+	MultiArray<int32_t, 2, 16384> PawnCorrectionHistory;
 	MultiArray<int32_t, 2, 2, 65536> NonPawnCorrectionHistory;
 	MultiArray<int32_t, 15, 64, 15, 64> FollowUpCorrectionHistory;
 };

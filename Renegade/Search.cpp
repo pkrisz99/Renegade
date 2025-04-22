@@ -229,7 +229,7 @@ void Search::SearchMoves(ThreadData& t) {
 	std::fill(t.SuperSingular.begin(), t.SuperSingular.end(), false);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
-	t.History.ClearKillerAndCounterMoves();
+	t.History.ClearRefutations();
 	t.EvalState.Reset(t.CurrentPosition);
 
 	// Iterative deepening

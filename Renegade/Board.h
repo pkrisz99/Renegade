@@ -99,7 +99,8 @@ struct Board {
 	std::tuple<uint64_t, uint64_t, uint64_t> CalculateHashes() const;
 	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
 
-	uint64_t CalculateMaterialKey() const;
+	[[maybe_unused]] uint64_t CalculateMaterialHash() const;
+	uint64_t CalculatePawnHash() const;
 
 };
 

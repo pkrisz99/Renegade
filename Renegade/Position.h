@@ -118,15 +118,15 @@ public:
 		return CheckBit(States.back().Threats, sq);
 	}
 
-	inline uint64_t GetMaterialKey() const {
-		return States.back().CalculateMaterialKey();
+	[[maybe_unused]] inline uint64_t GetMaterialHash() const {
+		return States.back().CalculateMaterialHash();
 	}
 
-	inline uint64_t GetPawnKey() const {
-		return MurmurHash3(WhitePawnBits()) ^ MurmurHash3(BlackPawnBits() ^ Zobrist[780]);
+	inline uint64_t GetPawnHash() const {
+		return States.back().CalculatePawnHash();
 	}
 
-	inline std::pair<uint64_t, uint64_t> GetNonPawnKeys() const {
+	inline std::pair<uint64_t, uint64_t> GetNonPawnHashes() const {
 		return { States.back().WhiteNonPawnHash, States.back().BlackNonPawnHash };
 	}
 
