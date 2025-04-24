@@ -1,6 +1,10 @@
 /// Training parameters used to create Renegade's networks
 /// bullet version used: 98b58df (Add Copy operation for stopping gradients) from April 16, 2025
 
+/// Net 31 is trained in 2 stages (totally not by accident):
+/// - first 600 sb: cosine decay, wdl 0.2 -> 0.4
+/// - final 200 sb: continue the cosine decay, wdl fixed at 0.4
+
 #[allow(unused_imports)]
 use bullet_lib::{
     nn::{optimiser, Activation},
@@ -15,7 +19,7 @@ use bullet_lib::{
     },
 };
 
-const NET_ID: &str = "renegade-net-31-v1";
+const NET_ID: &str = "renegade-net-31";
 
 
 fn main() {
@@ -38,7 +42,7 @@ fn main() {
         .activate(Activation::SCReLU)
         .add_layer(1)
         .build();
-    trainer.load_from_checkpoint("checkpoints/renegade-net-31-v1-770");
+    //trainer.load_from_checkpoint("checkpoints/renegade-net-31-600");
     
     let schedule = TrainingSchedule {
         net_id: NET_ID.to_string(),
@@ -46,11 +50,11 @@ fn main() {
         steps: TrainingSteps {
             batch_size: 16384,
             batches_per_superbatch: 6104, // ~100 million positions
-            start_superbatch: 771,
-            end_superbatch: 800,
+            start_superbatch: 1, // <-- start from 601 for stage 2
+            end_superbatch: 600,
         },
         wdl_scheduler: wdl::LinearWDL {
-            start: 0.4,
+            start: 0.2,  // <-- change this for stage 2
             end: 0.4,
         },
         lr_scheduler: lr::Warmup {
