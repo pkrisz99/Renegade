@@ -34,14 +34,8 @@ endif
 # Specific builds -------------------------------------------------------------
 # (as of 2025, the default release build is bmi2)
 
-ifeq ($(build), native)
-	NATIVE   = -march=native -mtune=native
-endif
-
 ifeq ($(build), debug)
-	CXXFLAGS = -std=c++20 -O3 -g3 -fno-omit-frame-pointer -fsanitize=address -fsanitize=leak -fsanitize=undefined
-	NATIVE   = -march=haswell -mtune=haswell
-	LDFLAGS  = -pthread -lstdc++
+	CXXFLAGS = -std=c++20 -Og -g3 -fno-omit-frame-pointer -fsanitize=undefined,address,leak
 endif
 
 ifeq ($(build), x86-64)
