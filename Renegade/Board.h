@@ -53,7 +53,7 @@ struct Board {
 
 	template<const uint8_t piece>
 	inline void AddPiece(const uint8_t square) {
-		assert(ValidPiece(piece));
+		assert(IsValidPiece(piece));
 		assert(square >= 0 && square < 64);
 		SetBitTrue(PieceBitboard(piece), square);
 		Mailbox[square] = piece;
@@ -64,7 +64,7 @@ struct Board {
 
 	template<const uint8_t piece>
 	inline void RemovePiece(const uint8_t square) {
-		assert(ValidPiece(piece));
+		assert(IsValidPiece(piece));
 		assert(square >= 0 && square < 64);
 		SetBitFalse(PieceBitboard(piece), square);
 		Mailbox[square] = Piece::None;
