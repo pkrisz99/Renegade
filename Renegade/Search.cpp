@@ -293,14 +293,14 @@ void Search::SearchMoves(ThreadData& t) {
 		// Check search limits on the main thread
 		const auto currentTime = Clock::now();
 		const int elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
-		if (t.IsMainThread()) {
-			if (Constraints.SearchTimeMin != -1 && Constraints.SearchTimeMin != Constraints.SearchTimeMax) {
-				const int originalSoftTimeLimit = Constraints.SearchTimeMin;
+		if (t.IsMainThread() && Constraints.SearchTimeMin != -1) {
+			int softTimeLimit = Constraints.SearchTimeMin;
+			if (Constraints.SearchTimeMin != Constraints.SearchTimeMax) {
 				const Move& bestMove = t.PvTable[0][0];
 				const double bestMoveFraction = t.RootNodeCounts[bestMove.from][bestMove.to] / static_cast<double>(t.Nodes);
-				const int adjustedSoftTimeLimit = originalSoftTimeLimit * (t.RootDepth >= 10 ? (1.5 - bestMoveFraction) * 1.35 : 1.0);
-				if (elapsedMs >= adjustedSoftTimeLimit) finished = true;
+				softTimeLimit = softTimeLimit * (t.RootDepth >= 10 ? (1.5 - bestMoveFraction) * 1.35 : 1.0);
 			}
+			if (elapsedMs >= softTimeLimit) finished = true;				
 		}
 
 		if (t.RootDepth >= Constraints.MaxDepth && Constraints.MaxDepth != -1) finished = true;
