@@ -62,6 +62,7 @@ void Search::SetThreadCount(const int threadCount) {
 }
 
 Results Search::SearchSinglethreaded(const Position& pos, const SearchParams& params) {
+	StartSearchTime = Clock::now();
 	Aborting.store(false);
 	TranspositionTable.IncreaseAge();
 	ThreadData& t = Threads.front();
