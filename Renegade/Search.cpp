@@ -754,8 +754,9 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 		const auto& [m, order] = movePicker.Get();
 		if (!position.IsLegalMove(m)) continue;
 
+		if (inCheck && bestScore > -MateThreshold && order < 200000) break;
+
 		if (bestScore > -MateThreshold && !position.StaticExchangeEval(m, 0)) continue; // Quiescence search SEE pruning
-		if (bestScore > -MateThreshold && position.IsMoveQuiet(m)) continue;
 		if (!inCheck && alpha >= futilityScore && !position.StaticExchangeEval(m, 1)) {  // Quiescence search futility pruning
 			if (bestScore < futilityScore) bestScore = futilityScore;
 			continue;
