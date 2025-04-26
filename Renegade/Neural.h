@@ -40,9 +40,9 @@ constexpr int OutputBucketCount = 8;
 
 
 struct alignas(64) NetworkRepresentation {
-	MultiArray<int16_t, InputBucketCount, FeatureSize, HiddenSize> FeatureWeights;
-	MultiArray<int16_t, HiddenSize> FeatureBias;
-	MultiArray<int16_t, OutputBucketCount, HiddenSize * 2> OutputWeights;
+	alignas(64) MultiArray<int16_t, InputBucketCount, FeatureSize, HiddenSize> FeatureWeights;
+	alignas(64) MultiArray<int16_t, HiddenSize> FeatureBias;
+	alignas(64) MultiArray<int16_t, OutputBucketCount, HiddenSize * 2> OutputWeights;
 	MultiArray<int16_t, OutputBucketCount> OutputBias;
 };
 
@@ -166,7 +166,7 @@ struct alignas(64) AccumulatorRepresentation {
 };
 
 struct alignas(64) BucketCacheEntry {
-	std::array<int16_t, HiddenSize> cachedAcc;
+	alignas(64) std::array<int16_t, HiddenSize> cachedAcc;
 	std::array<uint64_t, 12> featureBits{};
 
 	BucketCacheEntry() {
