@@ -736,7 +736,8 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	// Check alpha-beta bounds
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
-	if (level >= MaxDepth) return inCheck ? 0 : staticEval;
+
+	if (level >= MaxDepth) return inCheck ? DrawEvaluation(t) : staticEval;
 	if (position.IsDrawn(level)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them
@@ -751,7 +752,8 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	while (movePicker.HasNext()) {
 		const auto& [m, order] = movePicker.Get();
 		if (!position.IsLegalMove(m)) continue;
-		if (!position.StaticExchangeEval(m, 0)) continue; // Quiescence search SEE pruning
+
+		if (bestScore > -MateThreshold && !position.StaticExchangeEval(m, 0)) continue; // Quiescence search SEE pruning
 		if (bestScore > -MateThreshold && position.IsMoveQuiet(m)) continue;
 		t.Nodes += 1;
 
