@@ -62,6 +62,7 @@ void Search::SetThreadCount(const int threadCount) {
 }
 
 Results Search::SearchSinglethreaded(const Position& pos, const SearchParams& params) {
+	StartSearchTime = Clock::now();
 	Aborting.store(false);
 	TranspositionTable.IncreaseAge();
 	ThreadData& t = Threads.front();
@@ -292,14 +293,14 @@ void Search::SearchMoves(ThreadData& t) {
 		// Check search limits on the main thread
 		const auto currentTime = Clock::now();
 		const int elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
-		if (t.IsMainThread()) {
-			if (Constraints.SearchTimeMin != -1 && Constraints.SearchTimeMin != Constraints.SearchTimeMax) {
-				const int originalSoftTimeLimit = Constraints.SearchTimeMin;
+		if (t.IsMainThread() && Constraints.SearchTimeMin != -1) {
+			int softTimeLimit = Constraints.SearchTimeMin;
+			if (Constraints.SearchTimeMin != Constraints.SearchTimeMax) {
 				const Move& bestMove = t.PvTable[0][0];
 				const double bestMoveFraction = t.RootNodeCounts[bestMove.from][bestMove.to] / static_cast<double>(t.Nodes);
-				const int adjustedSoftTimeLimit = originalSoftTimeLimit * (t.RootDepth >= 10 ? (1.5 - bestMoveFraction) * 1.35 : 1.0);
-				if (elapsedMs >= adjustedSoftTimeLimit) finished = true;
+				softTimeLimit = softTimeLimit * (t.RootDepth >= 10 ? (1.5 - bestMoveFraction) * 1.35 : 1.0);
 			}
+			if (elapsedMs >= softTimeLimit) finished = true;				
 		}
 
 		if (t.RootDepth >= Constraints.MaxDepth && Constraints.MaxDepth != -1) finished = true;
@@ -469,7 +470,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Null-move pruning
 		if (depth >= 3 && eval >= beta && !position.IsPreviousMoveNull() && position.ZugzwangUnlikely()) {
-			TranspositionTable.Prefetch(position.Hash() ^ Zobrist[780]);
+			TranspositionTable.Prefetch(position.Hash() ^ Zobrist.SideToMove);
 			const int nmpReduction = [&] {
 				const int defaultReduction = 4 + depth / 3 + std::min((eval - beta) / 218, 3);
 				return std::min(defaultReduction, depth);
@@ -735,7 +736,8 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	// Check alpha-beta bounds
 	if (staticEval >= beta) return staticEval;
 	if (staticEval > alpha) alpha = staticEval;
-	if (level >= MaxDepth) return inCheck ? 0 : staticEval;
+
+	if (level >= MaxDepth) return inCheck ? DrawEvaluation(t) : staticEval;
 	if (position.IsDrawn(level)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them
@@ -746,12 +748,19 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	int bestScore = staticEval;
 	Move bestMove = NullMove;
 	int scoreType = ScoreType::UpperBound;
+	int futilityScore = std::min(staticEval + 250, MateThreshold - 1);
 
 	while (movePicker.HasNext()) {
 		const auto& [m, order] = movePicker.Get();
 		if (!position.IsLegalMove(m)) continue;
-		if (!position.StaticExchangeEval(m, 0)) continue; // Quiescence search SEE pruning
-		if (bestScore > -MateThreshold && position.IsMoveQuiet(m)) continue;
+
+		if (inCheck && bestScore > -MateThreshold && order < 200000) break;
+
+		if (bestScore > -MateThreshold && !position.StaticExchangeEval(m, 0)) continue; // Quiescence search SEE pruning
+		if (!inCheck && alpha >= futilityScore && !position.StaticExchangeEval(m, 1)) {  // Quiescence search futility pruning
+			if (bestScore < futilityScore) bestScore = futilityScore;
+			continue;
+		}
 		t.Nodes += 1;
 
 		const uint8_t movedPiece = position.GetPieceAt(m.from);

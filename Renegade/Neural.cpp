@@ -15,9 +15,38 @@
 #undef RENEGADE_MSVC
 #endif
 
+// Loading the neural network ---------------------------------------------------------------------
+
+#if !defined(_MSC_VER) || defined(__clang__)
+
 INCBIN(DefaultNetwork, NETWORK_NAME);
+const NetworkRepresentation* Network = reinterpret_cast<const NetworkRepresentation*>(gDefaultNetworkData);
+void LoadDefaultNetwork() {}
+
+#else
+
 const NetworkRepresentation* Network;
 std::unique_ptr<NetworkRepresentation> ExternalNetwork;
+
+void LoadDefaultNetwork() {
+	std::ifstream ifs(NETWORK_NAME, std::ios::binary);
+	if (!ifs) {
+		cout << "Failed to load network '" << NETWORK_NAME << "'" << endl;
+		std::terminate();
+	}
+
+	std::unique_ptr<NetworkRepresentation> loadedNetwork = std::make_unique<NetworkRepresentation>();
+	ifs.read((char*)loadedNetwork.get(), sizeof(NetworkRepresentation));
+	std::swap(ExternalNetwork, loadedNetwork);
+	Network = ExternalNetwork.get();
+
+	const int startposEval = NeuralEvaluate(Position());
+	if (std::abs(startposEval) < 300 && startposEval != 0) cout << "Loaded '" << NETWORK_NAME << "' network from disk probably successfully";
+	else cout << "Loaded '" << NETWORK_NAME << "', but it stinks";
+	cout << " (startpos raw eval: " << startposEval << ")" << endl;
+}
+
+#endif
 
 // Evaluating the position ------------------------------------------------------------------------
 
@@ -151,7 +180,7 @@ void EvaluationState::UpdateIncrementally(const bool side, const int accIndex) {
 	const Move& m = c.move;
 
 	// Ensure the base accumulator is already up to date, and copy over the previous state
-    // (possible future optimization by deferring this and adding the accumulator change?)
+	// (possible future optimization by deferring this and adding the accumulator change?)
 	assert(o.Correct[side]);
 	c.Accumulator[side] = o.Accumulator[side];
 
@@ -269,32 +298,4 @@ void EvaluationState::UpdateFromBucketCache(const Position& pos, const int accIn
 	cache.featureBits = featureBits;
 	AccumulatorStack[accIndex].Accumulator[side] = cache.cachedAcc;
 	AccumulatorStack[accIndex].Correct[side] = true;
-}
-
-// Loading the neural network ---------------------------------------------------------------------
-
-void LoadDefaultNetwork() {
-#if !defined(_MSC_VER) || defined(__clang__)
-	// Include binary in the executable file via incbin (good)
-	Network = reinterpret_cast<const NetworkRepresentation*>(gDefaultNetworkData);
-#else
-	// Load network file from disk at runtime (bad)
-	std::ifstream ifs(NETWORK_NAME, std::ios::binary);
-	if (!ifs) {
-		cout << "Failed to load network: " << NETWORK_NAME << endl;
-		return;
-	}
-
-	std::unique_ptr<NetworkRepresentation> loadedNetwork = std::make_unique<NetworkRepresentation>();
-	ifs.read((char*)loadedNetwork.get(), sizeof(NetworkRepresentation));
-	std::swap(ExternalNetwork, loadedNetwork);
-	Network = ExternalNetwork.get();
-
-	// Check if startpos evaluation actually makes sense
-	const Position pos{};
-	const int startposEval = NeuralEvaluate(pos);
-	if (std::abs(startposEval) < 300 && startposEval != 0) cout << "Loaded '" << NETWORK_NAME << "' network from disk probably successfully";
-	else cout << "Loaded '" << NETWORK_NAME << "', but it stinks";
-	cout << " (startpos raw eval: " << startposEval << ")" << endl;
-#endif
 }

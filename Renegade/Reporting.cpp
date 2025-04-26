@@ -71,7 +71,7 @@ void PrintInfo(const Results& r) {
 
 // Printing current search results ----------------------------------------------------------------
 
-void PrintPretty(const Results& r) {
+void PrintPretty([[maybe_unused]] const Results& r) {
 #if __cpp_lib_format
 
 	// Basic search information:
