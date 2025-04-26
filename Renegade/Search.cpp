@@ -748,6 +748,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	int bestScore = staticEval;
 	Move bestMove = NullMove;
 	int scoreType = ScoreType::UpperBound;
+	int futilityScore = std::min(staticEval + 250, MateThreshold - 1);
 
 	while (movePicker.HasNext()) {
 		const auto& [m, order] = movePicker.Get();
@@ -755,6 +756,10 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 		if (bestScore > -MateThreshold && !position.StaticExchangeEval(m, 0)) continue; // Quiescence search SEE pruning
 		if (bestScore > -MateThreshold && position.IsMoveQuiet(m)) continue;
+		if (!inCheck && alpha >= futilityScore && !position.StaticExchangeEval(m, 1)) {  // Quiescence search futility pruning
+			if (bestScore < futilityScore) bestScore = futilityScore;
+			continue;
+		}
 		t.Nodes += 1;
 
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
