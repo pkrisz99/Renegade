@@ -19,6 +19,8 @@
 
 #if !defined(_MSC_VER) || defined(__clang__)
 
+#undef INCBIN_ALIGNMENT
+#define INCBIN_ALIGNMENT 64
 INCBIN(DefaultNetwork, NETWORK_NAME);
 const NetworkRepresentation* Network = reinterpret_cast<const NetworkRepresentation*>(gDefaultNetworkData);
 void LoadDefaultNetwork() {}
