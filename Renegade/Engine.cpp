@@ -12,6 +12,9 @@ Engine::Engine(int argc, char* argv[]) {
 
 void Engine::PrintHeader() const {
 	cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
+#ifdef RENEGADE_DATAGEN
+	cout << "Note: engine compiled for datagen" << endl;
+#endif
 }
 
 // Start UCI protocol
@@ -26,10 +29,15 @@ void Engine::Start() {
 
 	// Handle externally receiving datagen
 	if (Behavior == EngineBehavior::DatagenNormal || Behavior == EngineBehavior::DatagenDFRC) {
+#ifdef RENEGADE_DATAGEN
 		const DatagenLaunchMode launchMode = (Behavior == EngineBehavior::DatagenNormal) ? DatagenLaunchMode::Normal : DatagenLaunchMode::DFRC;
 		StartDatagen(launchMode);
 		SearchThreads.StopThreads();
 		return;
+#else
+		cout << Console::Red << "Error: engine is *not* compiled for datagen!" << Console::White << endl;
+		std::terminate();
+#endif
 	}
 
 	Position position = Position(FEN::StartPos);
@@ -82,6 +90,7 @@ void Engine::Start() {
 			continue;
 		}
 
+#ifdef RENEGADE_DATAGEN
 		if (cmd == "datagen") {
 			StartDatagen(DatagenLaunchMode::Ask);
 			break;
@@ -91,6 +100,7 @@ void Engine::Start() {
 			MergeDatagenFiles();
 			break;
 		}
+#endif
 
 		if (cmd == "tunetext") {
 			GenerateOpenBenchTuningString();

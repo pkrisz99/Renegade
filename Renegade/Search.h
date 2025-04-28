@@ -85,7 +85,11 @@ public:
 	void WaitUntilReady();
 	void Perft(Position& position, const int depth, const PerftType type) const;
 
-	static constexpr bool DatagenMode = false; // <-- for datagen, set this to true
+#ifdef RENEGADE_DATAGEN
+	static constexpr bool DatagenMode = true;
+#else
+	static constexpr bool DatagenMode = false;
+#endif
 
 	std::atomic<bool> Aborting = true;
 	Transpositions TranspositionTable;
