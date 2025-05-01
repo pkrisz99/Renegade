@@ -22,7 +22,7 @@ void Histories::ClearRefutations() {
 
 // Refutation moves -------------------------------------------------------------------------------
 // Note that Renegade has 3 types of this, rather than the usual 2 (or even 1)
-// Positional refutatations are the ones that depend on the pawn structure
+// Positional refutations are the ones that depend on the pawn structure
 
 void Histories::SetKillerMove(const Move& move, const int level) {
 	if (level >= MaxDepth) return;

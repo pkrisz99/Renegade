@@ -45,6 +45,8 @@ public:
 
 	int index = 0;
 
+	static constexpr int MaxRegularQuietOrder = 200000;
+
 private:
 
 	int GetMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
@@ -65,16 +67,13 @@ private:
 
 		// Captures
 		if (capturedPieceType != PieceType::None) {
-
 			const bool losingCapture = [&] {
 				if (moveGen == MoveGen::Noisy) return false;
 				if (pos.IsMoveQuiet(m)) return false;
 				const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
 				return !pos.StaticExchangeEval(m, -captureScore / 33);
 			}();
-
-			if (!losingCapture) return 600000 + values[capturedPieceType] * 16 + hist.GetCaptureHistoryScore(pos, m);
-			else return -200000 + values[capturedPieceType] * 16 + hist.GetCaptureHistoryScore(pos, m);
+			return (!losingCapture ? 600000 : -200000) + values[capturedPieceType] * 16 + hist.GetCaptureHistoryScore(pos, m);
 		}
 
 		// Quiet moves: take the history score and potentially apply a bonus for being a refutation

@@ -634,7 +634,6 @@ bool Position::IsLegalMove(const Move& m) const {
 
 	if (m.flag == MoveFlag::EnPassantPerformed) {
 		// After the en passant start rays to see if the king is attacked by an appropiate sliding piece
-		// TODO: Checking for only rook attacks is enough, I think?
 		const uint8_t epVictimSq = (board.Turn == Side::White) ? board.EnPassantSquare - 8 : board.EnPassantSquare + 8;
 		const uint64_t parallelSliders = (board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits);
 		const uint64_t diagonalSliders = (board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits);

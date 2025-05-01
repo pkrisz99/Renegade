@@ -1,15 +1,7 @@
 #include "Search.h"
 
 // This is the main search code of Renegade. If you're reading this, you're probably interested in
-// what this engine does, and I'm happy for that, feel free to try some ideas from here!
-
-// However, you may have confidence in this code, but be aware, that I don't. Here are some caveats:
-// - this engine does not reduce losing captures at all
-// - LMR is quite conservative
-// - the ordering score can come either directly from history, or from captures/killers etc.
-// - quiescence search is very basic
-// - there aren't any form of staged movegen implemented
-// - some stuff are just plain cursed
+// what this engine does under the hood, and I'm happy for that, feel free to try some ideas from here!
 
 Search::Search() {
 	constexpr double lmrMultiplier = 0.40;
@@ -217,8 +209,7 @@ bool Search::ShouldAbort(const ThreadData& t) {
 	return false;
 }
 
-// Negamax search routine and handling ------------------------------------------------------------
-
+// Alpha-beta search routine and handling ---------------------------------------------------------
 
 void Search::SearchMoves(ThreadData& t) {
 
@@ -366,7 +357,7 @@ Results Search::AggregateThreadResults() const {
 	return sumResult;
 }
 
-// Recursively called during the alpha-beta search
+// Main search function for a node, recursively called during the alpha-beta search
 template<bool pvNode>
 int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha, int beta, const bool cutNode) {
 
@@ -585,14 +576,13 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
 		bool deepen = false;
 
-		
-		// Late-move reductions & principal variation search
+		// Principal variation search & late-move reductions
 		if (depth >= 3 && (legalMoveCount >= (3 + pvNode * 2 + rootNode * 2)) && isQuiet) {
 			
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!ttPV) reduction += 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
-			if (std::abs(order) < 150000) reduction -= std::clamp(order / 20100, -2, 2);
+			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 20100, -2, 2);
 			if (cutNode) reduction += 1;
 			if (improving) reduction -= 1;
 			reduction = std::max(reduction, 0);
@@ -620,15 +610,15 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		position.PopMove();
 		t.EvalState.PopState();
 
-		// Update node count table for the root
+		// Update node count table for the root, this is used for time management
 		if (rootNode) t.RootNodeCounts[m.from][m.to] += t.Nodes - nodesBefore;
 
 		failLowCount += (score <= alpha);
 
-		// Process search results
+		// If the score beats our previous best, check if it raises alpha or causes a fail-high
 		if (score > bestScore) {
-			bestScore = score;
 
+			bestScore = score;
 			if (pvNode && !ShouldAbort(t)) t.UpdatePvTable(m, level);
 
 			// Raise alpha
@@ -643,7 +633,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				scoreType = ScoreType::LowerBound;
 				break;
 			}
-			
 		}
 	}
 
@@ -683,7 +672,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth, 1);
 	}
 
-	// Update evaluation correction
+	// Update evaluation correction history
 	if (!aborting && !singularSearch) {
 		const bool updateCorrection = [&] {
 			if (inCheck) return false;
@@ -740,11 +729,11 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (level >= MaxDepth) return inCheck ? DrawEvaluation(t) : staticEval;
 	if (position.IsDrawn(level)) return DrawEvaluation(t);
 
-	// Generate noisy moves and order them
+	// Generate noisy moves and order them (in check we generate quiets as well)
 	MovePicker& movePicker = t.MovePickerStack[level];
 	movePicker.Initialize(inCheck ? MoveGen::All : MoveGen::Noisy, position, t.History, ttMove, level);
 
-	// Search recursively
+	// Search recursively until the position is quiet
 	int bestScore = staticEval;
 	Move bestMove = NullMove;
 	int scoreType = ScoreType::UpperBound;
@@ -754,15 +743,19 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 		const auto& [m, order] = movePicker.Get();
 		if (!position.IsLegalMove(m)) continue;
 
-		if (inCheck && bestScore > -MateThreshold && order < 200000) break;
+		// When in check, no longer search quiet moves once we know we're not getting mated
+		if (inCheck && bestScore > -MateThreshold && order < MovePicker::MaxRegularQuietOrder) break;
 
-		if (bestScore > -MateThreshold && !position.StaticExchangeEval(m, 0)) continue; // Quiescence search SEE pruning
-		if (!inCheck && alpha >= futilityScore && !position.StaticExchangeEval(m, 1)) {  // Quiescence search futility pruning
+		// Quiescence search SEE pruning
+		if (bestScore > -MateThreshold && !position.StaticExchangeEval(m, 0)) continue;
+
+		// Quiescence search futility pruning
+		if (!inCheck && alpha >= futilityScore && !position.StaticExchangeEval(m, 1)) { 
 			if (bestScore < futilityScore) bestScore = futilityScore;
 			continue;
 		}
-		t.Nodes += 1;
 
+		t.Nodes += 1;
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
 		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
