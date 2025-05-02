@@ -41,7 +41,6 @@ void ConvertToLowercase(std::string& str) {
 // Getting the model for a given game ply
 std::pair<double, double> ModelWDLForPly(const int ply) {
 	const double m = std::min(240.0, static_cast<double>(ply)) / 64.0;
-
 	return {
 		(((as[0] * m + as[1]) * m + as[2]) * m) + as[3],
 		(((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3]
@@ -66,7 +65,7 @@ std::tuple<int, int, int> GetWDL(const int score, const int ply) {
 
 // Converts internal units into centipawns, following the convention of 100 cp = 50% chance of winning
 int ToCentipawns(const int score, const int ply) {
-	if ((std::abs(score) >= MateThreshold) || (score == 0)) return score;
+	if (std::abs(score) >= MateThreshold || score == 0) return score;
 	const auto [a, b] = ModelWDLForPly(ply);
 	return static_cast<int>(std::round(100.0 * static_cast<double>(score) / a));
 }
