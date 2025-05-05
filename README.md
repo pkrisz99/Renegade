@@ -9,17 +9,18 @@ The engine is fairly strong, and regularly competes in various tournaments organ
 ## Features
 ### Board representation
 - Uses bitboards to represent the location of the pieces on the board, which allows for fast and efficient operations
-- A redundant mailbox is used to query what piece is on a given square, and a board hash vector is kept around for repetition checking
 - Move generation relies on a number of precalculated tables, including plain magic bitboards for sliding pieces
+- In addition to standard chess, it also supports the popular variants of FRC (Chess960) and DFRC
 
 ### Search
-- The engine uses a fairly standard fail-soft alpha-beta pruning framework with iterative deepening and principal variation search
-- A number of move ordering and pruning methods are implemented to make search more efficient (see `Search.cpp`)
+- The engine uses a fail-soft alpha-beta pruning framework with iterative deepening and principal variation search
+- A large number of move ordering and pruning methods are implemented to make search more efficient (see `Search.cpp`)
+- Supports multithreaded search and can utilize hundreds of threads on high-end workstations
 
 ### Evaluation
 - Renegade makes use of modern NNUE (efficiently updatable neural network) technology for accurate position evaluation
-- Its neural network was trained entirely on [self-play data](https://www.kaggle.com/datasets/pkrisz/renegade-chess-engine-training-data), amounting to over 2.7 billion positions
-- The network architecture is a (768->1024)x2->1 perspective net with SCReLU activation
+- Its neural network was trained entirely on [self-play data](https://www.kaggle.com/datasets/pkrisz/renegade-chess-engine-training-data), amounting to over 5.6 billion positions
+- The network architecture is a `(768x14hm -> 1600)x2 -> 1x8` perspective net with input buckets and horizontal mirroring, featuring approximately 18.5 million parameters
 
 ## Usage
 Renegade - like most chess engines - is a command line application implementing the UCI protocol. It should be used alongside a graphical user interface to be able to display the board and to enter moves more easily.
@@ -46,15 +47,23 @@ Some useful custom commands are also implemented, such as `eval`, `draw` and `fe
 
 ## Compilation
 
-The recommended compiler is Clang 16. It should be noted that the engine makes use of modern hardware instructions for the best possible performance.  
+If you would like to compile Renegade for yourself, run the following commands:
 
-Windows and Linux executables can be found for each release.
+```bash
+git clone https://github.com/pkrisz99/Renegade.git
+cd Renegade/Renegade
+make
+```
+
+The recommended compiler is Clang 20, though older versions should work as long as they support C++20.
+
+Precompiled executables for Windows and Linux can be found for each release, but note that these builds leverage modern hardware instructions to maximize performance.
 
 ## Acknowledgments
 Getting this far would not have been possible without the members of the [Stockfish](https://github.com/official-stockfish/Stockfish) and [Engine Programming Discord](https://github.com/EngineProgramming/engine-list), and the decades of prior research done into chess programming.  
 
 In particular, Renegade makes use of many ideas from [Akimbo](https://github.com/jw1912/akimbo), [Ethereal](https://github.com/AndyGrant/Ethereal), [Motor](https://github.com/martinnovaak/motor), [Stockfish](https://github.com/official-stockfish/Stockfish), [Stormphrax](https://github.com/Ciekce/Stormphrax), [Viridithas](https://github.com/cosmobobak/viridithas) and [Wahoo](https://github.com/spamdrew128/Wahoo). These are all fantastic engines, and you are highly encouraged to check them out!  
 
-The neural networks were trained with [bullet](https://github.com/jw1912/bullet), and win-draw-loss models have been calculated using [Stockfish's WDL tool](https://github.com/official-stockfish/WDL_model). Testing changes requires playing a large number of games, and this is being managed using the [OpenBench testing framework](https://github.com/AndyGrant/OpenBench).  
+The neural networks were trained with [bullet](https://github.com/jw1912/bullet), and win-draw-loss models have been calculated using [Stockfish's WDL fitting tool](https://github.com/official-stockfish/WDL_model). Testing changes requires playing a large number of games, and this is being managed using the [OpenBench](https://github.com/AndyGrant/OpenBench) testing framework.  
 
 Additionally, I would also like to thank everyone who gave me feedback, and those who spent the time trying out and testing the engine!
