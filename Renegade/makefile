@@ -8,7 +8,7 @@ _ROOT     := $(_THIS)
 CXX       := clang++
 CXXFLAGS  := -std=c++20 -O3 -flto -funroll-loops -fno-exceptions -DNDEBUG -Wall -Wextra
 NATIVE    := -march=native -mtune=native
-SOURCES   := $(filter-out Datagen.cpp Classical.cpp, $(wildcard *.cpp))
+SOURCES   := $(filter-out Datagen.cpp, $(wildcard *.cpp))
 
 
 # System dependent flags -------------------------------------------------------

@@ -65,7 +65,5 @@ std::tuple<int, int, int> GetWDL(const int score, const int ply) {
 
 // Converts internal units into centipawns, following the convention of 100 cp = 50% chance of winning
 int ToCentipawns(const int score, const int ply) {
-	if (std::abs(score) >= MateThreshold || score == 0) return score;
-	const auto [a, b] = ModelWDLForPly(ply);
-	return static_cast<int>(std::round(100.0 * static_cast<double>(score) / a));
+	return score;
 }

@@ -217,8 +217,8 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "eval" || parts[0] == "e") {
-			const int nnue = NeuralEvaluate(position);
-			cout << "-> Neural network evaluation: " << ToCentipawns(nnue, position.GetPly()) << " cp  (internal units: " << nnue << ")" << endl;
+			const int nnue = ClassicalEvaluate(position);
+			cout << "-> Classical evaluation: " << ToCentipawns(nnue, position.GetPly()) << " cp  (internal units: " << nnue << ")" << endl;
 			continue;
 		}
 		if (parts[0] == "fen") {
@@ -349,14 +349,6 @@ void Engine::Start() {
 			continue;
 		}
 
-		if (parts[0] == "nnue") {
-			cout << "-> Arch: (" << FeatureSize << "x" << InputBucketCount << "hm -> " << HiddenSize << ")x2" << " -> 1x" << OutputBucketCount
-				<< "  [SCReLU, QA=" << QA << ", QB=" << QB << "]" << endl;
-			cout << "-> Net name: " << NETWORK_NAME << endl;
-			cout << "-> Net size: " << Console::FormatInteger(sizeof(NetworkRepresentation)) << endl;
-			continue;
-		}
-
 		cout << "Unknown command: '" << parts[0] << "'" << endl;
 
 	}
@@ -390,7 +382,7 @@ void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
 		else return "drawn";
 	}();
 
-	const int raw = NeuralEvaluate(pos);
+	const int raw = ClassicalEvaluate(pos);
 	const int cp = ToCentipawns(raw, pos.GetPly());
 
 	cout << '\n';

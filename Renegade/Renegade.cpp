@@ -23,7 +23,6 @@
 int main(int argc, char* argv[]) {
 	std::srand(static_cast<unsigned int>(std::time(0)));
 	GenerateMagicTables();
-	LoadDefaultNetwork();
 
 	Engine engine = Engine(argc, argv);
 	engine.Start();

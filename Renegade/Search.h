@@ -1,7 +1,7 @@
 #pragma once
 #include "Histories.h"
 #include "Movepicker.h"
-#include "Neural.h"
+#include "Classical.h"
 #include "Position.h"
 #include "Reporting.h"
 #include "Transpositions.h"
@@ -34,7 +34,6 @@ public:
 	Histories History;
 	MultiArray<Move, MaxDepth + 1, MaxDepth + 1> PvTable;
 	std::array<int, MaxDepth + 1> PvLength;
-	EvaluationState EvalState;
 	MultiArray<uint64_t, 64, 64> RootNodeCounts;
 
 	// PV table
