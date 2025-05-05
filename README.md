@@ -31,16 +31,16 @@ Scores are scaled according to the estimated outcome of the game, an evaluation 
 
 If the engine doesn't receive the `uci` command, it defaults to pretty print outputs (if the compiler supports it):
 ```
-Renegade chess engine 1.1.0 [Jun 26 2024 20:50:06]
+Renegade chess engine 1.2.0 [May  5 2025 19:15:58]
 go depth 7
-  1/ 1         20      0ms   156knps  h= 0.0%  ->  +0.27  29-54-17  [d2d4]
-  2/ 4        110      0ms   378knps  h= 0.0%  ->  +0.34  31-54-16  [d2d4 d7d5]
-  3/ 3        265      0ms   572knps  h= 0.0%  ->  +0.22  27-55-18  [e2e4 e7e5 g1f3]
-  4/ 6        685      0ms   732knps  h= 0.0%  ->  +0.44  33-53-14  [e2e4 e7e5 g1f3 b8c6]
-  5/ 7       1473      1ms   952knps  h= 0.0%  ->  +0.25  28-54-18  [d2d4 e7e6 g1f3 g8f6 a2a3]
-  6/ 8       2113      1ms  1089knps  h= 0.0%  ->  +0.22  27-55-18  [d2d4 e7e6 g1f3 g8f6 a2a3 (+1)]
-  7/11       5495      3ms  1607knps  h= 0.0%  ->  +0.20  27-55-18  [g1f3 d7d5 g2g3 g7g6 c2c4 (+2)]
-bestmove g1f3
+  1/ 1            20   0.00s    57knps  h= 0%  ->  +0.14  15-76-9   e2e4
+  2/ 4            74   0.00s    60knps  h= 0%  ->  +0.39  23-71-6   e2e4 c7c5
+  3/ 3           188   0.00s    97knps  h= 0%  ->  +0.11  15-76-10  e2e4 c7c5 g1f3
+  4/ 6           683   0.00s   224knps  h= 0%  ->  +0.39  23-71-6   e2e4 c7c5 g1f3 g8f6
+  5/ 7         1,174   0.00s   302knps  h= 0%  ->  +0.30  20-73-7   e2e4 c7c5 g1f3 e7e6 d2d4
+  6/10         2,182   0.01s   401knps  h= 0%  ->  +0.28  19-74-7   e2e4 c7c5 g1f3 e7e6 d2d4 +1
+  7/ 9         2,805   0.01s   446knps  h= 0%  ->  +0.33  21-73-7   e2e4 c7c5 g1f3 e7e6 d2d4 +1
+bestmove e2e4
 ```
 
 Some useful custom commands are also implemented, such as `eval`, `draw` and `fen`.

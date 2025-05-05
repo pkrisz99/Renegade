@@ -21,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.1.140";
+constexpr std::string_view Version = "1.2.0";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
