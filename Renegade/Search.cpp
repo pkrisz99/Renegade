@@ -460,7 +460,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		// Null-move pruning
-		if (depth >= 3 && eval >= beta && !position.IsPreviousMoveNull() && position.ZugzwangUnlikely()) {
+		if (depth >= 3 && eval >= beta && cutNode && !position.IsPreviousMoveNull() && position.ZugzwangUnlikely()) {
 			TranspositionTable.Prefetch(position.Hash() ^ Zobrist.SideToMove);
 			const int nmpReduction = [&] {
 				const int defaultReduction = 4 + depth / 3 + std::min((eval - beta) / 241, 3);
