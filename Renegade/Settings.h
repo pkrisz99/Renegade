@@ -87,32 +87,36 @@ inline void SetTunableParameter(const std::string name, const int value) {
 // Definition here: ADD_TUNABLE(name, default, min, max, step)
 // Usage in code:   tune_name()
 
-ADD_TUNABLE(rfp_margin, 99, 60, 120, 10)
-ADD_TUNABLE(rfp_improving_reduction, 87, 60, 120, 15)
+ADD_TUNABLE(rfp_margin, 103, 60, 120, 10)
+ADD_TUNABLE(rfp_improving_reduction, 86, 60, 120, 15)
 
-ADD_TUNABLE(nmp_eval_divider, 218, 150, 270, 30)
+ADD_TUNABLE(nmp_eval_divider, 241, 150, 270, 30)
 
-ADD_TUNABLE(fp_margin_offset, 52, 0, 100, 15)
-ADD_TUNABLE(fp_margin_coeff, 110, 70, 150, 15)
-ADD_TUNABLE(fp_margin_improving, 40, 10, 80, 15)
+ADD_TUNABLE(fp_margin_offset, 45, 0, 100, 15)
+ADD_TUNABLE(fp_margin_coeff, 112, 70, 150, 15)
+ADD_TUNABLE(fp_margin_improving, 44, 10, 80, 15)
 
-ADD_TUNABLE(lmr_multiplier, 37, 28, 45, 6)
-ADD_TUNABLE(lmr_base, 75, 50, 100, 6)
-ADD_TUNABLE(lmr_history_div, 20200, 13000, 26000, 2000)
-ADD_TUNABLE(lmr_deeper_margin, 37, 25, 60, 7)
+ADD_TUNABLE(lmr_multiplier, 40, 28, 45, 6)
+ADD_TUNABLE(lmr_base, 76, 50, 100, 6)
+ADD_TUNABLE(lmr_history_div, 20100, 13000, 26000, 2000)
+ADD_TUNABLE(lmr_deeper_margin, 32, 25, 60, 7)
 
-ADD_TUNABLE(asp_start, 15, 11, 18, 3)
+ADD_TUNABLE(asp_start, 12, 11, 17, 3)
 
-ADD_TUNABLE(history_clamp, 2600, 1500, 3500, 300)
+ADD_TUNABLE(history_clamp, 2850, 1500, 3500, 300)
 ADD_TUNABLE(history_coeff, 300, 150, 500, 30)
-ADD_TUNABLE(history_cap, 14300, 8000, 30000, 1500)
+ADD_TUNABLE(history_cap, 14900, 8000, 30000, 1500)
 
-ADD_TUNABLE(corrhist_cap, 8350, 6000, 10000, 800)
-ADD_TUNABLE(corrhist_inertia, 226, 150, 350, 30)
+ADD_TUNABLE(corrhist_cap, 8650, 6000, 10000, 800)
+ADD_TUNABLE(corrhist_inertia, 194, 140, 300, 30)
 
-ADD_TUNABLE(capthist_mul, 14, 10, 20, 3)
-ADD_TUNABLE(capthist_div, 36, 16, 48, 6)
+ADD_TUNABLE(capthist_mul, 16, 10, 20, 3)
+ADD_TUNABLE(capthist_div, 33, 16, 48, 6)
 
-ADD_TUNABLE(ext_double, 25, 15, 26, 4)
+ADD_TUNABLE(ext_double, 23, 15, 26, 3)
 
-ADD_TUNABLE(qsfp_margin, 250, 100, 500, 50)
+ADD_TUNABLE(qsfp_margin, 274, 150, 450, 60)
+
+ADD_TUNABLE(refut_killer, 22000, 8000, 40000, 5000)
+ADD_TUNABLE(refut_counter, 16000, 4000, 32000, 4000)
+ADD_TUNABLE(refut_positional, 16000, 4000, 32000, 4000)

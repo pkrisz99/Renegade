@@ -81,11 +81,13 @@ private:
 		// Quiet moves: take the history score and potentially apply a bonus for being a refutation
 		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 
-		if (m == killerMove) historyScore += 22000;
-		else if (m == counterMove) historyScore += 16000;
-		else if (m == positionalMove) historyScore += 16000;
+		int ref = 0;
 
-		return historyScore;
+		if (m == killerMove) ref = tune_refut_killer();
+		if (m == counterMove) ref = std::max(ref, tune_refut_counter());
+		if (m == positionalMove) ref = std::max(ref, tune_refut_positional());
+
+		return historyScore + ref;
 	}
 
 

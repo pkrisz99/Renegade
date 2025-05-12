@@ -385,7 +385,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Check extensions
 	const bool inCheck = position.IsInCheck();
-	if (!rootNode && inCheck) depth += 1;
+	if (depth == 0 && inCheck) depth += 1;
 
 	// Drop into quiescence search at depth 0
 	if (depth <= 0) {
