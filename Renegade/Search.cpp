@@ -504,6 +504,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	int failHighCount = 0;
 	Move bestMove = NullMove;
 	int bestScore = NegativeInfinity;
+	int correction = inCheck ? 0 : std::abs(staticEval - rawEval);
 
 	StaticVector<Move, MaxMoveCount> quietsTried;
 	StaticVector<Move, MaxMoveCount> capturesTried;
@@ -585,6 +586,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 20100, -2, 2);
 			if (cutNode) reduction += 1;
 			if (improving) reduction -= 1;
+			if (correction > 70) reduction -= 1;
 			reduction = std::max(reduction, 0);
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
