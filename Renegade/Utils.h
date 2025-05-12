@@ -21,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.1.136";
+constexpr std::string_view Version = "1.2.0";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -37,9 +37,9 @@ constexpr int MaxMoveCount = 256;
 
 // Pawn value normalization and WDL reporting:
 // (calculated with https://github.com/official-stockfish/WDL_model using Renegade's own games)
-constexpr int PawnNormalizationForMove32 = 277;
-constexpr std::array<double, 4> as = { -0.57292811, -5.66866770, 84.83978005, 198.87135819 };
-constexpr std::array<double, 4> bs = { -5.59848897, 45.67341221, -112.43672836, 159.70989134 };
+constexpr int PawnNormalizationForMove32 = 283;
+constexpr std::array<double, 4> as = { -3.81800249, 23.69152927, 9.92151176, 253.21857231 };
+constexpr std::array<double, 4> bs = { -7.05174858, 50.55474509, -104.53363448, 126.58685682 };
 static_assert(static_cast<int>(std::reduce(as.begin(), as.end())) == PawnNormalizationForMove32);
 
 std::tuple<int, int, int> GetWDL(const int score, const int ply);

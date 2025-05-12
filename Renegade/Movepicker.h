@@ -45,6 +45,8 @@ public:
 
 	int index = 0;
 
+	static constexpr int MaxRegularQuietOrder = 200000;
+
 private:
 
 	int GetMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
@@ -65,7 +67,6 @@ private:
 
 		// Captures
 		if (capturedPieceType != PieceType::None) {
-
 			const bool losingCapture = [&] {
 				if (moveGen == MoveGen::Noisy) return false;
 				if (pos.IsMoveQuiet(m)) return false;

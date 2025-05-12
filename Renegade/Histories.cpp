@@ -22,7 +22,7 @@ void Histories::ClearRefutations() {
 
 // Refutation moves -------------------------------------------------------------------------------
 // Note that Renegade has 3 types of this, rather than the usual 2 (or even 1)
-// Positional refutatations are the ones that depend on the pawn structure
+// Positional refutations are the ones that depend on the pawn structure
 
 void Histories::SetKillerMove(const Move& move, const int level) {
 	if (level >= MaxDepth) return;
@@ -58,7 +58,7 @@ template void Histories::UpdateCaptureHistory<Penalty>(const Position&, const Mo
 
 template <bool bonus>
 void Histories::UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth, const int times) {
-	
+
 	const int delta = std::min(tune_history_coeff() * depth, tune_history_clamp()) * times * (bonus ? 1 : -1);
 
 	// Main quiet history
@@ -151,20 +151,20 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 	if (std::abs(rawEval) >= MateThreshold) return rawEval;
 
 	const uint64_t pawnKey = position.GetPawnHash() % 16384;
-	const int pawnCorrection = PawnCorrectionHistory[position.Turn()][pawnKey] / 256;
+	const int pawnCorrection = PawnCorrectionHistory[position.Turn()][pawnKey];
 
 	const auto [whiteNonPawnHash, blackNonPawnHash] = position.GetNonPawnHashes();
 	const uint64_t whiteNonPawnKey = whiteNonPawnHash % 65536, blackNonPawnKey = blackNonPawnHash % 65536;
-	const int nonPawnCorrection = (NonPawnCorrectionHistory[position.Turn()][Side::White][whiteNonPawnKey]
-		+ NonPawnCorrectionHistory[position.Turn()][Side::Black][blackNonPawnKey]) / 256;
+	const int nonPawnCorrection = NonPawnCorrectionHistory[position.Turn()][Side::White][whiteNonPawnKey]
+		+ NonPawnCorrectionHistory[position.Turn()][Side::Black][blackNonPawnKey];
 
 	const int lastMoveCorrection = [&] {
 		if (position.Moves.size() < 2) return 0;
 		const MoveAndPiece& prev1 = position.GetPreviousMove(1);
 		const MoveAndPiece& prev2 = position.GetPreviousMove(2);
-		return FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to] / 256;
+		return FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to];
 	}();
 
-	const int correctedEval = rawEval + (pawnCorrection + lastMoveCorrection + nonPawnCorrection);
+	const int correctedEval = rawEval + (pawnCorrection + lastMoveCorrection + nonPawnCorrection) / 256;
 	return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
 }
