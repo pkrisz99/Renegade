@@ -383,10 +383,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	// Check for draws
 	if (!rootNode && position.IsDrawn(level)) return DrawEvaluation(t);
 
-	// Check extensions
-	const bool inCheck = position.IsInCheck();
-	if (!rootNode && inCheck) depth += 1;
-
 	// Drop into quiescence search at depth 0
 	if (depth <= 0) {
 		return SearchQuiescence<pvNode>(t, level, alpha, beta);
@@ -395,6 +391,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	const Move excludedMove = t.ExcludedMoves[level];
 	const bool singularSearch = !excludedMove.IsNull();
 	MovePicker& movePicker = t.MovePickerStack[level];
+	const bool inCheck = position.IsInCheck();
 
 	// Probe the transposition table
 	TranspositionEntry ttEntry;
