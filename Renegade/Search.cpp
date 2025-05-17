@@ -177,7 +177,7 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 		}
 		else {
 			// Time control with increment
-			minTime = static_cast<int>(myTime * 0.023 + myInc * 0.7);
+			minTime = static_cast<int>(myTime * 0.025 + myInc * 0.7);
 			maxTime = static_cast<int>(myTime * 0.25);
 		}
 
