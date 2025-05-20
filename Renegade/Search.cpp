@@ -175,10 +175,15 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 			maxTime = static_cast<int>(myTime / params.movestogo * 2.5);
 			maxTime = std::min(maxTime, static_cast<int>(myTime * 0.8));
 		}
-		else {
+		else if (myInc != 0) {
 			// Time control with increment
 			minTime = static_cast<int>(myTime * 0.025 + myInc * 0.7);
 			maxTime = static_cast<int>(myTime * 0.25);
+		}
+		else {
+			// Sudden death time control (if you use this, I will judge you)
+			minTime = static_cast<int>(myTime * 0.015);
+			maxTime = static_cast<int>(myTime * 0.20);
 		}
 
 		constraints.SearchTimeMin = std::min(minTime, maxTime);
