@@ -681,7 +681,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				   || (scoreType == ScoreType::UpperBound && bestScore < staticEval)
 				   || (scoreType == ScoreType::LowerBound && bestScore > staticEval);
 		}();
-		if (updateCorrection) t.History.UpdateCorrection(position, (rawEval + staticEval) / 2, bestScore, depth);
+		if (updateCorrection) t.History.UpdateCorrection(position, (rawEval + staticEval) / 2, bestScore, depth, pvNode);
 	}
 
 	// Store node search results into the transposition table

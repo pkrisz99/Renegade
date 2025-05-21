@@ -118,11 +118,11 @@ int Histories::GetCaptureHistoryScore(const Position& position, const Move& m) c
 
 // Static evaluation correction history -----------------------------------------------------------
 
-void Histories::UpdateCorrection(const Position& position, const int16_t refEval, const int16_t score, const int depth) {
+void Histories::UpdateCorrection(const Position& position, const int16_t refEval, const int16_t score, const int depth, const bool pvNode) {
 	static constexpr int inertia = 194;
 	static constexpr int cap = 8650;
 	const int diff = (score - refEval) * 256;
-	const int weight = std::min(16, depth + 1);
+	const int weight = std::min(16, depth + 1 + pvNode * 2);
 
 	const uint64_t pawnKey = position.GetPawnHash() % 16384;
 	int32_t& pawnValue = PawnCorrectionHistory[position.Turn()][pawnKey];
