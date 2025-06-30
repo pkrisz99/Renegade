@@ -24,18 +24,18 @@ Position::Position(const std::string& fen) {
 		case '6': square += 6; break;
 		case '7': square += 7; break;
 		case '8': square += 8; break;
-		case 'P': board.AddPiece<Piece::WhitePawn>(square); square += 1; break;
-		case 'N': board.AddPiece<Piece::WhiteKnight>(square); square += 1; break;
-		case 'B': board.AddPiece<Piece::WhiteBishop>(square); square += 1; break;
-		case 'R': board.AddPiece<Piece::WhiteRook>(square); square += 1; break;
-		case 'Q': board.AddPiece<Piece::WhiteQueen>(square); square += 1; break;
-		case 'K': board.AddPiece<Piece::WhiteKing>(square); square += 1; break;
-		case 'p': board.AddPiece<Piece::BlackPawn>(square); square += 1; break;
-		case 'n': board.AddPiece<Piece::BlackKnight>(square); square += 1; break;
-		case 'b': board.AddPiece<Piece::BlackBishop>(square); square += 1; break;
-		case 'r': board.AddPiece<Piece::BlackRook>(square); square += 1; break;
-		case 'q': board.AddPiece<Piece::BlackQueen>(square); square += 1; break;
-		case 'k': board.AddPiece<Piece::BlackKing>(square); square += 1; break;
+		case 'P': board.AddPiece(Piece::WhitePawn, square); square += 1; break;
+		case 'N': board.AddPiece(Piece::WhiteKnight, square); square += 1; break;
+		case 'B': board.AddPiece(Piece::WhiteBishop, square); square += 1; break;
+		case 'R': board.AddPiece(Piece::WhiteRook, square); square += 1; break;
+		case 'Q': board.AddPiece(Piece::WhiteQueen, square); square += 1; break;
+		case 'K': board.AddPiece(Piece::WhiteKing, square); square += 1; break;
+		case 'p': board.AddPiece(Piece::BlackPawn, square); square += 1; break;
+		case 'n': board.AddPiece(Piece::BlackKnight, square); square += 1; break;
+		case 'b': board.AddPiece(Piece::BlackBishop, square); square += 1; break;
+		case 'r': board.AddPiece(Piece::BlackRook, square); square += 1; break;
+		case 'q': board.AddPiece(Piece::BlackQueen, square); square += 1; break;
+		case 'k': board.AddPiece(Piece::BlackKing, square); square += 1; break;
 		}
 	}
 
@@ -178,29 +178,13 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	// Add pieces from the generated layout to the board
 	const std::array<uint8_t, 8> whiteLayout = layout(frcWhite);
 	const std::array<uint8_t, 8> blackLayout = layout(frcBlack);
-	for (int i = 0; i < 8; i++) {
-		switch (whiteLayout[i]) {
-		case PieceType::Knight: board.AddPiece<Piece::WhiteKnight>(i); break;
-		case PieceType::Bishop: board.AddPiece<Piece::WhiteBishop>(i); break;
-		case PieceType::Rook: board.AddPiece<Piece::WhiteRook>(i); break;
-		case PieceType::Queen: board.AddPiece<Piece::WhiteQueen>(i); break;
-		case PieceType::King: board.AddPiece<Piece::WhiteKing>(i); break;
-		}
-	}
-	for (int i = 0; i < 8; i++) {
-		switch (blackLayout[i]) {
-		case PieceType::Knight: board.AddPiece<Piece::BlackKnight>(56 + i); break;
-		case PieceType::Bishop: board.AddPiece<Piece::BlackBishop>(56 + i); break;
-		case PieceType::Rook: board.AddPiece<Piece::BlackRook>(56 + i); break;
-		case PieceType::Queen: board.AddPiece<Piece::BlackQueen>(56 + i); break;
-		case PieceType::King: board.AddPiece<Piece::BlackKing>(56 + i); break;
-		}
-	}
+	for (int i = 0; i < 8; i++) board.AddPiece(whiteLayout[i] + Piece::WhitePieceOffset, i);
+	for (int i = 0; i < 8; i++) board.AddPiece(blackLayout[i] + Piece::BlackPieceOffset, 56 + i);
 
 	// Place pawns
 	for (int i = 0; i < 8; i++) {
-		board.AddPiece<Piece::WhitePawn>(8 + i);
-		board.AddPiece<Piece::BlackPawn>(48 + i);
+		board.AddPiece(Piece::WhitePawn, 8 + i);
+		board.AddPiece(Piece::BlackPawn, 48 + i);
 	}
 
 	// Castling

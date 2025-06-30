@@ -67,7 +67,7 @@ inline int GetInputBucket(const uint8_t kingSq, const bool side) {
 
 inline int GetOutputBucket(const int pieceCount) {
 	constexpr int divisor = (32 + OutputBucketCount - 1) / OutputBucketCount;
-	return (pieceCount - 2) / divisor;
+	return std::min((pieceCount - 2) / divisor, OutputBucketCount - 1);
 }
 
 inline bool IsRefreshRequired(const uint8_t piece, const Move& move, const bool side) {

@@ -51,50 +51,65 @@ struct Board {
 	std::array<uint8_t, 64> Mailbox{};
 	bool Turn = Side::White;
 
-	template<const uint8_t piece>
-	inline void AddPiece(const uint8_t square) {
+	inline void AddPiece(const uint8_t piece, const uint8_t square) {
 		assert(IsValidPiece(piece));
 		assert(square >= 0 && square < 64);
-		SetBitTrue(PieceBitboard(piece), square);
+		assert(Mailbox[square] == Piece::None);
+
+		switch (piece) {
+		case Piece::WhitePawn: SetBitTrue(WhitePawnBits, square); break;
+		case Piece::WhiteKnight: SetBitTrue(WhiteKnightBits, square); break;
+		case Piece::WhiteBishop: SetBitTrue(WhiteBishopBits, square); break;
+		case Piece::WhiteRook: SetBitTrue(WhiteRookBits, square); break;
+		case Piece::WhiteQueen: SetBitTrue(WhiteQueenBits, square); break;
+		case Piece::WhiteKing: SetBitTrue(WhiteKingBits, square); break;
+		case Piece::BlackPawn: SetBitTrue(BlackPawnBits, square); break;
+		case Piece::BlackKnight: SetBitTrue(BlackKnightBits, square); break;
+		case Piece::BlackBishop: SetBitTrue(BlackBishopBits, square); break;
+		case Piece::BlackRook: SetBitTrue(BlackRookBits, square); break;
+		case Piece::BlackQueen: SetBitTrue(BlackQueenBits, square); break;
+		case Piece::BlackKing: SetBitTrue(BlackKingBits, square); break;
+		default: assert(false); break;
+		}
+
 		Mailbox[square] = piece;
 		BoardHash ^= Zobrist.PieceSquare[piece][square];
-		if constexpr (ColorOfPiece(piece) == PieceColor::White && IsNonPawn(piece)) WhiteNonPawnHash ^= Zobrist.PieceSquare[piece][square];
-		if constexpr (ColorOfPiece(piece) == PieceColor::Black && IsNonPawn(piece)) BlackNonPawnHash ^= Zobrist.PieceSquare[piece][square];
+		
+		if (ColorOfPiece(piece) == PieceColor::White && IsNonPawn(piece)) WhiteNonPawnHash ^= Zobrist.PieceSquare[piece][square];
+		else if (ColorOfPiece(piece) == PieceColor::Black && IsNonPawn(piece)) BlackNonPawnHash ^= Zobrist.PieceSquare[piece][square];
 	}
 
-	template<const uint8_t piece>
-	inline void RemovePiece(const uint8_t square) {
+	inline void RemovePiece(const uint8_t piece, const uint8_t square) {
 		assert(IsValidPiece(piece));
 		assert(square >= 0 && square < 64);
-		SetBitFalse(PieceBitboard(piece), square);
+		assert(Mailbox[square] != Piece::None);
+		
+		switch (piece) {
+		case Piece::WhitePawn: SetBitFalse(WhitePawnBits, square); break;
+		case Piece::WhiteKnight: SetBitFalse(WhiteKnightBits, square); break;
+		case Piece::WhiteBishop: SetBitFalse(WhiteBishopBits, square); break;
+		case Piece::WhiteRook: SetBitFalse(WhiteRookBits, square); break;
+		case Piece::WhiteQueen: SetBitFalse(WhiteQueenBits, square); break;
+		case Piece::WhiteKing: SetBitFalse(WhiteKingBits, square); break;
+		case Piece::BlackPawn: SetBitFalse(BlackPawnBits, square); break;
+		case Piece::BlackKnight: SetBitFalse(BlackKnightBits, square); break;
+		case Piece::BlackBishop: SetBitFalse(BlackBishopBits, square); break;
+		case Piece::BlackRook: SetBitFalse(BlackRookBits, square); break;
+		case Piece::BlackQueen: SetBitFalse(BlackQueenBits, square); break;
+		case Piece::BlackKing: SetBitFalse(BlackKingBits, square); break;
+		default: assert(false); break;
+		}
+
 		Mailbox[square] = Piece::None;
 		BoardHash ^= Zobrist.PieceSquare[piece][square];
-		if constexpr (ColorOfPiece(piece) == PieceColor::White && IsNonPawn(piece)) WhiteNonPawnHash ^= Zobrist.PieceSquare[piece][square];
-		if constexpr (ColorOfPiece(piece) == PieceColor::Black && IsNonPawn(piece)) BlackNonPawnHash ^= Zobrist.PieceSquare[piece][square];
+		if (ColorOfPiece(piece) == PieceColor::White && IsNonPawn(piece)) WhiteNonPawnHash ^= Zobrist.PieceSquare[piece][square];
+		else if (ColorOfPiece(piece) == PieceColor::Black && IsNonPawn(piece)) BlackNonPawnHash ^= Zobrist.PieceSquare[piece][square];
 	}
 
 	inline uint8_t GetPieceAt(const uint8_t square) const {
 		assert(square >= 0 && square < 64);
 		assert(IsValidPieceOrNone(Mailbox[square]));
 		return Mailbox[square];
-	}
-
-	constexpr uint64_t& PieceBitboard(const uint8_t piece) {
-		switch (piece) {
-		case Piece::WhitePawn: return WhitePawnBits;
-		case Piece::WhiteKnight: return WhiteKnightBits;
-		case Piece::WhiteBishop: return WhiteBishopBits;
-		case Piece::WhiteRook: return WhiteRookBits;
-		case Piece::WhiteQueen: return WhiteQueenBits;
-		case Piece::WhiteKing: return WhiteKingBits;
-		case Piece::BlackPawn: return BlackPawnBits;
-		case Piece::BlackKnight: return BlackKnightBits;
-		case Piece::BlackBishop: return BlackBishopBits;
-		case Piece::BlackRook: return BlackRookBits;
-		case Piece::BlackQueen: return BlackQueenBits;
-		case Piece::BlackKing: return BlackKingBits;
-		default: assert(false); return WhitePawnBits; // return something to silence warnings
-		}
 	}
 
 	template<const bool state>

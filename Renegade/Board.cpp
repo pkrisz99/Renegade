@@ -1,75 +1,5 @@
 #include "Board.h"
 
-/*uint64_t Board::CalculateHash() const {
-	uint64_t boardHash = 0;
-
-	uint64_t bits = WhitePawnBits;
-	while (bits != 0) {
-		const int sq = Popsquare(bits);
-		boardHash ^= Zobrist.PieceSquare[Piece::WhitePawn][sq];
-	}
-	bits = WhiteKnightBits;
-	while (bits != 0) {
-		const int sq = Popsquare(bits);
-		boardHash ^= Zobrist.PieceSquare[Piece::WhiteKnight][sq];
-	}
-	bits = WhiteBishopBits;
-	while (bits != 0) {
-		const int sq = Popsquare(bits);
-		boardHash ^= Zobrist.PieceSquare[Piece::WhiteBishop][sq];
-	}
-	bits = WhiteRookBits;
-	while (bits != 0) {
-		const int sq = Popsquare(bits);
-		boardHash ^= Zobrist.PieceSquare[Piece::WhiteRook][sq];
-	}
-	bits = WhiteQueenBits;
-	while (bits != 0) {
-		const int sq = Popsquare(bits);
-		boardHash ^= Zobrist.PieceSquare[Piece::WhiteQueen][sq];
-	}
-	int sq = LsbSquare(WhiteKingBits);
-	boardHash ^= Zobrist.PieceSquare[Piece::WhiteKing][sq];
-
-	bits = BlackPawnBits;
-	while (bits != 0) {
-		const int sq = Popsquare(bits);
-		boardHash ^= Zobrist.PieceSquare[Piece::BlackPawn][sq];
-	}
-	bits = BlackKnightBits;
-	while (bits != 0) {
-		const int sq = Popsquare(bits);
-		boardHash ^= Zobrist.PieceSquare[Piece::BlackKnight][sq];
-	}
-	bits = BlackBishopBits;
-	while (bits != 0) {
-		const int sq = Popsquare(bits);
-		boardHash ^= Zobrist.PieceSquare[Piece::BlackBishop][sq];
-	}
-	bits = BlackRookBits;
-	while (bits != 0) {
-		const int sq = Popsquare(bits);
-		boardHash ^= Zobrist.PieceSquare[Piece::BlackRook][sq];
-	}
-	bits = BlackQueenBits;
-	while (bits != 0) {
-		const int sq = Popsquare(bits);
-		boardHash ^= Zobrist.PieceSquare[Piece::BlackQueen][sq];
-	}
-	sq = LsbSquare(BlackKingBits);
-	boardHash ^= Zobrist.PieceSquare[Piece::BlackKing][sq];
-
-	// Castling, en passant, and side to move
-	if (WhiteRightToShortCastle) boardHash ^= Zobrist.Castling[0];
-	if (WhiteRightToLongCastle) boardHash ^= Zobrist.Castling[1];
-	if (BlackRightToShortCastle) boardHash ^= Zobrist.Castling[2];
-	if (BlackRightToLongCastle) boardHash ^= Zobrist.Castling[3];
-	if (EnPassantSquare != -1) boardHash ^= Zobrist.EnPassant[GetSquareFile(EnPassantSquare)];
-	if (Turn == Side::White) boardHash ^= Zobrist.SideToMove;
-
-	return boardHash;
-}*/
-
 void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 
 	assert(!move.IsNull());
@@ -77,60 +7,28 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 	const uint8_t pieceType = TypeOfPiece(piece);
 	const uint8_t capturedPiece = GetPieceAt(move.to);
 
-	// Update bitboard fields for ordinary moves
+	// Remove captured piece
+	if (capturedPiece != Piece::None) RemovePiece(capturedPiece, move.to);
 
-	switch (capturedPiece) {
-	case Piece::None: break;
-	case Piece::WhitePawn: RemovePiece<Piece::WhitePawn>(move.to); break;
-	case Piece::WhiteKnight: RemovePiece<Piece::WhiteKnight>(move.to); break;
-	case Piece::WhiteBishop: RemovePiece<Piece::WhiteBishop>(move.to); break;
-	case Piece::WhiteRook: RemovePiece<Piece::WhiteRook>(move.to); break;
-	case Piece::WhiteQueen: RemovePiece<Piece::WhiteQueen>(move.to); break;
-	case Piece::BlackPawn: RemovePiece<Piece::BlackPawn>(move.to); break;
-	case Piece::BlackKnight: RemovePiece<Piece::BlackKnight>(move.to); break;
-	case Piece::BlackBishop: RemovePiece<Piece::BlackBishop>(move.to); break;
-	case Piece::BlackRook: RemovePiece<Piece::BlackRook>(move.to); break;
-	case Piece::BlackQueen: RemovePiece<Piece::BlackQueen>(move.to); break;
-	}
-
-	switch (piece) {
-	case Piece::WhitePawn: RemovePiece<Piece::WhitePawn>(move.from); AddPiece<Piece::WhitePawn>(move.to); break;
-	case Piece::WhiteKnight: RemovePiece<Piece::WhiteKnight>(move.from); AddPiece<Piece::WhiteKnight>(move.to); break;
-	case Piece::WhiteBishop: RemovePiece<Piece::WhiteBishop>(move.from); AddPiece<Piece::WhiteBishop>(move.to); break;
-	case Piece::WhiteRook: RemovePiece<Piece::WhiteRook>(move.from); AddPiece<Piece::WhiteRook>(move.to); break;
-	case Piece::WhiteQueen: RemovePiece<Piece::WhiteQueen>(move.from); AddPiece<Piece::WhiteQueen>(move.to); break;
-	case Piece::WhiteKing: RemovePiece<Piece::WhiteKing>(move.from); AddPiece<Piece::WhiteKing>(move.to); break;
-	case Piece::BlackPawn: RemovePiece<Piece::BlackPawn>(move.from); AddPiece<Piece::BlackPawn>(move.to); break;
-	case Piece::BlackKnight: RemovePiece<Piece::BlackKnight>(move.from); AddPiece<Piece::BlackKnight>(move.to); break;
-	case Piece::BlackBishop: RemovePiece<Piece::BlackBishop>(move.from); AddPiece<Piece::BlackBishop>(move.to); break;
-	case Piece::BlackRook: RemovePiece<Piece::BlackRook>(move.from); AddPiece<Piece::BlackRook>(move.to); break;
-	case Piece::BlackQueen: RemovePiece<Piece::BlackQueen>(move.from); AddPiece<Piece::BlackQueen>(move.to); break;
-	case Piece::BlackKing: RemovePiece<Piece::BlackKing>(move.from); AddPiece<Piece::BlackKing>(move.to); break;
-	}
+	// Move the moved piece
+	RemovePiece(piece, move.from);
+	AddPiece(piece, move.to);
 
 	// Handle en passant
 	if (move.to == EnPassantSquare) {
-		if (piece == Piece::WhitePawn) RemovePiece<Piece::BlackPawn>(EnPassantSquare - 8);
-		else if (piece == Piece::BlackPawn) RemovePiece<Piece::WhitePawn>(EnPassantSquare + 8);
+		if (piece == Piece::WhitePawn) RemovePiece(Piece::BlackPawn, EnPassantSquare - 8);
+		else if (piece == Piece::BlackPawn) RemovePiece(Piece::WhitePawn, EnPassantSquare + 8);
 	}
 
 	// Handle promotions
-	if (piece == Piece::WhitePawn) {
-		switch (move.flag) {
-		case MoveFlag::None: break;
-		case MoveFlag::PromotionToQueen: RemovePiece<Piece::WhitePawn>(move.to); AddPiece<Piece::WhiteQueen>(move.to); break;
-		case MoveFlag::PromotionToKnight: RemovePiece<Piece::WhitePawn>(move.to); AddPiece<Piece::WhiteKnight>(move.to); break;
-		case MoveFlag::PromotionToRook: RemovePiece<Piece::WhitePawn>(move.to); AddPiece<Piece::WhiteRook>(move.to); break;
-		case MoveFlag::PromotionToBishop: RemovePiece<Piece::WhitePawn>(move.to); AddPiece<Piece::WhiteBishop>(move.to); break;
+	if (move.IsPromotion()) {
+		if (piece == Piece::WhitePawn) {
+			RemovePiece(Piece::WhitePawn, move.to);
+			AddPiece(move.GetPromotionPieceType() + Piece::WhitePieceOffset, move.to);
 		}
-	}
-	else if (piece == Piece::BlackPawn) {
-		switch (move.flag) {
-		case MoveFlag::None: break;
-		case MoveFlag::PromotionToQueen: RemovePiece<Piece::BlackPawn>(move.to); AddPiece<Piece::BlackQueen>(move.to); break;
-		case MoveFlag::PromotionToKnight: RemovePiece<Piece::BlackPawn>(move.to); AddPiece<Piece::BlackKnight>(move.to); break;
-		case MoveFlag::PromotionToRook: RemovePiece<Piece::BlackPawn>(move.to); AddPiece<Piece::BlackRook>(move.to); break;
-		case MoveFlag::PromotionToBishop: RemovePiece<Piece::BlackPawn>(move.to); AddPiece<Piece::BlackBishop>(move.to); break;
+		else {
+			RemovePiece(Piece::BlackPawn, move.to);
+			AddPiece(move.GetPromotionPieceType() + Piece::BlackPieceOffset, move.to);
 		}
 	}
 
@@ -146,14 +44,14 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 		}
 
 		if (move.flag == MoveFlag::ShortCastle) {
-			RemovePiece<Piece::WhiteKing>(move.to);
-			AddPiece<Piece::WhiteKing>(Squares::G1);
-			AddPiece<Piece::WhiteRook>(Squares::F1);
+			RemovePiece(Piece::WhiteKing, move.to);
+			AddPiece(Piece::WhiteKing, Squares::G1);
+			AddPiece(Piece::WhiteRook, Squares::F1);
 		}
 		else {
-			RemovePiece<Piece::WhiteKing>(move.to);
-			AddPiece<Piece::WhiteKing>(Squares::C1);
-			AddPiece<Piece::WhiteRook>(Squares::D1);
+			RemovePiece(Piece::WhiteKing, move.to);
+			AddPiece(Piece::WhiteKing, Squares::C1);
+			AddPiece(Piece::WhiteRook, Squares::D1);
 		}
 
 	}
@@ -168,14 +66,14 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 		}
 
 		if (move.flag == MoveFlag::ShortCastle) {
-			RemovePiece<Piece::BlackKing>(move.to);
-			AddPiece<Piece::BlackKing>(Squares::G8);
-			AddPiece<Piece::BlackRook>(Squares::F8);
+			RemovePiece(Piece::BlackKing, move.to);
+			AddPiece(Piece::BlackKing, Squares::G8);
+			AddPiece(Piece::BlackRook, Squares::F8);
 		}
 		else {
-			RemovePiece<Piece::BlackKing>(move.to);
-			AddPiece<Piece::BlackKing>(Squares::C8);
-			AddPiece<Piece::BlackRook>(Squares::D8);
+			RemovePiece(Piece::BlackKing, move.to);
+			AddPiece(Piece::BlackKing, Squares::C8);
+			AddPiece(Piece::BlackRook, Squares::D8);
 		}
 	}
 
