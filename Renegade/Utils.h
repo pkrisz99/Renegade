@@ -120,8 +120,12 @@ constexpr bool IsValidPieceOrNone(const uint8_t piece) {
 	return piece == Piece::None || IsValidPiece(piece);
 };
 
-constexpr bool IsNonPawn(const uint8_t piece) {
-	return piece != Piece::WhitePawn && piece != Piece::BlackPawn;
+constexpr bool IsWhiteNonPawn(const uint8_t piece) {
+	return Piece::WhitePawn < piece && piece <= Piece::WhiteKing;
+};
+
+constexpr bool IsBlackNonPawn(const uint8_t piece) {
+	return Piece::BlackPawn < piece && piece <= Piece::BlackKing;
 };
 
 constexpr uint64_t LightSquares = 0b0101010110101010010101011010101001010101101010100101010110101010;

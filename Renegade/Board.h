@@ -75,8 +75,8 @@ struct Board {
 		Mailbox[square] = piece;
 		BoardHash ^= Zobrist.PieceSquare[piece][square];
 		
-		if (ColorOfPiece(piece) == PieceColor::White && IsNonPawn(piece)) WhiteNonPawnHash ^= Zobrist.PieceSquare[piece][square];
-		else if (ColorOfPiece(piece) == PieceColor::Black && IsNonPawn(piece)) BlackNonPawnHash ^= Zobrist.PieceSquare[piece][square];
+		if (IsWhiteNonPawn(piece)) WhiteNonPawnHash ^= Zobrist.PieceSquare[piece][square];
+		else if (IsBlackNonPawn(piece)) BlackNonPawnHash ^= Zobrist.PieceSquare[piece][square];
 	}
 
 	inline void RemovePiece(const uint8_t piece, const uint8_t square) {
@@ -102,8 +102,9 @@ struct Board {
 
 		Mailbox[square] = Piece::None;
 		BoardHash ^= Zobrist.PieceSquare[piece][square];
-		if (ColorOfPiece(piece) == PieceColor::White && IsNonPawn(piece)) WhiteNonPawnHash ^= Zobrist.PieceSquare[piece][square];
-		else if (ColorOfPiece(piece) == PieceColor::Black && IsNonPawn(piece)) BlackNonPawnHash ^= Zobrist.PieceSquare[piece][square];
+
+		if (IsWhiteNonPawn(piece)) WhiteNonPawnHash ^= Zobrist.PieceSquare[piece][square];
+		else if (IsBlackNonPawn(piece)) BlackNonPawnHash ^= Zobrist.PieceSquare[piece][square];
 	}
 
 	inline uint8_t GetPieceAt(const uint8_t square) const {
