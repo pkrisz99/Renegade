@@ -120,17 +120,8 @@ constexpr bool IsValidPieceOrNone(const uint8_t piece) {
 	return piece == Piece::None || IsValidPiece(piece);
 };
 
-constexpr bool IsWhiteNonPawn(const uint8_t piece) {
-	return Piece::WhitePawn < piece && piece <= Piece::WhiteKing;
-};
-
-constexpr bool IsBlackNonPawn(const uint8_t piece) {
-	return Piece::BlackPawn < piece && piece <= Piece::BlackKing;
-};
-
 constexpr uint64_t LightSquares = 0b0101010110101010010101011010101001010101101010100101010110101010;
 constexpr uint64_t DarkSquares = 0b1010101001010101101010100101010110101010010101011010101001010101;
-
 
 constexpr std::array<uint64_t, 8> Rank = {
 	0x00000000000000FF, 0x000000000000FF00, 0x0000000000FF0000, 0x00000000FF000000,

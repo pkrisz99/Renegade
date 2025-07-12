@@ -57,26 +57,57 @@ struct Board {
 		assert(Mailbox[square] == Piece::None);
 
 		switch (piece) {
-		case Piece::WhitePawn: SetBitTrue(WhitePawnBits, square); break;
-		case Piece::WhiteKnight: SetBitTrue(WhiteKnightBits, square); break;
-		case Piece::WhiteBishop: SetBitTrue(WhiteBishopBits, square); break;
-		case Piece::WhiteRook: SetBitTrue(WhiteRookBits, square); break;
-		case Piece::WhiteQueen: SetBitTrue(WhiteQueenBits, square); break;
-		case Piece::WhiteKing: SetBitTrue(WhiteKingBits, square); break;
-		case Piece::BlackPawn: SetBitTrue(BlackPawnBits, square); break;
-		case Piece::BlackKnight: SetBitTrue(BlackKnightBits, square); break;
-		case Piece::BlackBishop: SetBitTrue(BlackBishopBits, square); break;
-		case Piece::BlackRook: SetBitTrue(BlackRookBits, square); break;
-		case Piece::BlackQueen: SetBitTrue(BlackQueenBits, square); break;
-		case Piece::BlackKing: SetBitTrue(BlackKingBits, square); break;
+		case Piece::WhitePawn:
+			SetBitTrue(WhitePawnBits, square);
+			break;
+		case Piece::WhiteKnight:
+			SetBitTrue(WhiteKnightBits, square);
+			WhiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteKnight][square];
+			break;
+		case Piece::WhiteBishop:
+			SetBitTrue(WhiteBishopBits, square);
+			WhiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteBishop][square];
+			break;
+		case Piece::WhiteRook:
+			SetBitTrue(WhiteRookBits, square);
+			WhiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteRook][square];
+			break;
+		case Piece::WhiteQueen:
+			SetBitTrue(WhiteQueenBits, square);
+			WhiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteQueen][square];
+			break;
+		case Piece::WhiteKing:
+			SetBitTrue(WhiteKingBits, square);
+			WhiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteKing][square];
+			break;
+		case Piece::BlackPawn:
+			SetBitTrue(BlackPawnBits, square);
+			break;
+		case Piece::BlackKnight:
+			SetBitTrue(BlackKnightBits, square);
+			BlackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackKnight][square];
+			break;
+		case Piece::BlackBishop:
+			SetBitTrue(BlackBishopBits, square);
+			BlackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackBishop][square];
+			break;
+		case Piece::BlackRook:
+			SetBitTrue(BlackRookBits, square);
+			BlackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackRook][square];
+			break;
+		case Piece::BlackQueen:
+			SetBitTrue(BlackQueenBits, square);
+			BlackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackQueen][square];
+			break;
+		case Piece::BlackKing:
+			SetBitTrue(BlackKingBits, square);
+			BlackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackKing][square];
+			break;
 		default: assert(false); break;
 		}
 
 		Mailbox[square] = piece;
 		BoardHash ^= Zobrist.PieceSquare[piece][square];
-		
-		if (IsWhiteNonPawn(piece)) WhiteNonPawnHash ^= Zobrist.PieceSquare[piece][square];
-		else if (IsBlackNonPawn(piece)) BlackNonPawnHash ^= Zobrist.PieceSquare[piece][square];
 	}
 
 	inline void RemovePiece(const uint8_t piece, const uint8_t square) {
@@ -85,26 +116,57 @@ struct Board {
 		assert(Mailbox[square] != Piece::None);
 		
 		switch (piece) {
-		case Piece::WhitePawn: SetBitFalse(WhitePawnBits, square); break;
-		case Piece::WhiteKnight: SetBitFalse(WhiteKnightBits, square); break;
-		case Piece::WhiteBishop: SetBitFalse(WhiteBishopBits, square); break;
-		case Piece::WhiteRook: SetBitFalse(WhiteRookBits, square); break;
-		case Piece::WhiteQueen: SetBitFalse(WhiteQueenBits, square); break;
-		case Piece::WhiteKing: SetBitFalse(WhiteKingBits, square); break;
-		case Piece::BlackPawn: SetBitFalse(BlackPawnBits, square); break;
-		case Piece::BlackKnight: SetBitFalse(BlackKnightBits, square); break;
-		case Piece::BlackBishop: SetBitFalse(BlackBishopBits, square); break;
-		case Piece::BlackRook: SetBitFalse(BlackRookBits, square); break;
-		case Piece::BlackQueen: SetBitFalse(BlackQueenBits, square); break;
-		case Piece::BlackKing: SetBitFalse(BlackKingBits, square); break;
+		case Piece::WhitePawn:
+			SetBitFalse(WhitePawnBits, square);
+			break;
+		case Piece::WhiteKnight:
+			SetBitFalse(WhiteKnightBits, square);
+			WhiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteKnight][square];
+			break;
+		case Piece::WhiteBishop:
+			SetBitFalse(WhiteBishopBits, square);
+			WhiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteBishop][square];
+			break;
+		case Piece::WhiteRook:
+			SetBitFalse(WhiteRookBits, square);
+			WhiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteRook][square];
+			break;
+		case Piece::WhiteQueen:
+			SetBitFalse(WhiteQueenBits, square);
+			WhiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteQueen][square];
+			break;
+		case Piece::WhiteKing:
+			SetBitFalse(WhiteKingBits, square);
+			WhiteNonPawnHash ^= Zobrist.PieceSquare[Piece::WhiteKing][square];
+			break;
+		case Piece::BlackPawn:
+			SetBitFalse(BlackPawnBits, square);
+			break;
+		case Piece::BlackKnight:
+			SetBitFalse(BlackKnightBits, square);
+			BlackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackKnight][square];
+			break;
+		case Piece::BlackBishop:
+			SetBitFalse(BlackBishopBits, square);
+			BlackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackBishop][square];
+			break;
+		case Piece::BlackRook:
+			SetBitFalse(BlackRookBits, square);
+			BlackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackRook][square];
+			break;
+		case Piece::BlackQueen:
+			SetBitFalse(BlackQueenBits, square);
+			BlackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackQueen][square];
+			break;
+		case Piece::BlackKing:
+			SetBitFalse(BlackKingBits, square);
+			BlackNonPawnHash ^= Zobrist.PieceSquare[Piece::BlackKing][square];
+			break;
 		default: assert(false); break;
 		}
 
 		Mailbox[square] = Piece::None;
 		BoardHash ^= Zobrist.PieceSquare[piece][square];
-
-		if (IsWhiteNonPawn(piece)) WhiteNonPawnHash ^= Zobrist.PieceSquare[piece][square];
-		else if (IsBlackNonPawn(piece)) BlackNonPawnHash ^= Zobrist.PieceSquare[piece][square];
 	}
 
 	inline uint8_t GetPieceAt(const uint8_t square) const {
