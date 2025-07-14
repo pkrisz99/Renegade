@@ -775,7 +775,6 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 			if (bestScore > alpha) {
 				alpha = bestScore;
 				bestMove = m;
-				scoreType = ScoreType::Exact;
 			}
 		}
 	}
