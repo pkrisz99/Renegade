@@ -26,7 +26,8 @@ struct TranspositionEntry {
 	bool ttPv;
 
 	inline bool IsCutoffPermitted(const int searchDepth, const int alpha, const int beta) const {
-		if (searchDepth > depth) return false;
+		const int requiredEntryDepth = depth + (score >= beta);
+		if (searchDepth > requiredEntryDepth) return false;
 		return scoreType == ScoreType::Exact
 			|| (scoreType == ScoreType::UpperBound && score <= alpha)
 			|| (scoreType == ScoreType::LowerBound && score >= beta);
