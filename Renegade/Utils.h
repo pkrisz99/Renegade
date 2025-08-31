@@ -373,6 +373,11 @@ struct StaticVector {
 		count -= 1;
 	}
 
+	inline T pop_and_return() {
+		assert(count != 0);
+		return items[--count];
+	}
+
 	inline void clear() {
 		count = 0;
 	}

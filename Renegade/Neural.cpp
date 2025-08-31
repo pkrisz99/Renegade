@@ -279,6 +279,9 @@ void EvaluationState::UpdateFromBucketCache(const Position& pos, const int accIn
 	}
 
 	// Compare it with the cached entry
+	StaticVector<int, 32> featuresToAdd{};
+	StaticVector<int, 32> featuresToSub{};
+
 	for (int i = 0; i < 12; i++) {
 		uint64_t toBeAdded = featureBits[i] & ~cache.featureBits[i];
 		uint64_t toBeSubbed = cache.featureBits[i] & ~featureBits[i];
@@ -287,15 +290,45 @@ void EvaluationState::UpdateFromBucketCache(const Position& pos, const int accIn
 			const uint8_t sq = Popsquare(toBeAdded);
 			const int featureSq = !mirroring ? sq : (sq ^ 7);
 			const int feature = (side == Side::White ? featureSq : Mirror(featureSq)) + i * 64;
-			for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] += Network->FeatureWeights[inputBucket][feature][i];
+			featuresToAdd.push(feature);
 		}
-
 		while (toBeSubbed) {
 			const uint8_t sq = Popsquare(toBeSubbed);
 			const int featureSq = !mirroring ? sq : (sq ^ 7);
 			const int feature = (side == Side::White ? featureSq : Mirror(featureSq)) + i * 64;
-			for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] -= Network->FeatureWeights[inputBucket][feature][i];
+			featuresToSub.push(feature);
 		}
+	}
+
+	// Update the cache with the known differences
+	while (featuresToAdd.size() >= 4) {
+		const int f1 = featuresToAdd.pop_and_return();
+		const int f2 = featuresToAdd.pop_and_return();
+		const int f3 = featuresToAdd.pop_and_return();
+		const int f4 = featuresToAdd.pop_and_return();
+		for (int i = 0; i < HiddenSize; i++) {
+			cache.cachedAcc[i] += Network->FeatureWeights[inputBucket][f1][i] + Network->FeatureWeights[inputBucket][f2][i]
+				+ Network->FeatureWeights[inputBucket][f3][i] + Network->FeatureWeights[inputBucket][f4][i];
+		}
+	}
+	while (featuresToAdd.size() >= 1) {
+		const int f = featuresToAdd.pop_and_return();
+		for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] += Network->FeatureWeights[inputBucket][f][i];
+	}
+
+	while (featuresToSub.size() >= 4) {
+		const int f1 = featuresToSub.pop_and_return();
+		const int f2 = featuresToSub.pop_and_return();
+		const int f3 = featuresToSub.pop_and_return();
+		const int f4 = featuresToSub.pop_and_return();
+		for (int i = 0; i < HiddenSize; i++) {
+			cache.cachedAcc[i] -= Network->FeatureWeights[inputBucket][f1][i] + Network->FeatureWeights[inputBucket][f2][i]
+				+ Network->FeatureWeights[inputBucket][f3][i] + Network->FeatureWeights[inputBucket][f4][i];
+		}
+	}
+	while (featuresToSub.size() >= 1) {
+		const int f = featuresToSub.pop_and_return();
+		for (int i = 0; i < HiddenSize; i++) cache.cachedAcc[i] -= Network->FeatureWeights[inputBucket][f][i];
 	}
 
 	// The cached entry is now updated, now copy it to the stack
