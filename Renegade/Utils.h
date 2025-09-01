@@ -21,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.2.2";
+constexpr std::string_view Version = "dev 1.2.3";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -371,6 +371,11 @@ struct StaticVector {
 	inline void pop() {
 		assert(count != 0);
 		count -= 1;
+	}
+
+	inline T pop_and_return() {
+		assert(count != 0);
+		return items[--count];
 	}
 
 	inline void clear() {
