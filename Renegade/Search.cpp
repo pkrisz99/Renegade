@@ -580,7 +580,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (depth >= 3 && (legalMoveCount >= (3 + pvNode * 2 + rootNode * 2)) && isQuiet) {
 			
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
-			if (!ttPV) reduction += 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 20100, -2, 2);
 			if (cutNode) reduction += 1;
