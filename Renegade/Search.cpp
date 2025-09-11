@@ -586,7 +586,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (improving) reduction -= 1;
 			reduction = std::max(reduction, 0);
 
-			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
+			const int reducedDepth = std::min(std::max(depth - 1 - reduction, 0), depth - 1);
 			score = -SearchRecursive<false>(t, reducedDepth, level + 1, -alpha - 1, -alpha, true);
 			failHighCount += (score > alpha);
 
