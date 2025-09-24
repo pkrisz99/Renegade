@@ -135,7 +135,7 @@ void SelfPlay(const std::string filename) {
 	std::mt19937 generator(std::random_device{}());
 
 	std::vector<std::string> unsavedLines{};
-	std::vector<Viriformat> unsavedViriformatGames{};
+	std::vector<Viriformat> unsavedViriformatGames;
 
 
 	while (true) {
@@ -143,7 +143,7 @@ void SelfPlay(const std::string filename) {
 		bool failed = false;
 		int winAdjudicationCounter = 0;
 		int drawAdjudicationCounter = 0;
-		GameState outcome = GameState::Playing;
+		GameState outcome = GameState();
 		std::vector<std::pair<std::string, int>> currentGame{};
 		Viriformat currentViriformatGame{};
 
@@ -484,7 +484,6 @@ void Viriformat::WriteToFile(std::ofstream& stream) const {
 
 // Returns true if the position should be trained on
 static bool TextformatFilter(const Position& pos, const Move& move, const int eval) {
-	return true;
 	if (std::abs(eval) > MateThreshold) return false;
 	if (pos.GetPly() < minSavePly) return false;
 	if (DFRC && move.IsCastling()) return false;

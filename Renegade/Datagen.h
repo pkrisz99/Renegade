@@ -14,7 +14,6 @@
 #include "Settings.h"
 #include "Utils.h"
 
-enum class DatagenLaunchMode { Ask, Normal, DFRC };
 
 // Datagen settings:
 constexpr int startingEvalLimit = 500;
@@ -31,12 +30,10 @@ constexpr int drawAdjPlies = 15;
 constexpr int winAdjEvalThreshold = 2000;
 constexpr int winAdjEvalPlies = 5;
 
+enum class DatagenLaunchMode { Ask, Normal, DFRC };
 
 void MergeDatagenFiles();
 void StartDatagen(const DatagenLaunchMode launchMode);
-
-bool TextformatFilter(const Position& pos, const Move& move, const int eval);
-std::string ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome);
 
 
 class Viriformat {
@@ -51,9 +48,12 @@ public:
 	void WriteToFile(std::ofstream& stream) const;
 
 private:
-	Board startingBoard{};
-	std::vector<std::pair<uint16_t, int16_t>> moves{}; // [move, eval]
+	Board startingBoard;
+	std::vector<std::pair<uint16_t, int16_t>> moves; // [move, eval]
 	GameState outcome = GameState::Playing;
-	CastlingConfiguration castlingConfig{};
+	CastlingConfiguration castlingConfig;
 	static constexpr uint8_t extraByte = 1;
 };
+
+bool TextformatFilter(const Position& pos, const Move& move, const int eval);
+std::string ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome);
