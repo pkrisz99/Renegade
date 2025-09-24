@@ -24,7 +24,7 @@ public:
 	void PopMove();
 
 	void GenerateMoves(MoveList& moves, const MoveGen moveGen, const Legality legality) const;
-	bool IsDrawn(const bool threefold) const;
+	bool IsDrawn(const int level) const;
 
 	bool IsLegalMove(const Move& m) const;
 	bool IsMoveQuiet(const Move& move) const;
@@ -63,7 +63,7 @@ public:
 	}
 
 	inline uint64_t Hash() const {
-		return Hashes.back();
+		return States.back().BoardHash;
 	}
 
 	inline int GetPly() const {
@@ -111,34 +111,35 @@ public:
 	}
 
 	inline uint64_t GetThreats() const {
-		assert(Threats.back() != 0ull);
-		return Threats.back();
+		return States.back().Threats;
 	}
 
 	inline bool IsSquareThreatened(const uint8_t sq) const {
-		assert(Threats.back() != 0ull);
-		return CheckBit(Threats.back(), sq);
+		return CheckBit(States.back().Threats, sq);
 	}
 
-	inline uint64_t GetMaterialKey() const {
-		return States.back().CalculateMaterialKey();
+	[[maybe_unused]] inline uint64_t GetMaterialHash() const {
+		return States.back().CalculateMaterialHash();
 	}
 
-	inline uint64_t GetPawnKey() const {
-		return MurmurHash3(WhitePawnBits()) ^ MurmurHash3(BlackPawnBits() ^ Zobrist[780]);
+	inline uint64_t GetPawnHash() const {
+		return States.back().CalculatePawnHash();
+	}
+
+	inline std::pair<uint64_t, uint64_t> GetNonPawnHashes() const {
+		return { States.back().WhiteNonPawnHash, States.back().BlackNonPawnHash };
 	}
 
 	inline uint64_t ApproximateHashAfterMove(const Move& move) const {
 		// Calculate the approximate hash after a move on the current board
 		// This is to make prefetching more efficient
 		// It doesn't need to be perfect, just good enough, it handles most quiet moves and captures
-		uint64_t hash = Hashes.back() ^ Zobrist[780];
+		uint64_t hash = States.back().BoardHash ^ Zobrist.SideToMove;
 		const uint8_t movedPiece = GetPieceAt(move.from);
 		const uint8_t capturedPiece = GetPieceAt(move.to);
-		constexpr std::array<uint8_t, 15> pieceMapping = { 255, 0, 1, 2, 3, 4, 5, 255, 255, 6, 7, 8, 9, 10, 11 };
-		hash ^= Zobrist[64 * pieceMapping[movedPiece] + move.from];
-		hash ^= Zobrist[64 * pieceMapping[movedPiece] + move.to];
-		if (capturedPiece != Piece::None) hash ^= Zobrist[64 * pieceMapping[capturedPiece] + move.to];
+		hash ^= Zobrist.PieceSquare[movedPiece][move.from];
+		hash ^= Zobrist.PieceSquare[movedPiece][move.to];
+		if (capturedPiece != Piece::None) hash ^= Zobrist.PieceSquare[capturedPiece][move.to];
 		return hash;
 	}
 
@@ -166,8 +167,6 @@ public:
 	bool StaticExchangeEval(const Move& move, const int threshold) const;
 
 	std::vector<Board> States{};
-	std::vector<uint64_t> Hashes{};
-	std::vector<uint64_t> Threats{};
 	std::vector<MoveAndPiece> Moves{};
 	CastlingConfiguration CastlingConfig{};
 

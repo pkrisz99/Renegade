@@ -30,7 +30,7 @@ public:
 	void ResetStatistics();
 
 	int RootDepth = 0, SelDepth = 0;
-	uint64_t Nodes = 0;
+	int64_t Nodes = 0;
 	Histories History;
 	MultiArray<Move, MaxDepth + 1, MaxDepth + 1> PvTable;
 	std::array<int, MaxDepth + 1> PvLength;
@@ -78,16 +78,20 @@ public:
 	void StartThreads(const int threadCount);
 	void StopThreads();
 	void SetThreadCount(const int threadCount);
-	void StartSearch(Position& position, const SearchParams params, const bool display);
+	void StartSearch(Position& position, const SearchParams params);
 	void StopSearch();
 	void Loop(ThreadData& t);
 	Results SearchSinglethreaded(const Position& pos, const SearchParams& params);
 	void WaitUntilReady();
-
 	void Perft(Position& position, const int depth, const PerftType type) const;
 
+#ifdef RENEGADE_DATAGEN
+	static constexpr bool DatagenMode = true;
+#else
+	static constexpr bool DatagenMode = false;
+#endif
+
 	std::atomic<bool> Aborting = true;
-	bool DatagenMode = false;
 	Transpositions TranspositionTable;
 
 	std::list<ThreadData> Threads;
@@ -98,10 +102,10 @@ private:
 	Results AggregateThreadResults() const;
 
 	void SearchMoves(ThreadData& t);
-	int SearchRecursive(ThreadData& t, int depth, const int level, int alpha, int beta, const bool pvNode, const bool cutNode);
-	int SearchQuiescence(ThreadData& t, const int level, int alpha, int beta, const bool pvNode);
+	template<bool pvNode> int SearchRecursive(ThreadData& t, int depth, const int level, int alpha, int beta, const bool cutNode);
+	template<bool pvNode> int SearchQuiescence(ThreadData& t, const int level, int alpha, int beta);
 
-	int16_t Evaluate(ThreadData& t, const Position& position, const int level);
+	int16_t Evaluate(ThreadData& t, const Position& position);
 	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	bool ShouldAbort(const ThreadData& t);

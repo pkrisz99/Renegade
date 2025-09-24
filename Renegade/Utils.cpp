@@ -2,10 +2,9 @@
 
 // https://stackoverflow.com/questions/25829143/trim-whitespace-from-a-string
 std::string Trim(const std::string& str) {
-	size_t first = str.find_first_not_of(' ');
+	const size_t first = str.find_first_not_of(' ');
+	const size_t last = str.find_last_not_of(' ');
 	if (first == std::string::npos) return "";
-	if (std::string::npos == first) return str;
-	size_t last = str.find_last_not_of(' ');
 	return str.substr(first, (last - first + 1));
 }
 
@@ -22,10 +21,10 @@ bool StartsWith(const std::string& big, const std::string& small) {
 }
 
 void ConvertToLowercase(std::string& str) {
-	for (int x = 0; x < str.length(); x++) str[x] = tolower(str[x]);
+	for (size_t x = 0; x < str.length(); x++) str[x] = std::tolower(str[x]);
 }
 
-void PrintBitboard(const uint64_t bits) {
+[[maybe_unused]] void PrintBitboard(const uint64_t bits) {
 	cout << "\n" << bits << '\n';
 	for (int r = 7; r >= 0; r--) {
 		for (int f = 0; f < 8; f++) {
@@ -42,7 +41,6 @@ void PrintBitboard(const uint64_t bits) {
 // Getting the model for a given game ply
 std::pair<double, double> ModelWDLForPly(const int ply) {
 	const double m = std::min(240.0, static_cast<double>(ply)) / 64.0;
-
 	return {
 		(((as[0] * m + as[1]) * m + as[2]) * m) + as[3],
 		(((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3]
@@ -67,7 +65,7 @@ std::tuple<int, int, int> GetWDL(const int score, const int ply) {
 
 // Converts internal units into centipawns, following the convention of 100 cp = 50% chance of winning
 int ToCentipawns(const int score, const int ply) {
-	if ((std::abs(score) >= MateThreshold) || (score == 0)) return score;
+	if (std::abs(score) >= MateThreshold || score == 0) return score;
 	const auto [a, b] = ModelWDLForPly(ply);
 	return static_cast<int>(std::round(100.0 * static_cast<double>(score) / a));
 }

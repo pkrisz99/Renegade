@@ -2,7 +2,7 @@
 
 Engine::Engine(int argc, char* argv[]) {
 	Settings::UseUCI = !PrettySupport;
-	SearchThreads.TranspositionTable.SetSize(Settings::Hash);
+	SearchThreads.TranspositionTable.SetSize(Settings::Hash, 1);
 
 	if (argc == 2 && std::string(argv[1]) == "bench") Behavior = EngineBehavior::Bench;
 	else if (argc == 2 && std::string(argv[1]) == "datagen") Behavior = EngineBehavior::DatagenNormal;
@@ -12,6 +12,9 @@ Engine::Engine(int argc, char* argv[]) {
 
 void Engine::PrintHeader() const {
 	cout << "Renegade chess engine " << Version << " [" << __DATE__ << " " << __TIME__ << "]" << endl;
+#ifdef RENEGADE_DATAGEN
+	cout << "Note: engine compiled for datagen" << endl;
+#endif
 }
 
 // Start UCI protocol
@@ -26,10 +29,15 @@ void Engine::Start() {
 
 	// Handle externally receiving datagen
 	if (Behavior == EngineBehavior::DatagenNormal || Behavior == EngineBehavior::DatagenDFRC) {
+#ifdef RENEGADE_DATAGEN
 		const DatagenLaunchMode launchMode = (Behavior == EngineBehavior::DatagenNormal) ? DatagenLaunchMode::Normal : DatagenLaunchMode::DFRC;
 		StartDatagen(launchMode);
 		SearchThreads.StopThreads();
 		return;
+#else
+		cout << Console::Red << "Error: engine is *not* compiled for datagen!" << Console::White << endl;
+		std::terminate();
+#endif
 	}
 
 	Position position = Position(FEN::StartPos);
@@ -82,6 +90,7 @@ void Engine::Start() {
 			continue;
 		}
 
+#ifdef RENEGADE_DATAGEN
 		if (cmd == "datagen") {
 			StartDatagen(DatagenLaunchMode::Ask);
 			break;
@@ -91,6 +100,7 @@ void Engine::Start() {
 			MergeDatagenFiles();
 			break;
 		}
+#endif
 
 		if (cmd == "tunetext") {
 			GenerateOpenBenchTuningString();
@@ -104,8 +114,8 @@ void Engine::Start() {
 			bool valid = false;
 
 			if (parts[2] == "hash") {
-				Settings::Hash = stoi(parts[4]);
-				SearchThreads.TranspositionTable.SetSize(Settings::Hash);
+				Settings::Hash = std::stoi(parts[4]);
+				SearchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
 				valid = true;
 			}
 			else if (parts[2] == "clear") {
@@ -138,7 +148,7 @@ void Engine::Start() {
 				}
 			}
 			else if (parts[2] == "threads") {
-				Settings::Threads = stoi(parts[4]);
+				Settings::Threads = std::stoi(parts[4]);
 				SearchThreads.SetThreadCount(Settings::Threads);
 				valid = true;
 			}
@@ -161,13 +171,13 @@ void Engine::Start() {
 			if (parts[1] == "pseudolegal") {
 				MoveList pseudoMoves{};
 				position.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
-				for (const auto& m : pseudoMoves) cout << m.move.ToString(Settings::Chess960) << " ";
+				for (const ScoredMove& m : pseudoMoves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
 			}
 			if (parts[1] == "legal") {
 				MoveList moves{};
 				position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
-				for (const auto& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
+				for (const ScoredMove& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
 			}
 			if (parts[1] == "settings") {
@@ -186,9 +196,9 @@ void Engine::Start() {
 				cout << "sizeof int:                " << sizeof(int) << endl;
 			}
 			if (parts[1] == "pasthashes") {
-				cout << "Past hashes size: " << position.Hashes.size() << endl;
-				for (int i = 0; i < position.Hashes.size(); i++) {
-					cout << "- entry " << i << ": " << std::hex << position.Hashes[i] << std::dec << endl;
+				cout << "Past hashes size: " << position.States.size() << endl;
+				for (size_t i = 0; i < position.States.size(); i++) {
+					cout << "- entry " << i << ": " << std::hex << position.States[i].BoardHash << std::dec << endl;
 				}
 			}
 			if (parts[1] == "isdraw") {
@@ -225,18 +235,6 @@ void Engine::Start() {
 			cout << "Transposition table cleared." << endl;
 			continue;
 		}
-		if (parts[0] == "bighash") {
-			Settings::Hash = 1024;
-			SearchThreads.TranspositionTable.SetSize(Settings::Hash);
-			cout << "Using big hash: 1024 MB" << endl;
-			continue;
-		}
-		if (parts[0] == "hugehash") {
-			Settings::Hash = 4096;
-			SearchThreads.TranspositionTable.SetSize(Settings::Hash);
-			cout << "Using huge hash: 4096 MB" << endl;
-			continue;
-		}
 		if (parts[0] == "frc") {
 			if (parts[1] == "on") {
 				Settings::Chess960 = true;
@@ -249,9 +247,15 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "th") {
-			Settings::Threads = stoi(parts[1]);
-			cout << "-> Set thread count to " << Settings::Threads << endl;
+			Settings::Threads = std::stoi(parts[1]);
 			SearchThreads.SetThreadCount(Settings::Threads);
+			cout << "-> Set thread count to " << Settings::Threads << endl;
+			continue;
+		}
+		if (parts[0] == "hash") {
+			Settings::Hash = std::stoi(parts[1]);
+			SearchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
+			cout << "-> Set hash size to " << Settings::Hash << endl;
 			continue;
 		}
 
@@ -266,13 +270,13 @@ void Engine::Start() {
 				else if (parts[1] == "lasker") position = Position(FEN::Lasker);
 				else if (parts[1] == "frc") {
 					Settings::Chess960 = true;
-					position = Position(stoi(parts[2]), stoi(parts[3]));
+					position = Position(std::stoi(parts[2]), std::stoi(parts[3]));
 					cout << "-> FEN: " << position.GetFEN() << endl;
 					continue;
 				}
 
 				if (parts.size() > 2 && parts[2] == "moves") {
-					for (int i = 3; i < parts.size(); i++) {
+					for (size_t i = 3; i < parts.size(); i++) {
 						const bool r = position.PushUCI(parts[i]);
 						if (!r) cout << "!!! Error: invalid pushuci move: '" << parts[i] << "' at position '" << position.GetFEN() << "' !!!" << endl;
 					}
@@ -287,7 +291,7 @@ void Engine::Start() {
 				position = Position(fen);
 
 				if (parts.size() > 8 && parts[8] == "moves") {
-					for (int i = 9; i < parts.size(); i++) {
+					for (size_t i = 9; i < parts.size(); i++) {
 						const bool r = position.PushUCI(parts[i]);
 						if (!r) cout << "!!! Error: invalid pushuci move !!!" << endl;
 					}
@@ -303,14 +307,14 @@ void Engine::Start() {
 			SearchThreads.WaitUntilReady();
 
 			if (parts.size() == 3 && (parts[1] == "perft" || parts[1] == "perftdiv")) {
-				const int depth = stoi(parts[2]);
+				const int depth = std::stoi(parts[2]);
 				const PerftType type = (parts[1] == "perftdiv") ? PerftType::PerftDiv : PerftType::Normal;
 				SearchThreads.Perft(position, depth, type);
 				continue;
 			}
 
 			params = SearchParams();
-			for (int i = 1; i < parts.size(); i++) {
+			for (size_t i = 1; i < parts.size(); i++) {
 				if (parts[i] == "wtime") params.wtime = std::max(std::stoi(parts[++i]), 1);
 				if (parts[i] == "btime") params.btime = std::max(std::stoi(parts[++i]), 1);
 				if (parts[i] == "movestogo") params.movestogo = std::stoi(parts[++i]);
@@ -325,7 +329,7 @@ void Engine::Start() {
 			}
 
 			// Starting the search thread
-			SearchThreads.StartSearch(position, params, true);
+			SearchThreads.StartSearch(position, params);
 			continue;
 		}
 
@@ -478,7 +482,7 @@ void Engine::HandleBench() {
 	const int oldThreadCount = Settings::Threads;
 	Settings::Threads = 1;
 	Settings::Hash = 16;
-	SearchThreads.TranspositionTable.SetSize(16);
+	SearchThreads.TranspositionTable.SetSize(16, 1);
 	SearchThreads.SetThreadCount(1);
 
 	uint64_t nodes = 0;
@@ -501,10 +505,10 @@ void Engine::HandleBench() {
 	cout << nodes << " nodes " << nps << " nps" << endl;
 
 	SearchThreads.ResetState(false);
-	Settings::Hash = oldHashSize;
-	SearchThreads.TranspositionTable.SetSize(oldHashSize); // also clears the transposition table
 	Settings::Threads = oldThreadCount;
 	SearchThreads.SetThreadCount(oldThreadCount);
+	Settings::Hash = oldHashSize;
+	SearchThreads.TranspositionTable.SetSize(oldHashSize, oldThreadCount); // also clears the transposition table
 	Settings::Chess960 = oldChess960Setting;
 }
 

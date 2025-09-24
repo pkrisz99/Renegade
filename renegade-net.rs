@@ -1,5 +1,9 @@
 /// Training parameters used to create Renegade's networks
-/// bullet version used: cc122c3 (Improve working with loss functions) from January 14, 2025
+/// bullet version used: 98b58df (Add Copy operation for stopping gradients) from April 16, 2025
+
+/// Net 31 is trained in 2 stages (totally not by accident):
+/// - first 600 sb: cosine decay, wdl 0.2 -> 0.4
+/// - final 200 sb: continue the cosine decay, wdl fixed at 0.4
 
 #[allow(unused_imports)]
 use bullet_lib::{
@@ -15,7 +19,7 @@ use bullet_lib::{
     },
 };
 
-const NET_ID: &str = "renegade-net-30-gigachonky";
+const NET_ID: &str = "renegade-net-31";
 
 
 fn main() {
@@ -28,17 +32,17 @@ fn main() {
              4,  5,  6,  7,
              8,  8,  9,  9,
             10, 10, 11, 11,
+            10, 10, 11, 11,
             12, 12, 13, 13,
             12, 12, 13, 13,
-            14, 14, 15, 15,
-            14, 14, 15, 15,
+            12, 12, 13, 13,
         ]))
         .output_buckets(outputs::MaterialCount::<8>::default())
-        .feature_transformer(1408)
+        .feature_transformer(1600)
         .activate(Activation::SCReLU)
         .add_layer(1)
         .build();
-    //trainer.load_from_checkpoint("checkpoints/renegade-net-x-y");
+    //trainer.load_from_checkpoint("checkpoints/renegade-net-31-600");
     
     let schedule = TrainingSchedule {
         net_id: NET_ID.to_string(),
@@ -46,18 +50,18 @@ fn main() {
         steps: TrainingSteps {
             batch_size: 16384,
             batches_per_superbatch: 6104, // ~100 million positions
-            start_superbatch: 1,
+            start_superbatch: 1, // <-- start from 601 for stage 2
             end_superbatch: 600,
         },
         wdl_scheduler: wdl::LinearWDL {
-            start: 0.2,
+            start: 0.2,  // <-- change this for stage 2
             end: 0.4,
         },
         lr_scheduler: lr::Warmup {
             inner: lr::CosineDecayLR {
                 initial_lr: 0.001,
                 final_lr: 0.001 * 0.3 * 0.3 * 0.3 * 0.3,
-                final_superbatch: 600,
+                final_superbatch: 800,
             },
             warmup_batches: 256
         },
@@ -81,7 +85,7 @@ fn main() {
     };
     
     let data_loader = loader::DirectSequentialDataLoader::new(
-        &["../nnue/data/240722_240821_240928_241010_frc241002"]
+        &["../nnue/data/240722_240821_240928_241010_241213_250418_frc241002"]
     );
 
     trainer.run(&schedule, &settings, &data_loader);

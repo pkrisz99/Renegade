@@ -1,100 +1,67 @@
+# -----------------------------------------------------------------------------
 # Makefile for compiling Renegade
-# Might have some issues, hopefully it works well enough
+# -----------------------------------------------------------------------------
 
 TARGET    := Renegade
 _THIS     := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 _ROOT     := $(_THIS)
 CXX       := clang++
-CXXFLAGS  :=  -Wall -Wcast-qual -fno-exceptions -std=c++20 -pedantic -Wextra -Wdouble-promotion -Wformat=2 -Wnull-dereference -Wunused -Wundef -DNDEBUG -fpermissive
-NATIVE     = -march=native
-# added -fpermissive for the time being
-
-NETFLAGS :=
-ifdef EVALFILE
-	NETFLAGS = -DNETWORK_NAME=\"$(EVALFILE)\"
-endif
-
-$(warning Compiling via makefile is experimental and may have bugs)
+CXXFLAGS  := -std=c++20 -O3 -flto -funroll-loops -fno-exceptions -DNDEBUG -Wall -Wextra
+NATIVE    := -march=native -mtune=native
+SOURCES   := $(filter-out Datagen.cpp Classical.cpp, $(wildcard *.cpp))
 
 
-# System dependent flags ----------------------------------
+# System dependent flags -------------------------------------------------------
 
-# Windows
 ifeq ($(OS), Windows_NT)
-	uname_S := Windows
-	SUFFIX  := .exe
-
-	ifeq ($(CXX),g++)
-  		FLAGS    = -pthread -lstdc++ -static
-		CXXFLAGS += -static -static-libgcc -static-libstdc++ -Wl,--whole-archive -lpthread -Wl,--no-whole-archive
-	else ifeq ($(CXX),clang++)
-  		CXXFLAGS += -static -fuse-ld=lld
-	endif
-	
+	SYSTEM_OS := Windows
+	SUFFIX := .exe
+	CXXFLAGS += -static
 else
+	SYSTEM_OS := $(shell uname -s)
+	SUFFIX :=
+	CXXFLAGS += -pthread
+	LDFLAGS := -pthread
+endif
 
-	SUFFIX  :=
-	uname_S := $(shell uname -s)
-
-	ifeq ($(CXX),g++)
-		FLAGS   = -lpthread -lstdc++
-	else ifeq ($(CXX),clang++)
-  		CXXFLAGS += -static
-		# -fuse-ld=lld here?
+# Use LLD for Clang on non-macOS systems
+CXX_VERSION := $(shell $(CXX) --version)
+ifneq ($(SYSTEM_OS), Darwin)
+	ifneq (, $(findstring clang, $(CXX_VERSION)))
+		LDFLAGS += -fuse-ld=lld
 	endif
-
-endif
-
-# macOS
-ifeq ($(uname_S), Darwin)
-	NATIVE = -mcpu=apple-a14	
-	FLAGS = 
 endif
 
 
-# Specific builds -----------------------------------------
+# Specific builds -------------------------------------------------------------
+# (as of 2025, the default release build is bmi2)
 
-# Remove native for builds
-ifdef build
-	NATIVE =
+ifeq ($(build), debug)
+	CXXFLAGS = -std=c++20 -Og -g3 -fno-omit-frame-pointer
+	ifeq ($(SYSTEM_OS), Windows)
+		CXXFLAGS += -fsanitize=undefined,address
+	else
+		CXXFLAGS += -fsanitize=undefined,address,leak
+	endif
 endif
 
-ifeq ($(build), native)
-	NATIVE   = -march=native
-	ARCH     = -x86-64-native
-	CXXFLAGS += -w
-endif
-
-ifeq ($(build), profile)
-	NATIVE   = -march=native
-	ARCH     = -x86-64-native
-	CXXFLAGS += -w -pg
+ifeq ($(build), datagen)
+	CXXFLAGS += -DRENEGADE_DATAGEN
+	SOURCES  += Datagen.cpp
 endif
 
 ifeq ($(build), x86-64)
-	NATIVE       = -mtune=znver1
-	INSTRUCTIONS = -msse -msse2 -mpopcnt
-	ARCH         = -x86-64
+	NATIVE   = -msse -msse2 -mtune=sandybridge
 endif
 
-# This is the default target for release
-# Note: Zen 2 and earlier have very slow pdep & pext
 ifeq ($(build), x86-64-bmi2)
-	NATIVE       = -march=haswell
-	INSTRUCTIONS =
-	ARCH         = -x86-64-bmi2
-endif
-
-ifeq ($(build), debug)
-	CXXFLAGS = -g3 -fno-omit-frame-pointer -std=c++20 -fsanitize=address
-	NATIVE   = -msse -msse3 -mpopcnt -mavx -mavx2
-	FLAGS    = -lpthread -lstdc++
+	NATIVE   = -march=haswell -mtune=haswell
 endif
 
 
-# Commands ------------------------------------------------
+# Running build commands ------------------------------------------------------
+# (Engine.cpp is always recompiled to include the correct date and time) 
 
-SOURCES := $(wildcard *.cpp)
 OBJECTS := $(patsubst %.cpp,%.o,$(SOURCES))
 DEPENDS := $(patsubst %.cpp,%.d,$(SOURCES))
 EXE     := $(TARGET)
@@ -102,12 +69,19 @@ EXE     := $(TARGET)
 all: $(TARGET)
 
 clean:
-	rm -rf *.o $(DEPENDS)
+ifneq ($(SYSTEM_OS), Windows)
+	@rm -rf *.o *.d
+else
+	@del *.o *.d *.exe
+endif
 
 $(TARGET): $(OBJECTS)
-	$(CXX) -o $(EXE)$(SUFFIX) $^ $(CXXFLAGS) ${NETFLAGS} $(NATIVE) $(INSTRUCTIONS) $(FLAGS) -flto
+	$(CXX) $(CXXFLAGS) $(NATIVE) -MMD -MP -o $(EXE)$(SUFFIX) $^ $(LDFLAGS)
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(NATIVE) -MMD -MP -c $< -o $@
 
 -include $(DEPENDS)
 
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) ${NETFLAGS} $(NATIVE) $(INSTRUCTIONS) -funroll-loops -O3 -flto -MMD -MP -c -o $@ $< $(FLAGS) -w
+Engine.o: FORCE
+FORCE:

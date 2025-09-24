@@ -3,7 +3,10 @@
 #include "Utils.h"
 #include <algorithm>
 #include <array>
+#include <cstdlib>
+#include <limits>
 #include <memory>
+#include <thread>
 
 namespace ScoreType {
 	constexpr int Invalid = 0;
@@ -13,14 +16,14 @@ namespace ScoreType {
 };
 
 struct TranspositionEntry {
-	uint32_t hash = 0;
-	int16_t score = 0;
-	int16_t rawEval = 0;
-	uint16_t generation = 0;
-	uint8_t depth = 0;
-	uint8_t scoreType = ScoreType::Invalid;
-	uint16_t packedMove = 0;
-	bool ttPv = false;
+	uint32_t hash;
+	int16_t score;
+	int16_t rawEval;
+	uint16_t generation;
+	uint8_t depth;
+	uint8_t scoreType;
+	uint16_t packedMove;
+	bool ttPv;
 
 	inline bool IsCutoffPermitted(const int searchDepth, const int alpha, const int beta) const {
 		if (searchDepth > depth) return false;
@@ -30,7 +33,7 @@ struct TranspositionEntry {
 	}
 };
 struct alignas(64) TranspositionCluster {
-	std::array<TranspositionEntry, 4> entries{};
+	std::array<TranspositionEntry, 4> entries;
 };
 
 static_assert(sizeof(TranspositionEntry) == 16);
@@ -40,21 +43,27 @@ class Transpositions
 {
 public:
 	Transpositions();
+	~Transpositions();
 	void Store(const uint64_t hash, const int depth, const int16_t score, const int scoreType, const int16_t rawEval, const Move& bestMove, const int level, const bool ttPv);
 	bool Probe(const uint64_t hash, TranspositionEntry& entry, const int level) const;
 	void Prefetch(const uint64_t hash) const;
 	void IncreaseAge();
-	void SetSize(const int megabytes);
-	void Clear();
+	void SetSize(const int megabytes, const int threadCount);
+	void Clear(const int threadCount);
 	int GetHashfull() const;
 
 private:
-	std::vector<TranspositionCluster> Table;
-	uint64_t HashMask;
+	TranspositionCluster* Table = nullptr;
+	uint64_t TableSize = 0;
 	uint16_t CurrentGeneration;
 
+	// Handles direct memory allocation and freeing, required for multiplatform and performance reasons:
+	void AllocateTable(const uint64_t clusterCount);
+	void FreeTable();
+
 	inline uint64_t GetClusterIndex(const uint64_t hash) const {
-		return hash & HashMask;
+		assert((TableSize & (TableSize - 1)) == 0);
+		return hash & (TableSize - 1);
 	}
 
 	inline uint32_t GetStoredHash(const uint64_t hash) const {

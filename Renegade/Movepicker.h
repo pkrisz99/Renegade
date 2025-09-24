@@ -11,12 +11,11 @@ public:
 
 	void Initialize(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
 		this->ttMove = ttMove;
-		this->killerMove = hist.GetKillerMove(level);
-		this->counterMove = (level > 0) ? hist.GetCountermove(pos.GetPreviousMove(1).move) : NullMove;
+		std::tie(killerMove, counterMove, positionalMove) = hist.GetRefutationMoves(pos, level);
 		this->level = level;
 		this->moveGen = moveGen;
 		this->moves.clear();
-		index = 0;
+		this->index = 0;
 
 		pos.GenerateMoves(moves, moveGen, Legality::Pseudolegal);
 		for (auto& m : moves) m.orderScore = GetMoveScore(pos, hist, m.move);
@@ -28,7 +27,7 @@ public:
 		int bestOrderScore = moves[index].orderScore;
 		int bestIndex = index;
 
-		for (int i = index + 1; i < moves.size(); i++) {
+		for (int i = index + 1; i < static_cast<int>(moves.size()); i++) {
 			if (moves[i].orderScore > bestOrderScore) {
 				bestOrderScore = moves[i].orderScore;
 				bestIndex = i;
@@ -41,10 +40,12 @@ public:
 	}
 
 	bool HasNext() const {
-		return index < moves.size();
+		return index < static_cast<int>(moves.size());
 	}
 
-	int index;
+	int index = 0;
+
+	static constexpr int MaxRegularQuietOrder = 200000;
 
 private:
 
@@ -55,7 +56,6 @@ private:
 
 		constexpr std::array<int, 7> values = { 0, 100, 300, 300, 500, 900, 0 };
 		const uint8_t movedPiece = pos.GetPieceAt(m.from);
-		const uint8_t attackingPieceType = TypeOfPiece(movedPiece);
 		const uint8_t capturedPieceType = [&] {
 			if (m.IsCastling()) return PieceType::None;
 			if (m.flag == MoveFlag::EnPassantPerformed) return PieceType::Pawn;
@@ -67,31 +67,27 @@ private:
 
 		// Captures
 		if (capturedPieceType != PieceType::None) {
-
 			const bool losingCapture = [&] {
 				if (moveGen == MoveGen::Noisy) return false;
 				if (pos.IsMoveQuiet(m)) return false;
 				const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
-				return !pos.StaticExchangeEval(m, -captureScore / 35);
+				return !pos.StaticExchangeEval(m, -captureScore / 33);
 			}();
-
-			if (!losingCapture) return 600000 + values[capturedPieceType] * 16 + hist.GetCaptureHistoryScore(pos, m);
-			else return -200000 + values[capturedPieceType] * 16 + hist.GetCaptureHistoryScore(pos, m);
+			return (!losingCapture ? 600000 : -200000) + values[capturedPieceType] * 16 + hist.GetCaptureHistoryScore(pos, m);
 		}
 
-		// Quiet killer moves
-		if (m == killerMove) return 100000;
+		// Quiet moves: take the history score and potentially apply a bonus for being a refutation
+		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 
-		// Countermove heuristic
-		if (m == counterMove) return 99000;
+		if (m == killerMove) historyScore += 22000;
+		else if (m == counterMove) historyScore += 16000;
+		else if (m == positionalMove) historyScore += 16000;
 
-		// Quiet moves
-		const int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 		return historyScore;
 	}
 
 
-	Move ttMove{}, killerMove{}, counterMove{};
+	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
 	MoveList moves{};
 	int level = 0;
 	MoveGen moveGen = MoveGen::All;

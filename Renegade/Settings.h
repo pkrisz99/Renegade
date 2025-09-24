@@ -9,10 +9,10 @@
 
 constexpr int HashMin = 1;
 constexpr int HashDefault = 64;
-constexpr int HashMax = 65536;
+constexpr int HashMax = 1048576;
 constexpr int ThreadsMin = 1;
 constexpr int ThreadsDefault = 1;
-constexpr int ThreadsMax = 256;
+constexpr int ThreadsMax = 1024;
 constexpr bool Chess960Default = false;
 constexpr bool ShowWDLDefault = true;
 
@@ -83,6 +83,6 @@ inline void SetTunableParameter(const std::string name, const int value) {
 	TunableParameterList.at(name).value = value;
 }
 
-// Set tunable parameters here --------------------------------------------------------------------
-// Format here is: ADD_TUNABLE(name, default, min, max, step)
-// Usage in code:  tune_name()
+// Add tunable parameters here --------------------------------------------------------------------
+// Definition here: ADD_TUNABLE(name, default, min, max, step)
+// Usage in code:   tune_name()

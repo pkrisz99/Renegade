@@ -1,79 +1,74 @@
 #include "Board.h"
 
-uint64_t Board::CalculateHash() const {
-	uint64_t hash = 0;
+/*uint64_t Board::CalculateHash() const {
+	uint64_t boardHash = 0;
 
 	uint64_t bits = WhitePawnBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 0 + sq];
+		boardHash ^= Zobrist.PieceSquare[Piece::WhitePawn][sq];
 	}
 	bits = WhiteKnightBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 1 + sq];
+		boardHash ^= Zobrist.PieceSquare[Piece::WhiteKnight][sq];
 	}
 	bits = WhiteBishopBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 2 + sq];
+		boardHash ^= Zobrist.PieceSquare[Piece::WhiteBishop][sq];
 	}
 	bits = WhiteRookBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 3 + sq];
+		boardHash ^= Zobrist.PieceSquare[Piece::WhiteRook][sq];
 	}
 	bits = WhiteQueenBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 4 + sq];
+		boardHash ^= Zobrist.PieceSquare[Piece::WhiteQueen][sq];
 	}
 	int sq = LsbSquare(WhiteKingBits);
-	hash ^= Zobrist[64 * 5 + sq];
+	boardHash ^= Zobrist.PieceSquare[Piece::WhiteKing][sq];
 
 	bits = BlackPawnBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 6 + sq];
+		boardHash ^= Zobrist.PieceSquare[Piece::BlackPawn][sq];
 	}
 	bits = BlackKnightBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 7 + sq];
+		boardHash ^= Zobrist.PieceSquare[Piece::BlackKnight][sq];
 	}
 	bits = BlackBishopBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 8 + sq];
+		boardHash ^= Zobrist.PieceSquare[Piece::BlackBishop][sq];
 	}
 	bits = BlackRookBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 9 + sq];
+		boardHash ^= Zobrist.PieceSquare[Piece::BlackRook][sq];
 	}
 	bits = BlackQueenBits;
 	while (bits != 0) {
 		const int sq = Popsquare(bits);
-		hash ^= Zobrist[64 * 10 + sq];
+		boardHash ^= Zobrist.PieceSquare[Piece::BlackQueen][sq];
 	}
 	sq = LsbSquare(BlackKingBits);
-	hash ^= Zobrist[64 * 11 + sq];
+	boardHash ^= Zobrist.PieceSquare[Piece::BlackKing][sq];
 
-	// Castling
-	if (WhiteRightToShortCastle) hash ^= Zobrist[768];
-	if (WhiteRightToLongCastle) hash ^= Zobrist[769];
-	if (BlackRightToShortCastle) hash ^= Zobrist[770];
-	if (BlackRightToLongCastle) hash ^= Zobrist[771];
+	// Castling, en passant, and side to move
+	if (WhiteRightToShortCastle) boardHash ^= Zobrist.Castling[0];
+	if (WhiteRightToLongCastle) boardHash ^= Zobrist.Castling[1];
+	if (BlackRightToShortCastle) boardHash ^= Zobrist.Castling[2];
+	if (BlackRightToLongCastle) boardHash ^= Zobrist.Castling[3];
+	if (EnPassantSquare != -1) boardHash ^= Zobrist.EnPassant[GetSquareFile(EnPassantSquare)];
+	if (Turn == Side::White) boardHash ^= Zobrist.SideToMove;
 
-	// En passant
-	if (EnPassantSquare != -1) {
-		hash ^= Zobrist[772 + GetSquareFile(EnPassantSquare)];
-	}
-
-	if (Turn == Side::White) hash ^= Zobrist[780];
-
-	return hash;
-}
+	return boardHash;
+}*/
 
 void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 
@@ -141,8 +136,14 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 
 	// Handle castling
 	if (piece == Piece::WhiteKing && capturedPiece == Piece::WhiteRook) {
-		WhiteRightToShortCastle = false;
-		WhiteRightToLongCastle = false;
+		if (WhiteRightToShortCastle) {
+			WhiteRightToShortCastle = false;
+			BoardHash ^= Zobrist.Castling[0];
+		}
+		if (WhiteRightToLongCastle) {
+			WhiteRightToLongCastle = false;
+			BoardHash ^= Zobrist.Castling[1];
+		}
 
 		if (move.flag == MoveFlag::ShortCastle) {
 			RemovePiece<Piece::WhiteKing>(move.to);
@@ -157,8 +158,14 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 
 	}
 	else if (piece == Piece::BlackKing && capturedPiece == Piece::BlackRook) {
-		BlackRightToShortCastle = false;
-		BlackRightToLongCastle = false;
+		if (BlackRightToShortCastle) {
+			BlackRightToShortCastle = false;
+			BoardHash ^= Zobrist.Castling[2];
+		}
+		if (BlackRightToLongCastle) {
+			BlackRightToLongCastle = false;
+			BoardHash ^= Zobrist.Castling[3];
+		}
 
 		if (move.flag == MoveFlag::ShortCastle) {
 			RemovePiece<Piece::BlackKing>(move.to);
@@ -174,45 +181,55 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 
 	// TODO: branch when castling rights exist
 
-	// Update castling rights
+	// Update castling rights from non-castling moves
 	if (piece == Piece::WhiteKing) {
-		WhiteRightToShortCastle = false;
-		WhiteRightToLongCastle = false;
+		SetWhiteShortCastlingRight<false>();
+		SetWhiteLongCastlingRight<false>();
 	}
 	else if (piece == Piece::BlackKing) {
-		BlackRightToShortCastle = false;
-		BlackRightToLongCastle = false;
+		SetBlackShortCastlingRight<false>();
+		SetBlackLongCastlingRight<false>();
 	}
 	else if (piece == Piece::WhiteRook) {
-		if (move.from == castling.WhiteLongCastleRookSquare) WhiteRightToLongCastle = false;
-		else if (move.from == castling.WhiteShortCastleRookSquare) WhiteRightToShortCastle = false;
+		if (move.from == castling.WhiteShortCastleRookSquare) SetWhiteShortCastlingRight<false>();
+		else if (move.from == castling.WhiteLongCastleRookSquare) SetWhiteLongCastlingRight<false>();
 	}
 	else if (piece == Piece::BlackRook) {
-		if (move.from == castling.BlackLongCastleRookSquare) BlackRightToLongCastle = false;
-		else if (move.from == castling.BlackShortCastleRookSquare) BlackRightToShortCastle = false;
+		if (move.from == castling.BlackShortCastleRookSquare) SetBlackShortCastlingRight<false>();
+		else if (move.from == castling.BlackLongCastleRookSquare) SetBlackLongCastlingRight<false>();
 	}
 
 	if (capturedPiece == Piece::WhiteRook) {
-		if (move.to == castling.WhiteLongCastleRookSquare) WhiteRightToLongCastle = false;
-		else if (move.to == castling.WhiteShortCastleRookSquare) WhiteRightToShortCastle = false;
+		if (move.to == castling.WhiteShortCastleRookSquare) SetWhiteShortCastlingRight<false>();
+		else if (move.to == castling.WhiteLongCastleRookSquare) SetWhiteLongCastlingRight<false>();
 	}
 	else if (capturedPiece == Piece::BlackRook) {
-		if (move.to == castling.BlackLongCastleRookSquare) BlackRightToLongCastle = false;
-		else if (move.to == castling.BlackShortCastleRookSquare) BlackRightToShortCastle = false;
+		if (move.to == castling.BlackShortCastleRookSquare) SetBlackShortCastlingRight<false>();
+		else if (move.to == castling.BlackLongCastleRookSquare) SetBlackLongCastlingRight<false>();
 	}
 
 	// Update en passant
-	EnPassantSquare = -1;
+	if (EnPassantSquare != -1) {
+		BoardHash ^= Zobrist.EnPassant[GetSquareFile(EnPassantSquare)];
+		EnPassantSquare = -1;
+	}
+	
 	if (move.flag == MoveFlag::EnPassantPossible) {
 		if (Turn == Side::White) {
 			const bool pawnOnLeft = GetSquareFile(move.to) != 0 && GetPieceAt(move.to - 1) == Piece::BlackPawn;
 			const bool pawnOnRight = GetSquareFile(move.to) != 7 && GetPieceAt(move.to + 1) == Piece::BlackPawn;
-			if (pawnOnLeft || pawnOnRight) EnPassantSquare = move.to - 8;
+			if (pawnOnLeft || pawnOnRight) {
+				EnPassantSquare = move.to - 8;
+				BoardHash ^= Zobrist.EnPassant[GetSquareFile(EnPassantSquare)];
+			}
 		}
 		else {
 			const bool pawnOnLeft = GetSquareFile(move.to) != 0 && GetPieceAt(move.to - 1) == Piece::WhitePawn;
 			const bool pawnOnRight = GetSquareFile(move.to) != 7 && GetPieceAt(move.to + 1) == Piece::WhitePawn;
-			if (pawnOnLeft || pawnOnRight) EnPassantSquare = move.to + 8;
+			if (pawnOnLeft || pawnOnRight) {
+				EnPassantSquare = move.to + 8;
+				BoardHash ^= Zobrist.EnPassant[GetSquareFile(EnPassantSquare)];
+			}
 		}
 	}
 
@@ -220,25 +237,27 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 	HalfmoveClock += 1;
 	if (capturedPiece != Piece::None || pieceType == PieceType::Pawn) HalfmoveClock = 0;
 	Turn = !Turn;
+	BoardHash ^= Zobrist.SideToMove;
 	if (Turn == Side::White) FullmoveClock += 1;
 
 	assert(Popcount(WhiteKingBits) == 1 && Popcount(BlackKingBits) == 1);
 }
 
-uint64_t Board::CalculateMaterialKey() const {
-	uint64_t material_key = 0;
+uint64_t Board::CalculateMaterialHash() const {
+	uint64_t materialHash = 0;
+	materialHash |= static_cast<uint64_t>(Popcount(WhitePawnBits));
+	materialHash |= static_cast<uint64_t>(Popcount(WhiteKnightBits)) << 6;
+	materialHash |= static_cast<uint64_t>(Popcount(WhiteBishopBits)) << 12;
+	materialHash |= static_cast<uint64_t>(Popcount(WhiteRookBits)) << 18;
+	materialHash |= static_cast<uint64_t>(Popcount(WhiteQueenBits)) << 24;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackPawnBits)) << 30;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackKnightBits)) << 36;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackBishopBits)) << 42;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackRookBits)) << 48;
+	materialHash |= static_cast<uint64_t>(Popcount(BlackQueenBits)) << 54;
+	return MurmurHash3(materialHash);
+}
 
-	material_key |= static_cast<uint64_t>(Popcount(WhitePawnBits));
-	material_key |= (static_cast<uint64_t>(Popcount(WhiteKnightBits)) << 6);
-	material_key |= (static_cast<uint64_t>(Popcount(WhiteBishopBits)) << 12);
-	material_key |= (static_cast<uint64_t>(Popcount(WhiteRookBits)) << 18);
-	material_key |= (static_cast<uint64_t>(Popcount(WhiteQueenBits)) << 24);
-
-	material_key |= (static_cast<uint64_t>(Popcount(BlackPawnBits)) << 30);
-	material_key |= (static_cast<uint64_t>(Popcount(BlackKnightBits)) << 36);
-	material_key |= (static_cast<uint64_t>(Popcount(BlackBishopBits)) << 42);
-	material_key |= (static_cast<uint64_t>(Popcount(BlackRookBits)) << 48);
-	material_key |= (static_cast<uint64_t>(Popcount(BlackQueenBits)) << 54);
-
-	return MurmurHash3(material_key);
+uint64_t Board::CalculatePawnHash() const {
+	return MurmurHash3(WhitePawnBits) ^ MurmurHash3(BlackPawnBits ^ Zobrist.SideToMove);
 }

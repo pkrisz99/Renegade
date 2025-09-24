@@ -112,15 +112,12 @@ void SelfPlay(const std::string filename) {
 	Search* Searcher1 = new Search;
 	Search* Searcher2 = new Search;
 	Search* SearcherV = new Search;
-	Searcher1->TranspositionTable.SetSize(1);
-	Searcher2->TranspositionTable.SetSize(1);
-	SearcherV->TranspositionTable.SetSize(1);
+	Searcher1->TranspositionTable.SetSize(1, 1);
+	Searcher2->TranspositionTable.SetSize(1, 1);
+	SearcherV->TranspositionTable.SetSize(1, 1);
 	Searcher1->SetThreadCount(1);
 	Searcher2->SetThreadCount(1);
 	SearcherV->SetThreadCount(1);
-	Searcher1->DatagenMode = true;
-	Searcher2->DatagenMode = true;
-	SearcherV->DatagenMode = true;
 
 	SearchParams params = SearchParams();
 	params.softnodes = softNodeLimit;
@@ -335,7 +332,7 @@ void MergeDatagenFiles() {
 	cout << "\nWhat is the base name of the generated files? " << Console::Yellow;
 	cin >> name;
 
-	uint64_t limit = -1;
+	int64_t limit = -1;
 	cout << Console::White << "How many positions maximum (-1 for no limit)? " << Console::Yellow;
 	cin >> limit;
 
@@ -353,7 +350,7 @@ void MergeDatagenFiles() {
 	const std::string mergedName = name + "_merged";
 	std::ofstream output;
 	output.open(mergedName, std::ios_base::app);
-	int counter = 0;
+	int64_t counter = 0;
 
 	for (const auto& filename : found) {
 		std::ifstream ifs(filename);

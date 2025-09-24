@@ -7,9 +7,7 @@ Position::Position(const std::string& fen) {
 
 	// Reserve memory, add starting state
 	States.reserve(512);
-	Hashes.reserve(512);
 	Moves.reserve(512);
-	Threats.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
 	
@@ -41,8 +39,8 @@ Position::Position(const std::string& fen) {
 		}
 	}
 
-	// Other information
 	board.Turn = (parts[1] == "w") ? Side::White : Side::Black;
+	if (board.Turn == Side::White) board.BoardHash ^= Zobrist.SideToMove;
 
 	// Castling rights
 
@@ -57,35 +55,35 @@ Position::Position(const std::string& fen) {
 			if (f >= 'A' && f <= 'H') {
 				const uint8_t rookFile = f - 'A';
 				const uint8_t kingFile = GetSquareFile(LsbSquare(board.WhiteKingBits));
-				if (rookFile < kingFile) {
-					board.WhiteRightToLongCastle = true;
-					CastlingConfig.WhiteLongCastleRookSquare = rookFile;
+				if (rookFile > kingFile) {
+					board.SetWhiteShortCastlingRight<true>();
+					CastlingConfig.WhiteShortCastleRookSquare = rookFile;
 				}
 				else {
-					board.WhiteRightToShortCastle = true;
-					CastlingConfig.WhiteShortCastleRookSquare = rookFile;
+					board.SetWhiteLongCastlingRight<true>();
+					CastlingConfig.WhiteLongCastleRookSquare = rookFile;
 				}
 			}
 			else if (f >= 'a' && f <= 'h') {
 				const uint8_t rookFile = f - 'a';
 				const uint8_t kingFile = GetSquareFile(LsbSquare(board.BlackKingBits));
-				if (rookFile < kingFile) {
-					board.BlackRightToLongCastle = true;
-					CastlingConfig.BlackLongCastleRookSquare = rookFile + 56;
+				if (rookFile > kingFile) {
+					board.SetBlackShortCastlingRight<true>();
+					CastlingConfig.BlackShortCastleRookSquare = rookFile + 56;
 				}
 				else {
-					board.BlackRightToShortCastle = true;
-					CastlingConfig.BlackShortCastleRookSquare = rookFile + 56;
+					board.SetBlackLongCastlingRight<true>();
+					CastlingConfig.BlackLongCastleRookSquare = rookFile + 56;
 				}
 			}
 		}
 		else {
 			// Normal chess
 			switch (f) {
-			case 'K': board.WhiteRightToShortCastle = true; break;
-			case 'Q': board.WhiteRightToLongCastle = true; break;
-			case 'k': board.BlackRightToShortCastle = true; break;
-			case 'q': board.BlackRightToLongCastle = true; break;
+			case 'K': board.SetWhiteShortCastlingRight<true>(); break;
+			case 'Q': board.SetWhiteLongCastlingRight<true>(); break;
+			case 'k': board.SetBlackShortCastlingRight<true>(); break;
+			case 'q': board.SetBlackLongCastlingRight<true>(); break;
 			}
 		}
 	}
@@ -97,20 +95,24 @@ Position::Position(const std::string& fen) {
 		if (board.Turn == Side::White) {
 			const bool pawnOnLeft = GetSquareFile(epSquare) != 0 && GetPieceAt(epSquare - 9) == Piece::WhitePawn;
 			const bool pawnOnRight = GetSquareFile(epSquare) != 7 && GetPieceAt(epSquare - 7) == Piece::WhitePawn;
-			if (pawnOnLeft || pawnOnRight) board.EnPassantSquare = epSquare;
+			if (pawnOnLeft || pawnOnRight) {
+				board.EnPassantSquare = epSquare;
+				board.BoardHash ^= Zobrist.EnPassant[GetSquareFile(epSquare)];
+			}
 		}
 		else {
 			const bool pawnOnLeft = GetSquareFile(epSquare) != 0 && GetPieceAt(epSquare + 7) == Piece::BlackPawn;
 			const bool pawnOnRight = GetSquareFile(epSquare) != 7 && GetPieceAt(epSquare + 9) == Piece::BlackPawn;
-			if (pawnOnLeft || pawnOnRight) board.EnPassantSquare = epSquare;
+			if (pawnOnLeft || pawnOnRight) {
+				board.EnPassantSquare = epSquare;
+				board.BoardHash ^= Zobrist.EnPassant[GetSquareFile(epSquare)];
+			}
 		}
 	}
 
-	board.HalfmoveClock = stoi(parts[4]);
-	board.FullmoveClock = stoi(parts[5]);
-
-	Hashes.push_back(board.CalculateHash());
-	Threats.push_back(CalculateAttackedSquares(!Turn()));
+	board.HalfmoveClock = std::stoi(parts[4]);
+	board.FullmoveClock = std::stoi(parts[5]);
+	board.Threats = CalculateAttackedSquares(!Turn());
 }
 
 Position::Position(const int frcWhite, const int frcBlack) {
@@ -121,9 +123,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 
 	// Reserve memory, add starting state
 	States.reserve(512);
-	Hashes.reserve(512);
 	Moves.reserve(512);
-	Threats.reserve(512);
 	States.push_back(Board());
 	Board& board = States.back();
 
@@ -136,6 +136,7 @@ Position::Position(const int frcWhite, const int frcBlack) {
 			i += 1;
 		}
 		assert(false);
+		return 0;
 	};
 
 	// Generate an array of piece types
@@ -177,8 +178,24 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	// Add pieces from the generated layout to the board
 	const std::array<uint8_t, 8> whiteLayout = layout(frcWhite);
 	const std::array<uint8_t, 8> blackLayout = layout(frcBlack);
-	for (int i = 0; i < 8; i++) board.AddPiece(whiteLayout[i] + Piece::WhitePieceOffset, i);
-	for (int i = 0; i < 8; i++) board.AddPiece(blackLayout[i] + Piece::BlackPieceOffset, 56 + i);
+	for (int i = 0; i < 8; i++) {
+		switch (whiteLayout[i]) {
+		case PieceType::Knight: board.AddPiece<Piece::WhiteKnight>(i); break;
+		case PieceType::Bishop: board.AddPiece<Piece::WhiteBishop>(i); break;
+		case PieceType::Rook: board.AddPiece<Piece::WhiteRook>(i); break;
+		case PieceType::Queen: board.AddPiece<Piece::WhiteQueen>(i); break;
+		case PieceType::King: board.AddPiece<Piece::WhiteKing>(i); break;
+		}
+	}
+	for (int i = 0; i < 8; i++) {
+		switch (blackLayout[i]) {
+		case PieceType::Knight: board.AddPiece<Piece::BlackKnight>(56 + i); break;
+		case PieceType::Bishop: board.AddPiece<Piece::BlackBishop>(56 + i); break;
+		case PieceType::Rook: board.AddPiece<Piece::BlackRook>(56 + i); break;
+		case PieceType::Queen: board.AddPiece<Piece::BlackQueen>(56 + i); break;
+		case PieceType::King: board.AddPiece<Piece::BlackKing>(56 + i); break;
+		}
+	}
 
 	// Place pawns
 	for (int i = 0; i < 8; i++) {
@@ -187,10 +204,10 @@ Position::Position(const int frcWhite, const int frcBlack) {
 	}
 
 	// Castling
-	board.WhiteRightToShortCastle = true;
-	board.WhiteRightToLongCastle = true;
-	board.BlackRightToShortCastle = true;
-	board.BlackRightToLongCastle = true;
+	board.SetWhiteShortCastlingRight<true>();
+	board.SetWhiteLongCastlingRight<true>();
+	board.SetBlackShortCastlingRight<true>();
+	board.SetBlackLongCastlingRight<true>();
 	CastlingConfig.WhiteLongCastleRookSquare = LsbSquare(board.WhiteRookBits);
 	CastlingConfig.WhiteShortCastleRookSquare = MsbSquare(board.WhiteRookBits);
 	CastlingConfig.BlackLongCastleRookSquare = LsbSquare(board.BlackRookBits);
@@ -198,12 +215,11 @@ Position::Position(const int frcWhite, const int frcBlack) {
 
 	// Other
 	board.Turn = Side::White;
+	board.BoardHash ^= Zobrist.SideToMove;
 	board.EnPassantSquare = -1;
 	board.HalfmoveClock = 0;
 	board.FullmoveClock = 1;
-
-	Hashes.push_back(board.CalculateHash());
-	Threats.push_back(CalculateAttackedSquares(!Turn()));
+	board.Threats = CalculateAttackedSquares(!Turn());
 }
 
 // Pushing moves ----------------------------------------------------------------------------------
@@ -216,11 +232,10 @@ void Position::PushMove(const Move& move) {
 	const uint8_t movedPiece = board.GetPieceAt(move.from);
 
 	board.ApplyMove(move, CastlingConfig);
+	board.Threats = CalculateAttackedSquares(!Turn());
 
-	Hashes.push_back(board.CalculateHash());
 	Moves.push_back({ move, movedPiece });
-	Threats.push_back(CalculateAttackedSquares(!Turn()));
-	assert(States.size() == Hashes.size() && States.size() - 1 == Moves.size() && States.size() == Threats.size());
+	assert(States.size() - 1 == Moves.size());
 }
 
 void Position::PushNullMove() {
@@ -229,16 +244,15 @@ void Position::PushNullMove() {
 
 	board.Turn = !board.Turn;
 	if (board.Turn == Side::White) board.FullmoveClock += 1;
+	board.Threats = CalculateAttackedSquares(!Turn());
+	board.BoardHash ^= Zobrist.SideToMove;
 
-	if (board.EnPassantSquare == -1) {
-		Hashes.push_back(Hashes.back() ^ Zobrist[780]);
-	}
-	else {
+	if (board.EnPassantSquare != -1) {
+		board.BoardHash ^= Zobrist.EnPassant[GetSquareFile(board.EnPassantSquare)];
 		board.EnPassantSquare = -1;
-		Hashes.push_back(board.CalculateHash());
 	}
+
 	Moves.push_back({ NullMove, Piece::None });
-	Threats.push_back(CalculateAttackedSquares(!Turn()));
 	return;
 }
 
@@ -308,9 +322,7 @@ bool Position::PushUCI(const std::string& str) {
 
 void Position::PopMove() {
 	States.pop_back();
-	Hashes.pop_back();
 	Moves.pop_back();
-	Threats.pop_back();
 }
 
 // Generating moves -------------------------------------------------------------------------------
@@ -456,7 +468,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & fakeOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = Threats.back();
+			const uint64_t opponentAttacks = b.Threats;
 			const bool safe = !(opponentAttacks & rayBetweenKingAndG);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::ShortCastle));
 		}
@@ -474,7 +486,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & fakeOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = Threats.back();
+			const uint64_t opponentAttacks = b.Threats;
 			const bool safe = !(opponentAttacks & rayBetweenKingAndC);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::LongCastle));
 		}
@@ -617,17 +629,15 @@ bool Position::IsLegalMove(const Move& m) const {
 		return !IsSquareAttacked(!board.Turn, m.to, occupancy);
 	}
 
-	const uint8_t capturedPiece = GetPieceAt(m.to);
 	const uint8_t kingSq = (board.Turn == Side::White) ? LsbSquare(board.WhiteKingBits) : LsbSquare(board.BlackKingBits);
 	const uint64_t occupancy = GetOccupancy();
 
 	if (m.flag == MoveFlag::EnPassantPerformed) {
 		// After the en passant start rays to see if the king is attacked by an appropiate sliding piece
-		// TODO: Checking for only rook attacks is enough, I think?
 		const uint8_t epVictimSq = (board.Turn == Side::White) ? board.EnPassantSquare - 8 : board.EnPassantSquare + 8;
 		const uint64_t parallelSliders = (board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits);
 		const uint64_t diagonalSliders = (board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits);
-		const uint64_t approxOccupancy = occupancy ^ SquareBit(m.from) ^ SquareBit(epVictimSq) | SquareBit(m.to);
+		const uint64_t approxOccupancy = (occupancy ^ SquareBit(m.from) ^ SquareBit(epVictimSq)) | SquareBit(m.to);
 		return !(GetRookAttacks(kingSq, approxOccupancy) & parallelSliders) && !(GetBishopAttacks(kingSq, approxOccupancy) & diagonalSliders);
 	}
 
@@ -725,7 +735,7 @@ uint64_t Position::AttackersOfSquare(const bool attackingSide, const uint8_t squ
 
 // Getting information ----------------------------------------------------------------------------
 
-bool Position::IsDrawn(const bool threefold) const {
+bool Position::IsDrawn(const int level) const {
 	const Board& b = CurrentState();
 
 	// 1. Fifty moves without progress
@@ -733,14 +743,16 @@ bool Position::IsDrawn(const bool threefold) const {
 
 	// 2. Threefold repetitions
 	const uint64_t hash = Hash();
-	const int length = Hashes.size();
-	const int threshold = threefold ? 3 : 2;
-	int repeated = 0;
+	const int length = States.size();
+	const int currentIndex = length - 1;
+	const int materializedUntil = currentIndex - level; // highest index materialized
+	int repeated = 1;
 
-	for (int i = length - 1; i >= std::max(0, length - b.HalfmoveClock - 2); i -= 2) {
-		if (Hashes[i] == hash) {
+	for (int i = currentIndex - 4; i >= std::max(0, currentIndex - b.HalfmoveClock); i -= 2) {
+		if (States[i].BoardHash == hash) {
 			repeated += 1;
-			if (repeated >= threshold) return true;
+			const bool materialized = materializedUntil >= i;
+			if (repeated >= (2 + materialized)) return true;
 		}
 	}
 
@@ -760,7 +772,6 @@ bool Position::IsDrawn(const bool threefold) const {
 
 bool Position::IsMoveQuiet(const Move& move) const {
 	if (move.IsCastling()) return true;
-	const uint8_t movedPiece = GetPieceAt(move.from);
 	const uint8_t targetPiece = GetPieceAt(move.to);
 	if (targetPiece != Piece::None) return false;
 	if (move.flag == MoveFlag::PromotionToQueen) return false;
@@ -828,7 +839,7 @@ GameState Position::GetGameState() const {
 	}
 
 	// Check other types of draws
-	if (IsDrawn(true)) return GameState::Drawn;
+	if (IsDrawn(0)) return GameState::Drawn;
 	else return GameState::Playing;
 }
 

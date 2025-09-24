@@ -1,6 +1,5 @@
 #pragma once
 #include "Datagen.h"
-#include "Magics.h"
 #include "Neural.h"
 #include "Position.h"
 #include "Reporting.h"
