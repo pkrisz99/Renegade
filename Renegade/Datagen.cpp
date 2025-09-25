@@ -27,8 +27,7 @@ static std::string FormatRuntime(const int seconds) {
 
 void SelfPlay(const std::string filename);  // main loop per thread, forward declaring this
 
-std::atomic<uint64_t> PositionsTotal = 0;
-std::atomic<uint64_t> Games = 0, Plies = 0, Searches = 0, Depths = 0, Nodes = 0;
+std::atomic<uint64_t> Positions = 0, Games = 0, Plies = 0, Depths = 0, Nodes = 0;
 std::atomic<uint64_t> WhiteWins = 0, Draws = 0, BlackWins = 0;
 Clock::time_point StartTime;
 int ThreadCount = 0;
@@ -233,8 +232,7 @@ void SelfPlay(const std::string filename) {
 			}
 
 			// Update statistics
-			PositionsTotal.fetch_add(1, std::memory_order_relaxed);
-			Searches.fetch_add(1, std::memory_order_relaxed);
+			Positions.fetch_add(1, std::memory_order_relaxed);
 			Depths.fetch_add(results.depth, std::memory_order_relaxed);
 			Nodes.fetch_add(results.nodes, std::memory_order_relaxed);
 			
@@ -270,12 +268,13 @@ void SelfPlay(const std::string filename) {
 		const int games = Games.load(std::memory_order_relaxed);
 		if (games % 100 == 0) {
 			const auto endTime = Clock::now();
+			const uint64_t positions = Positions.load(std::memory_order_relaxed);
 			const int seconds = static_cast<int>((endTime - StartTime).count() / 1e9);
-			const int speed1 = PositionsTotal.load(std::memory_order_relaxed) * 3600 / std::max(seconds, 1);
+			const int speed1 = positions * 3600 / std::max(seconds, 1);
 			const int speed2 = speed1 / 3600 / ThreadCount;
 
 			const std::string display = "Games: " + Console::FormatInteger(games)
-				+ " | Positions: " + Console::FormatInteger(PositionsTotal.load(std::memory_order_relaxed))
+				+ " | Positions: " + Console::FormatInteger(positions)
 				+ " | Runtime: " + FormatRuntime(seconds)
 				+ " | Speed: " + std::to_string(speed1 / 1000) + "k/h " + std::to_string(speed2) + "/s/th";
 			cout << display << endl;
@@ -286,9 +285,8 @@ void SelfPlay(const std::string filename) {
 				const float drawRate = Draws.load(std::memory_order_relaxed) * 100.f / games;
 				const float blackWinRate = BlackWins.load(std::memory_order_relaxed) * 100.f / games;
 				const float avgPlies = static_cast<float>(Plies.load(std::memory_order_relaxed)) / games;
-				const int searches = Searches.load(std::memory_order_relaxed);
-				const int avgNodes = Nodes.load(std::memory_order_relaxed) / searches;
-				const float avgDepths = static_cast<float>(Depths.load(std::memory_order_relaxed)) / searches;
+				const int avgNodes = Nodes.load(std::memory_order_relaxed) / positions;
+				const float avgDepths = static_cast<float>(Depths.load(std::memory_order_relaxed)) / positions;
 
 				const std::string outcomeString = std::format("Outcomes: {:.1f}% - {:.1f}% - {:.1f}%", whiteWinRate, drawRate, blackWinRate);
 				const std::string lengthString = std::format("Avg. game length: {:.1f} plies", avgPlies);
