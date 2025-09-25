@@ -27,7 +27,7 @@ static std::string FormatRuntime(const int seconds) {
 
 void SelfPlay(const std::string filename);  // main loop per thread, forward declaring this
 
-std::atomic<uint64_t> PositionsAccepted = 0, PositionsTotal = 0;
+std::atomic<uint64_t> PositionsTotal = 0;
 std::atomic<uint64_t> Games = 0, Plies = 0, Searches = 0, Depths = 0, Nodes = 0;
 std::atomic<uint64_t> WhiteWins = 0, Draws = 0, BlackWins = 0;
 Clock::time_point StartTime;
@@ -70,7 +70,7 @@ void StartDatagen(const DatagenLaunchMode launchMode) {
 
 	// Load opening book - using these seem to improve net strength
 	if (!DFRC) {
-		const std::string book = "UHO_Lichess_4852_v1.epd";
+		constexpr std::string_view book = "UHO_Lichess_4852_v1.epd";
 		std::ifstream bookFile(book);
 		std::string line;
 		while (std::getline(bookFile, line)) Openings.push_back(line);
@@ -131,7 +131,6 @@ void SelfPlay(const std::string filename) {
 	int gamesOnThread = 0;
 	std::mt19937 generator(std::random_device{}());
 
-	std::vector<std::string> unsavedLines{};
 	std::vector<Viriformat> unsavedViriformatGames;
 
 
@@ -141,7 +140,6 @@ void SelfPlay(const std::string filename) {
 		int winAdjudicationCounter = 0;
 		int drawAdjudicationCounter = 0;
 		GameState outcome = GameState();
-		std::vector<std::pair<std::string, int>> currentGame{};
 		Viriformat currentViriformatGame{};
 
 		// 1. Reset state
@@ -234,16 +232,12 @@ void SelfPlay(const std::string filename) {
 				break;
 			}
 
-			// Check if position should be stored
+			// Update statistics
 			PositionsTotal.fetch_add(1, std::memory_order_relaxed);
 			Searches.fetch_add(1, std::memory_order_relaxed);
 			Depths.fetch_add(results.depth, std::memory_order_relaxed);
 			Nodes.fetch_add(results.nodes, std::memory_order_relaxed);
 			
-			if (TextformatFilter(position, move, results.score)) {
-				PositionsAccepted.fetch_add(1, std::memory_order_relaxed);
-				currentGame.push_back(std::pair(position.GetFEN(), whiteScore));
-			}
 			currentViriformatGame.AddMove(move, whiteScore);
 			position.PushMove(move);
 
@@ -262,19 +256,10 @@ void SelfPlay(const std::string filename) {
 		else if (outcome == GameState::BlackVictory) BlackWins.fetch_add(1, std::memory_order_relaxed);
 		
 		// 5. Store the game to the memory, and periodically to the hard drive
-		for (const auto& [fen, whiteScore] : currentGame) {
-			unsavedLines.push_back(ToTextformat(fen, whiteScore, outcome));
-		}
 		currentViriformatGame.Finish(outcome);
 		unsavedViriformatGames.push_back(currentViriformatGame);
 
 		if (gamesOnThread % 100 == 0) {  // should take a few milliseconds
-			std::ofstream file(filename, std::ios_base::app);
-			const std::ostream_iterator<std::string> output_iterator(file, "\n");
-			std::copy(std::begin(unsavedLines), std::end(unsavedLines), output_iterator);
-			file.close();
-			unsavedLines.clear();
-
 			std::ofstream vfFile(filename + ".vf", std::ios_base::app | std::ios::binary);
 			for (const Viriformat& vfGame : unsavedViriformatGames) vfGame.WriteToFile(vfFile);
 			vfFile.close();
@@ -286,11 +271,11 @@ void SelfPlay(const std::string filename) {
 		if (games % 100 == 0) {
 			const auto endTime = Clock::now();
 			const int seconds = static_cast<int>((endTime - StartTime).count() / 1e9);
-			const int speed1 = PositionsAccepted.load(std::memory_order_relaxed) * 3600 / std::max(seconds, 1);
+			const int speed1 = PositionsTotal.load(std::memory_order_relaxed) * 3600 / std::max(seconds, 1);
 			const int speed2 = speed1 / 3600 / ThreadCount;
 
 			const std::string display = "Games: " + Console::FormatInteger(games)
-				+ " | Positions: " + Console::FormatInteger(PositionsAccepted.load(std::memory_order_relaxed))
+				+ " | Positions: " + Console::FormatInteger(PositionsTotal.load(std::memory_order_relaxed))
 				+ " | Runtime: " + FormatRuntime(seconds)
 				+ " | Speed: " + std::to_string(speed1 / 1000) + "k/h " + std::to_string(speed2) + "/s/th";
 			cout << display << endl;
@@ -477,28 +462,4 @@ void Viriformat::WriteToFile(std::ofstream& stream) const {
 	// Null terminator (4 bytes)
 	static constexpr std::array<uint8_t, 4> nullTerminator = { 0, 0, 0, 0 };
 	stream.write(reinterpret_cast<const char*>(nullTerminator.data()), 4);
-}
-
-// Returns true if the position should be trained on
-static bool TextformatFilter(const Position& pos, const Move& move, const int eval) {
-	if (std::abs(eval) > MateThreshold) return false;
-	if (pos.GetPly() < minSavePly) return false;
-	if (DFRC && move.IsCastling()) return false;
-	if (!pos.IsMoveQuiet(move)) return false;
-	if (pos.IsInCheck()) return false;
-	return true;
-}
-
-// Creates a textformat entry
-// "<fen> | <eval> | <wdl>" where eval: white pov in cp & wdl: 1.0 = white win, 0.0 = black win, 0.5 = drawn
-static std::string ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome) {
-	const std::string outcomeStr = [&] {
-		switch (outcome) {
-		case GameState::WhiteVictory: return "1.0";
-		case GameState::BlackVictory: return "0.0";
-		case GameState::Drawn: return "0.5";
-		default: return "???";
-		}
-	}();
-	return fen + " | " + std::to_string(whiteScore) + " | " + outcomeStr;
 }

@@ -49,11 +49,8 @@ public:
 
 private:
 	Board startingBoard;
+	CastlingConfiguration castlingConfig;
 	std::vector<std::pair<uint16_t, int16_t>> moves; // [move, eval]
 	GameState outcome = GameState::Playing;
-	CastlingConfiguration castlingConfig;
 	static constexpr uint8_t extraByte = 1;
 };
-
-bool TextformatFilter(const Position& pos, const Move& move, const int eval);
-std::string ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome);
