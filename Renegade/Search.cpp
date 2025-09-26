@@ -558,7 +558,11 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 			else {
 				// Extension check failed
-				if (!pvNode && singularBeta >= beta) return singularBeta;
+				if (!pvNode && singularBeta >= beta) {
+					if (position.IsMoveQuiet(m)) t.History.UpdateQuietHistory<Penalty>(position, m, level, depth, 1);
+					else t.History.UpdateCaptureHistory<Penalty>(position, m, depth, 1);
+					return singularBeta;
+				}
 				else if (cutNode) extension = -1;
 			}
 		}
