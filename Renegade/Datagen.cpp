@@ -128,7 +128,7 @@ void SelfPlay(const std::string filename) {
 
 	const int randomPlyBase = DFRC ? randomPlyBaseDFRC : randomPlyBaseNormal;
 	std::mt19937 generator(std::random_device{}());
-	std::uniform_int_distribution<int> nodeLimitNoise(-100, 100);
+	std::uniform_int_distribution<int> nodeLimitNoise(-300, 300);
 	int gamesOnThread = 0;
 	std::vector<ViriformatGame> unsavedViriformatGames{};
 
