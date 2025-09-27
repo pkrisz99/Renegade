@@ -519,7 +519,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		else capturesTried.push(m);
 
 		// Moves loop pruning techniques
-		if (!pvNode && !IsLosingMateScore(bestScore) && !DatagenMode) {
+		if (!IsLosingMateScore(bestScore) && !DatagenMode) {
 
 			// Late-move pruning
 			if (depth <= 4 && isQuiet && !inCheck) {
