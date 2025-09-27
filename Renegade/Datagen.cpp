@@ -130,7 +130,7 @@ void SelfPlay(const std::string filename) {
 	int gamesOnThread = 0;
 	std::mt19937 generator(std::random_device{}());
 
-	std::vector<Viriformat> unsavedViriformatGames;
+	std::vector<Viriformat> unsavedViriformatGames{};
 
 
 	while (true) {
@@ -138,7 +138,7 @@ void SelfPlay(const std::string filename) {
 		bool failed = false;
 		int winAdjudicationCounter = 0;
 		int drawAdjudicationCounter = 0;
-		GameState outcome = GameState();
+		GameState outcome = GameState::Playing;
 		Viriformat currentViriformatGame{};
 
 		// 1. Reset state
