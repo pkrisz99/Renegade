@@ -97,9 +97,9 @@ void StartDatagen(const DatagenLaunchMode launchMode) {
 	if (!DFRC) cout << " - After the book exit do " << Console::Yellow << randomPlyBaseNormal << Console::White << " plies of random moves, then play normally" << endl;
 	else cout << " - " << Console::Yellow << randomPlyBaseDFRC << Console::White << " or " << Console::Yellow << randomPlyBaseDFRC + 1
 		<< Console::White << " plies of random rollout, then normal playout" << endl;
-	cout << " - Verification @ some node limit of " << Console::Yellow << verificationParams.softnodes << Console::White
-		<< " with a threshold of " << Console::Yellow << startingEvalLimit << Console::White << endl;
-	cout << " - Playing @ soft node limit of " << Console::Yellow << playingParams.softnodes << Console::White << endl;
+	cout << " - Verification @ softnodes=" << Console::Yellow << verificationParams.softnodes << Console::White
+		<< ", threshold=" << Console::Yellow << startingEvalLimit << Console::White << endl;
+	cout << " - Playing @ softnodes=" << Console::Yellow << playingParams.softnodes << Console::White << endl;
 	cout << " - Using DFRC starting positions: " << Console::Yellow << std::boolalpha << DFRC
 		<< std::noboolalpha << Console::White << endl;
 	if (!DFRC) cout << " - The opening book has " << Console::Yellow << Console::FormatInteger(Openings.size()) << Console::White << " lines" << endl;
@@ -225,7 +225,8 @@ void SelfPlay(const std::string filename) {
 
 			if (move.IsNull()) {
 				failed = true;
-				cout << Console::Yellow << "Got null-move for " << position.GetFEN() << " with eval of " << results.score << Console::White << endl;
+				cout << Console::Yellow << "Got null-move for " << position.GetFEN() << " (score=" << results.score
+					<< ", depth=" << results.depth << ", nodes=" << results.nodes << ")" << Console::White << endl;
 				break;
 			}
 
