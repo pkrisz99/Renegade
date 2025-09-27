@@ -130,16 +130,12 @@ void SelfPlay(const std::string filename) {
 	int gamesOnThread = 0;
 	std::mt19937 generator(std::random_device{}());
 
-	std::vector<Viriformat> unsavedViriformatGames{};
+	std::vector<ViriformatGame> unsavedViriformatGames{};
 
 
 	while (true) {
 
 		bool failed = false;
-		int winAdjudicationCounter = 0;
-		int drawAdjudicationCounter = 0;
-		GameState outcome = GameState::Playing;
-		Viriformat currentViriformatGame{};
 
 		// 1. Reset state
 		Position position = [&] {
@@ -188,7 +184,11 @@ void SelfPlay(const std::string filename) {
 
 		Searcher1->ResetState(true);
 		Searcher2->ResetState(true);
+
+		ViriformatGame currentViriformatGame{};
 		currentViriformatGame.SetStartingBoard(position.CurrentState(), position.CastlingConfig);
+		GameState outcome = GameState::Playing;
+		int winAdjudicationCounter = 0, drawAdjudicationCounter = 0;
 
 		// 4. Play out the game
 		while (true) {
@@ -259,7 +259,7 @@ void SelfPlay(const std::string filename) {
 
 		if (gamesOnThread % 100 == 0) {  // should take a few milliseconds
 			std::ofstream vfFile(filename + ".vf", std::ios_base::app | std::ios::binary);
-			for (const Viriformat& vfGame : unsavedViriformatGames) vfGame.WriteToFile(vfFile);
+			for (const ViriformatGame& vfGame : unsavedViriformatGames) vfGame.WriteToFile(vfFile);
 			vfFile.close();
 			unsavedViriformatGames.clear();
 		}
@@ -306,22 +306,22 @@ void SelfPlay(const std::string filename) {
 
 // Viriformat handling ----------------------------------------------------------------------------
 
-void Viriformat::SetStartingBoard(const Board& b, const CastlingConfiguration& cc) {
+void ViriformatGame::SetStartingBoard(const Board& b, const CastlingConfiguration& cc) {
 	startingBoard = b;
 	castlingConfig = cc;
 }
 
-void Viriformat::AddMove(const Move& move, const int eval) {
-	moves.push_back({ ViriformatMove(move), static_cast<int16_t>(eval) });
+void ViriformatGame::AddMove(const Move& move, const int eval) {
+	moves.push_back({ ToViriformatMove(move), static_cast<int16_t>(eval) });
 }
 
-void Viriformat::Finish(const GameState state) {
+void ViriformatGame::Finish(const GameState state) {
 	assert(state != GameState::Playing);
 	outcome = state;
 }
 
 // Converts Renegade's move representation for Viriformat
-uint16_t Viriformat::ViriformatMove(const Move& m) const {
+uint16_t ViriformatGame::ToViriformatMove(const Move& m) const {
 	const uint8_t flag = [&] {
 		switch (m.flag) {
 		case MoveFlag::ShortCastle: return 0b10'00;
@@ -337,7 +337,7 @@ uint16_t Viriformat::ViriformatMove(const Move& m) const {
 	return (m.from) | (m.to << 6) | (flag << 12);
 }
 
-void Viriformat::WriteToFile(std::ofstream& stream) const {
+void ViriformatGame::WriteToFile(std::ofstream& stream) const {
 
 	// Marlinformat starting entry (32 bytes)
 	const uint64_t startingOccupancy = startingBoard.GetOccupancy();

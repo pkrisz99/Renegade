@@ -32,21 +32,20 @@ constexpr int winAdjEvalPlies = 5;
 
 enum class DatagenLaunchMode { Ask, Normal, DFRC };
 
-void MergeDatagenFiles();
 void StartDatagen(const DatagenLaunchMode launchMode);
 
 // Viriformat is a modern and efficient way of storing games and evals from datagen
 // Credit goes to Cosmo (author of Viridithas) for coming up with this
 
-class Viriformat {
+class ViriformatGame {
 public:
-	Viriformat() {
+	ViriformatGame() {
 		moves.reserve(300);
 	}
 	void SetStartingBoard(const Board& b, const CastlingConfiguration& cc);
 	void AddMove(const Move& move, const int eval);
 	void Finish(const GameState state);
-	uint16_t ViriformatMove(const Move& m) const;
+	uint16_t ToViriformatMove(const Move& m) const;
 	void WriteToFile(std::ofstream& stream) const;
 
 private:
