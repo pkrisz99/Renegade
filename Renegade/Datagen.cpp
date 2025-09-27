@@ -444,6 +444,7 @@ void Viriformat::WriteToFile(std::ofstream& stream) const {
 
 	const uint8_t encodedEpAndStm = (encodedSideToMove << 7) | encodedEpSquare;
 	const int16_t encodedScore = 0; // unused
+	const uint8_t extraByte = (DFRC << 7) | datagenVersion;
 
 	stream.write(reinterpret_cast<const char*>(&startingOccupancy), 8);
 	stream.write(reinterpret_cast<const char*>(pieces.data()), 16);

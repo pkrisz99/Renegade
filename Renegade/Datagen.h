@@ -35,6 +35,8 @@ enum class DatagenLaunchMode { Ask, Normal, DFRC };
 void MergeDatagenFiles();
 void StartDatagen(const DatagenLaunchMode launchMode);
 
+// Viriformat is a modern and efficient way of storing games and evals from datagen
+// Credit goes to Cosmo (author of Viridithas) for coming up with this
 
 class Viriformat {
 public:
@@ -52,5 +54,9 @@ private:
 	CastlingConfiguration castlingConfig;
 	std::vector<std::pair<uint16_t, int16_t>> moves; // [move, eval]
 	GameState outcome = GameState::Playing;
-	static constexpr uint8_t extraByte = 1;
+
+	// Renegade makes use of the extra byte in the spec to store version information
+	// -> highest bit: whether the datagen is DFRC
+	// -> low 7 bits: version (e.g. v1.2.5 -> 1)
+	static constexpr uint8_t datagenVersion = 1;
 };
