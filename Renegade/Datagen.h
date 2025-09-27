@@ -17,8 +17,8 @@
 
 // Datagen settings
 
-constexpr SearchParams playingParams     { .nodes = 100000, .depth = 25, .softnodes = 10000 };
-constexpr SearchParams verificationParams{ .nodes = 100000, .depth = 25, .softnodes = 20000 };
+constexpr SearchParams playingParams     { .nodes = 100000, .depth = 25, .softnodes =  5000 };
+constexpr SearchParams verificationParams{ .nodes = 100000, .depth = 25, .softnodes = 10000 };
 
 constexpr int randomPlyBaseNormal = 2;
 constexpr int randomPlyBaseDFRC = 4;
@@ -54,6 +54,6 @@ private:
 
 	// Renegade makes use of the extra byte in the spec to store version information
 	// -> highest bit: whether the datagen is DFRC
-	// -> low 7 bits: version (e.g. v1.2.5 -> 1)
+	// -> low 7 bits: version identifier
 	static constexpr uint8_t datagenVersion = 1;
 };
