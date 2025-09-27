@@ -298,7 +298,8 @@ void Search::SearchMoves(ThreadData& t) {
 		if (t.RootDepth >= MaxDepth) finished = true;
 		if (t.Nodes >= Constraints.SoftNodes && Constraints.SoftNodes != -1) finished = true;
 
-		if (Aborting.load(std::memory_order_relaxed) && !t.singlethreaded && t.RootDepth > 1) {
+		const bool aborting = Aborting.load(std::memory_order_relaxed);
+		if (aborting && !t.singlethreaded && t.RootDepth > 1) {
 			t.result.nodes = t.Nodes;
 			t.result.time = elapsedMs;
 			t.result.nps = static_cast<uint64_t>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
@@ -307,17 +308,18 @@ void Search::SearchMoves(ThreadData& t) {
 		}
 
 		// Save info
-		t.result.score = score;
-		t.result.depth = t.RootDepth;
+		if (!t.singlethreaded || !aborting) {
+			t.result.score = score;
+			t.result.depth = t.RootDepth;
+			t.result.pv = t.GeneratePvLine();
+		}
 		t.result.seldepth = t.SelDepth;
-
 		t.result.nodes = t.Nodes;
 		t.result.time = elapsedMs;
 		t.result.nps = static_cast<int>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
 		t.result.hashfull = TranspositionTable.GetHashfull();
 
-		// Obtaining PV line and displaying
-		t.result.pv = t.GeneratePvLine();
+		// Display search information
 		if (t.IsMainThread() && !t.singlethreaded) {
 			if (!finished) PrintInfo(AggregateThreadResults());
 		}
