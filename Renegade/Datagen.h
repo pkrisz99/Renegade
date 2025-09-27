@@ -15,15 +15,14 @@
 #include "Utils.h"
 
 
-// Datagen settings:
-constexpr int startingEvalLimit = 500;
-constexpr int verificationDepth = 10;
-constexpr int softNodeLimit = 5000;
-constexpr int hardNodeLimit = 500000;
-constexpr int depthLimit = 20;
+// Datagen settings
+
+constexpr SearchParams playingParams     { .nodes = 100000, .depth = 25, .softnodes = 10000 };
+constexpr SearchParams verificationParams{ .nodes = 100000, .depth = 25, .softnodes = 20000 };
+
 constexpr int randomPlyBaseNormal = 2;
 constexpr int randomPlyBaseDFRC = 4;
-constexpr int minSavePly = 16;
+constexpr int startingEvalLimit = 500;
 
 constexpr int drawAdjEvalThreshold = 5;
 constexpr int drawAdjPlies = 15;
@@ -31,7 +30,6 @@ constexpr int winAdjEvalThreshold = 2000;
 constexpr int winAdjEvalPlies = 5;
 
 enum class DatagenLaunchMode { Ask, Normal, DFRC };
-
 void StartDatagen(const DatagenLaunchMode launchMode);
 
 // Viriformat is a modern and efficient way of storing games and evals from datagen

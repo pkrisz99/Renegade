@@ -34,7 +34,14 @@ int ThreadCount = 0;
 bool DFRC = false;
 std::vector<std::string> Openings{};
 
+// Apply a small random adjustment to node limits to avoid unwanted deterministic behavior
+SearchParams RandomizeNodeLimits(const SearchParams& originalParams, std::uniform_int_distribution<int>& distribution, std::mt19937& generator) {
+	SearchParams searchParams = originalParams;
+	searchParams.softnodes += distribution(generator);
+	return searchParams;
+}
 
+// Starts running datagen, launches threads
 void StartDatagen(const DatagenLaunchMode launchMode) {
 
 	// There is a streamlined way to launch datagen (normal and dfrc) from the command line using the default settings
@@ -90,9 +97,9 @@ void StartDatagen(const DatagenLaunchMode launchMode) {
 	if (!DFRC) cout << " - After the book exit do " << Console::Yellow << randomPlyBaseNormal << Console::White << " plies of random moves, then play normally" << endl;
 	else cout << " - " << Console::Yellow << randomPlyBaseDFRC << Console::White << " or " << Console::Yellow << randomPlyBaseDFRC + 1
 		<< Console::White << " plies of random rollout, then normal playout" << endl;
-	cout << " - Verification at depth " << Console::Yellow << verificationDepth << Console::White
+	cout << " - Verification @ some node limit of " << Console::Yellow << verificationParams.softnodes << Console::White
 		<< " with a threshold of " << Console::Yellow << startingEvalLimit << Console::White << endl;
-	cout << " - Playing with a soft node limit of " << Console::Yellow << softNodeLimit << Console::White << endl;
+	cout << " - Playing @ soft node limit of " << Console::Yellow << playingParams.softnodes << Console::White << endl;
 	cout << " - Using DFRC starting positions: " << Console::Yellow << std::boolalpha << DFRC
 		<< std::noboolalpha << Console::White << endl;
 	if (!DFRC) cout << " - The opening book has " << Console::Yellow << Console::FormatInteger(Openings.size()) << Console::White << " lines" << endl;
@@ -106,6 +113,7 @@ void StartDatagen(const DatagenLaunchMode launchMode) {
 	for (std::thread& t : threads) t.join();
 }
 
+// One thread of datagen, running games and storing results
 void SelfPlay(const std::string filename) {
 
 	Search* Searcher1 = new Search;
@@ -118,20 +126,11 @@ void SelfPlay(const std::string filename) {
 	Searcher2->SetThreadCount(1);
 	SearcherV->SetThreadCount(1);
 
-	SearchParams params = SearchParams();
-	params.softnodes = softNodeLimit;
-	params.nodes = hardNodeLimit;
-	params.depth = depthLimit;
-	SearchParams verificationParams = SearchParams();
-	verificationParams.depth = verificationDepth;
-	std::uniform_int_distribution<std::size_t> nodesDistribution(softNodeLimit - 100, softNodeLimit + 100);
 	const int randomPlyBase = DFRC ? randomPlyBaseDFRC : randomPlyBaseNormal;
-	
-	int gamesOnThread = 0;
 	std::mt19937 generator(std::random_device{}());
-
+	std::uniform_int_distribution<int> nodeLimitNoise(-100, 100);
+	int gamesOnThread = 0;
 	std::vector<ViriformatGame> unsavedViriformatGames{};
-
 
 	while (true) {
 
@@ -194,8 +193,7 @@ void SelfPlay(const std::string filename) {
 		while (true) {
 
 			// Search
-			SearchParams currentParams = params;
-			currentParams.softnodes = nodesDistribution(generator);
+			const SearchParams currentParams = RandomizeNodeLimits(playingParams, nodeLimitNoise, generator);
 			Search* currentSearcher = (position.Turn() == Side::White) ? Searcher1 : Searcher2;
 			const Results results = currentSearcher->SearchSinglethreaded(position, currentParams);
 			const Move move = results.BestMove();
