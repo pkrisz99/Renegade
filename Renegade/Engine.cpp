@@ -95,11 +95,6 @@ void Engine::Start() {
 			StartDatagen(DatagenLaunchMode::Ask);
 			break;
 		}
-
-		if (cmd == "merge") {
-			MergeDatagenFiles();
-			break;
-		}
 #endif
 
 		if (cmd == "tunetext") {

@@ -27,7 +27,7 @@ static std::string FormatRuntime(const int seconds) {
 
 void SelfPlay(const std::string filename);  // main loop per thread, forward declaring this
 
-std::atomic<uint64_t> Positions = 0, Games = 0, Plies = 0, Depths = 0, Nodes = 0;
+std::atomic<uint64_t> Games = 0, Positions = 0, Plies = 0, Depths = 0, Nodes = 0;
 std::atomic<uint64_t> WhiteWins = 0, Draws = 0, BlackWins = 0;
 Clock::time_point StartTime;
 int ThreadCount = 0;
@@ -304,72 +304,7 @@ void SelfPlay(const std::string filename) {
 	}
 }
 
-// File merging tool ------------------------------------------------------------------------------
-
-void MergeDatagenFiles() {
-	SetTitle("Renegade's file merging utility for datagen");
-	const std::filesystem::path path = std::filesystem::current_path();
-	cout << "Current folder: " << Console::Yellow << path.string() << Console::White << endl;
-
-	std::string name;
-	cout << "\nWhat is the base name of the generated files? " << Console::Yellow;
-	cin >> name;
-
-	int64_t limit = -1;
-	cout << Console::White << "How many positions maximum (-1 for no limit)? " << Console::Yellow;
-	cin >> limit;
-
-	// Iterate through files in directory
-	std::vector<std::string> found;
-	for (const auto& entry : std::filesystem::directory_iterator(path)) {
-		auto filename = entry.path().filename();
-		if (filename.string().starts_with(name)) {
-			found.push_back(filename.string());
-		}
-	}
-	cout << Console::White << "\nFound " << Console::Yellow << found.size() << Console::White << " files\n" << endl;
-
-	// Write file
-	const std::string mergedName = name + "_merged";
-	std::ofstream output;
-	output.open(mergedName, std::ios_base::app);
-	int64_t counter = 0;
-
-	for (const auto& filename : found) {
-		std::ifstream ifs(filename);
-		std::string line;
-		cout << filename << ": ";
-
-		while (std::getline(ifs, line)) {
-			if (limit != -1 && counter >= limit) break;
-			counter += 1;
-			if (counter % 1'000'000 == 0) cout << ".";
-
-			// Basic check if the output was okay
-			const int pipeCount = std::ranges::count(line, '|');
-			if (pipeCount != 2) {
-				cout << "\n-> Malformed: '" << line << "'" << endl;
-			}
-
-			// To do: collect stats and display them
-
-			if (counter % 100 == 0) output << line << endl;
-			else output << line << '\n';
-		}
-		if (limit != -1 && counter >= limit) break;
-
-		ifs.close();
-
-		cout << endl;
-		cout << " -> processed: " << Console::FormatInteger(counter) << endl;
-	}
-
-	output.close();
-	cout << Console::Green << "\nCompleted." << Console::White << endl;
-	PressEnterToExit();
-}
-
-// Viriformat and textformat ----------------------------------------------------------------------
+// Viriformat handling ----------------------------------------------------------------------------
 
 void Viriformat::SetStartingBoard(const Board& b, const CastlingConfiguration& cc) {
 	startingBoard = b;
