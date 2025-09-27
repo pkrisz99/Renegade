@@ -226,7 +226,13 @@ void SelfPlay(const std::string filename) {
 			if (move.IsNull()) {
 				failed = true;
 				cout << Console::Yellow << "Got null-move for " << position.GetFEN() << " (score=" << results.score
-					<< ", depth=" << results.depth << ", nodes=" << results.nodes << ")" << Console::White << endl;
+					<< ", depth=" << results.depth << ", nodes=" << results.nodes << ", bm=" << results.BestMove().ToString(true) << ")" << Console::White << endl;
+				break;
+			}
+			if (std::abs(results.score) > MateEval) {
+				failed = true;
+				cout << Console::Yellow << "Got weird eval for " << position.GetFEN() << " (score=" << results.score
+					<< ", depth=" << results.depth << ", nodes=" << results.nodes << ", bm=" << results.BestMove().ToString(true) << ")" << Console::White << endl;
 				break;
 			}
 
