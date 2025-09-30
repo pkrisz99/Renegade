@@ -3,7 +3,10 @@ name: Renegade
 on:
   push:
     branches:
-      - add-github-workflow
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
