@@ -5,18 +5,37 @@ on:
     branches:
       - add-github-workflow
 
+
 jobs:
+
   build:
-    runs-on: ubuntu-latest
+  
+    strategy:
+        matrix:
+          include:
+            - os: ubuntu-latest
+              exe-path: ./Renegade/Renegade
+              artifact-name: renegade-ubuntu-bmi2
+            - os: windows-latest
+              exe-path: Renegade\Renegade.exe
+              artifact-name: renegade-windows-bmi2.exe
+
+    runs-on: ${{ matrix.os }}
     
     steps:
       - uses: actions/checkout@v4
       - run: |
           cd Renegade
           make build=x86-64-bmi2
-      - run: |
-          ./Renegade/Renegade bench | tail -n 1
+      
+      - if: runner.os == 'Linux'
+        run: ${{ matrix.exe-path }} bench | tail -n 1
+          
+      - if: runner.os == 'Windows'
+        shell: powershell
+        run: ${{ matrix.exe-path }} bench | Select-Object -Last 1
+      
       - uses: actions/upload-artifact@v4
         with:
-          name: renegade-ubuntu
-          path: ./Renegade/Renegade
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.exe-path }}
