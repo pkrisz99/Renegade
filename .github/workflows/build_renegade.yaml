@@ -10,10 +10,12 @@ jobs:
     strategy:
         matrix:
           include:
-            - os: ubuntu-latest
+            - name: Ubuntu
+              os: ubuntu-latest
               exe-path: ./Renegade/Renegade
               artifact-name: renegade-ubuntu-bmi2
-            - os: windows-latest
+            - name: Windows
+              os: windows-latest
               exe-path: Renegade\Renegade.exe
               artifact-name: renegade-windows-bmi2.exe
 
