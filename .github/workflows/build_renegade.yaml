@@ -15,16 +15,10 @@ jobs:
           include:
             - os: ubuntu-latest
               exe-path: ./Renegade/Renegade
-              artifact-name: renegade-ubuntu
-              build-arch: x86-64-bmi2
+              artifact-name: renegade-ubuntu-bmi2
             - os: windows-latest
               exe-path: Renegade\Renegade.exe
-              artifact-name: renegade-windows.exe
-              build-arch: x86-64-bmi2
-            - os: macos-latest
-              exe-path: ./Renegade/Renegade
-              artifact-name: renegade-macos
-              build-arch: native
+              artifact-name: renegade-windows-bmi2.exe
 
     runs-on: ${{ matrix.os }}
     
@@ -32,11 +26,11 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           cd Renegade
-          make build=${{ matrix.build-arch }}
+          make build=x86-64-bmi2
       
-      - if: runner.os == 'Linux' || runner.os == 'macOS'
+      - if: runner.os == 'Linux'
         run: ${{ matrix.exe-path }} bench | tail -n 1
-        
+          
       - if: runner.os == 'Windows'
         shell: powershell
         run: ${{ matrix.exe-path }} bench | Select-Object -Last 1
