@@ -14,6 +14,8 @@ jobs:
       - run: |
           cd Renegade
           make build=x86-64-bmi2
+      - run: |
+          ./Renegade/Renegade bench | tail -n 1
       - uses: actions/upload-artifact@v4
         with:
           name: renegade-ubuntu
