@@ -1,15 +1,12 @@
-name: Creating artifact
+name: Renegade
 
 on:
   push:
     branches:
       - add-github-workflow
 
-
 jobs:
-
   build:
-  
     strategy:
         matrix:
           include:
@@ -24,18 +21,22 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - run: |
+      - name: Compiling
+        run: |
           cd Renegade
           make build=x86-64-bmi2
       
-      - if: runner.os == 'Linux'
+      - name: Running bench (Linux)
+        if: runner.os == 'Linux'
         run: ${{ matrix.exe-path }} bench | tail -n 1
           
-      - if: runner.os == 'Windows'
+      - name: Running bench (Windows)
+        if: runner.os == 'Windows'
         shell: powershell
         run: ${{ matrix.exe-path }} bench | Select-Object -Last 1
       
-      - uses: actions/upload-artifact@v4
+      - name: Uploading artifact
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
           path: ${{ matrix.exe-path }}
