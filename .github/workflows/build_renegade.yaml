@@ -1,7 +1,9 @@
 name: Creating artifact
 
 on:
-  workflow_dispatch
+  push:
+    branches:
+      - add-github-workflow
 
 jobs:
   build:
