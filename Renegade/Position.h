@@ -144,6 +144,7 @@ public:
 	}
 
 	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;
+	std::pair<uint64_t, uint64_t> GetPinnedBitboard() const;
 
 	inline uint64_t WhitePawnBits() const { return States.back().WhitePawnBits; }
 	inline uint64_t WhiteKnightBits() const { return States.back().WhiteKnightBits; }
