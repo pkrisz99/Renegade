@@ -8,7 +8,8 @@
 uint64_t GetBishopAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
-uint64_t GetConnectingRay(const uint8_t from, const uint64_t to);
+uint64_t GetShortConnectingRay(const uint8_t from, const uint8_t to);
+uint64_t GetLongConnectingRay(const uint8_t from, const uint8_t to);
 
 class Position
 {
@@ -144,6 +145,7 @@ public:
 	}
 
 	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;
+	std::pair<uint64_t, uint64_t> GetPinnedBitboard() const;
 
 	inline uint64_t WhitePawnBits() const { return States.back().WhitePawnBits; }
 	inline uint64_t WhiteKnightBits() const { return States.back().WhiteKnightBits; }
