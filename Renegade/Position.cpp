@@ -881,7 +881,7 @@ GameState Position::GetGameState() const {
 // Static exchange evaluation (SEE) ---------------------------------------------------------------
 
 bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
-	// Calculates the outcome of all captures targeting the move.to square
+	// Approximates the outcome of all captures targeting the move.to square
 	// Highly useful for pruning and for move ordering
 	// This iterative approach is the standard way of doing this with some additional code for pinned piece handling
 
