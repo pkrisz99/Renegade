@@ -881,8 +881,9 @@ GameState Position::GetGameState() const {
 // Static exchange evaluation (SEE) ---------------------------------------------------------------
 
 bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
-	// This is more or less the standard way of doing this
-	// The implementation follows Ethereal's method
+	// Calculates the outcome of all captures targeting the move.to square
+	// Highly useful for pruning and for move ordering
+	// This iterative approach is the standard way of doing this with some additional code for pinned piece handling
 
 	constexpr auto seeValues = std::array{ 0, 100, 300, 300, 500, 1000, 999999 };
 
