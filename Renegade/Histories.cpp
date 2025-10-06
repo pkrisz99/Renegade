@@ -81,7 +81,6 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 
 template <bool bonus>
 void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth, const int times) {
-	const int delta = std::min(300 * depth, 2850) * times * (bonus ? 1 : -1);
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
@@ -93,10 +92,9 @@ void Histories::UpdateCaptureHistory(const Position& position, const Move& m, co
 	const uint8_t currentPawnKey = position.GetPawnHash() & 0xff;
 	uint8_t& lastPawnKey = CaptureHistoryHashes[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened];
 	int16_t& value = CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened];
-	if (currentPawnKey != lastPawnKey) {
-		value /= 2;
-		lastPawnKey = currentPawnKey;
-	}
+	const bool pawnDiff = (currentPawnKey != lastPawnKey);
+	const int delta = std::min(300 * (depth + pawnDiff), 2850) * times * (bonus ? 1 : -1);
+	lastPawnKey = currentPawnKey;
 	UpdateHistoryValue(value, delta);
 }
 
