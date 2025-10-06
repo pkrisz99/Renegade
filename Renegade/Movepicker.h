@@ -70,7 +70,7 @@ private:
 			const bool losingCapture = [&] {
 				if (moveGen == MoveGen::Noisy) return false;
 				if (pos.IsMoveQuiet(m)) return false;
-				const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
+				const int16_t captureScore = (m.IsPromotion()) ? 0 : std::max(hist.GetCaptureHistoryScore(pos, m), 0);
 				return !pos.StaticExchangeEval(m, -captureScore / 33);
 			}();
 			return (!losingCapture ? 600000 : -200000) + values[capturedPieceType] * 16 + hist.GetCaptureHistoryScore(pos, m);
