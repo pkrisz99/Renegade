@@ -8,6 +8,7 @@ void Histories::ClearAll() {
 	ClearRefutations();
 	std::memset(&QuietHistory, 0, sizeof(QuietHistory));
 	std::memset(&CaptureHistory, 0, sizeof(CaptureHistory));
+	std::memset(&CaptureHistoryHashes, 0, sizeof(CaptureHistoryHashes));
 	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistory));
 	std::memset(&PawnCorrectionHistory, 0, sizeof(PawnCorrectionHistory));
 	std::memset(&NonPawnCorrectionHistory, 0, sizeof(NonPawnCorrectionHistory));
@@ -89,7 +90,14 @@ void Histories::UpdateCaptureHistory(const Position& position, const Move& m, co
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
 		else return (position.Turn() == Side::White) ? Piece::WhitePawn : Piece::BlackPawn;
 	}();
-	UpdateHistoryValue(CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened], delta);
+	const uint8_t currentPawnKey = position.GetPawnHash() & 0xff;
+	uint8_t& lastPawnKey = CaptureHistoryHashes[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened];
+	int16_t& value = CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened];
+	if (currentPawnKey != lastPawnKey) {
+		value /= 2;
+		lastPawnKey = currentPawnKey;
+	}
+	UpdateHistoryValue(value, delta);
 }
 
 int Histories::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
