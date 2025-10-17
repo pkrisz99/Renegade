@@ -834,7 +834,7 @@ int Search::CalculateLMRModifier(const bool ttPv, const bool improving, const bo
 	// 4. Propagate
 	for (int i = 0; i < 5; i++) {
 		for (int j = 0; j < 4; j++) {
-			hiddenLayer[j] += input[i] * HiddenLayerWeights[i][j];
+			hiddenLayer[j] += input[i] * HiddenLayerWeights[j][i];
 		}
 	}
 
