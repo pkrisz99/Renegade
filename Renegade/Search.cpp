@@ -582,11 +582,15 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (depth >= 3 && (legalMoveCount >= (3 + pvNode * 2 + rootNode * 2)) && isQuiet) {
 			
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
-			if (!ttPV) reduction += 1;
-			if (t.CutoffCount[level] < 4) reduction -= 1;
-			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 20100, -2, 2);
-			if (cutNode) reduction += 1;
-			if (improving) reduction -= 1;
+			const int orderInput = (std::abs(order) < MovePicker::MaxRegularQuietOrder) ? order : 0;
+			const int modifier = CalculateLMRModifier(ttPV, improving, cutNode, orderInput, t.CutoffCount[level]);
+			reduction += modifier;
+
+			//if (!ttPV) reduction += 1;
+			//if (t.CutoffCount[level] < 4) reduction -= 1;
+			//if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 20100, -2, 2);
+			//if (cutNode) reduction += 1;
+			//if (improving) reduction -= 1;
 			reduction = std::max(reduction, 0);
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
@@ -791,6 +795,60 @@ int16_t Search::Evaluate(ThreadData& t, const Position& position) {
 int Search::DrawEvaluation(const ThreadData& t) const {
 	// Returns a small randomized score to avoid search getting stuck in threefold lines
 	return t.Nodes % 4 - 2;
+}
+
+int Search::CalculateLMRModifier(const bool ttPv, const bool improving, const bool cutNode, const int orderScore, const int cutoffCount) const {
+	// A tiny neural network for determining the LMR modifier
+
+	// Inputs: ttPv, improving, cutNode, orderScore, cutoffCount
+	// Output: depth modifier (integer, around -3 to +3)
+	// Arch: 5->4->1
+	// YES THIS IS HIGHLY EXPERIMENTAL
+
+	// 1. Assembling the net (yes, this is inefficient)
+
+	const std::array<std::array<float, 5>, 4> HiddenLayerWeights = {{
+		{ tune_nnlmr_0() / 1000.f, tune_nnlmr_1() / 1000.f, tune_nnlmr_2() / 1000.f, tune_nnlmr_3() / 1000.f, tune_nnlmr_4() / 1000.f},
+		{ tune_nnlmr_5() / 1000.f, tune_nnlmr_6() / 1000.f, tune_nnlmr_7() / 1000.f, tune_nnlmr_8() / 1000.f, tune_nnlmr_9() / 1000.f},
+		{ tune_nnlmr_10() / 1000.f, tune_nnlmr_11() / 1000.f, tune_nnlmr_12() / 1000.f, tune_nnlmr_13() / 1000.f, tune_nnlmr_14() / 1000.f },
+		{ tune_nnlmr_15() / 1000.f, tune_nnlmr_16() / 1000.f, tune_nnlmr_17() / 1000.f, tune_nnlmr_18() / 1000.f, tune_nnlmr_19() / 1000.f }
+	}};
+	const std::array<float, 4> HiddenLayerBias = { { tune_nnlmr_20() / 1000.f, tune_nnlmr_21() / 1000.f, tune_nnlmr_22() / 1000.f, tune_nnlmr_23() / 1000.f } };
+
+	const std::array<float, 4> OutputLayerWeight = { { tune_nnlmr_24() / 1000.f, tune_nnlmr_25() / 1000.f, tune_nnlmr_26() / 1000.f, tune_nnlmr_27() / 1000.f } };
+	const float OutputLayerBias = tune_nnlmr_28() / 1000.f;
+
+	// 2. Convert inputs
+	const std::array<float, 5> input = {
+		static_cast<float>(ttPv),
+		static_cast<float>(improving),
+		static_cast<float>(cutNode),
+		static_cast<float>(orderScore) / 16384.f,
+		std::min(cutoffCount / 8.f, 1.f)
+	};
+
+	// 3. Init neurons
+	float output = OutputLayerBias;
+	std::array<float, 4> hiddenLayer = HiddenLayerBias;
+
+	// 4. Propagate
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 4; j++) {
+			hiddenLayer[j] += input[i] * HiddenLayerWeights[i][j];
+		}
+	}
+
+	// Apply ReLU activation
+	for (int i = 0; i < 4; i++) {
+		hiddenLayer[i] = std::max(hiddenLayer[i], 0.f);
+	}
+
+	// Propagation: hidden_layer -> output
+	for (int i = 0; i < 4; i++) {
+		output += OutputLayerWeight[i] * hiddenLayer[i];
+	}
+
+	return std::round(output);
 }
 
 // PV table ---------------------------------------------------------------------------------------

@@ -110,6 +110,7 @@ private:
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	bool ShouldAbort(const ThreadData& t);
 	int DrawEvaluation(const ThreadData& t) const;
+	int CalculateLMRModifier(const bool ttPv, const bool improving, const bool cutNode, const int orderScore, const int cutoffCount) const;
 
 	
 	SearchConstraints Constraints;
