@@ -17,24 +17,24 @@
 // for each piece: score += (15 - (manhattan distance to opponent's king)) * 6
 
 // Network constants
-#define NETWORK_NAME "renegade-net-31.bin"
+#define NETWORK_NAME "renegade-test-prune.bin"
 
 constexpr int FeatureSize = 768;
-constexpr int HiddenSize = 1600;
+constexpr int HiddenSize = 128;
 constexpr int Scale = 400;
 constexpr int QA = 255;
 constexpr int QB = 64;
 
-constexpr int InputBucketCount = 14;
+constexpr int InputBucketCount = 2;
 constexpr std::array<int, 32> InputBucketMap = {
-	 0,  1,  2,  3,
-	 4,  5,  6,  7,
-	 8,  8,  9,  9,
-	10, 10, 11, 11,
-	10, 10, 11, 11,
-	12, 12, 13, 13,
-	12, 12, 13, 13,
-	12, 12, 13, 13,
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+		1, 1, 1, 1,
+		1, 1, 1, 1,
+		1, 1, 1, 1,
+		1, 1, 1, 1,
+		1, 1, 1, 1,
+		1, 1, 1, 1,
 };
 constexpr int OutputBucketCount = 8;
 
