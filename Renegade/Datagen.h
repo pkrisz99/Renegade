@@ -17,8 +17,8 @@
 
 // Datagen settings
 
-constexpr SearchParams playingParams     { .nodes = 100000, .depth = 25, .softnodes =  5000 };
-constexpr SearchParams verificationParams{ .nodes = 100000, .depth = 25, .softnodes = 10000 };
+constexpr SearchParams playingParams     { .nodes = 100000, .depth = 25, .softnodes = 10000 };
+constexpr SearchParams verificationParams{ .nodes = 100000, .depth = 25, .softnodes = 20000 };
 
 constexpr int randomPlyBaseNormal = 2;
 constexpr int randomPlyBaseDFRC = 4;
