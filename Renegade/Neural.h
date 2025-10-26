@@ -3,10 +3,13 @@
 #include <algorithm>
 #include <array>
 #include <fstream>
-#include <immintrin.h>
 #include <iterator>
 #include <memory>
 #include <optional>
+
+#ifdef __AVX2__
+#include <immintrin.h>
+#endif
 
 // This is the code for the NNUE evaluation
 // Renegade uses a horizontally mirrored perspective net with input buckets based on the king's
@@ -71,7 +74,7 @@ inline int GetOutputBucket(const int pieceCount) {
 }
 
 inline bool IsRefreshRequired(const uint8_t piece, const Move& move, const bool side) {
-	// If the our king didn't move then it couldn't be a refresh
+	// If our king didn't move then it can't be a refresh
 	if ((side == Side::White && piece != Piece::WhiteKing) || (side == Side::Black && piece != Piece::BlackKing))
 		return false;
 
