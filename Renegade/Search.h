@@ -25,6 +25,15 @@
 
 enum class ThreadAction { Sleep, Search, Exit };
 
+struct SearchStack {
+	MovePicker movePicker;
+	Move excludedMove;
+	int cutoffCount;
+	int16_t staticEval;
+	int16_t eval;
+	bool superSingular;
+};
+
 class alignas(64) ThreadData {
 public:
 	void ResetStatistics();
@@ -43,14 +52,8 @@ public:
 	std::vector<Move> GeneratePvLine() const;
 	void ResetPvTable();
 
-	// Reused variables / stack
-	std::array<MovePicker, MaxDepth> MovePickerStack;
-	std::array<int, MaxDepth> StaticEvalStack;
-	std::array<int, MaxDepth> EvalStack;
-	std::array<int, MaxDepth> CutoffCount;
-	std::array<Move, MaxDepth> ExcludedMoves;
-	std::array<bool, MaxDepth> SuperSingular;
 
+	std::array<SearchStack, MaxDepth> Stack;
 	Position CurrentPosition;
 
 	std::thread Thread;

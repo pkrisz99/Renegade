@@ -217,9 +217,7 @@ void Search::SearchMoves(ThreadData& t) {
 	t.result = {};
 	t.ResetStatistics();
 	t.ResetPvTable();
-	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), NullMove);
-	std::fill(t.SuperSingular.begin(), t.SuperSingular.end(), false);
-	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
+	std::memset(&t.Stack, 0, sizeof(t.Stack));
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
 	t.History.ClearRefutations();
 	t.EvalState.Reset(t.CurrentPosition);
@@ -364,6 +362,7 @@ template<bool pvNode>
 int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha, int beta, const bool cutNode) {
 
 	Position& position = t.CurrentPosition;
+	SearchStack& current = t.Stack[level];
 	const bool rootNode = (level == 0);
 	assert(pvNode || beta - alpha == 1);
 	assert(!(rootNode && !pvNode));
@@ -394,9 +393,9 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		return SearchQuiescence<pvNode>(t, level, alpha, beta);
 	}
 
-	const Move excludedMove = t.ExcludedMoves[level];
+	const Move excludedMove = current.excludedMove;
 	const bool singularSearch = !excludedMove.IsNull();
-	MovePicker& movePicker = t.MovePickerStack[level];
+	MovePicker& movePicker = current.movePicker;
 
 	// Probe the transposition table
 	TranspositionEntry ttEntry;
@@ -440,16 +439,16 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				|| (ttEntry.scoreType == ScoreType::LowerBound && staticEval < ttEval)
 				|| (ttEntry.scoreType == ScoreType::UpperBound && staticEval > ttEval)) eval = ttEval; // can't be true when in check
 		}
-		t.StaticEvalStack[level] = staticEval;
-		t.EvalStack[level] = eval;
-		t.SuperSingular[level] = false;
+		current.staticEval = staticEval;
+		current.eval = eval;
+		current.superSingular = false;
 	}
 	else {
-		staticEval = t.StaticEvalStack[level];
-		eval = t.EvalStack[level];
+		staticEval = current.staticEval;
+		eval = current.eval;
 	}
 
-	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
+	const bool improving = (level >= 2) && !inCheck && (t.Stack[level].staticEval > t.Stack[level - 2].staticEval);
 	bool futilityPrunable = false;
 
 	// Whole-node pruning techniques
@@ -496,7 +495,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
-		if (level + 1 < MaxDepth) t.CutoffCount[level + 1] = 0;
+		if (level + 1 < MaxDepth) t.Stack[level + 1].cutoffCount = 0;
 	}
 	
 	// Iterate through legal moves
@@ -548,14 +547,14 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			const int singularMargin = depth * 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
-			t.ExcludedMoves[level] = m;
+			current.excludedMove = m;
 			const int singularScore = SearchRecursive<false>(t, singularDepth, level, singularBeta - 1, singularBeta, cutNode);
-			t.ExcludedMoves[level] = NullMove;
-			t.MovePickerStack[level].index = 1;
+			current.excludedMove = NullMove;
+			movePicker.index = 1;
 				
 			if (singularScore < singularBeta) {
 				// Successful extension
-				const bool doubleExtend = (!pvNode && (singularScore < singularBeta - 23)) || t.SuperSingular[level];
+				const bool doubleExtend = (!pvNode && (singularScore < singularBeta - 23)) || current.superSingular;
 				extension = 1 + doubleExtend;
 			}
 			else {
@@ -583,7 +582,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!ttPV) reduction += 1;
-			if (t.CutoffCount[level] < 4) reduction -= 1;
+			if (current.cutoffCount < 4) reduction -= 1;
 			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 20100, -2, 2);
 			if (cutNode) reduction += 1;
 			if (improving) reduction -= 1;
@@ -641,7 +640,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	// There was no legal move --> return mate or stalemate score
 	if (legalMoveCount == 0) {
 		if (singularSearch) {
-			t.SuperSingular[level] = true;
+			current.superSingular = true;
 			return alpha; // always extend if we have only one legal move
 		}
 		return inCheck ? LosingMateScore(level) : 0;
@@ -652,7 +651,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	// Update search history and statistics when having a cutoff
 	if (bestScore >= beta && !aborting) {
 
-		if (level != 0) t.CutoffCount[level - 1] += 1;
+		if (level != 0) t.Stack[level - 1].cutoffCount += 1;
 		const bool quietBestMove = position.IsMoveQuiet(bestMove);
 
 		// Increment history scores for the move causing the cutoff 
@@ -732,7 +731,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (position.IsDrawn(level)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them (in check we generate quiets as well)
-	MovePicker& movePicker = t.MovePickerStack[level];
+	MovePicker& movePicker = t.Stack[level].movePicker;
 	movePicker.Initialize(inCheck ? MoveGen::All : MoveGen::Noisy, position, t.History, ttMove, level);
 
 	// Search recursively until the position is quiet
