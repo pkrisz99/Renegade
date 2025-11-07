@@ -362,7 +362,8 @@ template<bool pvNode>
 int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha, int beta, const bool cutNode) {
 
 	Position& position = t.CurrentPosition;
-	SearchStack& current = t.Stack[level];
+	SearchStackEntry& current = t.Stack[level];
+
 	const bool rootNode = (level == 0);
 	assert(pvNode || beta - alpha == 1);
 	assert(!(rootNode && !pvNode));

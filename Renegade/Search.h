@@ -25,7 +25,7 @@
 
 enum class ThreadAction { Sleep, Search, Exit };
 
-struct SearchStack {
+struct SearchStackEntry {
 	MovePicker movePicker;
 	Move excludedMove;
 	int cutoffCount;
@@ -53,7 +53,7 @@ public:
 	void ResetPvTable();
 
 
-	std::array<SearchStack, MaxDepth> Stack;
+	std::array<SearchStackEntry, MaxDepth> Stack;
 	Position CurrentPosition;
 
 	std::thread Thread;
