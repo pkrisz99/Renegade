@@ -374,6 +374,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	t.InitPvLength(level);
 	if (level >= MaxDepth) return Evaluate(t, position);
 	if (level > t.SelDepth) t.SelDepth = level;
+	const bool tooDeep = level >= t.RootDepth * 2;
 
 	// Mate distance pruning
 	if (!rootNode) {
@@ -387,7 +388,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Check extensions
 	const bool inCheck = position.IsInCheck();
-	if (!rootNode && inCheck) depth += 1;
+	if (!rootNode && inCheck && (!tooDeep || depth == 0)) depth += 1;
 
 	// Drop into quiescence search at depth 0
 	if (depth <= 0) {
@@ -417,7 +418,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 	}
 
-	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 7)
+	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 7) && !tooDeep
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && !IsMateScore(ttEval);
 	const bool ttPV = pvNode || (found && ttEntry.ttPv);
 	
@@ -544,7 +545,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Singular extensions
 		int extension = 0;
-		if (singularCandidate && m == ttMove && level < t.RootDepth * 2) {
+		if (singularCandidate && m == ttMove) {
 			const int singularMargin = depth * 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
@@ -555,7 +556,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				
 			if (singularScore < singularBeta) {
 				// Successful extension
-				const bool doubleExtend = (!pvNode && (singularScore < singularBeta - 23)) || t.SuperSingular[level];
+				const bool doubleExtend = !pvNode && ((singularScore < singularBeta - 23) || t.SuperSingular[level]);
 				extension = 1 + doubleExtend;
 			}
 			else {
