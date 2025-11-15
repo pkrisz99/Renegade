@@ -6,9 +6,9 @@
 Search::Search() {
 	constexpr double lmrMultiplier = 0.40;
 	constexpr double lmrBase = 0.76;
-	for (int i = 1; i < 32; i++) {
-		for (int j = 1; j < 32; j++) {
-			LMRTable[i][j] = static_cast<int>(lmrMultiplier * std::log(i) * std::log(j) + lmrBase);
+	for (int i = 0; i < 32; i++) {
+		for (int j = 0; j < 32; j++) {
+			LMRTable[i][j] = static_cast<int>(lmrMultiplier * std::log(std::max(i, 1)) * std::log(std::max(j, 1)) + lmrBase);
 		}
 	}
 	StartThreads(1);
@@ -579,6 +579,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Principal variation search & late-move reductions
 		if (depth >= 3 && (legalMoveCount >= (3 + pvNode * 2 + rootNode * 2)) && isQuiet) {
 			
+			if (failLowCount == 0) cout << "LOL" << endl;
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 20100, -2, 2);
