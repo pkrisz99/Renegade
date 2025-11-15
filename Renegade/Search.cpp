@@ -6,9 +6,9 @@
 Search::Search() {
 	constexpr double lmrMultiplier = 0.40;
 	constexpr double lmrBase = 0.76;
-	for (int i = 1; i < 32; i++) {
-		for (int j = 1; j < 32; j++) {
-			LMRTable[i][j] = static_cast<int>(lmrMultiplier * std::log(i) * std::log(j) + lmrBase);
+	for (int i = 0; i < 32; i++) {
+		for (int j = 0; j < 32; j++) {
+			LMRTable[i][j] = static_cast<int>(lmrMultiplier * std::log(std::max(i, 1)) * std::log(std::max(j, 1)) + lmrBase);
 		}
 	}
 	StartThreads(1);
