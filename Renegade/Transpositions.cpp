@@ -95,11 +95,19 @@ void Transpositions::Prefetch(const uint64_t hash) const {
 }
 
 void Transpositions::AllocateTable(const uint64_t clusterCount) {
+	// Allocate memory
 #if defined(_MSC_VER) || defined(_WIN32)
 	Table = static_cast<TranspositionCluster*>(_aligned_malloc(clusterCount * sizeof(TranspositionCluster), 64));
 #else
 	Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, clusterCount * sizeof(TranspositionCluster)));
 #endif
+
+	// Request huge pages if available
+#if defined(MADV_HUGEPAGE)
+	madvise(Table, clusterCount * sizeof(TranspositionCluster), MADV_HUGEPAGE);
+#endif
+
+	// Set cluter count
 	TableSize = clusterCount;
 }
 

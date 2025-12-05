@@ -8,6 +8,10 @@
 #include <memory>
 #include <thread>
 
+#ifdef __linux__
+#include <sys/mman.h>
+#endif
+
 namespace ScoreType {
 	constexpr int Invalid = 0;
 	constexpr int Exact = 1;
