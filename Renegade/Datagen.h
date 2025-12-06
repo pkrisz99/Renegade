@@ -55,5 +55,5 @@ private:
 	// Renegade makes use of the extra byte in the spec to store version information
 	// -> highest bit: whether the datagen is DFRC
 	// -> low 7 bits: version identifier
-	static constexpr uint8_t datagenVersion = 1;
+	static constexpr uint8_t datagenVersion = 2;
 };
