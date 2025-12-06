@@ -31,10 +31,9 @@ use bullet_lib::{
 #[rustfmt::skip]
 fn main() {
     
-    let net_id = "renegade_net_32a";
-    let hl_size = 1600;
+    const NET_ID: &str = "renegade_net_32a";
+    const HL_SIZE: usize = 1600;
     const NUM_OUTPUT_BUCKETS: usize = 8;
-
     const BUCKET_LAYOUT: [usize; 32] = [
          0,  1,  2,  3,
          4,  5,  6,  7,
@@ -45,7 +44,6 @@ fn main() {
         12, 12, 13, 13,
         12, 12, 13, 13,
     ];
-
     const NUM_INPUT_BUCKETS: usize = get_num_buckets(&BUCKET_LAYOUT);
 
     let mut trainer = ValueTrainerBuilder::default()
@@ -68,15 +66,15 @@ fn main() {
         .loss_fn(|output, target| output.sigmoid().squared_error(target))
         .build(|builder, stm_inputs, ntm_inputs, output_buckets| {
             // input layer factoriser
-            let l0f = builder.new_weights("l0f", Shape::new(hl_size, 768), InitSettings::Zeroed);
+            let l0f = builder.new_weights("l0f", Shape::new(HL_SIZE, 768), InitSettings::Zeroed);
             let expanded_factoriser = l0f.repeat(NUM_INPUT_BUCKETS);
 
             // input layer weights
-            let mut l0 = builder.new_affine("l0", 768 * NUM_INPUT_BUCKETS, hl_size);
+            let mut l0 = builder.new_affine("l0", 768 * NUM_INPUT_BUCKETS, HL_SIZE);
             l0.weights = l0.weights + expanded_factoriser;
 
             // output layer weights
-            let l1 = builder.new_affine("l1", 2 * hl_size, NUM_OUTPUT_BUCKETS);
+            let l1 = builder.new_affine("l1", 2 * HL_SIZE, NUM_OUTPUT_BUCKETS);
 
             // inference
             let stm_hidden = l0.forward(stm_inputs).screlu();
@@ -91,7 +89,7 @@ fn main() {
     trainer.optimiser.set_params_for_weight("l0f", stricter_clipping);
 
     let schedule = TrainingSchedule {
-        net_id: net_id.to_string(),
+        net_id: NET_ID.to_string(),
         eval_scale: 400.0,
         steps: TrainingSteps {
             batch_size: 16384,
@@ -118,7 +116,7 @@ fn main() {
     let settings = LocalSettings { threads: 4, test_set: None, output_directory: "checkpoints", batch_queue_size: 32 };
 
     let data_loader = DirectSequentialDataLoader::new(
-        &["../Renegade testing/nnue/data/240928_241010_241213_250418_251202_frc241002"]
+        &["../nnue/data/240928_241010_241213_250418_251202_frc241002"]
     );
 
     trainer.run(&schedule, &settings, &data_loader);
