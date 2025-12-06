@@ -106,6 +106,7 @@ void Transpositions::AllocateTable(const uint64_t clusterCount) {
 #if defined(MADV_HUGEPAGE)
 	const int r = madvise(Table, clusterCount * sizeof(TranspositionCluster), MADV_HUGEPAGE);
 	cout << "info string madvise called: " << r << endl;
+	cout << "info string madvise args: " << Table << " " << (clusterCount * sizeof(TranspositionCluster)) << endl;
 	if (r == -1) {
 		perror("madvise error");
 	}
