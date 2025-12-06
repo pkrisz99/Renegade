@@ -105,6 +105,7 @@ void Transpositions::AllocateTable(const uint64_t clusterCount) {
 	// Request huge pages if available
 #if defined(MADV_HUGEPAGE)
 	madvise(Table, clusterCount * sizeof(TranspositionCluster), MADV_HUGEPAGE);
+	cout << "info string madvise called" << endl;
 #endif
 
 	// Set cluter count
