@@ -43,6 +43,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 	const bool replaceable = [&] {
 		if (storedHash != candidateEntry.hash) return true;
 		if (scoreType == ScoreType::Exact) return true;
+		if (CurrentGeneration != candidateEntry.generation) return true;
 		return depth + 3 + ttPv * 2 >= candidateEntry.depth;
 	}();
 
@@ -163,7 +164,7 @@ int Transpositions::GetHashfull() const {
 	int hashfull = 0;
 	for (int i = 0; i < 1000; i++) {
 		for (const TranspositionEntry& entry : Table[i].entries) {
-			if (RecordingQuality(entry.generation, entry.depth) >= RecordingQuality(CurrentGeneration, 0)) hashfull += 1;
+			if (entry.scoreType != ScoreType::Invalid && entry.generation == CurrentGeneration) hashfull += 1;
 		}
 	}
 	return hashfull / 4;
