@@ -20,7 +20,7 @@
 // for each piece: score += (15 - (manhattan distance to opponent's king)) * 6
 
 // Network constants
-#define NETWORK_NAME "renegade-net-31.bin"
+#define NETWORK_NAME "renegade-net-32.bin"
 
 constexpr int FeatureSize = 768;
 constexpr int HiddenSize = 1600;
