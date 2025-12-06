@@ -102,19 +102,14 @@ void Transpositions::AllocateTable(const uint64_t clusterCount) {
 		#if defined(__linux__) && defined(MADV_HUGEPAGE)
 			// Linux: request transparent huge pages for a possible speed up
 			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(2 * 1024 * 1024, clusterCount * sizeof(TranspositionCluster)));
-			const int r = madvise(Table, clusterCount * sizeof(TranspositionCluster), MADV_HUGEPAGE);
-			cout << "info string madvise called: " << r << endl;
-			cout << "info string madvise args: " << Table << " " << (clusterCount * sizeof(TranspositionCluster)) << endl;
-			if (r == -1) {
-				perror("madvise error");
-			}
+			madvise(Table, clusterCount * sizeof(TranspositionCluster), MADV_HUGEPAGE);
 		#else
-			// Fall back if can't be requested
+			// Fall back if system is not compatible
 			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, clusterCount * sizeof(TranspositionCluster)));
 		#endif
 	#endif
 
-	// Set cluter count
+	// Set cluster count
 	TableSize = clusterCount;
 }
 
