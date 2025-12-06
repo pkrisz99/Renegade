@@ -220,6 +220,7 @@ void Search::SearchMoves(ThreadData& t) {
 	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), NullMove);
 	std::fill(t.SuperSingular.begin(), t.SuperSingular.end(), false);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
+	std::fill(t.ReductionStack.begin(), t.ReductionStack.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
 	t.History.ClearRefutations();
 	t.EvalState.Reset(t.CurrentPosition);
@@ -450,6 +451,11 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		eval = t.EvalStack[level];
 	}
 
+	// Increase depth if a move despite being heavily reduced still improves static evaluation
+	const bool unexpectedImprovement = level > 0 && !inCheck && t.StaticEvalStack[level - 1] != NoEval && !tooDeep
+		&& t.ReductionStack[level - 1] >= 3 && (t.StaticEvalStack[level - 1] < -staticEval);
+	if (unexpectedImprovement) depth += 1;
+
 	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
 	bool futilityPrunable = false;
 
@@ -590,8 +596,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (improving) reduction -= 1;
 			reduction = std::max(reduction, 0);
 
+			t.ReductionStack[level] = reduction;
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
 			score = -SearchRecursive<false>(t, reducedDepth, level + 1, -alpha - 1, -alpha, true);
+			t.ReductionStack[level] = 0;
 			failHighCount += (score > alpha);
 
 			if (score > alpha && reducedDepth < depth - 1) {

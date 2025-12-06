@@ -50,6 +50,7 @@ public:
 	std::array<int, MaxDepth> CutoffCount;
 	std::array<Move, MaxDepth> ExcludedMoves;
 	std::array<bool, MaxDepth> SuperSingular;
+	std::array<int, MaxDepth> ReductionStack;
 
 	Position CurrentPosition;
 
