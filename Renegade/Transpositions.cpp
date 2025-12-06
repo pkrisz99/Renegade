@@ -95,22 +95,24 @@ void Transpositions::Prefetch(const uint64_t hash) const {
 }
 
 void Transpositions::AllocateTable(const uint64_t clusterCount) {
-	// Allocate memory
-#if defined(_MSC_VER) || defined(_WIN32)
-	Table = static_cast<TranspositionCluster*>(_aligned_malloc(clusterCount * sizeof(TranspositionCluster), 64));
-#else
-	Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, clusterCount * sizeof(TranspositionCluster)));
-#endif
-
-	// Request huge pages if available
-#if defined(MADV_HUGEPAGE)
-	const int r = madvise(Table, clusterCount * sizeof(TranspositionCluster), MADV_HUGEPAGE);
-	cout << "info string madvise called: " << r << endl;
-	cout << "info string madvise args: " << Table << " " << (clusterCount * sizeof(TranspositionCluster)) << endl;
-	if (r == -1) {
-		perror("madvise error");
-	}
-#endif
+	#if defined(_MSC_VER) || defined(_WIN32)
+		// Windows: just allocate memory, don't bother with memory tricks
+		Table = static_cast<TranspositionCluster*>(_aligned_malloc(clusterCount * sizeof(TranspositionCluster), 64));
+	#else
+		#if defined(__linux__) && defined(MADV_HUGEPAGE)
+			// Linux: request transparent huge pages for a possible speed up
+			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(2 * 1024 * 1024, clusterCount * sizeof(TranspositionCluster)));
+			const int r = madvise(Table, clusterCount * sizeof(TranspositionCluster), MADV_HUGEPAGE);
+			cout << "info string madvise called: " << r << endl;
+			cout << "info string madvise args: " << Table << " " << (clusterCount * sizeof(TranspositionCluster)) << endl;
+			if (r == -1) {
+				perror("madvise error");
+			}
+		#else
+			// Fall back if can't be requested
+			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, clusterCount * sizeof(TranspositionCluster)));
+		#endif
+	#endif
 
 	// Set cluter count
 	TableSize = clusterCount;
