@@ -781,6 +781,11 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 			}
 		}
 	}
+
+	if (!pvNode && !IsMateScore(bestScore) && !IsMateScore(beta) && bestScore >= beta) {
+		bestScore = (bestScore + beta) / 2;
+	}
+
 	if (!ShouldAbort(t)) TranspositionTable.Store(hash, 0, bestScore, scoreType, rawEval, bestMove, level, ttPV);
 	return bestScore;
 }
