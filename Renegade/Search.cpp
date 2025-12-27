@@ -388,7 +388,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Check extensions
 	const bool inCheck = position.IsInCheck();
-	if (!rootNode && inCheck && (!tooDeep || depth == 0)) depth += 1;
+	if (!rootNode && inCheck && depth == 0) depth += 1;
 
 	// Drop into quiescence search at depth 0
 	if (depth <= 0) {
@@ -578,6 +578,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		failHighCount = 0;
 		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
 		bool deepen = false;
+		const bool givingCheck = position.IsInCheck();
 
 		// Principal variation search & late-move reductions
 		if (depth >= 3 && (legalMoveCount >= (3 + pvNode * 2 + rootNode * 2)) && isQuiet) {
@@ -588,6 +589,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 20100, -2, 2);
 			if (cutNode) reduction += 1;
 			if (improving) reduction -= 1;
+			if (givingCheck) reduction -= 1;
 			reduction = std::max(reduction, 0);
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
