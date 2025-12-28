@@ -4,12 +4,12 @@
 // Components:
 // - Engine         : handles communication and interfacing
 // - Board          : board representation
-// - Position       : move generation & extracting data from the position
+// - Position       : stores the current game, handles move generation and queries about the position
 // - Search         : main search algorithm
 // - Histories      : collecting statistics about the game tree
 // - Transpositions : storing data about previously explored positions
 // - Move           : move representation
-// - Movepicker     : lazily sorting moves, currently very barebones
+// - Movepicker     : decides the order in which moves should be explored
 // - Classical      : handcrafted board evaluation (older and weaker, normally isn't used)
 // - Neural         : NNUE board evaluation (default)
 // - Datagen        : data generation tool for training NNUE networks

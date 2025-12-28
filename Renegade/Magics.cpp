@@ -21,8 +21,12 @@ uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy) {
 	return BishopAttacks[square][bishopIndex] | RookAttacks[square][rookIndex];
 }
 
-uint64_t GetConnectingRay(const uint8_t from, const uint64_t to) {
-	return ConnectingRays[from][to];
+uint64_t GetShortConnectingRay(const uint8_t from, const uint8_t to) {
+	return ShortConnectingRays[from][to];
+}
+
+uint64_t GetLongConnectingRay(const uint8_t from, const uint8_t to) {
+	return LongConnectingRays[from][to];
 }
 
 // Things for lookup table population -------------------------------------------------------------
@@ -125,11 +129,12 @@ void GenerateMagicTables() {
 		}
 	}
 
-	// 3. Generate connecting rays (this is not magic, but for now it's an alright place for this)
-	//    note: the rays include the from and to squares
+	// 3. Generate short connecting rays
+	// 	  note: the rays include the from and to squares
+	//    (and ye, this is not magic, but for now it's an alright place for this)
 	for (int i = 0; i < 64; i++) {
 		for (int j = 0; j < 64; j++) {
-			ConnectingRays[i][j] = [&] {
+			ShortConnectingRays[i][j] = [&] {
 				if (i == j) return SquareBit(i);
 				if (GetSquareFile(i) == GetSquareFile(j) || GetSquareRank(i) == GetSquareRank(j)) {
 					const uint64_t ray1 = GetRookAttacks(i, SquareBit(j));
@@ -139,6 +144,27 @@ void GenerateMagicTables() {
 				else if (std::abs(GetSquareFile(i) - GetSquareFile(j)) == std::abs(GetSquareRank(i) - GetSquareRank(j))) {
 					const uint64_t ray1 = GetBishopAttacks(i, SquareBit(j));
 					const uint64_t ray2 = GetBishopAttacks(j, SquareBit(i));
+					const uint64_t ends = (ray1 & ray2) ? SquareBit(i) | SquareBit(j) : 0ull;
+					return (ray1 & ray2) | ends;
+				}
+				return uint64_t{0};
+			}();
+		}
+	}
+
+	// 4. Generate long connecting rays, this not only returns the squares between, but also the full rank/row/diagonal
+	for (int i = 0; i < 64; i++) {
+		for (int j = 0; j < 64; j++) {
+			LongConnectingRays[i][j] = [&] {
+				if (i == j) return SquareBit(i);
+				if (GetSquareFile(i) == GetSquareFile(j) || GetSquareRank(i) == GetSquareRank(j)) {
+					const uint64_t ray1 = GetRookAttacks(i, 0ull);
+					const uint64_t ray2 = GetRookAttacks(j, 0ull);
+					return (ray1 & ray2) | SquareBit(i) | SquareBit(j);
+				}
+				else if (std::abs(GetSquareFile(i) - GetSquareFile(j)) == std::abs(GetSquareRank(i) - GetSquareRank(j))) {
+					const uint64_t ray1 = GetBishopAttacks(i, 0ull);
+					const uint64_t ray2 = GetBishopAttacks(j, 0ull);
 					const uint64_t ends = (ray1 & ray2) ? SquareBit(i) | SquareBit(j) : 0ull;
 					return (ray1 & ray2) | ends;
 				}

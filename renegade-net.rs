@@ -1,91 +1,122 @@
 /// Training parameters used to create Renegade's networks
-/// bullet version used: 98b58df (Add Copy operation for stopping gradients) from April 16, 2025
+/// bullet version used: e5f65c4 (Measure CPU dataloading throughput utility (#489)) from November 26, 2025
 
-/// Net 31 is trained in 2 stages (totally not by accident):
-/// - first 600 sb: cosine decay, wdl 0.2 -> 0.4
-/// - final 200 sb: continue the cosine decay, wdl fixed at 0.4
+/// Net 32 is trained in 2 stages (keeping the accidental schedule from net 31):
+/// - first 600 sb: cosine decay, wdl 0.4 -> 0.6
+/// - final 200 sb: continue the cosine decay, wdl fixed at 0.6
+
 
 #[allow(unused_imports)]
 use bullet_lib::{
-    nn::{optimiser, Activation},
+    game::{
+        inputs::{ChessBucketsMirrored, get_num_buckets},
+        outputs::MaterialCount,
+    },
+    nn::{
+        InitSettings, Shape,
+        optimiser::{AdamW, AdamWParams},
+    },
     trainer::{
-        default::{
-            inputs, loader, outputs,
-            testing::{Engine, GameRunnerPath, OpenBenchCompliant, OpeningBook, TestSettings, TimeControl, UciOption},
-            Loss, TrainerBuilder,
-        },
-        schedule::{lr, wdl, TrainingSchedule, TrainingSteps},
+        save::SavedFormat,
+        schedule::{TrainingSchedule, TrainingSteps, lr, wdl},
         settings::LocalSettings,
+    },
+    value::{
+        ValueTrainerBuilder,
+        loader::{ViriBinpackLoader, DirectSequentialDataLoader}
     },
 };
 
-const NET_ID: &str = "renegade-net-31";
 
-
+#[rustfmt::skip]
 fn main() {
-    let mut trainer = TrainerBuilder::default()
-        .quantisations(&[255, 64])
-        .optimiser(optimiser::AdamW)
-        .loss_fn(Loss::SigmoidMSE)
-        .input(inputs::ChessBucketsMirroredFactorised::new([
-             0,  1,  2,  3,
-             4,  5,  6,  7,
-             8,  8,  9,  9,
-            10, 10, 11, 11,
-            10, 10, 11, 11,
-            12, 12, 13, 13,
-            12, 12, 13, 13,
-            12, 12, 13, 13,
-        ]))
-        .output_buckets(outputs::MaterialCount::<8>::default())
-        .feature_transformer(1600)
-        .activate(Activation::SCReLU)
-        .add_layer(1)
-        .build();
-    //trainer.load_from_checkpoint("checkpoints/renegade-net-31-600");
     
+    const NET_ID: &str = "renegade_net_32a";
+    const HL_SIZE: usize = 1600;
+    const NUM_OUTPUT_BUCKETS: usize = 8;
+    const BUCKET_LAYOUT: [usize; 32] = [
+         0,  1,  2,  3,
+         4,  5,  6,  7,
+         8,  8,  9,  9,
+        10, 10, 11, 11,
+        10, 10, 11, 11,
+        12, 12, 13, 13,
+        12, 12, 13, 13,
+        12, 12, 13, 13,
+    ];
+    const NUM_INPUT_BUCKETS: usize = get_num_buckets(&BUCKET_LAYOUT);
+
+    let mut trainer = ValueTrainerBuilder::default()
+        .dual_perspective()
+        .optimiser(AdamW)
+        .inputs(ChessBucketsMirrored::new(BUCKET_LAYOUT))
+        .output_buckets(MaterialCount::<NUM_OUTPUT_BUCKETS>)
+        .save_format(&[
+            SavedFormat::id("l0w")
+                .transform(|store, weights| {
+                    let factoriser = store.get("l0f").values.repeat(NUM_INPUT_BUCKETS);
+                    weights.into_iter().zip(factoriser).map(|(a, b)| a + b).collect()
+                })
+                .round()
+                .quantise::<i16>(255),
+            SavedFormat::id("l0b").round().quantise::<i16>(255),
+            SavedFormat::id("l1w").round().quantise::<i16>(64).transpose(),
+            SavedFormat::id("l1b").round().quantise::<i16>(255 * 64),
+        ])
+        .loss_fn(|output, target| output.sigmoid().squared_error(target))
+        .build(|builder, stm_inputs, ntm_inputs, output_buckets| {
+            // input layer factoriser
+            let l0f = builder.new_weights("l0f", Shape::new(HL_SIZE, 768), InitSettings::Zeroed);
+            let expanded_factoriser = l0f.repeat(NUM_INPUT_BUCKETS);
+
+            // input layer weights
+            let mut l0 = builder.new_affine("l0", 768 * NUM_INPUT_BUCKETS, HL_SIZE);
+            l0.weights = l0.weights + expanded_factoriser;
+
+            // output layer weights
+            let l1 = builder.new_affine("l1", 2 * HL_SIZE, NUM_OUTPUT_BUCKETS);
+
+            // inference
+            let stm_hidden = l0.forward(stm_inputs).screlu();
+            let ntm_hidden = l0.forward(ntm_inputs).screlu();
+            let hidden_layer = stm_hidden.concat(ntm_hidden);
+            l1.forward(hidden_layer).select(output_buckets)
+        });
+
+    // need to account for factoriser weight magnitudes
+    let stricter_clipping = AdamWParams { max_weight: 0.99, min_weight: -0.99, ..Default::default() };
+    trainer.optimiser.set_params_for_weight("l0w", stricter_clipping);
+    trainer.optimiser.set_params_for_weight("l0f", stricter_clipping);
+
     let schedule = TrainingSchedule {
         net_id: NET_ID.to_string(),
         eval_scale: 400.0,
         steps: TrainingSteps {
             batch_size: 16384,
-            batches_per_superbatch: 6104, // ~100 million positions
-            start_superbatch: 1, // <-- start from 601 for stage 2
-            end_superbatch: 600,
+            batches_per_superbatch: 6104,  // ~100 million positions
+            start_superbatch: 1,
+            end_superbatch: 800,
         },
-        wdl_scheduler: wdl::LinearWDL {
-            start: 0.2,  // <-- change this for stage 2
-            end: 0.4,
+        wdl_scheduler: wdl::Sequence {
+            first: wdl::LinearWDL { start: 0.4, end: 0.6, },
+            second: wdl::ConstantWDL { value: 0.6, },
+            first_scheduler_final_superbatch: 600,
         },
         lr_scheduler: lr::Warmup {
             inner: lr::CosineDecayLR {
                 initial_lr: 0.001,
-                final_lr: 0.001 * 0.3 * 0.3 * 0.3 * 0.3,
+                final_lr: 0.001 * f32::powi(0.3, 5),
                 final_superbatch: 800,
             },
-            warmup_batches: 256
+            warmup_batches: 6104,
         },
         save_rate: 10,
     };
-    
-    let optimiser_params = optimiser::AdamWParams {
-        decay: 0.01,
-        beta1: 0.9,
-        beta2: 0.999,
-        min_weight: -1.98,
-        max_weight: 1.98
-    };
-    trainer.set_optimiser_params(optimiser_params);
-    
-    let settings = LocalSettings {
-        threads: 6,
-        test_set: None,
-        output_directory: "checkpoints",
-        batch_queue_size: 512,
-    };
-    
-    let data_loader = loader::DirectSequentialDataLoader::new(
-        &["../nnue/data/240722_240821_240928_241010_241213_250418_frc241002"]
+
+    let settings = LocalSettings { threads: 4, test_set: None, output_directory: "checkpoints", batch_queue_size: 32 };
+
+    let data_loader = DirectSequentialDataLoader::new(
+        &["../nnue/data/240928_241010_241213_250418_251202_frc241002"]
     );
 
     trainer.run(&schedule, &settings, &data_loader);

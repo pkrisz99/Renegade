@@ -1,5 +1,7 @@
 #include "Datagen.h"
 
+// Display things ---------------------------------------------------------------------------------
+
 static void SetTitle(const std::string title) {
 	Console::ClearScreen();
 	cout << Console::Highlight << " " << title << " " << Console::White;
@@ -12,18 +14,6 @@ static void PressEnterToExit() {
 	cin.get();
 }
 
-// Self-play datagen ------------------------------------------------------------------------------ 
-
-void SelfPlay(const std::string filename);  // main loop per thread, forward declaring this
-
-std::atomic<uint64_t> PositionsAccepted = 0, PositionsTotal = 0;
-std::atomic<uint64_t> Games = 0, Plies = 0, Searches = 0, Depths = 0, Nodes = 0;
-std::atomic<uint64_t> WhiteWins = 0, Draws = 0, BlackWins = 0;
-Clock::time_point StartTime;
-int ThreadCount = 0;
-bool DFRC = false;
-std::vector<std::string> Openings{};
-
 static std::string FormatRuntime(const int seconds) {
 	const auto [minutes, s] = std::div(seconds, 60);
 	const auto [h, m] = std::div(minutes, 60);
@@ -33,30 +23,25 @@ static std::string FormatRuntime(const int seconds) {
 	return oss.str();
 }
 
-static bool Filter(const Position& pos, const Move& move, const int eval) {
-	if (std::abs(eval) > MateThreshold) return true;
-	if (pos.GetPly() < minSavePly) return true;
-	if (DFRC && move.IsCastling()) return true;
-	if (!pos.IsMoveQuiet(move)) return true;
-	if (pos.IsInCheck()) return true;
-	return false;
+// Self-play datagen ------------------------------------------------------------------------------
+
+void SelfPlay(const std::string filename);  // main loop per thread, forward declaring this
+
+std::atomic<uint64_t> Games = 0, Positions = 0, Plies = 0, Depths = 0, Nodes = 0;
+std::atomic<uint64_t> WhiteWins = 0, Draws = 0, BlackWins = 0;
+Clock::time_point StartTime;
+int ThreadCount = 0;
+bool DFRC = false;
+std::vector<std::string> Openings{};
+
+// Apply a small random adjustment to node limits to avoid unwanted deterministic behavior
+SearchParams RandomizeNodeLimits(const SearchParams& originalParams, std::uniform_int_distribution<int>& distribution, std::mt19937& generator) {
+	SearchParams searchParams = originalParams;
+	searchParams.softnodes += distribution(generator);
+	return searchParams;
 }
 
-static std::string ToTextformat(const std::string fen, const int16_t whiteScore, const GameState outcome) {
-	// Format: <fen> | <eval> | <wdl>
-	// eval: white pov in cp, wdl 1.0 = white win, 0.0 = black win
-
-	const std::string outcomeStr = [&] {
-		switch (outcome) {
-		case GameState::WhiteVictory: return "1.0";
-		case GameState::BlackVictory: return "0.0";
-		case GameState::Drawn: return "0.5";
-		default: return "???";
-		}
-		}();
-	return fen + " | " + std::to_string(whiteScore) + " | " + outcomeStr;
-}
-
+// Starts running datagen, launches threads
 void StartDatagen(const DatagenLaunchMode launchMode) {
 
 	// There is a streamlined way to launch datagen (normal and dfrc) from the command line using the default settings
@@ -91,7 +76,7 @@ void StartDatagen(const DatagenLaunchMode launchMode) {
 
 	// Load opening book - using these seem to improve net strength
 	if (!DFRC) {
-		const std::string book = "UHO_Lichess_4852_v1.epd";
+		constexpr std::string_view book = "UHO_Lichess_4852_v1.epd";
 		std::ifstream bookFile(book);
 		std::string line;
 		while (std::getline(bookFile, line)) Openings.push_back(line);
@@ -112,9 +97,9 @@ void StartDatagen(const DatagenLaunchMode launchMode) {
 	if (!DFRC) cout << " - After the book exit do " << Console::Yellow << randomPlyBaseNormal << Console::White << " plies of random moves, then play normally" << endl;
 	else cout << " - " << Console::Yellow << randomPlyBaseDFRC << Console::White << " or " << Console::Yellow << randomPlyBaseDFRC + 1
 		<< Console::White << " plies of random rollout, then normal playout" << endl;
-	cout << " - Verification at depth " << Console::Yellow << verificationDepth << Console::White
-		<< " with a threshold of " << Console::Yellow << startingEvalLimit << Console::White << endl;
-	cout << " - Playing with a soft node limit of " << Console::Yellow << softNodeLimit << Console::White << endl;
+	cout << " - Verification @ softnodes=" << Console::Yellow << verificationParams.softnodes << Console::White
+		<< ", threshold=" << Console::Yellow << startingEvalLimit << Console::White << endl;
+	cout << " - Playing @ softnodes=" << Console::Yellow << playingParams.softnodes << Console::White << endl;
 	cout << " - Using DFRC starting positions: " << Console::Yellow << std::boolalpha << DFRC
 		<< std::noboolalpha << Console::White << endl;
 	if (!DFRC) cout << " - The opening book has " << Console::Yellow << Console::FormatInteger(Openings.size()) << Console::White << " lines" << endl;
@@ -128,6 +113,7 @@ void StartDatagen(const DatagenLaunchMode launchMode) {
 	for (std::thread& t : threads) t.join();
 }
 
+// One thread of datagen, running games and storing results
 void SelfPlay(const std::string filename) {
 
 	Search* Searcher1 = new Search;
@@ -140,29 +126,15 @@ void SelfPlay(const std::string filename) {
 	Searcher2->SetThreadCount(1);
 	SearcherV->SetThreadCount(1);
 
-	SearchParams params = SearchParams();
-	params.softnodes = softNodeLimit;
-	params.nodes = hardNodeLimit;
-	params.depth = depthLimit;
-	SearchParams verificationParams = SearchParams();
-	verificationParams.depth = verificationDepth;
-	std::uniform_int_distribution<std::size_t> nodesDistribution(softNodeLimit - 100, softNodeLimit + 100);
 	const int randomPlyBase = DFRC ? randomPlyBaseDFRC : randomPlyBaseNormal;
-	
-	int gamesOnThread = 0;
 	std::mt19937 generator(std::random_device{}());
-
-	std::vector<std::pair<std::string, int>> currentGame{};
-	std::vector<std::string> unsavedLines{};
-
+	std::uniform_int_distribution<int> nodeLimitNoise(-300, 300);
+	int gamesOnThread = 0;
+	std::vector<ViriformatGame> unsavedViriformatGames{};
 
 	while (true) {
 
 		bool failed = false;
-		int winAdjudicationCounter = 0;
-		int drawAdjudicationCounter = 0;
-		GameState outcome = GameState();
-		currentGame.clear();
 
 		// 1. Reset state
 		Position position = [&] {
@@ -212,12 +184,16 @@ void SelfPlay(const std::string filename) {
 		Searcher1->ResetState(true);
 		Searcher2->ResetState(true);
 
+		ViriformatGame currentViriformatGame{};
+		currentViriformatGame.SetStartingBoard(position.CurrentState(), position.CastlingConfig);
+		GameState outcome = GameState::Playing;
+		int winAdjudicationCounter = 0, drawAdjudicationCounter = 0;
+
 		// 4. Play out the game
 		while (true) {
 
 			// Search
-			SearchParams currentParams = params;
-			currentParams.softnodes = nodesDistribution(generator);
+			const SearchParams currentParams = RandomizeNodeLimits(playingParams, nodeLimitNoise, generator);
 			Search* currentSearcher = (position.Turn() == Side::White) ? Searcher1 : Searcher2;
 			const Results results = currentSearcher->SearchSinglethreaded(position, currentParams);
 			const Move move = results.BestMove();
@@ -249,20 +225,23 @@ void SelfPlay(const std::string filename) {
 
 			if (move.IsNull()) {
 				failed = true;
-				cout << Console::Yellow << "Got null-move for " << position.GetFEN() << " with eval of " << results.score << Console::White << endl;
+				cout << Console::Yellow << "Got null-move for " << position.GetFEN() << " (score=" << results.score
+					<< ", depth=" << results.depth << ", nodes=" << results.nodes << ", bm=" << results.BestMove().ToString(true) << ")" << Console::White << endl;
+				break;
+			}
+			if (std::abs(results.score) > MateEval) {
+				failed = true;
+				cout << Console::Yellow << "Got weird eval for " << position.GetFEN() << " (score=" << results.score
+					<< ", depth=" << results.depth << ", nodes=" << results.nodes << ", bm=" << results.BestMove().ToString(true) << ")" << Console::White << endl;
 				break;
 			}
 
-			// Check if position should be stored
-			PositionsTotal.fetch_add(1, std::memory_order_relaxed);
-			Searches.fetch_add(1, std::memory_order_relaxed);
+			// Update statistics
+			Positions.fetch_add(1, std::memory_order_relaxed);
 			Depths.fetch_add(results.depth, std::memory_order_relaxed);
 			Nodes.fetch_add(results.nodes, std::memory_order_relaxed);
 			
-			if (!Filter(position, move, results.score)) {
-				PositionsAccepted.fetch_add(1, std::memory_order_relaxed);
-				currentGame.push_back(std::pair(position.GetFEN(), whiteScore));
-			}
+			currentViriformatGame.AddMove(move, whiteScore);
 			position.PushMove(move);
 
 			outcome = position.GetGameState();
@@ -280,27 +259,27 @@ void SelfPlay(const std::string filename) {
 		else if (outcome == GameState::BlackVictory) BlackWins.fetch_add(1, std::memory_order_relaxed);
 		
 		// 5. Store the game to the memory, and periodically to the hard drive
-		for (const auto& [fen, whiteScore] : currentGame) {
-			unsavedLines.push_back(ToTextformat(fen, whiteScore, outcome));
-		}
-		if (gamesOnThread % 64 == 0) {
-			std::ofstream file(filename, std::ios_base::app);
-			const std::ostream_iterator<std::string> output_iterator(file, "\n");
-			std::copy(std::begin(unsavedLines), std::end(unsavedLines), output_iterator);
-			file.close();
-			unsavedLines.clear();
+		currentViriformatGame.Finish(outcome);
+		unsavedViriformatGames.push_back(currentViriformatGame);
+
+		if (gamesOnThread % 100 == 0) {  // should take a few milliseconds
+			std::ofstream vfFile(filename + ".vf", std::ios_base::app | std::ios::binary);
+			for (const ViriformatGame& vfGame : unsavedViriformatGames) vfGame.WriteToFile(vfFile);
+			vfFile.close();
+			unsavedViriformatGames.clear();
 		}
 
 		// 6. Update display
 		const int games = Games.load(std::memory_order_relaxed);
 		if (games % 100 == 0) {
 			const auto endTime = Clock::now();
+			const uint64_t positions = Positions.load(std::memory_order_relaxed);
 			const int seconds = static_cast<int>((endTime - StartTime).count() / 1e9);
-			const int speed1 = PositionsAccepted.load(std::memory_order_relaxed) * 3600 / std::max(seconds, 1);
+			const int speed1 = positions * 3600 / std::max(seconds, 1);
 			const int speed2 = speed1 / 3600 / ThreadCount;
 
 			const std::string display = "Games: " + Console::FormatInteger(games)
-				+ " | Positions: " + Console::FormatInteger(PositionsAccepted.load(std::memory_order_relaxed))
+				+ " | Positions: " + Console::FormatInteger(positions)
 				+ " | Runtime: " + FormatRuntime(seconds)
 				+ " | Speed: " + std::to_string(speed1 / 1000) + "k/h " + std::to_string(speed2) + "/s/th";
 			cout << display << endl;
@@ -311,9 +290,8 @@ void SelfPlay(const std::string filename) {
 				const float drawRate = Draws.load(std::memory_order_relaxed) * 100.f / games;
 				const float blackWinRate = BlackWins.load(std::memory_order_relaxed) * 100.f / games;
 				const float avgPlies = static_cast<float>(Plies.load(std::memory_order_relaxed)) / games;
-				const int searches = Searches.load(std::memory_order_relaxed);
-				const int avgNodes = Nodes.load(std::memory_order_relaxed) / searches;
-				const float avgDepths = static_cast<float>(Depths.load(std::memory_order_relaxed)) / searches;
+				const int avgNodes = Nodes.load(std::memory_order_relaxed) / positions;
+				const float avgDepths = static_cast<float>(Depths.load(std::memory_order_relaxed)) / positions;
 
 				const std::string outcomeString = std::format("Outcomes: {:.1f}% - {:.1f}% - {:.1f}%", whiteWinRate, drawRate, blackWinRate);
 				const std::string lengthString = std::format("Avg. game length: {:.1f} plies", avgPlies);
@@ -331,67 +309,96 @@ void SelfPlay(const std::string filename) {
 	}
 }
 
-// File merging tool ------------------------------------------------------------------------------
+// Viriformat handling ----------------------------------------------------------------------------
 
-void MergeDatagenFiles() {
-	SetTitle("Renegade's file merging utility for datagen");
-	const std::filesystem::path path = std::filesystem::current_path();
-	cout << "Current folder: " << Console::Yellow << path.string() << Console::White << endl;
+void ViriformatGame::SetStartingBoard(const Board& b, const CastlingConfiguration& cc) {
+	startingBoard = b;
+	castlingConfig = cc;
+}
 
-	std::string name;
-	cout << "\nWhat is the base name of the generated files? " << Console::Yellow;
-	cin >> name;
+void ViriformatGame::AddMove(const Move& move, const int eval) {
+	moves.push_back({ ToViriformatMove(move), static_cast<int16_t>(eval) });
+}
 
-	int64_t limit = -1;
-	cout << Console::White << "How many positions maximum (-1 for no limit)? " << Console::Yellow;
-	cin >> limit;
+void ViriformatGame::Finish(const GameState state) {
+	assert(state != GameState::Playing);
+	outcome = state;
+}
 
-	// Iterate through files in directory
-	std::vector<std::string> found;
-	for (const auto& entry : std::filesystem::directory_iterator(path)) {
-		auto filename = entry.path().filename();
-		if (filename.string().starts_with(name)) {
-			found.push_back(filename.string());
+// Converts Renegade's move representation for Viriformat
+uint16_t ViriformatGame::ToViriformatMove(const Move& m) const {
+	const uint8_t flag = [&] {
+		switch (m.flag) {
+		case MoveFlag::ShortCastle: return 0b10'00;
+		case MoveFlag::LongCastle: return 0b10'00;
+		case MoveFlag::EnPassantPerformed: return 0b01'00;
+		case MoveFlag::PromotionToKnight: return 0b11'00;
+		case MoveFlag::PromotionToBishop: return 0b11'01;
+		case MoveFlag::PromotionToRook: return 0b11'10;
+		case MoveFlag::PromotionToQueen: return 0b11'11;
+		default: return 0b00'00;
 		}
-	}
-	cout << Console::White << "\nFound " << Console::Yellow << found.size() << Console::White << " files\n" << endl;
+	}();
+	return (m.from) | (m.to << 6) | (flag << 12);
+}
 
-	// Write file
-	const std::string mergedName = name + "_merged";
-	std::ofstream output;
-	output.open(mergedName, std::ios_base::app);
-	int64_t counter = 0;
+void ViriformatGame::WriteToFile(std::ofstream& stream) const {
 
-	for (const auto& filename : found) {
-		std::ifstream ifs(filename);
-		std::string line;
-		cout << filename << ": ";
+	// Marlinformat starting entry (32 bytes)
+	const uint64_t startingOccupancy = startingBoard.GetOccupancy();
+	uint64_t occupancy = startingOccupancy;
+	std::array<uint8_t, 16> pieces{}; // 32 x 4 bits
+	int i = 0;
+	while (occupancy) {
+		const uint8_t sq = Popsquare(occupancy);
+		const uint8_t piece = startingBoard.GetPieceAt(sq);
+		uint8_t marlinformatPiece = TypeOfPiece(piece) - 1 + (ColorOfPiece(piece) == PieceColor::Black) * 8;
 
-		while (std::getline(ifs, line)) {
-			if (limit != -1 && counter >= limit) break;
-			counter += 1;
-			if (counter % 1'000'000 == 0) cout << ".";
-
-			// Basic check if the output was okay
-			const int pipeCount = std::ranges::count(line, '|');
-			if (pipeCount != 2) {
-				cout << "\n-> Malformed: '" << line << "'" << endl;
-			}
-
-			// To do: collect stats and display them
-
-			if (counter % 100 == 0) output << line << endl;
-			else output << line << '\n';
+		// Extra checks for rooks, rooks that can still castle have a different encoding
+		if (piece == Piece::WhiteRook) {
+			if ((sq == castlingConfig.WhiteShortCastleRookSquare && startingBoard.WhiteRightToShortCastle)
+				|| (sq == castlingConfig.WhiteLongCastleRookSquare && startingBoard.WhiteRightToLongCastle))
+				marlinformatPiece = 6;
 		}
-		if (limit != -1 && counter >= limit) break;
+		else if (piece == Piece::BlackRook) {
+			if ((sq == castlingConfig.BlackShortCastleRookSquare && startingBoard.BlackRightToShortCastle)
+				|| (sq == castlingConfig.BlackLongCastleRookSquare && startingBoard.BlackRightToLongCastle))
+				marlinformatPiece = 14;
+		}
 
-		ifs.close();
-
-		cout << endl;
-		cout << " -> processed: " << Console::FormatInteger(counter) << endl;
+		const auto [index, high] = std::div(i, 2);
+		pieces[index] |= marlinformatPiece << (high ? 4 : 0);
+		i++;
 	}
 
-	output.close();
-	cout << Console::Green << "\nCompleted." << Console::White << endl;
-	PressEnterToExit();
+	const uint8_t encodedSideToMove = startingBoard.Turn == Side::Black;
+	const uint8_t encodedEpSquare = (startingBoard.EnPassantSquare == -1) ? 64 : static_cast<uint8_t>(startingBoard.EnPassantSquare);
+
+	const uint8_t encodedOutcome = [&] {
+		if (outcome == GameState::BlackVictory) return 0;
+		if (outcome == GameState::Drawn) return 1;
+		if (outcome == GameState::WhiteVictory) return 2;
+		assert(false);
+		return 3;
+	}();
+
+	const uint8_t encodedEpAndStm = (encodedSideToMove << 7) | encodedEpSquare;
+	const int16_t encodedScore = 0; // unused
+	const uint8_t extraByte = (DFRC << 7) | datagenVersion;
+
+	stream.write(reinterpret_cast<const char*>(&startingOccupancy), 8);
+	stream.write(reinterpret_cast<const char*>(pieces.data()), 16);
+	stream.write(reinterpret_cast<const char*>(&encodedEpAndStm), 1);
+	stream.write(reinterpret_cast<const char*>(&startingBoard.HalfmoveClock), 1);
+	stream.write(reinterpret_cast<const char*>(&startingBoard.FullmoveClock), 2);
+	stream.write(reinterpret_cast<const char*>(&encodedScore), 2);
+	stream.write(reinterpret_cast<const char*>(&encodedOutcome), 1);
+	stream.write(reinterpret_cast<const char*>(&extraByte), 1);
+
+	// Moves (4 bytes each)
+	stream.write(reinterpret_cast<const char*>(moves.data()), 4 * moves.size());
+
+	// Null terminator (4 bytes)
+	static constexpr std::array<uint8_t, 4> nullTerminator = { 0, 0, 0, 0 };
+	stream.write(reinterpret_cast<const char*>(nullTerminator.data()), 4);
 }

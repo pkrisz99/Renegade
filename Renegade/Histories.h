@@ -36,7 +36,7 @@ public:
 private:
 
 	inline void UpdateHistoryValue(int16_t& value, const int amount) {
-		const int gravity = value * std::abs(amount) / 14300;
+		const int gravity = value * std::abs(amount) / 14900;
 		value += amount - gravity;
 	}
 
