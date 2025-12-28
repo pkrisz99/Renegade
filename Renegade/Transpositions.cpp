@@ -124,7 +124,7 @@ void Transpositions::FreeTable() {
 }
 
 void Transpositions::IncreaseAge() {
-	if (CurrentGeneration < 65000) CurrentGeneration += 1;
+	if (CurrentGeneration < 16000) CurrentGeneration += 1;
 }
 
 void Transpositions::SetSize(const int megabytes, const int threadCount) {
