@@ -75,7 +75,7 @@ private:
 	}
 
 	inline int RecordingQuality(const int generation, const int depth) const {
-		return generation * 2 + depth;
+		return generation * 4 + depth;
 	}
 };
 
