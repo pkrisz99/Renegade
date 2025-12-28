@@ -462,8 +462,8 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		constexpr uint8_t rookTo = (side == Side::White) ? F1 : F8;
 
 		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteShortCastleRookSquare : CastlingConfig.BlackShortCastleRookSquare;
-		const uint64_t rayBetweenKingAndG = GetConnectingRay(kingSq, kingTo);
-		const uint64_t rayBetweenRookAndF = GetConnectingRay(rookSq, rookTo);
+		const uint64_t rayBetweenKingAndG = GetShortConnectingRay(kingSq, kingTo);
+		const uint64_t rayBetweenRookAndF = GetShortConnectingRay(rookSq, rookTo);
 		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
 		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & fakeOccupancy);
 
@@ -480,8 +480,8 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		constexpr uint8_t rookTo = (side == Side::White) ? D1 : D8;
 
 		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteLongCastleRookSquare : CastlingConfig.BlackLongCastleRookSquare;
-		const uint64_t rayBetweenKingAndC = GetConnectingRay(kingSq, kingTo);
-		const uint64_t rayBetweenRookAndF = GetConnectingRay(rookSq, rookTo);
+		const uint64_t rayBetweenKingAndC = GetShortConnectingRay(kingSq, kingTo);
+		const uint64_t rayBetweenRookAndF = GetShortConnectingRay(rookSq, rookTo);
 		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
 		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & fakeOccupancy);
 
@@ -733,6 +733,41 @@ uint64_t Position::AttackersOfSquare(const bool attackingSide, const uint8_t squ
 	return attackers;
 }
 
+// Returns a bitboard of the pinned pieces for each side
+std::pair<uint64_t, uint64_t> Position::GetPinnedBitboard() const {
+
+	uint64_t whitePinned{}, blackPinned{};
+
+	const uint8_t whiteKingSquare = WhiteKingSquare();
+	const uint8_t blackKingSquare = BlackKingSquare();
+	const uint64_t whiteOccupancy = GetOccupancy(Side::White);
+	const uint64_t blackOccupancy = GetOccupancy(Side::Black);
+
+	// Calculate pins for white
+	const uint64_t blackPotentialParallelPinners = GetRookAttacks(whiteKingSquare, blackOccupancy) & (BlackRookBits() | BlackQueenBits());
+	const uint64_t blackPotentialDiagonalPinners = GetBishopAttacks(whiteKingSquare, blackOccupancy) & (BlackBishopBits() | BlackQueenBits());
+	uint64_t blackPotentialPinners = blackPotentialParallelPinners | blackPotentialDiagonalPinners;
+
+	while (blackPotentialPinners) {
+		const uint8_t sq = Popsquare(blackPotentialPinners);
+		const uint64_t whitePiecesBetween = (GetShortConnectingRay(sq, whiteKingSquare) & ~SquareBit(sq) & ~SquareBit(whiteKingSquare)) & GetOccupancy(Side::White);
+		if (Popcount(whitePiecesBetween) == 1) whitePinned |= whitePiecesBetween;
+	}
+
+	// Calculate pins for black
+	const uint64_t whitePotentialParallelPinners = GetRookAttacks(blackKingSquare, whiteOccupancy) & (WhiteRookBits() | WhiteQueenBits());
+	const uint64_t whitePotentialDiagonalPinners = GetBishopAttacks(blackKingSquare, whiteOccupancy) & (WhiteBishopBits() | WhiteQueenBits());
+	uint64_t whitePotentialPinners = whitePotentialParallelPinners | whitePotentialDiagonalPinners;
+
+	while (whitePotentialPinners) {
+		const uint8_t sq = Popsquare(whitePotentialPinners);
+		const uint64_t blackPiecesBetween = (GetShortConnectingRay(sq, blackKingSquare) & ~SquareBit(sq) & ~SquareBit(blackKingSquare)) & GetOccupancy(Side::Black);
+		if (Popcount(blackPiecesBetween) == 1) blackPinned |= blackPiecesBetween;
+	}
+
+	return { whitePinned, blackPinned };
+}
+
 // Getting information ----------------------------------------------------------------------------
 
 bool Position::IsDrawn(const int level) const {
@@ -846,8 +881,9 @@ GameState Position::GetGameState() const {
 // Static exchange evaluation (SEE) ---------------------------------------------------------------
 
 bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
-	// This is more or less the standard way of doing this
-	// The implementation follows Ethereal's method
+	// Approximates the outcome of all captures targeting the move.to square
+	// Highly useful for pruning and for move ordering
+	// This iterative approach is the standard way of doing this with some additional code for pinned piece handling
 
 	constexpr auto seeValues = std::array{ 0, 100, 300, 300, 500, 1000, 999999 };
 
@@ -881,7 +917,14 @@ bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
 		SetBitFalse(occupancy, (turn == Side::White) ? move.to - 8 : move.to + 8);
 	}
 	turn = !turn;
-	uint64_t attackers = GetAttackersOfSquare(move.to, occupancy) & occupancy;
+
+	// Account for pinned pieces
+	const auto [whitePinned, blackPinned] = GetPinnedBitboard();
+	const uint64_t whiteAllowedPinned = whitePinned & GetLongConnectingRay(move.to, WhiteKingSquare());
+	const uint64_t blackAllowedPinned = blackPinned & GetLongConnectingRay(move.to, BlackKingSquare());
+	const uint64_t allowed = ~(whitePinned | blackPinned) | whiteAllowedPinned | blackAllowedPinned;
+
+	uint64_t attackers = GetAttackersOfSquare(move.to, occupancy) & occupancy & allowed;
 
 	// Pseudo-generating steps
 	while (true) {

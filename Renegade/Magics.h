@@ -7,12 +7,14 @@ extern void GenerateMagicTables();
 extern uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy);
 extern uint64_t GetBishopAttacks(const uint8_t square, const uint64_t occupancy);
 extern uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
-extern uint64_t GetConnectingRay(const uint8_t from, const uint64_t to);
+extern uint64_t GetShortConnectingRay(const uint8_t from, const uint8_t to);
+extern uint64_t GetLongConnectingRay(const uint8_t from, const uint8_t to);
 
 // Attack lookup tables (generated at runtime)
 static MultiArray<uint64_t, 64, 4096> RookAttacks;
 static MultiArray<uint64_t, 64, 512> BishopAttacks;
-static MultiArray<uint64_t, 64, 64> ConnectingRays;
+static MultiArray<uint64_t, 64, 64> ShortConnectingRays;
+static MultiArray<uint64_t, 64, 64> LongConnectingRays;
 
 // Pregenerated random magic numbers
 // Think of: https://xkcd.com/221/

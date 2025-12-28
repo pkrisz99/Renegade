@@ -8,6 +8,10 @@
 #include <memory>
 #include <thread>
 
+#ifdef __linux__
+#include <sys/mman.h>
+#endif
+
 namespace ScoreType {
 	constexpr int Invalid = 0;
 	constexpr int Exact = 1;
@@ -71,7 +75,7 @@ private:
 	}
 
 	inline int RecordingQuality(const int generation, const int depth) const {
-		return generation * 2 + depth;
+		return generation * 4 + depth;
 	}
 };
 

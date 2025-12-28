@@ -43,6 +43,7 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 	const bool replaceable = [&] {
 		if (storedHash != candidateEntry.hash) return true;
 		if (scoreType == ScoreType::Exact) return true;
+		if (CurrentGeneration != candidateEntry.generation) return true;
 		return depth + 3 + ttPv * 2 >= candidateEntry.depth;
 	}();
 
@@ -95,11 +96,21 @@ void Transpositions::Prefetch(const uint64_t hash) const {
 }
 
 void Transpositions::AllocateTable(const uint64_t clusterCount) {
-#if defined(_MSC_VER) || defined(_WIN32)
-	Table = static_cast<TranspositionCluster*>(_aligned_malloc(clusterCount * sizeof(TranspositionCluster), 64));
-#else
-	Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, clusterCount * sizeof(TranspositionCluster)));
-#endif
+	#if defined(_MSC_VER) || defined(_WIN32)
+		// Windows: just allocate memory, don't bother with memory tricks
+		Table = static_cast<TranspositionCluster*>(_aligned_malloc(clusterCount * sizeof(TranspositionCluster), 64));
+	#else
+		#if defined(__linux__) && defined(MADV_HUGEPAGE)
+			// Linux: request transparent huge pages for a possible speed up
+			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(2 * 1024 * 1024, clusterCount * sizeof(TranspositionCluster)));
+			madvise(Table, clusterCount * sizeof(TranspositionCluster), MADV_HUGEPAGE);
+		#else
+			// Fall back if system is not compatible
+			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, clusterCount * sizeof(TranspositionCluster)));
+		#endif
+	#endif
+
+	// Set cluster count
 	TableSize = clusterCount;
 }
 
@@ -113,7 +124,7 @@ void Transpositions::FreeTable() {
 }
 
 void Transpositions::IncreaseAge() {
-	if (CurrentGeneration < 65000) CurrentGeneration += 1;
+	if (CurrentGeneration < 16000) CurrentGeneration += 1;
 }
 
 void Transpositions::SetSize(const int megabytes, const int threadCount) {
@@ -153,7 +164,7 @@ int Transpositions::GetHashfull() const {
 	int hashfull = 0;
 	for (int i = 0; i < 1000; i++) {
 		for (const TranspositionEntry& entry : Table[i].entries) {
-			if (RecordingQuality(entry.generation, entry.depth) >= RecordingQuality(CurrentGeneration, 0)) hashfull += 1;
+			if (entry.scoreType != ScoreType::Invalid && entry.generation == CurrentGeneration) hashfull += 1;
 		}
 	}
 	return hashfull / 4;

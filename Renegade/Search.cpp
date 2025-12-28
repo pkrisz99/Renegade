@@ -6,9 +6,9 @@
 Search::Search() {
 	constexpr double lmrMultiplier = 0.40;
 	constexpr double lmrBase = 0.76;
-	for (int i = 1; i < 32; i++) {
-		for (int j = 1; j < 32; j++) {
-			LMRTable[i][j] = static_cast<int>(lmrMultiplier * std::log(i) * std::log(j) + lmrBase);
+	for (int i = 0; i < 32; i++) {
+		for (int j = 0; j < 32; j++) {
+			LMRTable[i][j] = static_cast<int>(lmrMultiplier * std::log(std::max(i, 1)) * std::log(std::max(j, 1)) + lmrBase);
 		}
 	}
 	StartThreads(1);
@@ -177,7 +177,7 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 		}
 		else {
 			// Time control with increment
-			minTime = static_cast<int>(myTime * 0.023 + myInc * 0.7);
+			minTime = static_cast<int>(myTime * 0.025 + myInc * 0.7);
 			maxTime = static_cast<int>(myTime * 0.25);
 		}
 
@@ -298,7 +298,8 @@ void Search::SearchMoves(ThreadData& t) {
 		if (t.RootDepth >= MaxDepth) finished = true;
 		if (t.Nodes >= Constraints.SoftNodes && Constraints.SoftNodes != -1) finished = true;
 
-		if (Aborting.load(std::memory_order_relaxed) && !t.singlethreaded && t.RootDepth > 1) {
+		const bool aborting = Aborting.load(std::memory_order_relaxed);
+		if (aborting && !t.singlethreaded && t.RootDepth > 1) {
 			t.result.nodes = t.Nodes;
 			t.result.time = elapsedMs;
 			t.result.nps = static_cast<uint64_t>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
@@ -307,17 +308,18 @@ void Search::SearchMoves(ThreadData& t) {
 		}
 
 		// Save info
-		t.result.score = score;
-		t.result.depth = t.RootDepth;
+		if (!t.singlethreaded || !aborting) {
+			t.result.score = score;
+			t.result.depth = t.RootDepth;
+			t.result.pv = t.GeneratePvLine();
+		}
 		t.result.seldepth = t.SelDepth;
-
 		t.result.nodes = t.Nodes;
 		t.result.time = elapsedMs;
 		t.result.nps = static_cast<int>(t.Nodes * 1e9 / (currentTime - StartSearchTime).count());
 		t.result.hashfull = TranspositionTable.GetHashfull();
 
-		// Obtaining PV line and displaying
-		t.result.pv = t.GeneratePvLine();
+		// Display search information
 		if (t.IsMainThread() && !t.singlethreaded) {
 			if (!finished) PrintInfo(AggregateThreadResults());
 		}
@@ -372,6 +374,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	t.InitPvLength(level);
 	if (level >= MaxDepth) return Evaluate(t, position);
 	if (level > t.SelDepth) t.SelDepth = level;
+	const bool tooDeep = level >= t.RootDepth * 2;
 
 	// Mate distance pruning
 	if (!rootNode) {
@@ -385,7 +388,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Check extensions
 	const bool inCheck = position.IsInCheck();
-	if (depth == 0 && inCheck) depth += 1;
+	if (!rootNode && inCheck && (!tooDeep || depth == 0)) depth += 1;
 
 	// Drop into quiescence search at depth 0
 	if (depth <= 0) {
@@ -415,7 +418,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 	}
 
-	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 7)
+	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 7) && !tooDeep
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && !IsMateScore(ttEval);
 	const bool ttPV = pvNode || (found && ttEntry.ttPv);
 	
@@ -519,7 +522,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		else capturesTried.push(m);
 
 		// Moves loop pruning techniques
-		if (!pvNode && !IsLosingMateScore(bestScore) && !DatagenMode) {
+		if (!pvNode && !IsLosingMateScore(bestScore)) {
 
 			// Late-move pruning
 			if (depth <= 4 && isQuiet && !inCheck) {
@@ -534,7 +537,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 
 			// Main search SEE pruning
-			if (depth <= 5 && position.IsSquareThreatened(m.to)) {
+			if (position.IsSquareThreatened(m.to)) {
 				const int seeMargin = isQuiet ? (-50 * depth) : (-100 * depth);
 				if (!position.StaticExchangeEval(m, seeMargin)) continue;
 			}
@@ -542,7 +545,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Singular extensions
 		int extension = 0;
-		if (singularCandidate && m == ttMove && level < t.RootDepth * 2) {
+		if (singularCandidate && m == ttMove) {
 			const int singularMargin = depth * 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
@@ -553,7 +556,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				
 			if (singularScore < singularBeta) {
 				// Successful extension
-				const bool doubleExtend = (!pvNode && (singularScore < singularBeta - tune_ext_double())) || t.SuperSingular[level];
+				const bool doubleExtend = !pvNode && ((singularScore < singularBeta - 23) || t.SuperSingular[level]);
 				extension = 1 + doubleExtend;
 			}
 			else {
@@ -775,7 +778,6 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 			if (bestScore > alpha) {
 				alpha = bestScore;
 				bestMove = m;
-				scoreType = ScoreType::Exact;
 			}
 		}
 	}
