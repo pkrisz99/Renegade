@@ -386,10 +386,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	// Check for draws
 	if (!rootNode && position.IsDrawn(level)) return DrawEvaluation(t);
 
-	// Check extensions
-	const bool inCheck = position.IsInCheck();
-	if (!rootNode && inCheck && depth == 0) depth += 1;
-
 	// Drop into quiescence search at depth 0
 	if (depth <= 0) {
 		return SearchQuiescence<pvNode>(t, level, alpha, beta);
@@ -421,6 +417,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 7) && !tooDeep
 		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && !IsMateScore(ttEval);
 	const bool ttPV = pvNode || (found && ttEntry.ttPv);
+	const bool inCheck = position.IsInCheck();
 	
 	// Obtain the evaluation of the position
 	int rawEval = NoEval;
