@@ -113,7 +113,7 @@ ADD_TUNABLE(corrhist_inertia, 194, 140, 300, 30)
 ADD_TUNABLE(capthist_mul, 16, 10, 20, 3)
 ADD_TUNABLE(capthist_div, 33, 16, 48, 6)
 
-ADD_TUNABLE(ext_double, 23, 15, 26, 3)
+ADD_TUNABLE(ext_double, 23, 15, 24, 3)
 
 ADD_TUNABLE(qsfp_margin, 274, 150, 450, 60)
 
