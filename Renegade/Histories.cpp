@@ -59,7 +59,7 @@ template void Histories::UpdateCaptureHistory<Penalty>(const Position&, const Mo
 template <bool bonus>
 void Histories::UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth, const int times) {
 	
-	const int delta = std::min(300 * depth, 2850) * times * (bonus ? 1 : -1);
+	const int delta = std::min(310 * depth, 3100) * times * (bonus ? 1 : -1);
 
 	// Main quiet history
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
@@ -80,7 +80,7 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 
 template <bool bonus>
 void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth, const int times) {
-	const int delta = std::min(300 * depth, 2850) * times * (bonus ? 1 : -1);
+	const int delta = std::min(310 * depth, 3100) * times * (bonus ? 1 : -1);
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
@@ -119,8 +119,8 @@ int Histories::GetCaptureHistoryScore(const Position& position, const Move& m) c
 // Static evaluation correction history -----------------------------------------------------------
 
 void Histories::UpdateCorrection(const Position& position, const int16_t refEval, const int16_t score, const int depth) {
-	static constexpr int inertia = 194;
-	static constexpr int cap = 8650;
+	static constexpr int inertia = 141;
+	static constexpr int cap = 9300;
 	const int diff = (score - refEval) * 256;
 	const int weight = std::min(16, depth + 1);
 

@@ -4,7 +4,7 @@
 // what this engine does under the hood, and I'm happy for that, feel free to try some ideas from here!
 
 Search::Search() {
-	constexpr double lmrMultiplier = 0.40;
+	constexpr double lmrMultiplier = 0.45;
 	constexpr double lmrBase = 0.76;
 	for (int i = 0; i < 32; i++) {
 		for (int j = 0; j < 32; j++) {
@@ -455,7 +455,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Reverse futility pruning
 		if (depth <= 7 && !IsMateScore(beta)) {
-			const int rfpMargin = depth * 103 - improving * 86;
+			const int rfpMargin = depth * 111 - improving * 71;
 			if (eval - rfpMargin > beta) return (eval + beta) / 2;
 		}
 
@@ -463,7 +463,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (depth >= 3 && eval >= beta && !position.IsPreviousMoveNull() && position.ZugzwangUnlikely()) {
 			TranspositionTable.Prefetch(position.Hash() ^ Zobrist.SideToMove);
 			const int nmpReduction = [&] {
-				const int defaultReduction = 4 + depth / 3 + std::min((eval - beta) / 241, 3);
+				const int defaultReduction = 4 + depth / 3 + std::min((eval - beta) / 259, 3);
 				return std::min(defaultReduction, depth);
 			}();
 			position.PushNullMove();
@@ -478,7 +478,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Futility pruning
 		if (depth <= 5 && !IsMateScore(beta)) {
-			const int futilityMargin = 45 + depth * 112 + improving * 44;
+			const int futilityMargin = 51 + depth * 103 + improving * 54;
 			futilityPrunable = (eval + futilityMargin < alpha);
 		}
 	}
@@ -583,7 +583,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!ttPV) reduction += 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
-			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 20100, -2, 2);
+			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 21500, -2, 2);
 			if (cutNode) reduction += 1;
 			if (improving) reduction -= 1;
 			if (givingCheck) reduction -= 1;
@@ -739,7 +739,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	int bestScore = staticEval;
 	Move bestMove = NullMove;
 	int scoreType = ScoreType::UpperBound;
-	int futilityScore = std::min(staticEval + 274, MateThreshold - 1);
+	int futilityScore = std::min(staticEval + 273, MateThreshold - 1);
 
 	while (movePicker.HasNext()) {
 		const auto& [m, order] = movePicker.Get();
