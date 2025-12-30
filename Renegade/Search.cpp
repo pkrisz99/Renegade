@@ -455,7 +455,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Reverse futility pruning
 		if (depth <= 7 && !IsMateScore(beta)) {
-			const int rfpMargin = depth * 111 - improving * 71;
+			const int rfpMargin = depth * 115 - improving * 73;
 			if (eval - rfpMargin > beta) return (eval + beta) / 2;
 		}
 
@@ -478,7 +478,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Futility pruning
 		if (depth <= 5 && !IsMateScore(beta)) {
-			const int futilityMargin = 51 + depth * 103 + improving * 54;
+			const int futilityMargin = 48 + depth * 100 + improving * 53;
 			futilityPrunable = (eval + futilityMargin < alpha);
 		}
 	}
@@ -583,7 +583,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!ttPV) reduction += 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
-			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 21500, -2, 2);
+			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 22100, -2, 2);
 			if (cutNode) reduction += 1;
 			if (improving) reduction -= 1;
 			if (givingCheck) reduction -= 1;
@@ -594,7 +594,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			failHighCount += (score > alpha);
 
 			if (score > alpha && reducedDepth < depth - 1) {
-				deepen = score > (bestScore + 32 + depth * 5);
+				deepen = score > (bestScore + 30 + depth * 5);
 				score = -SearchRecursive<false>(t, depth - 1 + deepen, level + 1, -alpha - 1, -alpha, !cutNode);
 				failHighCount += (score > alpha);
 			}
@@ -739,7 +739,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	int bestScore = staticEval;
 	Move bestMove = NullMove;
 	int scoreType = ScoreType::UpperBound;
-	int futilityScore = std::min(staticEval + 273, MateThreshold - 1);
+	int futilityScore = std::min(staticEval + 267, MateThreshold - 1);
 
 	while (movePicker.HasNext()) {
 		const auto& [m, order] = movePicker.Get();
