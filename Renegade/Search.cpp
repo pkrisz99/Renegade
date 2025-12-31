@@ -657,7 +657,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Adjust bestScore slightly towards beta
 		if (!IsMateScore(bestScore) && !IsMateScore(beta)) {
-			bestScore = (bestScore * depth + beta) / (depth + 1);
+			bestScore = (bestScore * depth * 2 + beta) / (2 * depth + 1);
 		}
 
 		// Increment history scores for the move causing the cutoff 
