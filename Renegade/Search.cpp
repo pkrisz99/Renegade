@@ -655,6 +655,11 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (level != 0) t.CutoffCount[level - 1] += 1;
 		const bool quietBestMove = position.IsMoveQuiet(bestMove);
 
+		// Adjust bestScore slightly towards beta
+		if (!IsMateScore(bestScore) && !IsMateScore(beta)) {
+			bestScore = (bestScore * depth + beta) / (depth + 1);
+		}
+
 		// Increment history scores for the move causing the cutoff 
 		if (quietBestMove) {
 			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth, failHighCount);
