@@ -67,13 +67,20 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
 	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened], delta);
 
+	// Get continuation history total
+	int contHistTotal = 0;
+	for (const int ply : { 1, 2, 4 }) {
+		if (level < ply) break;
+		contHistTotal += ContinuationHistory[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
+	}
+
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
 		if (level < ply) break;
 		const auto& [prevMove, prevPiece] = position.GetPreviousMove(ply);
 		if (prevPiece != Piece::None) {
 			int16_t& value = ContinuationHistory[prevPiece][prevMove.to][movedPiece][m.to];
-			UpdateHistoryValue(value, delta);
+			UpdateHistoryValueCustomGravity(value, contHistTotal, delta);
 		}
 	}
 }
