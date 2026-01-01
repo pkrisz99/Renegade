@@ -63,6 +63,11 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	const int pieceCount = Popcount(position.GetOccupancy());
 	const int outputBucket = GetOutputBucket(pieceCount);
 
+	if (pieceCount == 3) {
+		const auto endgameScore = EvaluateSpecificEndgame(position);
+		if (endgameScore.has_value()) return endgameScore.value();
+	}
+
 #ifdef __AVX2__
 	// Calculate output with handwritten SIMD (autovec also works, but it's slower)
 	// Idea by somelizard, it makes fast QA=255 SCReLU possible

@@ -1,4 +1,5 @@
 #pragma once
+#include "Endgames.h"
 #include "Position.h"
 #include <algorithm>
 #include <array>
