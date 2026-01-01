@@ -543,7 +543,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Singular extensions
 		int extension = 0;
 		if (singularCandidate && m == ttMove) {
-			const int singularMargin = depth * 2;
+			const int singularMargin = depth * 3 / 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
 			t.ExcludedMoves[level] = m;
