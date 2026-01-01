@@ -119,8 +119,8 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	// Scale according to material
 	const int gamePhase = position.GetGamePhase();
 	output = output * (52 + std::min(24, gamePhase)) / 64;
-	// Scale according to a modified halfmove clock (max 84)
-	const int modifiedHalfmoveClock = std::min(position.CurrentState().HalfmoveClock - 16, 0);
+	// Scale according to a modified halfmove clock (max 80)
+	const int modifiedHalfmoveClock = std::max(position.CurrentState().HalfmoveClock - 20, 0);
 	output = output * (256 - modifiedHalfmoveClock) / 256;
 #endif
 
