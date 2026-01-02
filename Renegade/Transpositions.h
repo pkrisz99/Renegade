@@ -75,7 +75,9 @@ private:
 	}
 
 	inline int RecordingQuality(const int generation, const int depth) const {
-		return generation * 4 + depth;
+		// The quadratic term makes the depth impact flatten out at higher depths
+		// This should encourage exploration over taking very high depth entries as gospel
+		return generation * 4 + depth - (depth * depth) / 256;
 	}
 };
 
