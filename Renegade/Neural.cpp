@@ -115,10 +115,13 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	constexpr int Q = QA * QB;
 	output = (output / QA + Network->OutputBias[outputBucket]) * Scale / Q; // for SCReLU
 
-	// Scale according to material
 #ifndef RENEGADE_DATAGEN
+	// Scale according to material
 	const int gamePhase = position.GetGamePhase();
 	output = output * (52 + std::min(24, gamePhase)) / 64;
+	// Scale according to a modified halfmove clock (max 80)
+	const int modifiedHalfmoveClock = std::max(position.CurrentState().HalfmoveClock - 20, 0);
+	output = output * (256 - modifiedHalfmoveClock) / 256;
 #endif
 
 	return std::clamp(output, -MateThreshold + 1, MateThreshold - 1);
