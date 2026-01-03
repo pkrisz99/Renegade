@@ -244,6 +244,7 @@ void Position::PushNullMove() {
 
 	board.Turn = !board.Turn;
 	if (board.Turn == Side::White) board.FullmoveClock += 1;
+	board.HalfmoveClock = 0;
 	board.Threats = CalculateAttackedSquares(!Turn());
 	board.BoardHash ^= Zobrist.SideToMove;
 
