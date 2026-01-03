@@ -578,9 +578,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		const bool givingCheck = position.IsInCheck();
 
 		// Principal variation search & late-move reductions
-		if (depth >= 3 && (legalMoveCount >= (3 + pvNode * 2 + rootNode * 2)) && isQuiet) {
+		if (depth >= 3 && isQuiet) {
 			
-			int reduction = LMRTable[std::min(depth, 31)][std::min(failLowCount, 31)];
+			const int moveIndex = std::clamp(failLowCount - pvNode * 2 - rootNode * 2, 0, 31);
+			int reduction = LMRTable[std::min(depth, 31)][moveIndex];
 			if (!ttPV) reduction += 1;
 			if (t.CutoffCount[level] < 4) reduction -= 1;
 			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order / 22100, -2, 2);
