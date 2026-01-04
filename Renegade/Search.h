@@ -96,7 +96,6 @@ public:
 	std::list<ThreadData> Threads;
 	std::atomic<int> ActiveThreadCount = 0;
 	std::atomic<int> LoadedThreadCount = 0;
-	int bad = 0;
 
 private:
 	Results AggregateThreadResults() const;

@@ -387,26 +387,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	assert(!(rootNode && !pvNode));
 	assert(!pvNode || !cutNode);
 
-	// debug ---
-	if (Popcount(position.GetOccupancy()) > 5 && position.CurrentState().HalfmoveClock < 98) {
-		const bool hasUpcoming = position.HasUpcomingRepetition(level);
-		MoveList ml{};
-		position.GenerateMoves(ml, MoveGen::All, Legality::Legal);
-		bool real = false;
-		for (const auto [m, s] : ml) {
-			position.PushMove(m);
-			real |= position.IsDrawn(level + 1);
-			position.PopMove();
-			if (real) break;
-		}
-
-		if (hasUpcoming != real && !position.GetPreviousMove(1).move.IsNull()) {
-			cout << "cuckoo:" << hasUpcoming << " - real:" << real << "  " << position.GetFEN() << " (" << (rootNode ? "root" : position.GetPreviousMove(1).move.ToString(true)) << ") * " << (int)Popcount(position.GetOccupancy()) << endl;
-			bad += 1;
-		}
-	}
-	// ---------
-
 	// Check search limits
 	if (ShouldAbort(t)) return NoEval;
 	t.InitPvLength(level);

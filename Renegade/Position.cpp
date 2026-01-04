@@ -1084,16 +1084,17 @@ bool Position::HasUpcomingRepetition(const int level) const {
 	};
 
 	const uint64_t originalHash = CurrentState().BoardHash;
-	const uint64_t originalOccupancy = GetOccupancy();	
+	const uint64_t originalOccupancy = GetOccupancy();
 	uint64_t other = originalHash ^ previousHash(1) ^ Zobrist.SideToMove;
 
 	for (int d = 3; d <= end; d += 2) {
-		const uint64_t currentHash = previousHash(d);
-		other ^= currentHash ^ previousHash(d - 1) ^ Zobrist.SideToMove;
+
+		// Opponent pieces reverted?
+		other ^= previousHash(d) ^ previousHash(d - 1) ^ Zobrist.SideToMove;
 		if (other != 0) continue;
 
-		// Symmetric difference between the hashes
-		const uint64_t diff = originalHash ^ currentHash;
+		// Symmetric difference between the hashes ("encodes the Zobrist hash of the move")
+		const uint64_t diff = originalHash ^ previousHash(d);
 
 		// Find the possibly reversing move
 		const std::optional<int> slot = [&] {
