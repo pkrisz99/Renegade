@@ -501,7 +501,6 @@ void Engine::HandleBench() {
 	const auto endTime = Clock::now();
 	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
 	cout << nodes << " nodes " << nps << " nps" << endl;
-	cout << SearchThreads.bad << endl;
 
 	SearchThreads.ResetState(false);
 	Settings::Threads = oldThreadCount;
