@@ -1,9 +1,9 @@
 #include "Magics.h"
 
+// Retrieving attack bitboards and rays -----------------------------------------------------------
+
 // Largely based on https://github.com/maksimKorzh/chess_programming/blob/master/src/magics/magics.c
 // and indirectly on https://www.chessprogramming.org/Looking_for_Magics#Feeding_in_Randoms
-
-// Retrieving attack bitboards --------------------------------------------------------------------
 
 uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy) {
 	const int index = static_cast<int>(((occupancy & RookMasks[square]) * RookMagicNumbers[square]) >> (64 - RookRelevantBits[square]));
@@ -27,6 +27,14 @@ uint64_t GetShortConnectingRay(const uint8_t from, const uint8_t to) {
 
 uint64_t GetLongConnectingRay(const uint8_t from, const uint8_t to) {
 	return LongConnectingRays[from][to];
+}
+
+uint64_t GetCuckooHash(const int index) {
+	return CuckooKeys[index];
+}
+
+Move& GetCuckooMove(const int index) {
+	return CuckooMoves[index];
 }
 
 // Things for lookup table population -------------------------------------------------------------
@@ -172,6 +180,55 @@ void GenerateMagicTables() {
 			}();
 		}
 	}
+
+	// 5. Generate arrays for cuckoo table-based upcoming repetition detection
+	// See also: Position::HasUpcomingRepetition(...)
+	static constexpr std::array<uint8_t, 10> relevantPieces = {
+		Piece::WhiteKnight, Piece::WhiteBishop, Piece::WhiteRook, Piece::WhiteQueen, Piece::WhiteKing,
+		Piece::BlackKnight, Piece::BlackBishop, Piece::BlackRook, Piece::BlackQueen, Piece::BlackKing
+	};
+	[[maybe_unused]] int count = 0;
+
+	// Iterate through tuples of (piece, sq1, sq2) where sq1 < sq2
+	for (uint8_t piece : relevantPieces) {
+		for (uint8_t sq1 = 0; sq1 < 64; sq1++) {
+			for (uint8_t sq2 = sq1 + 1; sq2 < 64; sq2++) {
+
+				const uint8_t pieceType = TypeOfPiece(piece);
+
+				const uint64_t attackMap = [&] {
+					switch (pieceType) {
+					case PieceType::Bishop:
+						return GetBishopAttacks(sq1, 0ull);
+					case PieceType::Rook:
+						return GetRookAttacks(sq1, 0ull);
+					case PieceType::Queen:
+						return GetQueenAttacks(sq1, 0ull);
+					case PieceType::Knight:
+						return KnightMoveBits[sq1];
+					case PieceType::King:
+						return KingMoveBits[sq1];
+					}
+					return 0ull; // unreachable
+				}();
+
+				// Record if sq2 is reachable from sq1 (and vice versa)
+				if (CheckBit(attackMap, sq2)) {
+					Move move = Move(sq1, sq2);
+					uint64_t key = Zobrist.PieceSquare[piece][sq1] ^ Zobrist.PieceSquare[piece][sq2] ^ Zobrist.SideToMove;
+					int slot = CuckooH1(key);
+					while (true) {
+						std::swap(CuckooKeys[slot], key);
+						std::swap(CuckooMoves[slot], move);
+						if (move.IsNull()) break;
+						slot = (slot == CuckooH1(key)) ? CuckooH2(key) : CuckooH1(key);
+					}
+					count++;
+				}
+			}
+		}
+	}	
+	assert(count == 3668);
 }
 
 // Magic number generation (not actively needed) --------------------------------------------------

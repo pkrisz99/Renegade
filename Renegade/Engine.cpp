@@ -163,6 +163,9 @@ void Engine::Start() {
 			if (parts[1] == "attackmap") {
 				DrawBoard(position, position.GetThreats());
 			}
+			if (parts[1] == "cuckoo") {
+				cout << " -> Has upcoming repetiton? " << std::boolalpha << position.HasUpcomingRepetition(position.CurrentState().HalfmoveClock + 1) << std::noboolalpha << endl;
+			}
 			if (parts[1] == "pseudolegal") {
 				MoveList pseudoMoves{};
 				position.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
@@ -498,6 +501,7 @@ void Engine::HandleBench() {
 	const auto endTime = Clock::now();
 	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
 	cout << nodes << " nodes " << nps << " nps" << endl;
+	cout << SearchThreads.bad << endl;
 
 	SearchThreads.ResetState(false);
 	Settings::Threads = oldThreadCount;
