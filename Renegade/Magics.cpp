@@ -209,7 +209,7 @@ void GenerateMagicTables() {
 					case PieceType::King:
 						return KingMoveBits[sq1];
 					}
-					return 0ull; // unreachable
+					return uint64_t{0}; // unreachable
 				}();
 
 				// Record if sq2 is reachable from sq1 (and vice versa)
