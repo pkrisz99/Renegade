@@ -6,7 +6,7 @@ TARGET    := Renegade
 _THIS     := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 _ROOT     := $(_THIS)
 CXX       := clang++
-CXXFLAGS  := -std=c++20 -O3 -flto -funroll-loops -fno-exceptions -DNDEBUG -Wall -Wextra
+CXXFLAGS  := -std=c++20 -O3 -flto -funroll-loops -fno-exceptions -Wall -Wextra
 NATIVE    := -march=native -mtune=native
 SOURCES   := $(filter-out Datagen.cpp Classical.cpp, $(wildcard *.cpp))
 

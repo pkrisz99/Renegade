@@ -1,5 +1,6 @@
 #pragma once
 #include <random>
+#include "Move.h"
 #include "Utils.h"
 
 // Methods:
@@ -10,11 +11,21 @@ extern uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
 extern uint64_t GetShortConnectingRay(const uint8_t from, const uint8_t to);
 extern uint64_t GetLongConnectingRay(const uint8_t from, const uint8_t to);
 
-// Attack lookup tables (generated at runtime)
+constexpr int CuckooH1(const uint64_t key) {
+	return key & 0x1FFF;
+}
+
+constexpr int CuckooH2(const uint64_t key) {
+	return (key >> 16) & 0x1FFF;
+}
+
+// Lookup tables (generated at runtime)
 static MultiArray<uint64_t, 64, 4096> RookAttacks;
 static MultiArray<uint64_t, 64, 512> BishopAttacks;
 static MultiArray<uint64_t, 64, 64> ShortConnectingRays;
 static MultiArray<uint64_t, 64, 64> LongConnectingRays;
+static std::array<uint64_t, 8192> CuckooKeys;
+static std::array<Move, 8192> CuckooMoves;
 
 // Pregenerated random magic numbers
 // Think of: https://xkcd.com/221/

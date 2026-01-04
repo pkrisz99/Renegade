@@ -1068,6 +1068,60 @@ bool Position::IsDrawn(const int level) const {
 	return false;
 }
 
+bool Position::HasUpcomingRepetition(const int level) const {
+	// Detects if there is a move to make a repetition
+	// The basic idea is that instead of directly comparing hashes, we can express their difference, and then use
+	// cuckoo tables for a O(1) hash difference lookup to find whether there is move to revert to a previous state.
+	// Move legality needs to be checked, but a costly IsLegal() can be avoided
+	// Source: https://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
+	// See also: Cuckoo table generation in Magics.cpp (its temporary home)
+
+	const int end = std::min(static_cast<size_t>(CurrentState().HalfmoveClock), States.size() - 1);
+	if (Moves.back().move.IsNull() || end < 3) return false;
+
+	const auto previousHash = [this](const int d) -> uint64_t {
+		return GetPreviousState(d).BoardHash;
+	};
+
+	const uint64_t originalHash = CurrentState().BoardHash;
+	const uint64_t originalOccupancy = GetOccupancy();	
+	uint64_t other = originalHash ^ previousHash(1) ^ Zobrist.SideToMove;
+
+	for (int d = 3; d <= end; d += 2) {
+		const uint64_t currentHash = previousHash(d);
+		other ^= currentHash ^ previousHash(d - 1) ^ Zobrist.SideToMove;
+		if (other != 0) continue;
+
+		// Symmetric difference between the hashes
+		const uint64_t diff = originalHash ^ currentHash;
+
+		// Find the possibly reversing move
+		const std::optional<int> slot = [&] {
+			int slotCandidate = CuckooH1(diff);
+			if (diff != GetCuckooHash(slotCandidate)) slotCandidate = CuckooH2(diff);
+			if (diff != GetCuckooHash(slotCandidate)) return std::optional<int>(std::nullopt);
+			return std::optional<int>(slotCandidate);
+		}();
+		if (!slot.has_value()) continue;
+
+		const Move& move = GetCuckooMove(slot.value());
+
+		// Make sure there's no piece blocking and preventing the move
+		const uint64_t rayBetween = GetShortConnectingRay(move.from, move.to) & ~SquareBit(move.from) & ~SquareBit(move.to);
+		if (originalOccupancy & rayBetween) continue;
+		
+		// Two-fold when repetition is after the root 
+		if (level > d) return true;
+
+		// Look for another repetition otherwise
+		for (int i = d + 4; i <= end; i += 2) {
+			if (previousHash(d) == previousHash(i)) return true;
+		}
+	}
+
+	return false;
+}
+
 bool Position::IsMoveQuiet(const Move& move) const {
 	if (move.IsCastling()) return true;
 	const uint8_t targetPiece = GetPieceAt(move.to);

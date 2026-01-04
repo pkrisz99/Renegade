@@ -387,6 +387,26 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	assert(!(rootNode && !pvNode));
 	assert(!pvNode || !cutNode);
 
+	// debug ---
+	if (Popcount(position.GetOccupancy()) > 5 && position.CurrentState().HalfmoveClock < 98) {
+		const bool hasUpcoming = position.HasUpcomingRepetition(level);
+		MoveList ml{};
+		position.GenerateMoves(ml, MoveGen::All, Legality::Legal);
+		bool real = false;
+		for (const auto [m, s] : ml) {
+			position.PushMove(m);
+			real |= position.IsDrawn(level + 1);
+			position.PopMove();
+			if (real) break;
+		}
+
+		if (hasUpcoming != real && !position.GetPreviousMove(1).move.IsNull()) {
+			cout << "cuckoo:" << hasUpcoming << " - real:" << real << "  " << position.GetFEN() << " (" << (rootNode ? "root" : position.GetPreviousMove(1).move.ToString(true)) << ") * " << (int)Popcount(position.GetOccupancy()) << endl;
+			bad += 1;
+		}
+	}
+	// ---------
+
 	// Check search limits
 	if (ShouldAbort(t)) return NoEval;
 	t.InitPvLength(level);
@@ -402,7 +422,14 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	// Check for draws
-	if (!rootNode && position.IsDrawn(level)) return DrawEvaluation(t);
+	if (!rootNode) {
+		if (position.IsDrawn(level)) return DrawEvaluation(t);
+
+		if (alpha < 0 && position.HasUpcomingRepetition(level)) {
+			alpha = std::max(DrawEvaluation(t), alpha);
+			if (alpha >= beta) return alpha;
+		}
+	}
 
 	// Drop into quiescence search at depth 0
 	if (depth <= 0) {
@@ -729,7 +756,10 @@ template <bool pvNode>
 int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta) {
 
 	Position& position = t.CurrentPosition;
-	assert(pvNode || beta - alpha == 1);
+	if (!(pvNode || beta - alpha == 1)) {
+		cout << pvNode << " " << alpha << " " << beta << endl;
+	}
+	//assert(pvNode || beta - alpha == 1);
 
 	// Check search limits
 	if (ShouldAbort(t)) return NoEval;
@@ -759,6 +789,10 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 	if (level >= MaxDepth) return inCheck ? DrawEvaluation(t) : staticEval;
 	if (position.IsDrawn(level)) return DrawEvaluation(t);
+	if (alpha < 0 && position.HasUpcomingRepetition(level)) {
+		alpha = std::max(DrawEvaluation(t), alpha);
+		if (alpha >= beta) return alpha;
+	}
 
 	// Generate noisy moves and order them (in check we generate quiets as well)
 	MovePicker& movePicker = t.MovePickerStack[level][false];

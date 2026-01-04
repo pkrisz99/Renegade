@@ -1,5 +1,6 @@
 #pragma once
 #include "Board.h"
+#include "Magics.h"
 #include "Move.h"
 #include "Settings.h"
 #include "Utils.h"
@@ -10,6 +11,8 @@ uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetShortConnectingRay(const uint8_t from, const uint8_t to);
 uint64_t GetLongConnectingRay(const uint8_t from, const uint8_t to);
+uint64_t GetCuckooHash(const int index);
+Move& GetCuckooMove(const int index);
 
 class Position
 {
@@ -24,6 +27,7 @@ public:
 	bool PushUCI(const std::string& str);
 	void PopMove();
 	bool IsDrawn(const int level) const;
+	bool HasUpcomingRepetition(const int level) const;
 
 	bool IsPseudoLegalMove(const Move& m) const;
 	bool IsLegalMove(const Move& m) const;
@@ -108,8 +112,14 @@ public:
 
 	inline const MoveAndPiece& GetPreviousMove(const int plies) const {
 		assert(plies > 0);
-		assert(plies <= Moves.size());
+		assert(plies <= static_cast<int>(Moves.size()));
 		return Moves[Moves.size() - plies];
+	}
+
+	inline const Board& GetPreviousState(const int plies) const {
+		assert(plies > 0);
+		assert(plies < static_cast<int>(States.size()));
+		return States[States.size() - plies - 1];
 	}
 
 	inline bool IsPreviousMoveNull() const {
