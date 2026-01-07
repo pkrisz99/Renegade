@@ -686,12 +686,15 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (updateCorrection) t.History.UpdateCorrection(position, (rawEval + staticEval) / 2, bestScore, depth);
 	}
 
+	if (!pvNode && !IsMateScore(bestScore) && !IsMateScore(beta) && bestScore >= beta) {
+		bestScore = (bestScore + beta) / 2;
+	}
+
 	// Store node search results into the transposition table
 	if (!aborting && !singularSearch) {
 		TranspositionTable.Store(hash, depth, bestScore, scoreType, rawEval, bestMove, level, ttPV);
 	}
 
-	// Return the best score (fail-soft)
 	return bestScore;
 }
 
