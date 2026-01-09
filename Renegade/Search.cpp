@@ -554,7 +554,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (singularScore < singularBeta) {
 				// Successful extension
 				const bool doubleExtend = !pvNode && ((singularScore < singularBeta - 23) || t.SuperSingular[level]);
-				extension = 1 + doubleExtend;
+				const bool tripleExtend = !pvNode && position.IsMoveQuiet(m) && (singularScore < singularBeta - (200 + std::abs(ttEval) / 8));
+				extension = 1 + doubleExtend + tripleExtend;
 			}
 			else {
 				// Extension check failed
