@@ -451,7 +451,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	bool futilityPrunable = false;
 
 	// Whole-node pruning techniques
-	if (!pvNode && !inCheck && !singularSearch) {
+	if (!pvNode && !singularSearch) {
 
 		// Reverse futility pruning
 		if (depth <= 7 && !IsMateScore(beta)) {
@@ -460,7 +460,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		// Null-move pruning
-		if (depth >= 3 && eval >= beta && !position.IsPreviousMoveNull() && position.ZugzwangUnlikely()) {
+		if (depth >= 3 && !inCheck && eval >= beta && !position.IsPreviousMoveNull() && position.ZugzwangUnlikely()) {
 			TranspositionTable.Prefetch(position.Hash() ^ Zobrist.SideToMove);
 			const int nmpReduction = [&] {
 				const int defaultReduction = 4 + depth / 3 + std::min((eval - beta) / 259, 3);
@@ -477,7 +477,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		// Futility pruning
-		if (depth <= 5 && !IsMateScore(beta)) {
+		if (depth <= 5 && !inCheck && !IsMateScore(beta)) {
 			const int futilityMargin = 48 + depth * 100 + improving * 53;
 			futilityPrunable = (eval + futilityMargin < alpha);
 		}
