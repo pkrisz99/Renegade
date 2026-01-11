@@ -21,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.2.19";
+constexpr std::string_view Version = "dev 1.2.20";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -295,6 +295,12 @@ constexpr uint64_t MurmurHash3(uint64_t key) {
 };
 
 // String handling --------------------------------------------------------------------------------
+
+#ifdef __cpp_lib_format
+constexpr bool PrettySupport = true;
+#else
+constexpr bool PrettySupport = false;
+#endif
 
 void ConvertToLowercase(std::string& str);
 std::string Trim(const std::string& str);
