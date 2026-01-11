@@ -13,10 +13,9 @@
 
 void GenerateMagicTables();
 
-enum class EngineBehavior { Normal, Bench, DatagenNormal, DatagenDFRC };
+enum class EngineBehavior { Normal, Bench, Datagen };
 
-class Engine
-{
+class Engine {
 public:
 	Engine(int argc, char* argv[]);
 	void Start();
@@ -29,11 +28,8 @@ public:
 	Search SearchThreads;
 	EngineBehavior Behavior = EngineBehavior::Normal;
 
-#ifdef __cpp_lib_format
-	const bool PrettySupport = true;
-#else
-	const bool PrettySupport = false;
+#ifdef RENEGADE_DATAGEN
+	DatagenLaunchSettings DatagenSettings{};
 #endif
 
 };
-

@@ -29,8 +29,12 @@ constexpr int drawAdjPlies = 15;
 constexpr int winAdjEvalThreshold = 2000;
 constexpr int winAdjEvalPlies = 5;
 
-enum class DatagenLaunchMode { Ask, Normal, DFRC };
-void StartDatagen(const DatagenLaunchMode launchMode);
+struct DatagenLaunchSettings {
+	bool dfrc = false;
+	int threads = 0;
+};
+
+void StartDatagen(const DatagenLaunchSettings datagenLaunchSettings);
 
 // Viriformat is a modern and efficient way of storing games and evals from datagen
 // Credit goes to Cosmo (author of Viridithas) for coming up with this
@@ -46,14 +50,15 @@ public:
 	uint16_t ToViriformatMove(const Move& m) const;
 	void WriteToFile(std::ofstream& stream) const;
 
+	// Renegade makes use of the extra byte in the spec to store version information
+	// -> highest bit: whether the datagen is DFRC
+	// -> low 7 bits: version identifier
+	// This is 0 by default, but the datagen branch should override this
+	static constexpr uint8_t datagenVersion = 0;
+
 private:
 	Board startingBoard;
 	CastlingConfiguration castlingConfig;
 	std::vector<std::pair<uint16_t, int16_t>> moves; // [move, eval]
 	GameState outcome = GameState::Playing;
-
-	// Renegade makes use of the extra byte in the spec to store version information
-	// -> highest bit: whether the datagen is DFRC
-	// -> low 7 bits: version identifier
-	static constexpr uint8_t datagenVersion = 2;
 };
