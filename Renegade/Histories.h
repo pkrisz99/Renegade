@@ -20,7 +20,8 @@ public:
 	void SetKillerMove(const Move& move, const int level);
 	void SetCountermove(const Move& previousMove, const Move& thisMove);
 	void SetPositionalMove(const Position& pos, const Move& thisMove);
-	std::tuple<Move, Move, Move> GetRefutationMoves(const Position& pos, const int level) const;
+	void SetNonPawnPositionalMove(const Position& pos, const Move& thisMove);
+	std::tuple<Move, Move, Move, Move> GetRefutationMoves(const Position& pos, const int level) const;
 	void ResetKillerForPly(const int level);
 
 	// History heuristic:
@@ -44,6 +45,7 @@ private:
 	std::array<Move, MaxDepth> KillerMoves;
 	MultiArray<Move, 64, 64> CounterMoves;
 	MultiArray<Move, 2, 8192> PositionalMoves;
+	MultiArray<Move, 2, 65536> NonPawnPositionalMoves;
 
 	// Move ordering history:
 	MultiArray<int16_t, 15, 64, 2, 2> QuietHistory;

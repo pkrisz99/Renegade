@@ -11,7 +11,7 @@ public:
 
 	void Initialize(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
 		this->ttMove = ttMove;
-		std::tie(killerMove, counterMove, positionalMove) = hist.GetRefutationMoves(pos, level);
+		std::tie(killerMove, counterMove, positionalMove, nonPawnPositionalMove) = hist.GetRefutationMoves(pos, level);
 		this->level = level;
 		this->moveGen = moveGen;
 		this->moves.clear();
@@ -82,12 +82,13 @@ private:
 		if (m == killerMove) historyScore += 17700;
 		else if (m == positionalMove) historyScore += 16300;
 		else if (m == counterMove) historyScore += 14000;
+		else if (m == nonPawnPositionalMove) historyScore += 8000;
 
 		return historyScore;
 	}
 
 
-	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
+	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{}, nonPawnPositionalMove{};
 	MoveList moves{};
 	int level = 0;
 	MoveGen moveGen = MoveGen::All;

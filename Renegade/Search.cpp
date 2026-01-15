@@ -661,6 +661,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth, failHighCount);
 			t.History.SetKillerMove(bestMove, level);
 			t.History.SetPositionalMove(position, bestMove);
+			t.History.SetNonPawnPositionalMove(position, bestMove);
 			if (level > 0) t.History.SetCountermove(position.GetPreviousMove(1).move, bestMove);
 		}
 		else {
