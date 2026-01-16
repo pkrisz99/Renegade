@@ -526,7 +526,12 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			// Late-move pruning
 			if (depth <= 4 && isQuiet && !inCheck) {
 				const int lmpCount = 3 + depth * (depth - !improving);
-				if (legalMoveCount > lmpCount) {
+				if (legalMoveCount > lmpCount) break;
+			}
+
+			// History pruning
+			if (depth <= 4 && isQuiet && !inCheck) {
+				if (order < -8000 * depth) {
 					skipQuietMoves = true;
 					continue;
 				}
