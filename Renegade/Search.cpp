@@ -415,7 +415,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	const bool singularCandidate = found && !rootNode && !singularSearch && (depth > 7) && !tooDeep
-		&& (ttEntry.depth >= depth - 3) && (ttEntry.scoreType != ScoreType::UpperBound) && !IsMateScore(ttEval);
+		&& (ttEntry.depth >= depth - 5) && (ttEntry.scoreType != ScoreType::UpperBound) && !IsMateScore(ttEval);
 	const bool ttPV = pvNode || (found && ttEntry.ttPv);
 	const bool inCheck = position.IsInCheck();
 
@@ -553,7 +553,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Singular extensions
 		int extension = 0;
 		if (singularCandidate && m == ttMove) {
-			const int singularMargin = depth * 3 / 2;
+			const int marginFactor = (ttEntry.depth >= depth - 3) + (ttEntry.depth == depth - 4) + 2 * (ttEntry.depth == depth - 5);
+			const int singularMargin = marginFactor * depth * 3 / 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
 			t.ExcludedMoves[level] = m;
@@ -563,8 +564,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			if (singularScore < singularBeta) {
 				// Successful extension
-				const bool doubleExtend = !pvNode && ((singularScore < singularBeta - 23) || t.SuperSingular[level]);
-				const bool tripleExtend = !pvNode && position.IsMoveQuiet(m) && (singularScore < singularBeta - (200 + std::abs(ttEval) / 8));
+				const bool doubleExtend = !pvNode && ((singularScore < singularBeta - marginFactor * 23) || t.SuperSingular[level]);
+				const bool tripleExtend = !pvNode && position.IsMoveQuiet(m) && (singularScore < singularBeta - marginFactor * (200 + std::abs(ttEval) / 8));
 				extension = 1 + doubleExtend + tripleExtend;
 			}
 			else {
