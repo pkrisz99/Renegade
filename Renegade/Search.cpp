@@ -218,7 +218,6 @@ void Search::SearchMoves(ThreadData& t) {
 	t.ResetStatistics();
 	t.ResetPvTable();
 	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), NullMove);
-	std::fill(t.SuperSingular.begin(), t.SuperSingular.end(), false);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
 	t.History.ClearRefutations();
@@ -440,7 +439,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 		t.StaticEvalStack[level] = staticEval;
 		t.EvalStack[level] = eval;
-		t.SuperSingular[level] = false;
 	}
 	else {
 		staticEval = t.StaticEvalStack[level];
@@ -559,12 +557,17 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			const int singularDepth = (depth - 1) / 2;
 			t.ExcludedMoves[level] = m;
 			const int singularScore = SearchRecursive<false>(t, singularDepth, level, singularBeta - 1, singularBeta, cutNode);
+			const bool onlyMove = singularScore == NoEval;
 			t.ExcludedMoves[level] = NullMove;
 			t.MovePickerStack[level].index = 1;
 
-			if (singularScore < singularBeta) {
+			if (onlyMove) {
+				// Extend only moves
+				extension = 1 + !pvNode;
+			}
+			else if (singularScore < singularBeta) {
 				// Successful extension
-				const bool doubleExtend = !pvNode && ((singularScore < singularBeta - marginFactor * 23) || t.SuperSingular[level]);
+				const bool doubleExtend = !pvNode && (singularScore < singularBeta - marginFactor * 23);
 				const bool tripleExtend = !pvNode && position.IsMoveQuiet(m) && (singularScore < singularBeta - marginFactor * (200 + std::abs(ttEval) / 8));
 				extension = 1 + doubleExtend + tripleExtend;
 			}
@@ -653,8 +656,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	// There was no legal move --> return mate or stalemate score
 	if (legalMoveCount == 0) {
 		if (singularSearch) {
-			t.SuperSingular[level] = true;
-			return alpha; // always extend if we have only one legal move
+			return NoEval; // always extend if we have only one legal move
 		}
 		return inCheck ? LosingMateScore(level) : 0;
 	}
