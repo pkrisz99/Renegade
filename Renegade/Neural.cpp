@@ -117,13 +117,13 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 		int32x4_t low = vmull_s16(vget_low_s16(a), vget_low_s16(b));
 		int32x4_t high = vmull_high_s16(a, b);
 		return vpaddq_s32(low, high);
-	}
+	};
 
 	auto sum = vdupq_n_s16(0);
 	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
-		auto v = vld1q_s16((int16x8_t*) &hiddenFriendly[chunkSize * i]);
+		auto v = vld1q_s16(&hiddenFriendly[chunkSize * i]);
 		v = vminq_s16(vmaxq_s16(v, min), max);
-		const auto w = vld1q_s16((int16x8_t*) &Network->OutputWeights[outputBucket][chunkSize * i]);
+		const auto w = vld1q_s16(&Network->OutputWeights[outputBucket][chunkSize * i]);
 		const auto p = MultiplyAndAddAdjacent(v, vmulq_s16(v, w));
 		sum = vaddq_s32(sum, p);
 	}
@@ -131,9 +131,9 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 
 	sum = vdupq_n_s16(0);
 	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
-		auto v = vld1q_s16((int16x8_t*) &hiddenOpponent[chunkSize * i]);
+		auto v = vld1q_s16(&hiddenOpponent[chunkSize * i]);
 		v = vminq_s16(vmaxq_s16(v, min), max);
-		const auto w = vld1q_s16((int16x8_t*) &Network->OutputWeights[outputBucket][chunkSize * i + HiddenSize]);
+		const auto w = vld1q_s16(&Network->OutputWeights[outputBucket][chunkSize * i + HiddenSize]);
 		const auto p = MultiplyAndAddAdjacent(v, vmulq_s16(v, w));
 		sum = vaddq_s32(sum, p);
 	}
