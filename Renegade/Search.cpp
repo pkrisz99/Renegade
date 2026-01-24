@@ -543,8 +543,14 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			// Main search SEE pruning
 			if (position.IsSquareThreatened(m.to)) {
-				const int seeMargin = isQuiet ? (50 * depth + std::max(order, 0) / 64) : (100 * depth);
-				if (!position.StaticExchangeEval(m, -seeMargin)) continue;
+				if (isQuiet) {
+					const int seeQuietMargin = 50 * depth + std::max(order, 0) / 64;
+					if (!position.StaticExchangeEval(m, -seeQuietMargin)) continue;
+				}
+				else {
+					const int seeNoisyMargin = 100 * depth;
+					if (!position.StaticExchangeEval(m, -seeNoisyMargin)) continue;
+				}
 			}
 		}
 
