@@ -116,7 +116,7 @@ public:
 	}
 
 	inline bool IsSquareThreatened(const uint8_t sq) const {
-		return CheckBit(States.back().Threats, sq);
+		return States.back().IsSquareThreatened(sq);
 	}
 
 	[[maybe_unused]] inline uint64_t GetMaterialHash() const {

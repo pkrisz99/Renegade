@@ -134,11 +134,14 @@ struct Board {
 			| BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 	}
 
-	//uint64_t CalculateHash() const;
 	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
 
 	[[maybe_unused]] uint64_t CalculateMaterialHash() const;
 	uint64_t CalculatePawnHash() const;
+
+	inline bool IsSquareThreatened(const uint8_t sq) const {
+		return CheckBit(Threats, sq);
+	}
 
 };
 

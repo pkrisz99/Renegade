@@ -27,7 +27,7 @@ public:
 	template <bool bonus> void UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth, const int times);
 	template <bool bonus> void UpdateCaptureHistory(const Position& position, const Move& m, const int depth, const int times);
 	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
-	int GetCaptureHistoryScore(const Position& position, const Move& m) const;
+	int GetCaptureHistoryScore(const Board& board, const Move& m) const;
 
 	// Correction history for position evaluations:
 	void UpdateCorrection(const Position& position, const int16_t refEval, const int16_t score, const int depth);

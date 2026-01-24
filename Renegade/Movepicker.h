@@ -70,10 +70,10 @@ private:
 			const bool losingCapture = [&] {
 				if (moveGen == MoveGen::Noisy) return false;
 				if (pos.IsMoveQuiet(m)) return false;
-				const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
+				const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos.CurrentState(), m);
 				return !pos.StaticExchangeEval(m, -captureScore / 28);
 			}();
-			return (!losingCapture ? 600000 : -200000) + values[capturedPieceType] * 18 + hist.GetCaptureHistoryScore(pos, m);
+			return (!losingCapture ? 600000 : -200000) + values[capturedPieceType] * 18 + hist.GetCaptureHistoryScore(pos.CurrentState(), m);
 		}
 
 		// Quiet moves: take the history score and potentially apply a bonus for being a refutation

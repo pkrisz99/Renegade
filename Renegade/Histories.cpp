@@ -104,14 +104,14 @@ int Histories::GetHistoryScore(const Position& position, const Move& m, const ui
 	return historyScore;
 }
 
-int Histories::GetCaptureHistoryScore(const Position& position, const Move& m) const {
-	const uint8_t attackingPiece = position.GetPieceAt(m.from);
+int Histories::GetCaptureHistoryScore(const Board& board, const Move& m) const {
+	const uint8_t attackingPiece = board.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
-	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
-	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
+	const bool fromSquareThreatened = board.IsSquareThreatened(m.from);
+	const bool toSquareThreatened = board.IsSquareThreatened(m.to);
 	const uint8_t capturedPiece = [&] {
-		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
-		else return (position.Turn() == Side::White) ? Piece::BlackPawn : Piece::WhitePawn;
+		if (m.flag != MoveFlag::EnPassantPerformed) return board.GetPieceAt(m.to);
+		else return (board.Turn == Side::White) ? Piece::BlackPawn : Piece::WhitePawn;
 	}();
 	return CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened];
 }
