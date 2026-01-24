@@ -107,6 +107,12 @@ public:
 		return Moves[Moves.size() - plies];
 	}
 
+	inline const Board& GetPreviousBoard(const int plies) const {
+		assert(plies > 0);
+		assert(plies <= States.size() - 1);
+		return States[States.size() - 1 - plies];
+	}
+
 	inline bool IsPreviousMoveNull() const {
 		return Moves.size() != 0 && Moves.back().move == NullMove;
 	}

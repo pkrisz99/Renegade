@@ -548,7 +548,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 					if (!position.StaticExchangeEval(m, -seeQuietMargin)) continue;
 				}
 				else {
-					const int seeNoisyMargin = 100 * depth;
+					const int noisyHistoryScore = t.History.GetCaptureHistoryScore(position.GetPreviousBoard(1), m);
+					const int seeNoisyMargin = 100 * depth + std::max(noisyHistoryScore, 0) / 32;
 					if (!position.StaticExchangeEval(m, -seeNoisyMargin)) continue;
 				}
 			}
