@@ -553,7 +553,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Singular extensions
 		int extension = 0;
 		if (singularCandidate && m == ttMove) {
-			const int marginFactor = (ttEntry.depth >= depth - 3) + (ttEntry.depth == depth - 4) + 2 * (ttEntry.depth == depth - 5);
+			const int marginFactor = (ttEntry.depth >= depth - 4) + 2 * (ttEntry.depth == depth - 5);
 			const int singularMargin = marginFactor * depth * 3 / 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
