@@ -63,11 +63,18 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	const int pieceCount = Popcount(position.GetOccupancy());
 	const int outputBucket = GetOutputBucket(pieceCount);
 
-#ifdef __AVX2__
 	// Calculate output with handwritten SIMD (autovec also works, but it's slower)
 	// Idea by somelizard, it makes fast QA=255 SCReLU possible
 
-	auto HorizontalSum = [] (const __m256i sum) {
+#ifdef __AVX2__
+
+	// AVX2 inference: modern x86-64 desktop computers (from around 2013 onwards)
+	constexpr int chunkSize = 16; // 256/16=16
+
+	const auto min = _mm256_setzero_si256();
+	const auto max = _mm256_set1_epi16(static_cast<int16_t>(QA));
+
+	auto HorizontalSum = [] (const __m256i sum) -> int32_t {
 		const auto upper_128 = _mm256_extracti128_si256(sum, 1);
 		const auto lower_128 = _mm256_castsi256_si128(sum);
 		const auto sum_128 = _mm_add_epi32(upper_128, lower_128);
@@ -77,10 +84,6 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 		const auto sum_32 = _mm_add_epi32(upper_32, sum_64);
 		return _mm_cvtsi128_si32(sum_32);
 	};
-	
-	constexpr int chunkSize = 16; // for AVX2: 256/16=16
-	const auto min = _mm256_setzero_si256();
-	const auto max = _mm256_set1_epi16(static_cast<int16_t>(QA));
 	
 	auto sum = _mm256_setzero_si256();
 	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
@@ -101,19 +104,57 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 		sum = _mm256_add_epi32(sum, p);
 	}
 	output += HorizontalSum(sum);
+	
+#elif defined(__ARM_NEON)
+
+	// NEON inference: Apple Silicon, smartphones, etc.
+	constexpr int chunkSize = 8; // 128/16=8
+
+	const auto min = vdupq_n_s16(0);
+	const auto max = vdupq_n_s16(static_cast<int16_t>(QA));
+	
+	auto MultiplyAndAddAdjacent = [] (const int16x8_t a, const int16x8_t b) -> int32x4_t {
+		int32x4_t low = vmull_s16(vget_low_s16(a), vget_low_s16(b));
+		int32x4_t high = vmull_high_s16(a, b);
+		return vpaddq_s32(low, high);
+	}
+
+	auto sum = vdupq_n_s16(0);
+	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
+		auto v = vld1q_s16((int16x8_t*) &hiddenFriendly[chunkSize * i]);
+		v = vminq_s16(vmaxq_s16(v, min), max);
+		const auto w = vld1q_s16((int16x8_t*) &Network->OutputWeights[outputBucket][chunkSize * i]);
+		const auto p = MultiplyAndAddAdjacent(v, vmulq_s16(v, w));
+		sum = vaddq_s32(sum, p);
+	}
+	output = vaddvq_s32(sum);
+
+	sum = vdupq_n_s16(0);
+	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
+		auto v = vld1q_s16((int16x8_t*) &hiddenOpponent[chunkSize * i]);
+		v = vminq_s16(vmaxq_s16(v, min), max);
+		const auto w = vld1q_s16((int16x8_t*) &Network->OutputWeights[outputBucket][chunkSize * i + HiddenSize]);
+		const auto p = MultiplyAndAddAdjacent(v, vmulq_s16(v, w));
+		sum = vaddq_s32(sum, p);
+	}
+	output += vaddvq_s32(sum);
+
 #else
-	// Slower fallback
-	// if you end up here... that's bad.
+
+	// Auto-vectorized fallback, likely to be very slow
+	// If you end up here... that's not great
+
 	auto Activation = [] (const int16_t value) {
 		const int32_t x = std::clamp<int32_t>(value, 0, QA);
 		return x * x;
 	};
 	for (int i = 0; i < HiddenSize; i++) output += Activation(hiddenFriendly[i]) * Network->OutputWeights[outputBucket][i];
 	for (int i = 0; i < HiddenSize; i++) output += Activation(hiddenOpponent[i]) * Network->OutputWeights[outputBucket][i + HiddenSize];
+
 #endif
 
-	constexpr int Q = QA * QB;
-	output = (output / QA + Network->OutputBias[outputBucket]) * Scale / Q; // for SCReLU
+	// Conversion into internal units
+	output = (output / QA + Network->OutputBias[outputBucket]) * Scale / (QA * QB);
 
 #ifndef RENEGADE_DATAGEN
 	// Scale according to material

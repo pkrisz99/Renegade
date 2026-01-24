@@ -11,6 +11,10 @@
 #include <immintrin.h>
 #endif
 
+#ifdef __ARM_NEON
+#include <arm_neon.h>
+#endif
+
 // This is the code for the NNUE evaluation
 // Renegade uses a horizontally mirrored perspective net with input buckets based on the king's
 // position, and output buckets based on the remaining piece count
