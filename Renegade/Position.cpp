@@ -612,6 +612,144 @@ uint64_t Position::GetAttackersOfSquare(const uint8_t square, const uint64_t occ
 	return pawnAttackers | knightAttackers | bishopAttackers | rookAttackers | kingAttackers;
 }
 
+// Checks if the move is pseudo-legal (it's not obviously wrong, e.g. a pawn castling)
+// Does not account for whether the side to move is in check
+bool Position::IsPseudoLegalMove(const Move& m) const {
+
+	// Piece and move must exist
+	const uint8_t piece = GetPieceAt(m.from);
+	if (piece == Piece::None || m.from != m.to) return false;
+
+	// Piece must be the right color
+	const bool turn = Turn();
+	const uint8_t pieceColor = ColorOfPiece(piece);
+	const uint8_t pieceType = TypeOfPiece(piece);
+	if (pieceColor != SideToPieceColor(turn)) return false;
+
+	// Check for invalid move types
+	if (pieceType != PieceType::Pawn && (m.IsPromotion() || m.flag == MoveFlag::EnPassantPerformed || m.flag == MoveFlag::EnPassantPossible)) return false;
+	if (pieceType != PieceType::King && m.IsCastling()) return false;
+
+	const uint8_t capturedPiece = GetPieceAt(m.to);
+	const uint8_t capturedPieceColor = ColorOfPiece(capturedPiece);
+	const uint8_t capturedPieceType = TypeOfPiece(capturedPiece);
+	const uint64_t occupancy = GetOccupancy();
+
+	// Capturing our own pieces or a king
+	if (capturedPiece != Piece::None && !m.IsCastling()) {
+		if (pieceColor == capturedPieceColor) return false;
+		if (capturedPieceType == PieceType::King) return false;
+	}
+
+	// King moves
+	if (pieceType == PieceType::King) {
+		if (m.IsCastling()) {
+			// Castling is encoded as king takes rook
+			if (capturedPieceType != PieceType::Rook || capturedPieceColor != pieceColor) return false;
+
+			// The king and the rook must be on the backrank
+			const uint8_t fromRankRel = (pieceColor == PieceColor::White) ? GetSquareRank(m.from) : 7 - GetSquareRank(m.from);
+			const uint8_t toRankRel = (pieceColor == PieceColor::White) ? GetSquareRank(m.to) : 7 - GetSquareRank(m.to);
+			if (fromRankRel != 0 || toRankRel != 0) return false;
+
+			// Check castling rights
+			const bool castleKingside = m.from < m.to;
+			const Board& b = CurrentState();
+			if (pieceColor == PieceColor::White) {
+				if ((castleKingside && !b.WhiteRightToShortCastle) || (!castleKingside && !b.WhiteRightToLongCastle)) return false;
+			}
+			else {
+				if ((castleKingside && !b.BlackRightToShortCastle) || (!castleKingside && !b.BlackRightToLongCastle)) return false;
+			}
+
+			const uint8_t kingSqBeforeCastling = m.from;
+			const uint8_t kingSqAfterCastling = (castleKingside ? Squares::G1 : Squares::C1) + 56 * (pieceColor == PieceColor::Black);
+			const uint8_t rookSqBeforeCastling = m.to;
+			const uint8_t rookSqAfterCastling = (castleKingside ? Squares::F1 : Squares::D1) + 56 * (pieceColor == PieceColor::Black);
+			const uint64_t rayBetweenKingPositions = GetShortConnectingRay(kingSqAfterCastling, kingSqAfterCastling);
+			const uint64_t rayBetweenRookPositions = GetShortConnectingRay(rookSqAfterCastling, rookSqAfterCastling);
+
+			// Other pieces as obstacle
+			const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSqBeforeCastling) | SquareBit(rookSqBeforeCastling));
+			const bool empty = !((rayBetweenKingPositions | rayBetweenRookPositions) & fakeOccupancy);
+			if (!empty) return false;
+
+			// Can't traverse through check
+			const uint64_t opponentAttacks = b.Threats;
+			const bool safe = !(opponentAttacks & rayBetweenKingPositions);
+			if (!safe) return false;
+		}
+		else {
+			return CheckBit(KingMoveBits[m.from], m.to);
+		}
+	}
+	
+	// Pawn moves
+	if (pieceType == PieceType::Pawn) {
+
+		const uint8_t fromRankRel = (pieceColor == PieceColor::White) ? GetSquareRank(m.from) : 7 - GetSquareRank(m.from);
+		const uint8_t toRankRel = (pieceColor == PieceColor::White) ? GetSquareRank(m.to) : 7 - GetSquareRank(m.to);
+
+		if (m.flag == MoveFlag::EnPassantPerformed) {
+			// En passant square should match and is reachable
+			if (CurrentState().EnPassantSquare != m.to) return false;
+			return (pieceColor == PieceColor::White && !CheckBit(WhitePawnAttacks[m.from], m.to))
+				|| (pieceColor == PieceColor::Black && !CheckBit(BlackPawnAttacks[m.from], m.to));
+		}
+
+		else if (m.flag == MoveFlag::EnPassantPossible) {
+			// Have to move from the second rank
+			if (fromRankRel != 2) return false;
+
+			// Have to arrive at the right square
+			if ((pieceColor == PieceColor::White && m.to - m.from != 16)
+				|| (pieceColor == PieceColor::Black && m.from - m.to != 16)) return false;
+
+			// The path must be clear
+			if (pieceColor == PieceColor::White) {
+				if (GetPieceAt(m.from + 8) != Piece::None || GetPieceAt(m.from + 16) != Piece::None) return false;
+			}
+			else {
+				if (GetPieceAt(m.from - 8) != Piece::None || GetPieceAt(m.from - 16) != Piece::None) return false;
+			}
+		}
+
+		else {
+			// Can't move to the eighth rank without promotion / move not to the eighth rank and somehow still promoting
+			if (toRankRel == 7 && !m.IsPromotion()) return false;
+			if (toRankRel != 7 && m.IsPromotion()) return false;
+
+			if (capturedPiece != Piece::None) {
+				// Capture, check if the destination square is attacked from the original square
+				if ((pieceColor == PieceColor::White && !CheckBit(WhitePawnAttacks[m.from], m.to))
+					|| (pieceColor == PieceColor::Black && !CheckBit(BlackPawnAttacks[m.from], m.to))) return false;
+			}
+			else {
+				// Otherwise the move must be a simple push forward then
+				if ((pieceColor == PieceColor::White && m.to - m.from != 8)
+					|| (pieceColor == PieceColor::White && m.from - m.to != 8)) return false;
+			}
+		}
+
+		return true;
+	}
+
+	// Other pieces
+	switch (pieceType) {
+		case PieceType::Knight:
+			return CheckBit(KnightMoveBits[m.from], m.to);
+		case PieceType::Bishop:
+			return CheckBit(GetBishopAttacks(m.from, occupancy), m.to);
+		case PieceType::Rook:
+			return CheckBit(GetRookAttacks(m.from, occupancy), m.to);
+		case PieceType::Queen:
+			return CheckBit(GetQueenAttacks(m.from, occupancy), m.to);
+		default:
+			assert(false);
+			return false;
+	}
+}
+
 // This function assumes that the move is at least pseudolegal
 // This is terrible currently, but it was pain to get right, and I don't want to touch it with a 10 ft pole
 bool Position::IsLegalMove(const Move& m) const {

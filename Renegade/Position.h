@@ -27,6 +27,7 @@ public:
 	void GenerateMoves(MoveList& moves, const MoveGen moveGen, const Legality legality) const;
 	bool IsDrawn(const int level) const;
 
+	bool IsPseudoLegalMove(const Move& m) const;
 	bool IsLegalMove(const Move& m) const;
 	bool IsMoveQuiet(const Move& move) const;
 
