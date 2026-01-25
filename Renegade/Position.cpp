@@ -618,7 +618,7 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 
 	// Piece and move must exist
 	const uint8_t piece = GetPieceAt(m.from);
-	if (piece == Piece::None || m.from != m.to) return false;
+	if (piece == Piece::None || m.from == m.to) return false;
 
 	// Piece must be the right color
 	const bool turn = Turn();
@@ -652,8 +652,12 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 			const uint8_t toRankRel = (pieceColor == PieceColor::White) ? GetSquareRank(m.to) : 7 - GetSquareRank(m.to);
 			if (fromRankRel != 0 || toRankRel != 0) return false;
 
+			// Are we really castling the right way?
+			const bool castleKingside = m.flag == MoveFlag::ShortCastle;
+			const bool kingLeftOfRook = m.from < m.to;
+			if (castleKingside != kingLeftOfRook) return false;
+
 			// Check castling rights
-			const bool castleKingside = m.from < m.to;
 			const Board& b = CurrentState();
 			if (pieceColor == PieceColor::White) {
 				if ((castleKingside && !b.WhiteRightToShortCastle) || (!castleKingside && !b.WhiteRightToLongCastle)) return false;
@@ -666,8 +670,8 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 			const uint8_t kingSqAfterCastling = (castleKingside ? Squares::G1 : Squares::C1) + 56 * (pieceColor == PieceColor::Black);
 			const uint8_t rookSqBeforeCastling = m.to;
 			const uint8_t rookSqAfterCastling = (castleKingside ? Squares::F1 : Squares::D1) + 56 * (pieceColor == PieceColor::Black);
-			const uint64_t rayBetweenKingPositions = GetShortConnectingRay(kingSqAfterCastling, kingSqAfterCastling);
-			const uint64_t rayBetweenRookPositions = GetShortConnectingRay(rookSqAfterCastling, rookSqAfterCastling);
+			const uint64_t rayBetweenKingPositions = GetShortConnectingRay(kingSqBeforeCastling, kingSqAfterCastling);
+			const uint64_t rayBetweenRookPositions = GetShortConnectingRay(rookSqBeforeCastling, rookSqAfterCastling);
 
 			// Other pieces as obstacle
 			const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSqBeforeCastling) | SquareBit(rookSqBeforeCastling));
@@ -678,6 +682,10 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 			const uint64_t opponentAttacks = b.Threats;
 			const bool safe = !(opponentAttacks & rayBetweenKingPositions);
 			if (!safe) return false;
+
+			if (IsInCheck()) return false;
+
+			return true;
 		}
 		else {
 			return CheckBit(KingMoveBits[m.from], m.to);
@@ -693,13 +701,13 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 		if (m.flag == MoveFlag::EnPassantPerformed) {
 			// En passant square should match and is reachable
 			if (CurrentState().EnPassantSquare != m.to) return false;
-			return (pieceColor == PieceColor::White && !CheckBit(WhitePawnAttacks[m.from], m.to))
-				|| (pieceColor == PieceColor::Black && !CheckBit(BlackPawnAttacks[m.from], m.to));
+			return (pieceColor == PieceColor::White && CheckBit(WhitePawnAttacks[m.from], m.to))
+				|| (pieceColor == PieceColor::Black && CheckBit(BlackPawnAttacks[m.from], m.to));
 		}
 
 		else if (m.flag == MoveFlag::EnPassantPossible) {
 			// Have to move from the second rank
-			if (fromRankRel != 2) return false;
+			if (fromRankRel != 1) return false;
 
 			// Have to arrive at the right square
 			if ((pieceColor == PieceColor::White && m.to - m.from != 16)
@@ -727,7 +735,7 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 			else {
 				// Otherwise the move must be a simple push forward then
 				if ((pieceColor == PieceColor::White && m.to - m.from != 8)
-					|| (pieceColor == PieceColor::White && m.from - m.to != 8)) return false;
+					|| (pieceColor == PieceColor::Black && m.from - m.to != 8)) return false;
 			}
 		}
 

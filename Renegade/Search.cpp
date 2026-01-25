@@ -807,6 +807,51 @@ int Search::DrawEvaluation(const ThreadData& t) const {
 	return t.Nodes % 4 - 2;
 }
 
+void Search::Test(const Position& pos) {
+
+	MoveList moveList{};
+	pos.GenerateMoves(moveList, MoveGen::All, Legality::Pseudolegal);
+
+	int correct = 0, incorrect = 0, thoughtPseudo = 0;
+
+	for (uint8_t sq1 = 0; sq1 < 64; sq1++) {
+		for (uint8_t sq2 = 0; sq2 < 64; sq2++) {
+			for (uint8_t sqf = 0; sqf < 9; sqf++) {
+
+				const Move m = Move(sq1, sq2, sqf);
+				const bool result = pos.IsPseudoLegalMove(m);
+				if (result) thoughtPseudo += 1;
+
+				bool found = false;
+				for (int i = 0; i < moveList.size(); i++) {
+					if (moveList[i].move == m) {
+						found = true;
+						break;
+					}
+				}
+
+				if (found && !result) {
+					cout << "- false negative: " << m.ToString(true) << " " << (int)m.flag << " (" << (int)pos.GetPieceAt(m.from) << ")" << endl;
+				}
+
+				if (!found && result) {
+					cout << "- false positive: " << m.ToString(true) << " " << (int)m.flag << " (" << (int)pos.GetPieceAt(m.from) << ")" << endl;
+				}
+
+				if (found == result) {
+					correct += 1;
+				}
+				else {
+					incorrect += 1;
+				}
+			}
+		}
+	}
+
+	if (incorrect != 0)
+		cout << "-->" << pos.GetFEN() << "  incorrect: " << incorrect << ",   gp: " << moveList.size() << ", tp: " << thoughtPseudo << endl;
+}
+
 // PV table ---------------------------------------------------------------------------------------
 
 void ThreadData::InitPvLength(const int level) {
