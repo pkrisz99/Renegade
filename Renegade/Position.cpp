@@ -614,6 +614,7 @@ uint64_t Position::GetAttackersOfSquare(const uint8_t square, const uint64_t occ
 
 // Checks if the move is pseudo-legal (it's not obviously wrong, e.g. a pawn castling)
 // Does not account for whether the side to move is in check
+// The accuracy of this function was tested, and there weren't any discrepancies in thousands of games
 bool Position::IsPseudoLegalMove(const Move& m) const {
 
 	// Piece and move must exist
@@ -682,8 +683,6 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 			const uint64_t opponentAttacks = b.Threats;
 			const bool safe = !(opponentAttacks & rayBetweenKingPositions);
 			if (!safe) return false;
-
-			if (IsInCheck()) return false;
 
 			return true;
 		}

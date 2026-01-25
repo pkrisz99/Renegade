@@ -238,9 +238,6 @@ void SelfPlay(const std::string filename) {
 				break;
 			}
 
-			// TEST
-			currentSearcher->Test(position);
-
 			// Update statistics
 			Positions.fetch_add(1, std::memory_order_relaxed);
 			Depths.fetch_add(results.depth, std::memory_order_relaxed);

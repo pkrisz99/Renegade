@@ -83,7 +83,6 @@ public:
 	Results SearchSinglethreaded(const Position& pos, const SearchParams& params);
 	void WaitUntilReady();
 	void Perft(Position& position, const int depth, const PerftType type) const;
-	void Test(const Position& pos);
 
 #ifdef RENEGADE_DATAGEN
 	static constexpr bool DatagenMode = true;
