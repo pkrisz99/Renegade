@@ -27,6 +27,7 @@ public:
 		this->index = 0;
 	}
 
+	// Retrieves the next move
 	std::pair<Move, int> Next(const Position& pos, const Histories& hist) {
 
 		switch (stage) {
@@ -49,7 +50,7 @@ public:
 		// 3. Return moves in decreasing order of merit
 		case MovePickerStage::EmitMoves:
 			while (index < moves.size()) {
-				const auto next = GetNext();
+				const auto next = FindNext();
 				if (next.first == ttMove) continue;
 				if (!pos.IsLegalMove(next.first)) continue;
 				return next;
@@ -68,7 +69,7 @@ public:
 
 private:
 
-	std::pair<Move, int> GetNext() {
+	std::pair<Move, int> FindNext() {
 		int bestOrderScore = moves[index].orderScore;
 		int bestIndex = index;
 
@@ -85,7 +86,6 @@ private:
 	}
 
 	int GetMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
-
 		// Transposition move
 		if (m == ttMove) return 900000;
 

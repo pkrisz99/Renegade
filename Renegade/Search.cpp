@@ -507,6 +507,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	while (true) {
 		const auto& [m, order] = movePicker.Next(position, t.History);
 		if (m == NullMove) break;
+
 		if (m == excludedMove) continue;
 		const bool isQuiet = position.IsMoveQuiet(m);
 		if (isQuiet && skipQuietMoves) continue;
