@@ -504,8 +504,9 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	StaticVector<Move, MaxMoveCount> quietsTried;
 	StaticVector<Move, MaxMoveCount> capturesTried;
 
-	while (movePicker.HasNext()) {
-		const auto& [m, order] = movePicker.Get();
+	while (true) {
+		const auto& [m, order] = movePicker.Next(position, t.History);
+		if (m == NullMove) break;
 		if (m == excludedMove) continue;
 		if (!position.IsLegalMove(m)) continue;
 		const bool isQuiet = position.IsMoveQuiet(m);
@@ -750,8 +751,9 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	int scoreType = ScoreType::UpperBound;
 	int futilityScore = std::min(staticEval + 267, MateThreshold - 1);
 
-	while (movePicker.HasNext()) {
-		const auto& [m, order] = movePicker.Get();
+	while (true) {
+		const auto& [m, order] = movePicker.Next(position, t.History);
+		if (m == NullMove) break;
 		if (!position.IsLegalMove(m)) continue;
 
 		// When in check, no longer search quiet moves once we know we're not getting mated
