@@ -492,8 +492,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	// Iterate through legal moves
-	MovePicker movePicker;
-	movePicker.Initialize(MoveGen::All, position, t.History, excludedMove.IsNull() ? ttMove : NullMove, level);
+	MovePicker movePicker(MoveGen::All, position, t.History, excludedMove.IsNull() ? ttMove : NullMove, level);
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
 	int failLowCount = 0;
@@ -743,8 +742,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (position.IsDrawn(level)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them (in check we generate quiets as well)
-	MovePicker movePicker;
-	movePicker.Initialize(inCheck ? MoveGen::All : MoveGen::Noisy, position, t.History, ttMove, level);
+	MovePicker movePicker(inCheck ? MoveGen::All : MoveGen::Noisy, position, t.History, ttMove, level);
 
 	// Search recursively until the position is quiet
 	int bestScore = staticEval;

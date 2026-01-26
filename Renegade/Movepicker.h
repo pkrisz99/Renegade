@@ -7,9 +7,9 @@
 
 class MovePicker {
 public:
-	MovePicker() = default;
+	MovePicker() = delete;
 
-	void Initialize(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
+	MovePicker(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
 		this->ttMove = ttMove;
 		std::tie(killerMove, counterMove, positionalMove) = hist.GetRefutationMoves(pos, level);
 		this->level = level;
