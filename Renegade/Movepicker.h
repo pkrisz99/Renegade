@@ -31,7 +31,7 @@ public:
 
 		switch (stage) {
 
-		// 1. Return the TT move if possible
+		// 1. Return the TT move if possible, skipping move generation entirely
 		case MovePickerStage::EmitTTMove:
 			stage = MovePickerStage::GenerateAndScoreMoves;
 			if (!ttMove.IsNull() && pos.IsPseudoLegalMove(ttMove) && pos.IsLegalMove(ttMove)) {
@@ -39,23 +39,25 @@ public:
 			}
 			[[fallthrough]];
 
-		// 2. 
+		// 2. Generate moves and score them
 		case MovePickerStage::GenerateAndScoreMoves:
 			pos.GenerateMoves(moves, moveGen, Legality::Pseudolegal);
 			for (auto& m : moves) m.orderScore = GetMoveScore(pos, hist, m.move);
 			stage = MovePickerStage::EmitMoves;
 			[[fallthrough]];
 
-		// 3.
+		// 3. Return moves in decreasing order of merit
 		case MovePickerStage::EmitMoves:
 			while (index < moves.size()) {
 				const auto next = GetNext();
 				if (next.first == ttMove) continue;
+				if (!pos.IsLegalMove(next.first)) continue;
 				return next;
 			}
 			stage = MovePickerStage::End;
 			[[fallthrough]];
 
+		// 4. Signal that all legal moves have been emitted
 		case MovePickerStage::End:
 			return { NullMove, -999999 };
 		

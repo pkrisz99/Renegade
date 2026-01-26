@@ -508,7 +508,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		const auto& [m, order] = movePicker.Next(position, t.History);
 		if (m == NullMove) break;
 		if (m == excludedMove) continue;
-		if (!position.IsLegalMove(m)) continue;
 		const bool isQuiet = position.IsMoveQuiet(m);
 		if (isQuiet && skipQuietMoves) continue;
 		legalMoveCount += 1;
@@ -754,7 +753,6 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	while (true) {
 		const auto& [m, order] = movePicker.Next(position, t.History);
 		if (m == NullMove) break;
-		if (!position.IsLegalMove(m)) continue;
 
 		// When in check, no longer search quiet moves once we know we're not getting mated
 		if (inCheck && bestScore > -MateThreshold && order < MovePicker::MaxRegularQuietOrder) break;
