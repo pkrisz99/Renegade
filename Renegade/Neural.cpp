@@ -120,8 +120,7 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	const int gamePhase = position.GetGamePhase();
 	output = output * (52 + std::min(24, gamePhase)) / 64;
 	// Scale according to a modified halfmove clock (max 80)
-	const int modifiedHalfmoveClock = std::max(position.CurrentState().HalfmoveClock - 20, 0);
-	output = output * (256 - modifiedHalfmoveClock) / 256;
+	output = output * (256 - position.CurrentState().HalfmoveClock) / 256;
 #endif
 
 	return std::clamp(output, -MateThreshold + 1, MateThreshold - 1);

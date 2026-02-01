@@ -31,7 +31,7 @@ use bullet_lib::{
 #[rustfmt::skip]
 fn main() {
     
-    const NET_ID: &str = "renegade_net_33a";
+    const NET_ID: &str = "renegade_net_34a";
     const HL_SIZE: usize = 1600;
     const NUM_OUTPUT_BUCKETS: usize = 8;
     const BUCKET_LAYOUT: [usize; 32] = [
@@ -116,7 +116,7 @@ fn main() {
     let settings = LocalSettings { threads: 4, test_set: None, output_directory: "checkpoints", batch_queue_size: 32 };
 
     let data_loader = DirectSequentialDataLoader::new(
-        &["../nnue/data/241010_241213_250418_251202_260112_frc241002"]
+        &["../nnue/data/241010_241213_250418_251202_260112_dfrc260126"]
     );
 
     trainer.run(&schedule, &settings, &data_loader);
