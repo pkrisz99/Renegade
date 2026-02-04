@@ -381,42 +381,35 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 	const bool rightToLongCastle = (side == Side::White) ? b.WhiteRightToLongCastle : b.BlackRightToLongCastle;
 	if (!rightToShortCastle && !rightToLongCastle) return;
 
-	const uint64_t friendlyKing = (side == Side::White) ? b.WhiteKingBits : b.BlackKingBits;
-	const uint8_t kingSq = LsbSquare(friendlyKing);
+	const uint64_t kingSq = (side == Side::White) ? WhiteKingSquare() : BlackKingSquare();
 	const uint64_t occupancy = GetOccupancy();
 
 	if (rightToShortCastle) {
-		
 		constexpr uint8_t kingTo = (side == Side::White) ? G1 : G8;
 		constexpr uint8_t rookTo = (side == Side::White) ? F1 : F8;
-
 		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteShortCastleRookSquare : CastlingConfig.BlackShortCastleRookSquare;
 		const uint64_t rayBetweenKingAndG = GetShortConnectingRay(kingSq, kingTo);
 		const uint64_t rayBetweenRookAndF = GetShortConnectingRay(rookSq, rookTo);
-		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
-		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & fakeOccupancy);
+		const uint64_t mockOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
+		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & mockOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = b.Threats;
-			const bool safe = !(opponentAttacks & rayBetweenKingAndG);
+			const bool safe = !(b.Threats & rayBetweenKingAndG);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::ShortCastle));
 		}
 	}
 
 	if (rightToLongCastle) {
-
 		constexpr uint8_t kingTo = (side == Side::White) ? C1 : C8;
 		constexpr uint8_t rookTo = (side == Side::White) ? D1 : D8;
-
 		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteLongCastleRookSquare : CastlingConfig.BlackLongCastleRookSquare;
 		const uint64_t rayBetweenKingAndC = GetShortConnectingRay(kingSq, kingTo);
 		const uint64_t rayBetweenRookAndF = GetShortConnectingRay(rookSq, rookTo);
-		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
-		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & fakeOccupancy);
+		const uint64_t mockOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
+		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & mockOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = b.Threats;
-			const bool safe = !(opponentAttacks & rayBetweenKingAndC);
+			const bool safe = !(b.Threats & rayBetweenKingAndC);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::LongCastle));
 		}
 
@@ -492,7 +485,10 @@ void Position::GeneratePseudolegalMoves(MoveList& moves) const {
 
 template <bool side>
 void Position::GeneratePawnMoves2Noisy(MoveList& moves) const {
-	
+
+	// This code is rather repetitive, but it has just the amount of variation
+	// that makes organization into smaller function a bit difficult
+
 	const Board& b = CurrentState();
 	const uint64_t occupancy = b.GetOccupancy();
 	const uint64_t opponentOccupancy = b.GetOccupancyForSide(!side);
