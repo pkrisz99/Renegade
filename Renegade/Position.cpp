@@ -329,7 +329,7 @@ void Position::PopMove() {
 
 template <bool side, uint8_t pieceType, MoveGen moveGen>
 void Position::GenerateSlidingMoves(MoveList& moves, const uint8_t fromSquare, const uint64_t friendlyOccupancy, const uint64_t opponentOccupancy) const {
-	const uint64_t occupancy = whiteOccupancy | blackOccupancy;
+	const uint64_t occupancy = friendlyOccupancy | opponentOccupancy;
 	uint64_t targets;
 
 	switch (pieceType) {
@@ -401,30 +401,29 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 }
 
 void Position::GenerateMoves(MoveList& moves, const MoveGen moveGen, const Legality legality) const {
-
-	const Board& board = CurrentState();
+	const bool turn = CurrentState().Turn;
 
 	if (legality == Legality::Pseudolegal) {
 		if (moveGen == MoveGen::All) {
-			if (board.Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::All>(moves);
+			if (turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::All>(moves);
 			else GeneratePseudolegalMoves<Side::Black, MoveGen::All>(moves);
 		}
 		else if (moveGen == MoveGen::Noisy) {
-			if (board.Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(moves);
+			if (turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(moves);
 			else GeneratePseudolegalMoves<Side::Black, MoveGen::Noisy>(moves);
 		}
 	}
 	else {
-		MoveList legalMoves{};
+		MoveList pseudoLegalMoves{};
 		if (moveGen == MoveGen::All) {
-			if (board.Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::All>(legalMoves);
-			else GeneratePseudolegalMoves<Side::Black, MoveGen::All>(legalMoves);
+			if (turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::All>(pseudoLegalMoves);
+			else GeneratePseudolegalMoves<Side::Black, MoveGen::All>(pseudoLegalMoves);
 		}
 		else if (moveGen == MoveGen::Noisy) {
-			if (board.Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(legalMoves);
-			else GeneratePseudolegalMoves<Side::Black, MoveGen::Noisy>(legalMoves);
+			if (turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(pseudoLegalMoves);
+			else GeneratePseudolegalMoves<Side::Black, MoveGen::Noisy>(pseudoLegalMoves);
 		}
-		for (const auto& m : legalMoves) {
+		for (const auto& m : pseudoLegalMoves) {
 			if (IsLegalMove(m.move)) moves.pushUnscored(m.move);
 		}
 	}
@@ -465,21 +464,21 @@ void Position::GeneratePseudolegalMoves(MoveList& moves) const {
 	uint64_t friendlyBishops = (side == Side::White) ? WhiteBishopBits() : BlackBishopBits();
 	while (friendlyBishops) {
 		const uint8_t fromSquare = Popsquare(friendlyBishops);
-		GenerateSlidingMoves<side, PieceType::Bishop, moveGen>(moves, sq, friendlyOccupancy, opponentOccupancy);
+		GenerateSlidingMoves<side, PieceType::Bishop, moveGen>(moves, fromSquare, friendlyOccupancy, opponentOccupancy);
 	}
 
 	// Rook moves
 	uint64_t friendlyRooks = (side == Side::White) ? WhiteRookBits() : BlackRookBits();
 	while (friendlyRooks) {
 		const uint8_t fromSquare = Popsquare(friendlyRooks);
-		GenerateSlidingMoves<side, PieceType::Rook, moveGen>(moves, sq, friendlyOccupancy, opponentOccupancy);
+		GenerateSlidingMoves<side, PieceType::Rook, moveGen>(moves, fromSquare, friendlyOccupancy, opponentOccupancy);
 	}
 
 	// Queen moves
 	uint64_t friendlyQueens = (side == Side::White) ? WhiteQueenBits() : BlackQueenBits();
 	while (friendlyQueens) {
 		const uint8_t fromSquare = Popsquare(friendlyQueens);
-		GenerateSlidingMoves<side, PieceType::Queen, moveGen>(moves, sq, friendlyOccupancy, opponentOccupancy);
+		GenerateSlidingMoves<side, PieceType::Queen, moveGen>(moves, fromSquare, friendlyOccupancy, opponentOccupancy);
 	}
 }
 
