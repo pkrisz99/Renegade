@@ -232,8 +232,8 @@ constexpr int Lzcount(const uint64_t& number) {
 	return std::countl_zero(number);
 }
 
-constexpr int Popsquare(uint64_t& number) {
-	const int place = std::countr_zero(number);
+constexpr uint8_t Popsquare(uint64_t& number) {
+	const uint8_t place = static_cast<uint8_t>(std::countr_zero(number));
 	number &= (number - 1);
 	return place;
 }

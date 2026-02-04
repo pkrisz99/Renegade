@@ -327,47 +327,32 @@ void Position::PopMove() {
 
 // Generating moves -------------------------------------------------------------------------------
 
-template <bool side, MoveGen moveGen>
-void Position::GenerateKingMoves(MoveList& moves, const int home) const {
-	constexpr uint8_t friendlyPieceColor = (side == Side::White) ? PieceColor::White : PieceColor::Black;
-	constexpr uint8_t opponentPieceColor = (side == Side::White) ? PieceColor::Black : PieceColor::White;
-	uint64_t bits = KingMoveBits[home];
-	while (bits) {
-		const uint8_t l = Popsquare(bits);
-		if (ColorOfPiece(GetPieceAt(l)) == friendlyPieceColor) continue;
-		if ((moveGen == MoveGen::All) || (ColorOfPiece(GetPieceAt(l)) == opponentPieceColor)) moves.pushUnscored(Move(home, l));
-	}
-}
-
-template <bool side, MoveGen moveGen>
-void Position::GenerateKnightMoves(MoveList& moves, const int home) const {
-	constexpr uint8_t friendlyPieceColor = (side == Side::White) ? PieceColor::White : PieceColor::Black;
-	constexpr uint8_t opponentPieceColor = (side == Side::White) ? PieceColor::Black : PieceColor::White;
-	uint64_t bits = KnightMoveBits[home];
-	while (bits) {
-		const uint8_t l = Popsquare(bits);
-		if (ColorOfPiece(GetPieceAt(l)) == friendlyPieceColor) continue;
-		if ((moveGen == MoveGen::All) || (ColorOfPiece(GetPieceAt(l)) == opponentPieceColor)) moves.pushUnscored(Move(home, l));
-	}
-}
-
-template <bool side, int pieceType, MoveGen moveGen>
-void Position::GenerateSlidingMoves(MoveList& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) const {
-	const uint64_t friendlyOccupancy = (side == Side::White) ? whiteOccupancy : blackOccupancy;
-	const uint64_t opponentOccupancy = (side == Side::White) ? blackOccupancy : whiteOccupancy;
+template <bool side, uint8_t pieceType, MoveGen moveGen>
+void Position::GenerateSlidingMoves(MoveList& moves, const uint8_t fromSquare, const uint64_t friendlyOccupancy, const uint64_t opponentOccupancy) const {
 	const uint64_t occupancy = whiteOccupancy | blackOccupancy;
-	uint64_t map = 0;
+	uint64_t targets;
 
-	if constexpr (pieceType == PieceType::Rook) map = GetRookAttacks(home, occupancy) & ~friendlyOccupancy;
-	if constexpr (pieceType == PieceType::Bishop) map = GetBishopAttacks(home, occupancy) & ~friendlyOccupancy;
-	if constexpr (pieceType == PieceType::Queen) map = GetQueenAttacks(home, occupancy) & ~friendlyOccupancy;
+	switch (pieceType) {
+	case PieceType::Bishop:
+		targets = GetBishopAttacks(fromSquare, occupancy) & ~friendlyOccupancy;
+		break;
+	case PieceType::Rook:
+		targets = GetRookAttacks(fromSquare, occupancy) & ~friendlyOccupancy;
+		break;
+	case PieceType::Queen:
+		targets = GetQueenAttacks(fromSquare, occupancy) & ~friendlyOccupancy;
+		break;
+	default:
+		// unreachable
+		assert(false);
+		break;
+	}
 
-	if constexpr (moveGen == MoveGen::Noisy) map &= opponentOccupancy;
-	if (map == 0) return;
+	if constexpr (moveGen == MoveGen::Noisy) targets &= opponentOccupancy;
 
-	while (map != 0) {
-		const int sq = Popsquare(map);
-		moves.pushUnscored(Move(home, sq));
+	while (targets) {
+		const uint8_t toSquare = Popsquare(targets);
+		moves.pushUnscored(Move(fromSquare, toSquare));
 	}
 }
 
@@ -412,7 +397,6 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 			const bool safe = !(b.Threats & rayBetweenKingAndC);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::LongCastle));
 		}
-
 	}
 }
 
@@ -450,36 +434,52 @@ template <bool side, MoveGen moveGen>
 void Position::GeneratePseudolegalMoves(MoveList& moves) const {
 	const uint64_t whiteOccupancy = GetOccupancy(Side::White);
 	const uint64_t blackOccupancy = GetOccupancy(Side::Black);
-	uint64_t friendlyOccupancy = (Turn() == Side::White) ? whiteOccupancy : blackOccupancy;
-	friendlyOccupancy = friendlyOccupancy & ~WhitePawnBits() & ~BlackPawnBits();
+	const uint64_t friendlyOccupancy = (side == Side::White) ? whiteOccupancy : blackOccupancy;
+	const uint64_t opponentOccupancy = (side == Side::White) ? blackOccupancy : whiteOccupancy;
 
+	// Pawn moves
 	GeneratePawnMoves2Noisy<side>(moves);
-	if constexpr (moveGen == MoveGen::All) {
-		GeneratePawnMoves2Quiet<side>(moves);
+	if constexpr (moveGen == MoveGen::All) GeneratePawnMoves2Quiet<side>(moves);
+	
+	// Knight moves
+	uint64_t friendlyKnights = (side == Side::White) ? WhiteKnightBits() : BlackKnightBits();
+	while (friendlyKnights) {
+		const uint8_t fromSquare = Popsquare(friendlyKnights);
+		uint64_t targetBitboard = (moveGen == MoveGen::All) ? KnightMoveBits[fromSquare] & ~friendlyOccupancy : KnightMoveBits[fromSquare] & opponentOccupancy;
+		while (targetBitboard) {
+			const uint8_t toSquare = Popsquare(targetBitboard);
+			moves.pushUnscored(Move(fromSquare, toSquare));
+		}
 	}
 
-	while (friendlyOccupancy) {
-		const uint8_t sq = Popsquare(friendlyOccupancy);
-		const uint8_t type = TypeOfPiece(GetPieceAt(sq));
+	// King moves
+	uint8_t fromSquare = (side == Side::White) ? WhiteKingSquare() : BlackKingSquare();
+	uint64_t targetBitboard = (moveGen == MoveGen::All) ? KingMoveBits[fromSquare] & ~friendlyOccupancy : KingMoveBits[fromSquare] & opponentOccupancy;
+	while (targetBitboard) {
+		const uint8_t toSquare = Popsquare(targetBitboard);
+		moves.pushUnscored(Move(fromSquare, toSquare));
+	}
+	if constexpr (moveGen == MoveGen::All) GenerateCastlingMoves<side>(moves);
 
-		switch (type) {
-		case PieceType::Knight:
-			GenerateKnightMoves<side, moveGen>(moves, sq);
-			break;
-		case PieceType::Bishop:
-			GenerateSlidingMoves<side, PieceType::Bishop, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
-			break;
-		case PieceType::Rook:
-			GenerateSlidingMoves<side, PieceType::Rook, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
-			break;
-		case PieceType::Queen:
-			GenerateSlidingMoves<side, PieceType::Queen, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
-			break;
-		case PieceType::King:
-			GenerateKingMoves<side, moveGen>(moves, sq);
-			if constexpr (moveGen == MoveGen::All) GenerateCastlingMoves<side>(moves);
-			break;
-		}
+	// Bishop moves
+	uint64_t friendlyBishops = (side == Side::White) ? WhiteBishopBits() : BlackBishopBits();
+	while (friendlyBishops) {
+		const uint8_t fromSquare = Popsquare(friendlyBishops);
+		GenerateSlidingMoves<side, PieceType::Bishop, moveGen>(moves, sq, friendlyOccupancy, opponentOccupancy);
+	}
+
+	// Rook moves
+	uint64_t friendlyRooks = (side == Side::White) ? WhiteRookBits() : BlackRookBits();
+	while (friendlyRooks) {
+		const uint8_t fromSquare = Popsquare(friendlyRooks);
+		GenerateSlidingMoves<side, PieceType::Rook, moveGen>(moves, sq, friendlyOccupancy, opponentOccupancy);
+	}
+
+	// Queen moves
+	uint64_t friendlyQueens = (side == Side::White) ? WhiteQueenBits() : BlackQueenBits();
+	while (friendlyQueens) {
+		const uint8_t fromSquare = Popsquare(friendlyQueens);
+		GenerateSlidingMoves<side, PieceType::Queen, moveGen>(moves, sq, friendlyOccupancy, opponentOccupancy);
 	}
 }
 
