@@ -268,7 +268,7 @@ void Search::SearchMoves(ThreadData& t) {
 					beta = std::min(beta + windowSize, PositiveInfinity);
 
 					// Reduce depth on fail-high
-					if (!IsMateScore(score) && searchDepth > 1) searchDepth -= 1;
+					if (!IsMateScore(score) && searchDepth > t.RootDepth - 3) searchDepth -= 1;
 				}
 				else {
 					// Success!
