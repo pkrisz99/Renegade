@@ -307,10 +307,10 @@ bool Position::PushUCI(const std::string& str) {
 
 	// Generate the list of valid moves
 	MoveList legalMoves{};
-	GenerateMoves(legalMoves, MoveGen::All, Legality::Legal);
+	GenerateAllLegalMoves(legalMoves);
 	const bool valid = std::any_of(legalMoves.begin(), legalMoves.end(), [&](const ScoredMove& sm) {
 		return sm.move == move;
-		});
+	});
 
 	// Make the move if valid
 	if (!valid) return false;
@@ -327,7 +327,7 @@ void Position::PopMove() {
 
 // Generating moves -------------------------------------------------------------------------------
 
-template <bool side, uint8_t pieceType, MoveGen moveGen>
+template <bool side, uint8_t pieceType, MoveGen2 moveGen>
 void Position::GenerateSlidingMoves(MoveList& moves, const uint8_t fromSquare, const uint64_t friendlyOccupancy, const uint64_t opponentOccupancy) const {
 	const uint64_t occupancy = friendlyOccupancy | opponentOccupancy;
 	uint64_t targets;
@@ -348,7 +348,8 @@ void Position::GenerateSlidingMoves(MoveList& moves, const uint8_t fromSquare, c
 		break;
 	}
 
-	if constexpr (moveGen == MoveGen::Noisy) targets &= opponentOccupancy;
+	if constexpr (moveGen == MoveGen2::Noisy) targets &= opponentOccupancy;
+	else targets &= ~opponentOccupancy;
 
 	while (targets) {
 		const uint8_t toSquare = Popsquare(targets);
@@ -400,51 +401,46 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 	}
 }
 
-void Position::GenerateMoves(MoveList& moves, const MoveGen moveGen, const Legality legality) const {
-	const bool turn = CurrentState().Turn;
+void Position::GenerateNoisyPseudoLegalMoves(MoveList& moves) const {
+	if (CurrentState().Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen2::Noisy>(moves);
+	else GeneratePseudolegalMoves<Side::Black, MoveGen2::Noisy>(moves);
+}
 
-	if (legality == Legality::Pseudolegal) {
-		if (moveGen == MoveGen::All) {
-			if (turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::All>(moves);
-			else GeneratePseudolegalMoves<Side::Black, MoveGen::All>(moves);
-		}
-		else if (moveGen == MoveGen::Noisy) {
-			if (turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(moves);
-			else GeneratePseudolegalMoves<Side::Black, MoveGen::Noisy>(moves);
-		}
-	}
-	else {
-		MoveList pseudoLegalMoves{};
-		if (moveGen == MoveGen::All) {
-			if (turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::All>(pseudoLegalMoves);
-			else GeneratePseudolegalMoves<Side::Black, MoveGen::All>(pseudoLegalMoves);
-		}
-		else if (moveGen == MoveGen::Noisy) {
-			if (turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(pseudoLegalMoves);
-			else GeneratePseudolegalMoves<Side::Black, MoveGen::Noisy>(pseudoLegalMoves);
-		}
-		for (const auto& m : pseudoLegalMoves) {
-			if (IsLegalMove(m.move)) moves.pushUnscored(m.move);
-		}
+void Position::GenerateQuietPseudoLegalMoves(MoveList& moves) const {
+	if (CurrentState().Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen2::Quiet>(moves);
+	else GeneratePseudolegalMoves<Side::Black, MoveGen2::Quiet>(moves);
+}
+
+void Position::GenerateAllPseudoLegalMoves(MoveList& moves) const {
+	GenerateNoisyPseudoLegalMoves(moves);
+	GenerateQuietPseudoLegalMoves(moves);
+}
+
+void Position::GenerateAllLegalMoves(MoveList& moves) const {
+	MoveList pseudoLegalMoves{};
+	GenerateAllPseudoLegalMoves(pseudoLegalMoves);
+	for (const auto& m : pseudoLegalMoves) {
+		if (IsLegalMove(m.move)) moves.pushUnscored(m.move);
 	}
 }
 
-template <bool side, MoveGen moveGen>
+template <bool side, MoveGen2 moveGen>
 void Position::GeneratePseudolegalMoves(MoveList& moves) const {
 	const uint64_t whiteOccupancy = GetOccupancy(Side::White);
 	const uint64_t blackOccupancy = GetOccupancy(Side::Black);
+	const uint64_t occupancy = whiteOccupancy | blackOccupancy;
 	const uint64_t friendlyOccupancy = (side == Side::White) ? whiteOccupancy : blackOccupancy;
 	const uint64_t opponentOccupancy = (side == Side::White) ? blackOccupancy : whiteOccupancy;
 
 	// Pawn moves
-	GeneratePawnMoves2Noisy<side>(moves);
-	if constexpr (moveGen == MoveGen::All) GeneratePawnMoves2Quiet<side>(moves);
+	if constexpr (moveGen == MoveGen2::Noisy) GeneratePawnMoves2Noisy<side>(moves);
+	else GeneratePawnMoves2Quiet<side>(moves);
 	
 	// Knight moves
 	uint64_t friendlyKnights = (side == Side::White) ? WhiteKnightBits() : BlackKnightBits();
 	while (friendlyKnights) {
 		const uint8_t fromSquare = Popsquare(friendlyKnights);
-		uint64_t targetBitboard = (moveGen == MoveGen::All) ? KnightMoveBits[fromSquare] & ~friendlyOccupancy : KnightMoveBits[fromSquare] & opponentOccupancy;
+		uint64_t targetBitboard = (moveGen == MoveGen2::Noisy) ? KnightMoveBits[fromSquare] & opponentOccupancy : KnightMoveBits[fromSquare] & ~occupancy;
 		while (targetBitboard) {
 			const uint8_t toSquare = Popsquare(targetBitboard);
 			moves.pushUnscored(Move(fromSquare, toSquare));
@@ -453,12 +449,12 @@ void Position::GeneratePseudolegalMoves(MoveList& moves) const {
 
 	// King moves
 	uint8_t fromSquare = (side == Side::White) ? WhiteKingSquare() : BlackKingSquare();
-	uint64_t targetBitboard = (moveGen == MoveGen::All) ? KingMoveBits[fromSquare] & ~friendlyOccupancy : KingMoveBits[fromSquare] & opponentOccupancy;
+	uint64_t targetBitboard = (moveGen == MoveGen2::Noisy) ? KingMoveBits[fromSquare] & opponentOccupancy : KingMoveBits[fromSquare] & ~occupancy;
 	while (targetBitboard) {
 		const uint8_t toSquare = Popsquare(targetBitboard);
 		moves.pushUnscored(Move(fromSquare, toSquare));
 	}
-	if constexpr (moveGen == MoveGen::All) GenerateCastlingMoves<side>(moves);
+	if constexpr (moveGen == MoveGen2::Quiet) GenerateCastlingMoves<side>(moves);
 
 	// Bishop moves
 	uint64_t friendlyBishops = (side == Side::White) ? WhiteBishopBits() : BlackBishopBits();
@@ -989,7 +985,7 @@ std::string Position::GetFEN() const {
 GameState Position::GetGameState() const {
 	// Check checkmates & stalemates
 	MoveList moves{};
-	GenerateMoves(moves, MoveGen::All, Legality::Legal);
+	GenerateAllLegalMoves(moves);
 
 	if (moves.size() == 0) {
 		if (IsInCheck()) return (Turn() == Side::Black) ? GameState::WhiteVictory : GameState::BlackVictory;

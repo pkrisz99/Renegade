@@ -182,15 +182,15 @@ void Engine::Start() {
 				DrawBoard(position, position.GetThreats());
 			}
 			if (parts[1] == "pseudolegal") {
-				MoveList pseudoMoves{};
-				position.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
-				for (const ScoredMove& m : pseudoMoves) cout << m.move.ToString(Settings::Chess960) << " ";
+				MoveList pseudoLegalMoves{};
+				position.GenerateAllPseudoLegalMoves(pseudoLegalMoves);
+				for (const ScoredMove& m : pseudoLegalMoves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
 			}
 			if (parts[1] == "legal") {
-				MoveList moves{};
-				position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
-				for (const ScoredMove& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
+				MoveList legalMoves{};
+				position.GenerateAllLegalMoves(legalMoves);
+				for (const ScoredMove& m : legalMoves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
 			}
 			if (parts[1] == "settings") {

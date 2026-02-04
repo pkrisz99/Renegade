@@ -183,7 +183,6 @@ enum class GameState { Playing, WhiteVictory, BlackVictory, Drawn };
 
 enum class PerftType { Normal, PerftDiv };
 
-enum class MoveGen { All, Noisy };
 enum class MoveGen2 { Quiet, Noisy };
 
 enum class Legality { Legal, Pseudolegal };

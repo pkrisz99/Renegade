@@ -23,12 +23,16 @@ public:
 	void PushNullMove();
 	bool PushUCI(const std::string& str);
 	void PopMove();
-
-	void GenerateMoves(MoveList& moves, const MoveGen moveGen, const Legality legality) const;
 	bool IsDrawn(const int level) const;
 
 	bool IsLegalMove(const Move& m) const;
 	bool IsMoveQuiet(const Move& move) const;
+
+
+	void GenerateNoisyPseudoLegalMoves(MoveList& moves) const;
+	void GenerateQuietPseudoLegalMoves(MoveList& moves) const;
+	void GenerateAllPseudoLegalMoves(MoveList& moves) const;
+	void GenerateAllLegalMoves(MoveList& moves) const;
 
 	inline Board& CurrentState() {
 		return States.back();
@@ -175,11 +179,11 @@ public:
 private:
 
 	// Functions for move generation
-	template <bool side, MoveGen moveGen> void GeneratePseudolegalMoves(MoveList& moves) const;
+	template <bool side, MoveGen2 moveGen> void GeneratePseudolegalMoves(MoveList& moves) const;
 	template <bool side> void GeneratePawnMoves2Noisy(MoveList& moves) const;
 	template <bool side> void GeneratePawnMoves2Quiet(MoveList& moves) const;
 	template <bool side> void GenerateCastlingMoves(MoveList& moves) const;
-	template <bool side, uint8_t pieceType, MoveGen moveGen> void GenerateSlidingMoves(MoveList& moves, const uint8_t home, const uint64_t friendlyOccupancy, const uint64_t opponentOccupancy) const;
+	template <bool side, uint8_t pieceType, MoveGen2 moveGen> void GenerateSlidingMoves(MoveList& moves, const uint8_t home, const uint64_t friendlyOccupancy, const uint64_t opponentOccupancy) const;
 
 	bool IsSquareAttacked(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const;
 	uint64_t CalculateAttackedSquares(const bool attackingSide) const;
