@@ -178,7 +178,8 @@ private:
 	template <bool side, MoveGen moveGen> void GeneratePseudolegalMoves(MoveList& moves) const;
 	template <bool side, MoveGen moveGen> void GenerateKnightMoves(MoveList& moves, const int home) const;
 	template <bool side, MoveGen moveGen> void GenerateKingMoves(MoveList& moves, const int home) const;
-	template <bool side, MoveGen moveGen> void GeneratePawnMoves(MoveList& moves, const int home) const;
+	template <bool side> void GeneratePawnMoves2Noisy(MoveList& moves) const;
+	template <bool side> void GeneratePawnMoves2Quiet(MoveList& moves) const;
 	template <bool side> void GenerateCastlingMoves(MoveList& moves) const;
 	template <bool side, int pieceType, MoveGen moveGen> void GenerateSlidingMoves(MoveList& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) const;
 
