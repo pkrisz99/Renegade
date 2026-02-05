@@ -134,6 +134,13 @@ struct Board {
 			| BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 	}
 
+	inline uint64_t GetOccupancyForSide(const bool side) const {
+		if (side == Side::White)
+			return WhitePawnBits | WhiteKnightBits | WhiteBishopBits | WhiteRookBits | WhiteQueenBits | WhiteKingBits;
+		else
+			return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
+	}
+
 	//uint64_t CalculateHash() const;
 	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
 

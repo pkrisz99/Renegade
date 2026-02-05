@@ -75,7 +75,7 @@ void Search::StartSearch(Position& position, const SearchParams params) {
 	TranspositionTable.IncreaseAge();
 
 	MoveList rootLegalMoves{};
-	position.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
+	position.GenerateAllLegalMoves(rootLegalMoves);
 
 	// Handle no legal moves
 	if (rootLegalMoves.size() == 0) {
@@ -490,7 +490,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Initialize variables, generate and order moves (in singular search we've already done these)
 	if (!singularSearch) {
-		movePicker.Initialize(MoveGen::All, position, t.History, ttMove, level);
+		movePicker.Initialize(false, position, t.History, ttMove, level);
 
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
@@ -749,7 +749,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 	// Generate noisy moves and order them (in check we generate quiets as well)
 	MovePicker& movePicker = t.MovePickerStack[level];
-	movePicker.Initialize(inCheck ? MoveGen::All : MoveGen::Noisy, position, t.History, ttMove, level);
+	movePicker.Initialize(!inCheck, position, t.History, ttMove, level);
 
 	// Search recursively until the position is quiet
 	int bestScore = staticEval;
@@ -862,7 +862,7 @@ void Search::Perft(Position& position, const int depth, const PerftType type) co
 
 uint64_t Search::PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const {
 	MoveList moves{};
-	position.GenerateMoves(moves, MoveGen::All, Legality::Pseudolegal);
+	position.GenerateAllPseudoLegalMoves(moves);
 
 	if (type == PerftType::PerftDiv && originalDepth == depth) cout << "-> Legal moves (" << moves.size() << "): " << endl;
 	uint64_t count = 0;
