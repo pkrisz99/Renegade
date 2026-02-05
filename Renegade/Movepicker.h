@@ -7,9 +7,12 @@
 
 
 enum class MovePickerStage {
-	EmitTTMove,
-	GenerateAndScoreMoves,
-	EmitMoves,
+	EmitTTMove = 0,
+	GenerateAndScoreNoisyMoves,
+	EmitGoodNoisyMoves,
+	GenerateAndScoreQuietMoves,
+	EmitQuietMoves,
+	EmitBadNoisyMoves,
 	End
 };
 
@@ -24,7 +27,8 @@ public:
 		std::tie(killerMove, counterMove, positionalMove) = hist.GetRefutationMoves(pos, level);
 		this->level = level;
 		this->onlyNoisyMoves = onlyNoisyMoves;
-		this->index = 0;
+		this->noisyMoveIndex = 0;
+		this->quietMoveIndex = 0;
 	}
 
 	// Retrieves the next move
@@ -32,26 +36,59 @@ public:
 
 		switch (stage) {
 
-		// 1. Return the TT move if possible, skipping move generation entirely
 		case MovePickerStage::EmitTTMove:
-			stage = MovePickerStage::GenerateAndScoreMoves;
+			// We can sometimes skip the entire move generation process
+			stage = MovePickerStage::GenerateAndScoreNoisyMoves;
 			if (!ttMove.IsNull() && pos.IsPseudoLegalMove(ttMove) && pos.IsLegalMove(ttMove)) {
 				return { ttMove, 900000 };
 			}
 			[[fallthrough]];
 
-		// 2. Generate moves and score them
-		case MovePickerStage::GenerateAndScoreMoves:
-			pos.GenerateNoisyPseudoLegalMoves(moves);
-			if (!onlyNoisyMoves) pos.GenerateQuietPseudoLegalMoves(moves);
-			for (auto& m : moves) m.orderScore = GetMoveScore(pos, hist, m.move);
-			stage = MovePickerStage::EmitMoves;
+		case MovePickerStage::GenerateAndScoreNoisyMoves:
+			pos.GenerateNoisyPseudoLegalMoves(noisyMoves);
+			for (auto& m : noisyMoves) m.orderScore = GetMoveScore(pos, hist, m.move);
+			stage = MovePickerStage::EmitGoodNoisyMoves;
 			[[fallthrough]];
 
-		// 3. Return moves in decreasing order of merit
-		case MovePickerStage::EmitMoves:
-			while (index < moves.size()) {
-				const auto next = FindNext();
+		case MovePickerStage::EmitGoodNoisyMoves:
+			while (noisyMoveIndex < noisyMoves.size()) {
+				const auto next = findNext(noisyMoves, noisyMoveIndex);
+				if (next.first == ttMove) continue;
+				if (!pos.IsLegalMove(next.first)) continue;
+				if (next.second < -100000) {
+					noisyMoveIndex -= 1;
+					break;
+				}
+				return next;
+			}
+			if (onlyNoisyMoves) {
+				stage = MovePickerStage::EmitBadNoisyMoves;
+				goto EmitBadNoisyMoves; // horrible
+			}
+			stage = MovePickerStage::GenerateAndScoreQuietMoves;
+			[[fallthrough]];
+
+		case MovePickerStage::GenerateAndScoreQuietMoves:
+			pos.GenerateQuietPseudoLegalMoves(quietMoves);
+			for (auto& m : quietMoves) m.orderScore = GetMoveScore(pos, hist, m.move);
+			stage = MovePickerStage::EmitQuietMoves;
+			[[fallthrough]];
+
+		case MovePickerStage::EmitQuietMoves:
+			while (quietMoveIndex < quietMoves.size()) {
+				const auto next = findNext(quietMoves, quietMoveIndex);
+				if (next.first == ttMove) continue;
+				if (!pos.IsLegalMove(next.first)) continue;
+				return next;
+			}
+			stage = MovePickerStage::EmitBadNoisyMoves;
+
+		EmitBadNoisyMoves:
+			[[fallthrough]];
+
+		case MovePickerStage::EmitBadNoisyMoves:
+			while (noisyMoveIndex < noisyMoves.size()) {
+				const auto next = findNext(noisyMoves, noisyMoveIndex);
 				if (next.first == ttMove) continue;
 				if (!pos.IsLegalMove(next.first)) continue;
 				return next;
@@ -59,10 +96,8 @@ public:
 			stage = MovePickerStage::End;
 			[[fallthrough]];
 
-		// 4. Signal that all legal moves have been emitted
 		case MovePickerStage::End:
 			return { NullMove, -999999 };
-		
 		}
 	}
 
@@ -70,7 +105,7 @@ public:
 
 private:
 
-	std::pair<Move, int> FindNext() {
+	std::pair<Move, int> findNext(MoveList& moves, size_t& index) const {
 		int bestOrderScore = moves[index].orderScore;
 		int bestIndex = index;
 
@@ -122,10 +157,9 @@ private:
 		return historyScore;
 	}
 
-
-	size_t index = 0;
+	size_t noisyMoveIndex = 0, quietMoveIndex = 0;
 	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
-	MoveList moves{};
+	MoveList noisyMoves{}, quietMoves{};
 	int level = 0;
 	bool onlyNoisyMoves = false;
 	MovePickerStage stage = MovePickerStage::EmitTTMove;
