@@ -327,7 +327,7 @@ void Position::PopMove() {
 
 // Generating moves -------------------------------------------------------------------------------
 
-template <bool side, uint8_t pieceType, MoveGen2 moveGen>
+template <bool side, uint8_t pieceType, MoveGen moveGen>
 void Position::GenerateSlidingMoves(MoveList& moves, const uint8_t fromSquare, const uint64_t friendlyOccupancy, const uint64_t opponentOccupancy) const {
 	const uint64_t occupancy = friendlyOccupancy | opponentOccupancy;
 	uint64_t targets;
@@ -348,7 +348,7 @@ void Position::GenerateSlidingMoves(MoveList& moves, const uint8_t fromSquare, c
 		break;
 	}
 
-	if constexpr (moveGen == MoveGen2::Noisy) targets &= opponentOccupancy;
+	if constexpr (moveGen == MoveGen::Noisy) targets &= opponentOccupancy;
 	else targets &= ~opponentOccupancy;
 
 	while (targets) {
@@ -402,13 +402,13 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 }
 
 void Position::GenerateNoisyPseudoLegalMoves(MoveList& moves) const {
-	if (CurrentState().Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen2::Noisy>(moves);
-	else GeneratePseudolegalMoves<Side::Black, MoveGen2::Noisy>(moves);
+	if (CurrentState().Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(moves);
+	else GeneratePseudolegalMoves<Side::Black, MoveGen::Noisy>(moves);
 }
 
 void Position::GenerateQuietPseudoLegalMoves(MoveList& moves) const {
-	if (CurrentState().Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen2::Quiet>(moves);
-	else GeneratePseudolegalMoves<Side::Black, MoveGen2::Quiet>(moves);
+	if (CurrentState().Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Quiet>(moves);
+	else GeneratePseudolegalMoves<Side::Black, MoveGen::Quiet>(moves);
 }
 
 void Position::GenerateAllPseudoLegalMoves(MoveList& moves) const {
@@ -424,7 +424,7 @@ void Position::GenerateAllLegalMoves(MoveList& moves) const {
 	}
 }
 
-template <bool side, MoveGen2 moveGen>
+template <bool side, MoveGen moveGen>
 void Position::GeneratePseudolegalMoves(MoveList& moves) const {
 	const uint64_t whiteOccupancy = GetOccupancy(Side::White);
 	const uint64_t blackOccupancy = GetOccupancy(Side::Black);
@@ -433,14 +433,14 @@ void Position::GeneratePseudolegalMoves(MoveList& moves) const {
 	const uint64_t opponentOccupancy = (side == Side::White) ? blackOccupancy : whiteOccupancy;
 
 	// Pawn moves
-	if constexpr (moveGen == MoveGen2::Noisy) GeneratePawnMoves2Noisy<side>(moves);
-	else GeneratePawnMoves2Quiet<side>(moves);
+	if constexpr (moveGen == MoveGen::Noisy) GeneratePawnMovesNoisy<side>(moves);
+	else GeneratePawnMovesQuiet<side>(moves);
 	
 	// Knight moves
 	uint64_t friendlyKnights = (side == Side::White) ? WhiteKnightBits() : BlackKnightBits();
 	while (friendlyKnights) {
 		const uint8_t fromSquare = Popsquare(friendlyKnights);
-		uint64_t targetBitboard = (moveGen == MoveGen2::Noisy) ? KnightMoveBits[fromSquare] & opponentOccupancy : KnightMoveBits[fromSquare] & ~occupancy;
+		uint64_t targetBitboard = (moveGen == MoveGen::Noisy) ? KnightMoveBits[fromSquare] & opponentOccupancy : KnightMoveBits[fromSquare] & ~occupancy;
 		while (targetBitboard) {
 			const uint8_t toSquare = Popsquare(targetBitboard);
 			moves.pushUnscored(Move(fromSquare, toSquare));
@@ -449,12 +449,12 @@ void Position::GeneratePseudolegalMoves(MoveList& moves) const {
 
 	// King moves
 	uint8_t fromSquare = (side == Side::White) ? WhiteKingSquare() : BlackKingSquare();
-	uint64_t targetBitboard = (moveGen == MoveGen2::Noisy) ? KingMoveBits[fromSquare] & opponentOccupancy : KingMoveBits[fromSquare] & ~occupancy;
+	uint64_t targetBitboard = (moveGen == MoveGen::Noisy) ? KingMoveBits[fromSquare] & opponentOccupancy : KingMoveBits[fromSquare] & ~occupancy;
 	while (targetBitboard) {
 		const uint8_t toSquare = Popsquare(targetBitboard);
 		moves.pushUnscored(Move(fromSquare, toSquare));
 	}
-	if constexpr (moveGen == MoveGen2::Quiet) GenerateCastlingMoves<side>(moves);
+	if constexpr (moveGen == MoveGen::Quiet) GenerateCastlingMoves<side>(moves);
 
 	// Bishop moves
 	uint64_t friendlyBishops = (side == Side::White) ? WhiteBishopBits() : BlackBishopBits();
@@ -479,11 +479,8 @@ void Position::GeneratePseudolegalMoves(MoveList& moves) const {
 }
 
 template <bool side>
-void Position::GeneratePawnMoves2Noisy(MoveList& moves) const {
-
-	// This code is rather repetitive, but it has just the amount of variation
-	// that makes organization into smaller function a bit difficult
-
+void Position::GeneratePawnMovesNoisy(MoveList& moves) const {
+	// This code is rather repetitive, but it has just the right amount of variation that makes abstraction non-trivial
 	const Board& b = CurrentState();
 	const uint64_t occupancy = b.GetOccupancy();
 	const uint64_t opponentOccupancy = b.GetOccupancyForSide(!side);
@@ -613,7 +610,7 @@ void Position::GeneratePawnMoves2Noisy(MoveList& moves) const {
 }
 
 template <bool side>
-void Position::GeneratePawnMoves2Quiet(MoveList& moves) const {
+void Position::GeneratePawnMovesQuiet(MoveList& moves) const {
 
 	const Board& b = CurrentState();
 	const uint64_t occupancy = b.GetOccupancy();
@@ -636,7 +633,7 @@ void Position::GeneratePawnMoves2Quiet(MoveList& moves) const {
 		}
 	}
 
-	// Generate single pushes: can't be blocked by another piece (promotion handled below)
+	// Generate non-promotion single pushes
 	if constexpr (side == Side::White) {
 		uint64_t destinations = (b.WhitePawnBits << 8) & ~occupancy & ~Rank[7];
 		while (destinations) {

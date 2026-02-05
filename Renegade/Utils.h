@@ -21,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.2.30";
+constexpr std::string_view Version = "dev 1.2.31";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -183,9 +183,7 @@ enum class GameState { Playing, WhiteVictory, BlackVictory, Drawn };
 
 enum class PerftType { Normal, PerftDiv };
 
-enum class MoveGen2 { Quiet, Noisy };
-
-enum class Legality { Legal, Pseudolegal };
+enum class MoveGen { Quiet, Noisy };
 
 struct SearchParams {
 	int wtime = 0;
