@@ -18,12 +18,12 @@ class MovePicker {
 public:
 	MovePicker() = delete;
 
-	MovePicker(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
+	MovePicker(const bool onlyNoisyMoves, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
 		this->stage = MovePickerStage::EmitTTMove;
 		this->ttMove = ttMove;
 		std::tie(killerMove, counterMove, positionalMove) = hist.GetRefutationMoves(pos, level);
 		this->level = level;
-		this->moveGen = moveGen;
+		this->onlyNoisyMoves = onlyNoisyMoves;
 		this->index = 0;
 	}
 
@@ -42,7 +42,8 @@ public:
 
 		// 2. Generate moves and score them
 		case MovePickerStage::GenerateAndScoreMoves:
-			pos.GenerateMoves(moves, moveGen, Legality::Pseudolegal);
+			pos.GenerateNoisyPseudoLegalMoves(moves);
+			if (!onlyNoisyMoves) pos.GenerateQuietPseudoLegalMoves(moves);
 			for (auto& m : moves) m.orderScore = GetMoveScore(pos, hist, m.move);
 			stage = MovePickerStage::EmitMoves;
 			[[fallthrough]];
@@ -126,6 +127,6 @@ private:
 	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
 	MoveList moves{};
 	int level = 0;
-	MoveGen moveGen = MoveGen::All;
+	bool onlyNoisyMoves = false;
 	MovePickerStage stage = MovePickerStage::EmitTTMove;
 };
