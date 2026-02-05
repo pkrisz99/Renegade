@@ -75,7 +75,7 @@ void Search::StartSearch(Position& position, const SearchParams params) {
 	TranspositionTable.IncreaseAge();
 
 	MoveList rootLegalMoves{};
-	position.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
+	position.GenerateAllLegalMoves(rootLegalMoves);
 
 	// Handle no legal moves
 	if (rootLegalMoves.size() == 0) {
@@ -858,7 +858,7 @@ void Search::Perft(Position& position, const int depth, const PerftType type) co
 
 uint64_t Search::PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const {
 	MoveList moves{};
-	position.GenerateMoves(moves, MoveGen::All, Legality::Pseudolegal);
+	position.GenerateAllPseudoLegalMoves(moves);
 
 	if (type == PerftType::PerftDiv && originalDepth == depth) cout << "-> Legal moves (" << moves.size() << "): " << endl;
 	uint64_t count = 0;

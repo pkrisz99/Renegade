@@ -103,7 +103,7 @@ private:
 		// Captures
 		if (capturedPieceType != PieceType::None) {
 			const bool losingCapture = [&] {
-				if (moveGen == MoveGen::Noisy) return false;
+				if (onlyNoisyMoves) return false;
 				if (pos.IsMoveQuiet(m)) return false;
 				const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
 				return !pos.StaticExchangeEval(m, -captureScore / 28);

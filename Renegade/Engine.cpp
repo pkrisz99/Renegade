@@ -181,15 +181,17 @@ void Engine::Start() {
 			if (parts[1] == "attackmap") {
 				DrawBoard(position, position.GetThreats());
 			}
-			if (parts[1] == "pseudolegal") {
-				MoveList pseudoMoves{};
-				position.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
-				for (const ScoredMove& m : pseudoMoves) cout << m.move.ToString(Settings::Chess960) << " ";
-				cout << endl;
-			}
-			if (parts[1] == "legal") {
+			if (parts[1] == "moves") {
+				// All legal moves:
 				MoveList moves{};
-				position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
+				position.GenerateAllLegalMoves(moves);
+				cout << "-> Legal moves (" << moves.size() << "): ";
+				for (const ScoredMove& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
+				cout << endl;
+				// Pseudolegal moves:
+				moves.clear();
+				position.GenerateAllPseudoLegalMoves(moves);
+				cout << "-> Pseudolegal moves (" << moves.size() << "): ";
 				for (const ScoredMove& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
 			}
@@ -201,12 +203,6 @@ void Engine::Start() {
 				cout << "Using UCI: " << Settings::UseUCI << endl;
 				cout << std::noboolalpha;
 				for (const auto& [name, param] : TunableParameterList) cout << name << " -> " << param.value << endl;
-			}
-			if (parts[1] == "sizeof") {
-				cout << "sizeof TranspositionEntry: " << sizeof(TranspositionEntry) << endl;
-				cout << "sizeof Position:           " << sizeof(position) << endl;
-				cout << "sizeof Move:               " << sizeof(Move) << endl;
-				cout << "sizeof int:                " << sizeof(int) << endl;
 			}
 			if (parts[1] == "pasthashes") {
 				cout << "Past hashes size: " << position.States.size() << endl;

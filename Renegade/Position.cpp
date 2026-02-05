@@ -307,10 +307,10 @@ bool Position::PushUCI(const std::string& str) {
 
 	// Generate the list of valid moves
 	MoveList legalMoves{};
-	GenerateMoves(legalMoves, MoveGen::All, Legality::Legal);
+	GenerateAllLegalMoves(legalMoves);
 	const bool valid = std::any_of(legalMoves.begin(), legalMoves.end(), [&](const ScoredMove& sm) {
 		return sm.move == move;
-		});
+	});
 
 	// Make the move if valid
 	if (!valid) return false;
@@ -327,119 +327,34 @@ void Position::PopMove() {
 
 // Generating moves -------------------------------------------------------------------------------
 
-template <bool side, MoveGen moveGen>
-void Position::GenerateKingMoves(MoveList& moves, const int home) const {
-	constexpr uint8_t friendlyPieceColor = (side == Side::White) ? PieceColor::White : PieceColor::Black;
-	constexpr uint8_t opponentPieceColor = (side == Side::White) ? PieceColor::Black : PieceColor::White;
-	uint64_t bits = KingMoveBits[home];
-	while (bits) {
-		const uint8_t l = Popsquare(bits);
-		if (ColorOfPiece(GetPieceAt(l)) == friendlyPieceColor) continue;
-		if ((moveGen == MoveGen::All) || (ColorOfPiece(GetPieceAt(l)) == opponentPieceColor)) moves.pushUnscored(Move(home, l));
-	}
-}
+template <bool side, uint8_t pieceType, MoveGen moveGen>
+void Position::GenerateSlidingMoves(MoveList& moves, const uint8_t fromSquare, const uint64_t friendlyOccupancy, const uint64_t opponentOccupancy) const {
+	const uint64_t occupancy = friendlyOccupancy | opponentOccupancy;
+	uint64_t targets;
 
-template <bool side, MoveGen moveGen>
-void Position::GenerateKnightMoves(MoveList& moves, const int home) const {
-	constexpr uint8_t friendlyPieceColor = (side == Side::White) ? PieceColor::White : PieceColor::Black;
-	constexpr uint8_t opponentPieceColor = (side == Side::White) ? PieceColor::Black : PieceColor::White;
-	uint64_t bits = KnightMoveBits[home];
-	while (bits) {
-		const uint8_t l = Popsquare(bits);
-		if (ColorOfPiece(GetPieceAt(l)) == friendlyPieceColor) continue;
-		if ((moveGen == MoveGen::All) || (ColorOfPiece(GetPieceAt(l)) == opponentPieceColor)) moves.pushUnscored(Move(home, l));
-	}
-}
-
-template <bool side, int pieceType, MoveGen moveGen>
-void Position::GenerateSlidingMoves(MoveList& moves, const int home, const uint64_t whiteOccupancy, const uint64_t blackOccupancy) const {
-	const uint64_t friendlyOccupancy = (side == Side::White) ? whiteOccupancy : blackOccupancy;
-	const uint64_t opponentOccupancy = (side == Side::White) ? blackOccupancy : whiteOccupancy;
-	const uint64_t occupancy = whiteOccupancy | blackOccupancy;
-	uint64_t map = 0;
-
-	if constexpr (pieceType == PieceType::Rook) map = GetRookAttacks(home, occupancy) & ~friendlyOccupancy;
-	if constexpr (pieceType == PieceType::Bishop) map = GetBishopAttacks(home, occupancy) & ~friendlyOccupancy;
-	if constexpr (pieceType == PieceType::Queen) map = GetQueenAttacks(home, occupancy) & ~friendlyOccupancy;
-
-	if constexpr (moveGen == MoveGen::Noisy) map &= opponentOccupancy;
-	if (map == 0) return;
-
-	while (map != 0) {
-		const int sq = Popsquare(map);
-		moves.pushUnscored(Move(home, sq));
-	}
-}
-
-template <bool side, MoveGen moveGen>
-void Position::GeneratePawnMoves(MoveList& moves, const int home) const {
-
-	const Board& b = CurrentState();
-
-	constexpr int promotionRank = (side == Side::White) ? 7 : 0;
-	constexpr int doublePushRank = (side == Side::White) ? 1 : 6;
-	constexpr int forwardDelta = (side == Side::White) ? 8 : -8;
-	constexpr int doublePushDelta = (side == Side::White) ? 16 : -16;
-	constexpr uint8_t opponentPieceColor = SideToPieceColor(!side);
-
-	// These are like that to avoid bench changing, will be changed to be more intuitive later
-	constexpr int capture1Delta = (side == Side::White) ? 7 : -7;
-	constexpr int capture2Delta = (side == Side::White) ? 9 : -9;
-	constexpr int capture1WrongFile = (side == Side::White) ? 0 : 7;
-	constexpr int capture2WrongFile = (side == Side::White) ? 7 : 0;
-
-	const int file = GetSquareFile(home);
-	const int rank = GetSquareRank(home);
-	int target;
-
-	// 1. Handle moving forward + check promotions
-	target = home + forwardDelta;
-	if (GetPieceAt(target) == Piece::None) {
-		if (GetSquareRank(target) != promotionRank) {
-			if constexpr (moveGen == MoveGen::All) moves.pushUnscored(Move(home, target));
-		}
-		else { // Promote
-			moves.pushUnscored(Move(home, target, MoveFlag::PromotionToQueen));
-			if constexpr (moveGen == MoveGen::All) {
-				moves.pushUnscored(Move(home, target, MoveFlag::PromotionToRook));
-				moves.pushUnscored(Move(home, target, MoveFlag::PromotionToBishop));
-				moves.pushUnscored(Move(home, target, MoveFlag::PromotionToKnight));
-			}
-		}
+	switch (pieceType) {
+	case PieceType::Bishop:
+		targets = GetBishopAttacks(fromSquare, occupancy) & ~friendlyOccupancy;
+		break;
+	case PieceType::Rook:
+		targets = GetRookAttacks(fromSquare, occupancy) & ~friendlyOccupancy;
+		break;
+	case PieceType::Queen:
+		targets = GetQueenAttacks(fromSquare, occupancy) & ~friendlyOccupancy;
+		break;
+	default:
+		// unreachable
+		assert(false);
+		break;
 	}
 
-	// 2. Handle captures + check promotions + check en passant
-	constexpr std::array<std::pair<int, int>, 2> captureDetails =
-	{ std::pair{capture1Delta, capture1WrongFile}, std::pair{capture2Delta, capture2WrongFile} };
+	if constexpr (moveGen == MoveGen::Noisy) targets &= opponentOccupancy;
+	else targets &= ~opponentOccupancy;
 
-	for (const auto& [delta, wrongFile] : captureDetails) {
-		target = home + delta;
-
-		if ((file != wrongFile) && ((ColorOfPiece(GetPieceAt(target)) == opponentPieceColor) || (target == b.EnPassantSquare))) {
-			if (GetSquareRank(target) != promotionRank) {
-				const uint8_t moveFlag = (target == b.EnPassantSquare) ? MoveFlag::EnPassantPerformed : MoveFlag::None;
-				moves.pushUnscored(Move(home, target, moveFlag));
-			}
-			else { // Promote
-				moves.pushUnscored(Move(home, target, MoveFlag::PromotionToQueen));
-				if constexpr (moveGen == MoveGen::All) {
-					moves.pushUnscored(Move(home, target, MoveFlag::PromotionToRook));
-					moves.pushUnscored(Move(home, target, MoveFlag::PromotionToBishop));
-					moves.pushUnscored(Move(home, target, MoveFlag::PromotionToKnight));
-				}
-			}
-		}
+	while (targets) {
+		const uint8_t toSquare = Popsquare(targets);
+		moves.pushUnscored(Move(fromSquare, toSquare));
 	}
-
-	// 3. Handle double pushes
-	if (rank == doublePushRank) {
-		const bool free1 = GetPieceAt(home + forwardDelta) == Piece::None;
-		const bool free2 = GetPieceAt(home + doublePushDelta) == Piece::None;
-		if (free1 && free2) {
-			if constexpr (moveGen == MoveGen::All) moves.pushUnscored(Move(home, home + doublePushDelta, MoveFlag::EnPassantPossible));
-		}
-	}
-
 }
 
 template <bool side>
@@ -452,75 +367,60 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 	const bool rightToLongCastle = (side == Side::White) ? b.WhiteRightToLongCastle : b.BlackRightToLongCastle;
 	if (!rightToShortCastle && !rightToLongCastle) return;
 
-	const uint64_t friendlyKing = (side == Side::White) ? b.WhiteKingBits : b.BlackKingBits;
-	const uint8_t kingSq = LsbSquare(friendlyKing);
+	const uint64_t kingSq = (side == Side::White) ? WhiteKingSquare() : BlackKingSquare();
 	const uint64_t occupancy = GetOccupancy();
 
 	if (rightToShortCastle) {
-		
 		constexpr uint8_t kingTo = (side == Side::White) ? G1 : G8;
 		constexpr uint8_t rookTo = (side == Side::White) ? F1 : F8;
-
 		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteShortCastleRookSquare : CastlingConfig.BlackShortCastleRookSquare;
 		const uint64_t rayBetweenKingAndG = GetShortConnectingRay(kingSq, kingTo);
 		const uint64_t rayBetweenRookAndF = GetShortConnectingRay(rookSq, rookTo);
-		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
-		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & fakeOccupancy);
+		const uint64_t mockOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
+		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & mockOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = b.Threats;
-			const bool safe = !(opponentAttacks & rayBetweenKingAndG);
+			const bool safe = !(b.Threats & rayBetweenKingAndG);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::ShortCastle));
 		}
 	}
 
 	if (rightToLongCastle) {
-
 		constexpr uint8_t kingTo = (side == Side::White) ? C1 : C8;
 		constexpr uint8_t rookTo = (side == Side::White) ? D1 : D8;
-
 		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteLongCastleRookSquare : CastlingConfig.BlackLongCastleRookSquare;
 		const uint64_t rayBetweenKingAndC = GetShortConnectingRay(kingSq, kingTo);
 		const uint64_t rayBetweenRookAndF = GetShortConnectingRay(rookSq, rookTo);
-		const uint64_t fakeOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
-		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & fakeOccupancy);
+		const uint64_t mockOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
+		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & mockOccupancy);
 
 		if (empty) {
-			const uint64_t opponentAttacks = b.Threats;
-			const bool safe = !(opponentAttacks & rayBetweenKingAndC);
+			const bool safe = !(b.Threats & rayBetweenKingAndC);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::LongCastle));
 		}
-
 	}
 }
 
-void Position::GenerateMoves(MoveList& moves, const MoveGen moveGen, const Legality legality) const {
+void Position::GenerateNoisyPseudoLegalMoves(MoveList& moves) const {
+	if (CurrentState().Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(moves);
+	else GeneratePseudolegalMoves<Side::Black, MoveGen::Noisy>(moves);
+}
 
-	const Board& board = CurrentState();
+void Position::GenerateQuietPseudoLegalMoves(MoveList& moves) const {
+	if (CurrentState().Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Quiet>(moves);
+	else GeneratePseudolegalMoves<Side::Black, MoveGen::Quiet>(moves);
+}
 
-	if (legality == Legality::Pseudolegal) {
-		if (moveGen == MoveGen::All) {
-			if (board.Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::All>(moves);
-			else GeneratePseudolegalMoves<Side::Black, MoveGen::All>(moves);
-		}
-		else if (moveGen == MoveGen::Noisy) {
-			if (board.Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(moves);
-			else GeneratePseudolegalMoves<Side::Black, MoveGen::Noisy>(moves);
-		}
-	}
-	else {
-		MoveList legalMoves{};
-		if (moveGen == MoveGen::All) {
-			if (board.Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::All>(legalMoves);
-			else GeneratePseudolegalMoves<Side::Black, MoveGen::All>(legalMoves);
-		}
-		else if (moveGen == MoveGen::Noisy) {
-			if (board.Turn == Side::White) GeneratePseudolegalMoves<Side::White, MoveGen::Noisy>(legalMoves);
-			else GeneratePseudolegalMoves<Side::Black, MoveGen::Noisy>(legalMoves);
-		}
-		for (const auto& m : legalMoves) {
-			if (IsLegalMove(m.move)) moves.pushUnscored(m.move);
-		}
+void Position::GenerateAllPseudoLegalMoves(MoveList& moves) const {
+	GenerateNoisyPseudoLegalMoves(moves);
+	GenerateQuietPseudoLegalMoves(moves);
+}
+
+void Position::GenerateAllLegalMoves(MoveList& moves) const {
+	MoveList pseudoLegalMoves{};
+	GenerateAllPseudoLegalMoves(pseudoLegalMoves);
+	for (const auto& m : pseudoLegalMoves) {
+		if (IsLegalMove(m.move)) moves.pushUnscored(m.move);
 	}
 }
 
@@ -528,36 +428,252 @@ template <bool side, MoveGen moveGen>
 void Position::GeneratePseudolegalMoves(MoveList& moves) const {
 	const uint64_t whiteOccupancy = GetOccupancy(Side::White);
 	const uint64_t blackOccupancy = GetOccupancy(Side::Black);
-	uint64_t friendlyOccupancy = (Turn() == Side::White) ? whiteOccupancy : blackOccupancy;
+	const uint64_t occupancy = whiteOccupancy | blackOccupancy;
+	const uint64_t friendlyOccupancy = (side == Side::White) ? whiteOccupancy : blackOccupancy;
+	const uint64_t opponentOccupancy = (side == Side::White) ? blackOccupancy : whiteOccupancy;
 
-	while (friendlyOccupancy != 0) {
-		const int sq = Popsquare(friendlyOccupancy);
-		const int type = TypeOfPiece(GetPieceAt(sq));
+	// Pawn moves
+	if constexpr (moveGen == MoveGen::Noisy) GeneratePawnMovesNoisy<side>(moves);
+	else GeneratePawnMovesQuiet<side>(moves);
+	
+	// Knight moves
+	uint64_t friendlyKnights = (side == Side::White) ? WhiteKnightBits() : BlackKnightBits();
+	while (friendlyKnights) {
+		const uint8_t fromSquare = Popsquare(friendlyKnights);
+		uint64_t targetBitboard = (moveGen == MoveGen::Noisy) ? KnightMoveBits[fromSquare] & opponentOccupancy : KnightMoveBits[fromSquare] & ~occupancy;
+		while (targetBitboard) {
+			const uint8_t toSquare = Popsquare(targetBitboard);
+			moves.pushUnscored(Move(fromSquare, toSquare));
+		}
+	}
 
-		switch (type) {
-		case PieceType::Pawn:
-			GeneratePawnMoves<side, moveGen>(moves, sq);
-			break;
-		case PieceType::Knight:
-			GenerateKnightMoves<side, moveGen>(moves, sq);
-			break;
-		case PieceType::Bishop:
-			GenerateSlidingMoves<side, PieceType::Bishop, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
-			break;
-		case PieceType::Rook:
-			GenerateSlidingMoves<side, PieceType::Rook, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
-			break;
-		case PieceType::Queen:
-			GenerateSlidingMoves<side, PieceType::Queen, moveGen>(moves, sq, whiteOccupancy, blackOccupancy);
-			break;
-		case PieceType::King:
-			GenerateKingMoves<side, moveGen>(moves, sq);
-			if constexpr (moveGen == MoveGen::All) GenerateCastlingMoves<side>(moves);
-			break;
+	// King moves
+	uint8_t fromSquare = (side == Side::White) ? WhiteKingSquare() : BlackKingSquare();
+	uint64_t targetBitboard = (moveGen == MoveGen::Noisy) ? KingMoveBits[fromSquare] & opponentOccupancy : KingMoveBits[fromSquare] & ~occupancy;
+	while (targetBitboard) {
+		const uint8_t toSquare = Popsquare(targetBitboard);
+		moves.pushUnscored(Move(fromSquare, toSquare));
+	}
+	if constexpr (moveGen == MoveGen::Quiet) GenerateCastlingMoves<side>(moves);
 
+	// Bishop moves
+	uint64_t friendlyBishops = (side == Side::White) ? WhiteBishopBits() : BlackBishopBits();
+	while (friendlyBishops) {
+		const uint8_t fromSquare = Popsquare(friendlyBishops);
+		GenerateSlidingMoves<side, PieceType::Bishop, moveGen>(moves, fromSquare, friendlyOccupancy, opponentOccupancy);
+	}
+
+	// Rook moves
+	uint64_t friendlyRooks = (side == Side::White) ? WhiteRookBits() : BlackRookBits();
+	while (friendlyRooks) {
+		const uint8_t fromSquare = Popsquare(friendlyRooks);
+		GenerateSlidingMoves<side, PieceType::Rook, moveGen>(moves, fromSquare, friendlyOccupancy, opponentOccupancy);
+	}
+
+	// Queen moves
+	uint64_t friendlyQueens = (side == Side::White) ? WhiteQueenBits() : BlackQueenBits();
+	while (friendlyQueens) {
+		const uint8_t fromSquare = Popsquare(friendlyQueens);
+		GenerateSlidingMoves<side, PieceType::Queen, moveGen>(moves, fromSquare, friendlyOccupancy, opponentOccupancy);
+	}
+}
+
+template <bool side>
+void Position::GeneratePawnMovesNoisy(MoveList& moves) const {
+	// This code is rather repetitive, but it has just the right amount of variation that makes abstraction non-trivial
+	const Board& b = CurrentState();
+	const uint64_t occupancy = b.GetOccupancy();
+	const uint64_t opponentOccupancy = b.GetOccupancyForSide(!side);
+
+	// Promotions with capture
+	if constexpr (side == Side::White) {
+		// Left
+		uint64_t destinationsLeft = (b.WhitePawnBits << 7) & opponentOccupancy & Rank[7] & ~File[7];
+		while (destinationsLeft) {
+			const uint8_t toSq = Popsquare(destinationsLeft);
+			const uint8_t fromSq = toSq - 7;
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToQueen));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToKnight));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToRook));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToBishop));
+		}
+		// Right
+		uint64_t destinationsRight = (b.WhitePawnBits << 9) & opponentOccupancy & Rank[7] & ~File[0];
+		while (destinationsRight) {
+			const uint8_t toSq = Popsquare(destinationsRight);
+			const uint8_t fromSq = toSq - 9;
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToQueen));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToKnight));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToRook));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToBishop));
+		}
+	}
+	else {
+		// Left
+		uint64_t destinationsLeft = (b.BlackPawnBits >> 9) & opponentOccupancy & Rank[0] & ~File[7];
+		while (destinationsLeft) {
+			const uint8_t toSq = Popsquare(destinationsLeft);
+			const uint8_t fromSq = toSq + 9;
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToQueen));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToKnight));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToRook));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToBishop));
+		}
+		// Right
+		uint64_t destinationsRight = (b.BlackPawnBits >> 7) & opponentOccupancy & Rank[0] & ~File[0];
+		while (destinationsRight) {
+			const uint8_t toSq = Popsquare(destinationsRight);
+			const uint8_t fromSq = toSq + 7;
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToQueen));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToKnight));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToRook));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToBishop));
+		}
+	}
+
+	// Queen promotions without capture
+	if constexpr (side == Side::White) {
+		uint64_t destinations = (b.WhitePawnBits << 8) & ~occupancy & Rank[7];
+		while (destinations) {
+			const uint8_t toSq = Popsquare(destinations);
+			const uint8_t fromSq = toSq - 8;
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToQueen));
+		}
+	}
+	else {
+		uint64_t destinations = (b.BlackPawnBits >> 8) & ~occupancy & Rank[0];
+		while (destinations) {
+			const uint8_t toSq = Popsquare(destinations);
+			const uint8_t fromSq = toSq + 8;
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToQueen));
+		}
+	}
+
+	// Regular captures
+	if constexpr (side == Side::White) {
+		// Left
+		uint64_t destinationsLeft = (b.WhitePawnBits << 7) & opponentOccupancy & ~Rank[7] & ~File[7];
+		while (destinationsLeft) {
+			const uint8_t toSq = Popsquare(destinationsLeft);
+			const uint8_t fromSq = toSq - 7;
+			moves.pushUnscored(Move(fromSq, toSq));
+		}
+		// Right
+		uint64_t destinationsRight = (b.WhitePawnBits << 9) & opponentOccupancy & ~Rank[7] & ~File[0];
+		while (destinationsRight) {
+			const uint8_t toSq = Popsquare(destinationsRight);
+			const uint8_t fromSq = toSq - 9;
+			moves.pushUnscored(Move(fromSq, toSq));
+		}
+	}
+	else {
+		// Left
+		uint64_t destinationsLeft = (b.BlackPawnBits >> 9) & opponentOccupancy & ~Rank[0] & ~File[7];
+		while (destinationsLeft) {
+			const uint8_t toSq = Popsquare(destinationsLeft);
+			const uint8_t fromSq = toSq + 9;
+			moves.pushUnscored(Move(fromSq, toSq));
+		}
+		// Right
+		uint64_t destinationsRight = (b.BlackPawnBits >> 7) & opponentOccupancy & ~Rank[0] & ~File[0];
+		while (destinationsRight) {
+			const uint8_t toSq = Popsquare(destinationsRight);
+			const uint8_t fromSq = toSq + 7;
+			moves.pushUnscored(Move(fromSq, toSq));
+		}
+	}
+
+	// En passant
+	if (b.EnPassantSquare != -1) {
+		if constexpr (side == Side::White) {
+			// Left
+			if (b.EnPassantSquare != 47 && GetPieceAt(b.EnPassantSquare - 7) == Piece::WhitePawn) {
+				moves.pushUnscored(Move(b.EnPassantSquare - 7, b.EnPassantSquare, MoveFlag::EnPassantPerformed));
+			}
+			// Right
+			if (b.EnPassantSquare != 40 && GetPieceAt(b.EnPassantSquare - 9) == Piece::WhitePawn) {
+				moves.pushUnscored(Move(b.EnPassantSquare - 9, b.EnPassantSquare, MoveFlag::EnPassantPerformed));
+			}
+		}
+		else {
+			// Left
+			if (b.EnPassantSquare != 16 && GetPieceAt(b.EnPassantSquare + 7) == Piece::BlackPawn) {
+				moves.pushUnscored(Move(b.EnPassantSquare + 7, b.EnPassantSquare, MoveFlag::EnPassantPerformed));
+			}
+			// Right
+			if (b.EnPassantSquare != 23 && GetPieceAt(b.EnPassantSquare + 9) == Piece::BlackPawn) {
+				moves.pushUnscored(Move(b.EnPassantSquare + 9, b.EnPassantSquare, MoveFlag::EnPassantPerformed));
+			}
+		}
+	}
+
+}
+
+template <bool side>
+void Position::GeneratePawnMovesQuiet(MoveList& moves) const {
+
+	const Board& b = CurrentState();
+	const uint64_t occupancy = b.GetOccupancy();
+	
+	// Generate double pushes: has to be on the 4th rank afterwards, can't be blocked by another piece
+	if constexpr (side == Side::White) {
+		uint64_t destinations = (b.WhitePawnBits << 16) & Rank[3] & ~occupancy & (~occupancy << 8);
+		while (destinations) {
+			const uint8_t toSq = Popsquare(destinations);
+			const uint8_t fromSq = toSq - 16;
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::EnPassantPossible));
+		}
+	}
+	else {
+		uint64_t destinations = (b.BlackPawnBits >> 16) & Rank[4] & ~occupancy & (~occupancy >> 8);
+		while (destinations) {
+			const uint8_t toSq = Popsquare(destinations);
+			const uint8_t fromSq = toSq + 16;
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::EnPassantPossible));
+		}
+	}
+
+	// Generate non-promotion single pushes
+	if constexpr (side == Side::White) {
+		uint64_t destinations = (b.WhitePawnBits << 8) & ~occupancy & ~Rank[7];
+		while (destinations) {
+			const uint8_t toSq = Popsquare(destinations);
+			const uint8_t fromSq = toSq - 8;
+			moves.pushUnscored(Move(fromSq, toSq));
+		}
+	}
+	else {
+		uint64_t destinations = (b.BlackPawnBits >> 8) & ~occupancy & ~Rank[0];
+		while (destinations) {
+			const uint8_t toSq = Popsquare(destinations);
+			const uint8_t fromSq = toSq + 8;
+			moves.pushUnscored(Move(fromSq, toSq));
+		}
+	}
+
+	// Generate quiet underpromotions
+	if constexpr (side == Side::White) {
+		uint64_t destinations = (b.WhitePawnBits << 8) & ~occupancy & Rank[7];
+		while (destinations) {
+			const uint8_t toSq = Popsquare(destinations);
+			const uint8_t fromSq = toSq - 8;
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToKnight));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToRook));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToBishop));
+		}
+	}
+	else {
+		uint64_t destinations = (b.BlackPawnBits >> 8) & ~occupancy & Rank[0];
+		while (destinations) {
+			const uint8_t toSq = Popsquare(destinations);
+			const uint8_t fromSq = toSq + 8;
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToKnight));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToRook));
+			moves.pushUnscored(Move(fromSq, toSq, MoveFlag::PromotionToBishop));
 		}
 	}
 }
+
 
 // Threats and move legality ----------------------------------------------------------------------
 
@@ -1011,7 +1127,7 @@ std::string Position::GetFEN() const {
 GameState Position::GetGameState() const {
 	// Check checkmates & stalemates
 	MoveList moves{};
-	GenerateMoves(moves, MoveGen::All, Legality::Legal);
+	GenerateAllLegalMoves(moves);
 
 	if (moves.size() == 0) {
 		if (IsInCheck()) return (Turn() == Side::Black) ? GameState::WhiteVictory : GameState::BlackVictory;
