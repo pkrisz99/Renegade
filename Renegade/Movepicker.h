@@ -46,7 +46,7 @@ public:
 
 		case MovePickerStage::GenerateAndScoreNoisyMoves:
 			pos.GenerateNoisyPseudoLegalMoves(noisyMoves);
-			for (auto& m : noisyMoves) m.orderScore = GetMoveScore(pos, hist, m.move);
+			for (auto& m : noisyMoves) m.orderScore = getNoisyMoveScore(pos, hist, m.move);
 			stage = MovePickerStage::EmitGoodNoisyMoves;
 			[[fallthrough]];
 
@@ -70,7 +70,7 @@ public:
 
 		case MovePickerStage::GenerateAndScoreQuietMoves:
 			pos.GenerateQuietPseudoLegalMoves(quietMoves);
-			for (auto& m : quietMoves) m.orderScore = GetMoveScore(pos, hist, m.move);
+			for (auto& m : quietMoves) m.orderScore = getQuietMoveScore(pos, hist, m.move);
 			stage = MovePickerStage::EmitQuietMoves;
 			[[fallthrough]];
 
@@ -121,14 +121,28 @@ private:
 		return { moves[index - 1].move, moves[index - 1].orderScore };
 	}
 
-	int GetMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
-		// Transposition move
-		if (m == ttMove) return 900000;
+
+	int getQuietMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
+
+		if (m == ttMove) return 900000; // Transposition move (WHY NEEDED??)
+
+		// Quiet moves: take the history score and potentially apply a bonus for being a refutation
+		const uint8_t movedPiece = pos.GetPieceAt(m.from);
+		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
+
+		if (m == killerMove) historyScore += 17700;
+		else if (m == positionalMove) historyScore += 16300;
+		else if (m == counterMove) historyScore += 14000;
+
+		return historyScore;
+	}
+
+	int getNoisyMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
+
+		if (m == ttMove) return 900000; // Transposition move (WHY NEEDED??)
 
 		constexpr std::array<int, 7> values = { 0, 100, 300, 300, 500, 900, 0 };
-		const uint8_t movedPiece = pos.GetPieceAt(m.from);
 		const uint8_t capturedPieceType = [&] {
-			if (m.IsCastling()) return PieceType::None;
 			if (m.flag == MoveFlag::EnPassantPerformed) return PieceType::Pawn;
 			return TypeOfPiece(pos.GetPieceAt(m.to));
 		}();
@@ -137,24 +151,12 @@ private:
 		if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[capturedPieceType];
 
 		// Captures
-		if (capturedPieceType != PieceType::None) {
-			const bool losingCapture = [&] {
-				if (onlyNoisyMoves) return false;
-				if (pos.IsMoveQuiet(m)) return false;
-				const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
-				return !pos.StaticExchangeEval(m, -captureScore / 28);
-			}();
-			return (!losingCapture ? 600000 : -200000) + values[capturedPieceType] * 18 + hist.GetCaptureHistoryScore(pos, m);
-		}
-
-		// Quiet moves: take the history score and potentially apply a bonus for being a refutation
-		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
-
-		if (m == killerMove) historyScore += 17700;
-		else if (m == positionalMove) historyScore += 16300;
-		else if (m == counterMove) historyScore += 14000;
-
-		return historyScore;
+		const bool losingCapture = [&] {
+			if (onlyNoisyMoves) return false;
+			const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
+			return !pos.StaticExchangeEval(m, -captureScore / 28);
+		}();
+		return (!losingCapture ? 600000 : -200000) + values[capturedPieceType] * 18 + hist.GetCaptureHistoryScore(pos, m);
 	}
 
 	size_t noisyMoveIndex = 0, quietMoveIndex = 0;
