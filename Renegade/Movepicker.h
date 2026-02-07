@@ -122,6 +122,9 @@ private:
 	}
 
 	int getQuietMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
+
+		if (m == ttMove) return 900000;
+
 		// Quiet moves: take the history score and potentially apply a bonus for being a refutation
 		const uint8_t movedPiece = pos.GetPieceAt(m.from);
 		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
@@ -134,6 +137,8 @@ private:
 	}
 
 	int getNoisyMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
+
+		if (m == ttMove) return 900000;
 
 		constexpr std::array<int, 7> values = { 0, 100, 300, 300, 500, 900, 0 };
 		const uint8_t capturedPieceType = [&] {
