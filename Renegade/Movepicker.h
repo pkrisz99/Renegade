@@ -61,29 +61,27 @@ public:
 				}
 				return next;
 			}
-			if (onlyNoisyMoves) {
-				stage = MovePickerStage::EmitBadNoisyMoves;
-				goto EmitBadNoisyMoves; // horrible
-			}
 			stage = MovePickerStage::GenerateAndScoreQuietMoves;
 			[[fallthrough]];
 
 		case MovePickerStage::GenerateAndScoreQuietMoves:
-			pos.GenerateQuietPseudoLegalMoves(quietMoves);
-			for (auto& m : quietMoves) m.orderScore = getQuietMoveScore(pos, hist, m.move);
-			stage = MovePickerStage::EmitQuietMoves;
+			if (!onlyNoisyMoves) {
+				pos.GenerateQuietPseudoLegalMoves(quietMoves);
+				for (auto& m : quietMoves) m.orderScore = getQuietMoveScore(pos, hist, m.move);
+				stage = MovePickerStage::EmitQuietMoves;
+			}
 			[[fallthrough]];
 
 		case MovePickerStage::EmitQuietMoves:
-			while (quietMoveIndex < quietMoves.size()) {
-				const auto next = findNext(quietMoves, quietMoveIndex);
-				if (next.first == ttMove) continue;
-				if (!pos.IsLegalMove(next.first)) continue;
-				return next;
+			if (!onlyNoisyMoves) {
+				while (quietMoveIndex < quietMoves.size()) {
+					const auto next = findNext(quietMoves, quietMoveIndex);
+					if (next.first == ttMove) continue;
+					if (!pos.IsLegalMove(next.first)) continue;
+					return next;
+				}
 			}
 			stage = MovePickerStage::EmitBadNoisyMoves;
-
-		EmitBadNoisyMoves:
 			[[fallthrough]];
 
 		case MovePickerStage::EmitBadNoisyMoves:
