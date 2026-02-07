@@ -75,7 +75,7 @@ void Search::StartSearch(Position& position, const SearchParams params) {
 	TranspositionTable.IncreaseAge();
 
 	MoveList rootLegalMoves{};
-	position.GenerateMoves(rootLegalMoves, MoveGen::All, Legality::Legal);
+	position.GenerateAllLegalMoves(rootLegalMoves);
 
 	// Handle no legal moves
 	if (rootLegalMoves.size() == 0) {
@@ -177,7 +177,7 @@ SearchConstraints Search::CalculateConstraints(const SearchParams params, const 
 		}
 		else {
 			// Time control with increment
-			minTime = static_cast<int>(myTime * 0.025 + myInc * 0.7);
+			minTime = static_cast<int>(myTime * 0.033 + myInc * 0.7);
 			maxTime = static_cast<int>(myTime * 0.25);
 		}
 
@@ -218,7 +218,6 @@ void Search::SearchMoves(ThreadData& t) {
 	t.ResetStatistics();
 	t.ResetPvTable();
 	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), NullMove);
-	std::fill(t.SuperSingular.begin(), t.SuperSingular.end(), false);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
 	t.History.ClearRefutations();
@@ -269,7 +268,7 @@ void Search::SearchMoves(ThreadData& t) {
 					beta = std::min(beta + windowSize, PositiveInfinity);
 
 					// Reduce depth on fail-high
-					if (!IsMateScore(score) && searchDepth > 1) searchDepth -= 1;
+					if (!IsMateScore(score) && searchDepth > t.RootDepth - 3) searchDepth -= 1;
 				}
 				else {
 					// Success!
@@ -289,7 +288,9 @@ void Search::SearchMoves(ThreadData& t) {
 			if (Constraints.SearchTimeMin != Constraints.SearchTimeMax) {
 				const Move& bestMove = t.PvTable[0][0];
 				const double bestMoveFraction = t.RootNodeCounts[bestMove.from][bestMove.to] / static_cast<double>(t.Nodes);
-				softTimeLimit = softTimeLimit * (t.RootDepth >= 10 ? (1.5 - bestMoveFraction) * 1.35 : 1.0);
+				if (t.RootDepth >= 10) {
+					softTimeLimit *= (1.5 - bestMoveFraction) * 1.35;
+				}
 			}
 			if (elapsedMs >= softTimeLimit) finished = true;
 		}
@@ -440,7 +441,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 		t.StaticEvalStack[level] = staticEval;
 		t.EvalStack[level] = eval;
-		t.SuperSingular[level] = false;
 	}
 	else {
 		staticEval = t.StaticEvalStack[level];
@@ -490,7 +490,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Initialize variables, generate and order moves (in singular search we've already done these)
 	if (!singularSearch) {
-		movePicker.Initialize(MoveGen::All, position, t.History, ttMove, level);
+		movePicker.Initialize(false, position, t.History, ttMove, level);
 
 		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
@@ -553,18 +553,23 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// Singular extensions
 		int extension = 0;
 		if (singularCandidate && m == ttMove) {
-			const int marginFactor = (ttEntry.depth >= depth - 3) + (ttEntry.depth == depth - 4) + 2 * (ttEntry.depth == depth - 5);
+			const int marginFactor = (ttEntry.depth >= depth - 4) + 2 * (ttEntry.depth == depth - 5);
 			const int singularMargin = marginFactor * depth * 3 / 2;
 			const int singularBeta = std::max(ttEval - singularMargin, -MateEval);
 			const int singularDepth = (depth - 1) / 2;
 			t.ExcludedMoves[level] = m;
 			const int singularScore = SearchRecursive<false>(t, singularDepth, level, singularBeta - 1, singularBeta, cutNode);
+			const bool onlyMove = singularScore == NoEval;
 			t.ExcludedMoves[level] = NullMove;
 			t.MovePickerStack[level].index = 1;
 
-			if (singularScore < singularBeta) {
+			if (onlyMove) {
+				// Extend only moves
+				extension = 1 + !pvNode;
+			}
+			else if (singularScore < singularBeta) {
 				// Successful extension
-				const bool doubleExtend = !pvNode && ((singularScore < singularBeta - marginFactor * 23) || t.SuperSingular[level]);
+				const bool doubleExtend = !pvNode && (singularScore < singularBeta - marginFactor * 23);
 				const bool tripleExtend = !pvNode && position.IsMoveQuiet(m) && (singularScore < singularBeta - marginFactor * (200 + std::abs(ttEval) / 8));
 				extension = 1 + doubleExtend + tripleExtend;
 			}
@@ -653,8 +658,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	// There was no legal move --> return mate or stalemate score
 	if (legalMoveCount == 0) {
 		if (singularSearch) {
-			t.SuperSingular[level] = true;
-			return alpha; // always extend if we have only one legal move
+			return NoEval; // always extend if we have only one legal move
 		}
 		return inCheck ? LosingMateScore(level) : 0;
 	}
@@ -745,7 +749,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 	// Generate noisy moves and order them (in check we generate quiets as well)
 	MovePicker& movePicker = t.MovePickerStack[level];
-	movePicker.Initialize(inCheck ? MoveGen::All : MoveGen::Noisy, position, t.History, ttMove, level);
+	movePicker.Initialize(!inCheck, position, t.History, ttMove, level);
 
 	// Search recursively until the position is quiet
 	int bestScore = staticEval;
@@ -858,7 +862,7 @@ void Search::Perft(Position& position, const int depth, const PerftType type) co
 
 uint64_t Search::PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const {
 	MoveList moves{};
-	position.GenerateMoves(moves, MoveGen::All, Legality::Pseudolegal);
+	position.GenerateAllPseudoLegalMoves(moves);
 
 	if (type == PerftType::PerftDiv && originalDepth == depth) cout << "-> Legal moves (" << moves.size() << "): " << endl;
 	uint64_t count = 0;
