@@ -17,8 +17,8 @@
 
 // Datagen settings
 
-constexpr SearchParams playingParams     { .nodes = 150000, .depth = 30, .softnodes = 20000 };
-constexpr SearchParams verificationParams{ .nodes = 250000, .depth = 30, .softnodes = 30000 };
+constexpr SearchParams playingParams     { .nodes = 100000, .depth = 25, .softnodes = 10000 };
+constexpr SearchParams verificationParams{ .nodes = 100000, .depth = 25, .softnodes = 20000 };
 
 constexpr int randomPlyBaseNormal = 2;
 constexpr int randomPlyBaseDFRC = 4;
@@ -54,7 +54,7 @@ public:
 	// -> highest bit: whether the datagen is DFRC
 	// -> low 7 bits: version identifier
 	// This is 0 by default, but the datagen branch should override this
-	static constexpr uint8_t datagenVersion = 3;
+	static constexpr uint8_t datagenVersion = 4;
 
 private:
 	Board startingBoard;
