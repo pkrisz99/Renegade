@@ -27,11 +27,15 @@ public:
 		std::tie(killerMove, counterMove, positionalMove) = hist.GetRefutationMoves(pos, level);
 		this->level = level;
 		this->onlyNoisyMoves = onlyNoisyMoves;
-		this->noisyMoveIndex = 0;
-		this->quietMoveIndex = 0;
+		this->moveIndex = 0;
+		this->noisyCount = 0;
+		this->badNoisyStartIndex = 0;
 	}
 
 	// Retrieves the next move
+	// There is some index hacking going on to avoid having two separate move lists for twice the memory footprint
+	// In the move list noisy moves are in front (regardless if they are good or bad), the quiet moves are afterwards
+	// We catch the transition into bad noisy moves, and skip to emitting the quiet moves. Afterwards we return an continue from there.
 	std::pair<Move, int> Next(const Position& pos, const Histories& hist) {
 
 		switch (stage) {
@@ -45,48 +49,53 @@ public:
 			[[fallthrough]];
 
 		case MovePickerStage::GenerateAndScoreNoisyMoves:
-			pos.GenerateNoisyPseudoLegalMoves(noisyMoves);
-			for (auto& m : noisyMoves) m.orderScore = getNoisyMoveScore(pos, hist, m.move);
+			pos.GenerateNoisyPseudoLegalMoves(moves);
+			noisyCount = moves.size();
+			badNoisyStartIndex = noisyCount;
+			for (int i = 0; i < noisyCount; i++) moves[i].orderScore = getNoisyMoveScore(pos, hist, moves[i].move);
 			stage = MovePickerStage::EmitGoodNoisyMoves;
 			[[fallthrough]];
 
 		case MovePickerStage::EmitGoodNoisyMoves:
-			while (noisyMoveIndex < noisyMoves.size()) {
-				const auto next = findNext(noisyMoves, noisyMoveIndex);
+			while (moveIndex < noisyCount) {
+				const auto next = findNext(moves, moveIndex, noisyCount);
 				if (next.first == ttMove) continue;
 				if (!pos.IsLegalMove(next.first)) continue;
 				if (next.second < -100000) {
-					noisyMoveIndex -= 1;
+					badNoisyStartIndex = moveIndex - 1;
 					break;
 				}
 				return next;
 			}
 			stage = MovePickerStage::GenerateAndScoreQuietMoves;
+			moveIndex = noisyCount;
 			[[fallthrough]];
 
 		case MovePickerStage::GenerateAndScoreQuietMoves:
 			if (!onlyNoisyMoves) {
-				pos.GenerateQuietPseudoLegalMoves(quietMoves);
-				for (auto& m : quietMoves) m.orderScore = getQuietMoveScore(pos, hist, m.move);
-				stage = MovePickerStage::EmitQuietMoves;
+				pos.GenerateQuietPseudoLegalMoves(moves);
+				//quietCount = moves.size() - noisyCount;
+				for (int i = noisyCount; i < moves.size(); i++) moves[i].orderScore = getQuietMoveScore(pos, hist, moves[i].move);
 			}
+			stage = MovePickerStage::EmitQuietMoves;
 			[[fallthrough]];
 
 		case MovePickerStage::EmitQuietMoves:
 			if (!onlyNoisyMoves) {
-				while (quietMoveIndex < quietMoves.size()) {
-					const auto next = findNext(quietMoves, quietMoveIndex);
+				while (moveIndex < moves.size()) {
+					const auto next = findNext(moves, moveIndex, moves.size());
 					if (next.first == ttMove) continue;
 					if (!pos.IsLegalMove(next.first)) continue;
 					return next;
 				}
 			}
 			stage = MovePickerStage::EmitBadNoisyMoves;
+			moveIndex = badNoisyStartIndex;
 			[[fallthrough]];
 
 		case MovePickerStage::EmitBadNoisyMoves:
-			while (noisyMoveIndex < noisyMoves.size()) {
-				const auto next = findNext(noisyMoves, noisyMoveIndex);
+			while (moveIndex < noisyCount) {
+				const auto next = findNext(moves, moveIndex, noisyCount);
 				if (next.first == ttMove) continue;
 				if (!pos.IsLegalMove(next.first)) continue;
 				return next;
@@ -103,11 +112,11 @@ public:
 
 private:
 
-	std::pair<Move, int> findNext(MoveList& moves, size_t& index) const {
+	std::pair<Move, int> findNext(MoveList& moves, size_t& index, size_t end) const {
 		int bestOrderScore = moves[index].orderScore;
 		int bestIndex = index;
 
-		for (int i = index + 1; i < static_cast<int>(moves.size()); i++) {
+		for (int i = index + 1; i < static_cast<int>(end); i++) {
 			if (moves[i].orderScore > bestOrderScore) {
 				bestOrderScore = moves[i].orderScore;
 				bestIndex = i;
@@ -156,9 +165,9 @@ private:
 		return (!losingCapture ? 600000 : -200000) + values[capturedPieceType] * 18 + hist.GetCaptureHistoryScore(pos, m);
 	}
 
-	size_t noisyMoveIndex = 0, quietMoveIndex = 0;
+	size_t noisyCount = 0, moveIndex = 0, badNoisyStartIndex = 0;
 	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
-	MoveList noisyMoves{}, quietMoves{};
+	MoveList moves{};
 	int level = 0;
 	bool onlyNoisyMoves = false;
 	MovePickerStage stage = MovePickerStage::EmitTTMove;
