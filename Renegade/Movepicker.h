@@ -52,6 +52,7 @@ public:
 			pos.GenerateNoisyPseudoLegalMoves(moves);
 			noisyCount = moves.size();
 			badNoisyStartIndex = noisyCount;
+			if (!onlyNoisyMoves) pos.GenerateQuietPseudoLegalMoves(moves);
 			for (int i = 0; i < noisyCount; i++) moves[i].orderScore = getNoisyMoveScore(pos, hist, moves[i].move);
 			stage = MovePickerStage::EmitGoodNoisyMoves;
 			[[fallthrough]];
@@ -73,7 +74,7 @@ public:
 
 		case MovePickerStage::GenerateAndScoreQuietMoves:
 			if (!onlyNoisyMoves) {
-				pos.GenerateQuietPseudoLegalMoves(moves);
+				//pos.GenerateQuietPseudoLegalMoves(moves);
 				//quietCount = moves.size() - noisyCount;
 				for (int i = noisyCount; i < moves.size(); i++) moves[i].orderScore = getQuietMoveScore(pos, hist, moves[i].move);
 			}
