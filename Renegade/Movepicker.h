@@ -75,7 +75,7 @@ private:
 				const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
 				return !pos.StaticExchangeEval(m, -captureScore / 28);
 			}();
-			return (!losingCapture ? 600000 : -200000) + values[capturedPieceType] * 18 + hist.GetCaptureHistoryScore(pos, m);
+			return (!losingCapture ? 600000 : -200000) + (values[capturedPieceType] - values[TypeOfPiece(movedPiece)]) * 18 + hist.GetCaptureHistoryScore(pos, m);
 		}
 
 		// Quiet moves: take the history score and potentially apply a bonus for being a refutation
