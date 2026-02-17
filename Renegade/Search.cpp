@@ -516,6 +516,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		const bool isQuiet = position.IsMoveQuiet(m);
 		if (isQuiet && skipQuietMoves) continue;
 		legalMoveCount += 1;
+		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
 
 		if (isQuiet) quietsTried.push(m);
 		else capturesTried.push(m);
@@ -585,7 +586,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
 		const uint64_t nodesBefore = t.Nodes;
 
-		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
 		position.PushMove(m);
 		t.Nodes += 1;
 		int score = NoEval;
@@ -760,6 +760,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	while (movePicker.HasNext()) {
 		const auto& [m, order] = movePicker.Get();
 		if (!position.IsLegalMove(m)) continue;
+		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
 
 		// When in check, no longer search quiet moves once we know we're not getting mated
 		if (inCheck && bestScore > -MateThreshold && order < MovePicker::MaxRegularQuietOrder) break;
@@ -776,7 +777,6 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 		t.Nodes += 1;
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
-		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
 		position.PushMove(m);
 		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
 		const int score = -SearchQuiescence<pvNode>(t, level + 1, -beta, -alpha);
