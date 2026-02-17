@@ -83,8 +83,16 @@ void Histories::UpdateCaptureHistory(const Position& position, const Move& m, co
 	const int delta = std::min(302 * depth, 3160) * times * (bonus ? 1 : -1);
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
-	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
-	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
+	const int fromSquareThreatened = [&] {
+		if (!position.IsSquareThreatened(m.from)) return 0;
+		if (position.IsSquareThreatenedByPawn(m.from)) return 1;
+		return 2;
+	}();
+	const int toSquareThreatened = [&] {
+		if (!position.IsSquareThreatened(m.from)) return 0;
+		if (position.IsSquareThreatenedByPawn(m.from)) return 1;
+		return 2;
+	}();
 	const uint8_t capturedPiece = [&] {
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
 		else return (position.Turn() == Side::White) ? Piece::BlackPawn : Piece::WhitePawn;
@@ -107,8 +115,16 @@ int Histories::GetHistoryScore(const Position& position, const Move& m, const ui
 int Histories::GetCaptureHistoryScore(const Position& position, const Move& m) const {
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
-	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
-	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
+	const int fromSquareThreatened = [&] {
+		if (!position.IsSquareThreatened(m.from)) return 0;
+		if (position.IsSquareThreatenedByPawn(m.from)) return 1;
+		return 2;
+	}();
+	const int toSquareThreatened = [&] {
+		if (!position.IsSquareThreatened(m.from)) return 0;
+		if (position.IsSquareThreatenedByPawn(m.from)) return 1;
+		return 2;
+	}();
 	const uint8_t capturedPiece = [&] {
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
 		else return (position.Turn() == Side::White) ? Piece::BlackPawn : Piece::WhitePawn;
