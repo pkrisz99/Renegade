@@ -760,7 +760,6 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	while (movePicker.HasNext()) {
 		const auto& [m, order] = movePicker.Get();
 		if (!position.IsLegalMove(m)) continue;
-		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
 
 		// When in check, no longer search quiet moves once we know we're not getting mated
 		if (inCheck && bestScore > -MateThreshold && order < MovePicker::MaxRegularQuietOrder) break;
@@ -774,6 +773,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 			continue;
 		}
 
+		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
 		t.Nodes += 1;
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
