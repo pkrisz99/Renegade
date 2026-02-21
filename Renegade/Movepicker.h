@@ -18,13 +18,14 @@ class MovePicker {
 public:
 	MovePicker() = default;
 
-	MovePicker(const bool onlyNoisyMoves, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
+	void Init(const bool onlyNoisyMoves, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
 		this->stage = MovePickerStage::EmitTTMove;
 		this->ttMove = ttMove;
 		std::tie(killerMove, counterMove, positionalMove) = hist.GetRefutationMoves(pos, level);
 		this->level = level;
 		this->onlyNoisyMoves = onlyNoisyMoves;
 		this->index = 0;
+		this->moves.clear();
 	}
 
 	// Retrieves the next move
