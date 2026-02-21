@@ -40,6 +40,12 @@ private:
 		value += amount - gravity;
 	}
 
+	inline void UpdateHistoryValueCustomGravity(int16_t& value, int16_t gravityBase, const int amount) {
+		const int gravity = gravityBase * std::abs(amount) / 16600;
+		const int newValue = std::clamp(value + amount - gravity, -16600, 16600);
+		value = static_cast<int16_t>(newValue);
+	}
+
 	// Refutations:
 	std::array<Move, MaxDepth> KillerMoves;
 	MultiArray<Move, 64, 64> CounterMoves;
