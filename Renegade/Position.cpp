@@ -808,7 +808,7 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 	}
 	
 	// Pawn moves
-	if (pieceType == PieceType::Pawn) {
+	else if (pieceType == PieceType::Pawn) {
 
 		const uint8_t fromRankRel = (pieceColor == PieceColor::White) ? GetSquareRank(m.from) : 7 - GetSquareRank(m.from);
 		const uint8_t toRankRel = (pieceColor == PieceColor::White) ? GetSquareRank(m.to) : 7 - GetSquareRank(m.to);
@@ -858,7 +858,8 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 	}
 
 	// Other pieces
-	switch (pieceType) {
+	else {
+		switch (pieceType) {
 		case PieceType::Knight:
 			return CheckBit(KnightMoveBits[m.from], m.to);
 		case PieceType::Bishop:
@@ -870,6 +871,7 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 		default:
 			assert(false);
 			return false;
+		}
 	}
 }
 

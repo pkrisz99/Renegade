@@ -495,7 +495,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	// Iterate through legal moves
-	MovePicker movePicker(false, position, t.History, excludedMove.IsNull() ? ttMove : NullMove, level);
+	MovePicker movePicker(false, position, t.History, singularSearch ? NullMove : ttMove, level);
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
 	int failLowCount = 0;

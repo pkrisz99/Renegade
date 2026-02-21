@@ -248,11 +248,11 @@ constexpr int MsbSquare(const uint64_t number) {
 // Renegade uses little-endian rank-file mapping
 // A1 -> 0, B1 -> 1, ..., H8 -> 63
 
-constexpr uint8_t GetSquareRank(const int square) {
+constexpr uint8_t GetSquareRank(const uint8_t square) {
 	return square >> 3;
 }
 
-constexpr uint8_t GetSquareFile(const int square) {
+constexpr uint8_t GetSquareFile(const uint8_t square) {
 	return square & 0b000111;
 }
 
