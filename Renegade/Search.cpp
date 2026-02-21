@@ -289,7 +289,8 @@ void Search::SearchMoves(ThreadData& t) {
 				const Move& bestMove = t.PvTable[0][0];
 				const double bestMoveFraction = t.RootNodeCounts[bestMove.from][bestMove.to] / static_cast<double>(t.Nodes);
 				if (t.RootDepth >= 10) {
-					softTimeLimit *= (1.5 - bestMoveFraction) * 1.35;
+					const double multiplier = 2.5 - 2.0 * bestMoveFraction;
+					softTimeLimit *= multiplier;
 				}
 			}
 			if (elapsedMs >= softTimeLimit) finished = true;

@@ -159,7 +159,7 @@ void SelfPlay(const std::string filename) {
 
 		for (int i = 0; i < randomPlies; i++) {
 			MoveList moves{};
-			position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
+			position.GenerateAllLegalMoves(moves);
 			if (moves.size() == 0) {
 				failed = true;
 				break;
@@ -171,7 +171,7 @@ void SelfPlay(const std::string filename) {
 
 		// Rarely, the last move will result in a checkmate position - filter these
 		MoveList moves{};
-		position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
+		position.GenerateAllLegalMoves(moves);
 		if (moves.size() == 0) continue;
 
 		// 3. Verify evaluation if acceptable
