@@ -16,7 +16,7 @@ enum class MovePickerStage {
 
 class MovePicker {
 public:
-	MovePicker() = delete;
+	MovePicker() = default;
 
 	MovePicker(const bool onlyNoisyMoves, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
 		this->stage = MovePickerStage::EmitTTMove;
