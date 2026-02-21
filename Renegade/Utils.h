@@ -21,7 +21,7 @@ using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.2.16";
+constexpr std::string_view Version = "dev 1.2.33";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -183,9 +183,7 @@ enum class GameState { Playing, WhiteVictory, BlackVictory, Drawn };
 
 enum class PerftType { Normal, PerftDiv };
 
-enum class MoveGen { All, Noisy };
-
-enum class Legality { Legal, Pseudolegal };
+enum class MoveGen { Quiet, Noisy };
 
 struct SearchParams {
 	int wtime = 0;
@@ -231,8 +229,8 @@ constexpr int Lzcount(const uint64_t& number) {
 	return std::countl_zero(number);
 }
 
-constexpr int Popsquare(uint64_t& number) {
-	const int place = std::countr_zero(number);
+constexpr uint8_t Popsquare(uint64_t& number) {
+	const uint8_t place = static_cast<uint8_t>(std::countr_zero(number));
 	number &= (number - 1);
 	return place;
 }
@@ -295,6 +293,12 @@ constexpr uint64_t MurmurHash3(uint64_t key) {
 };
 
 // String handling --------------------------------------------------------------------------------
+
+#ifdef __cpp_lib_format
+constexpr bool PrettySupport = true;
+#else
+constexpr bool PrettySupport = false;
+#endif
 
 void ConvertToLowercase(std::string& str);
 std::string Trim(const std::string& str);

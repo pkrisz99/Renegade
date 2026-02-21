@@ -42,47 +42,52 @@ SearchParams RandomizeNodeLimits(const SearchParams& originalParams, std::unifor
 }
 
 // Starts running datagen, launches threads
-void StartDatagen(const DatagenLaunchMode launchMode) {
-
-	// There is a streamlined way to launch datagen (normal and dfrc) from the command line using the default settings
-	// When launched from UCI, the settings has to be provided manually
+void StartDatagen(const DatagenLaunchSettings datagenLaunchSettings) {
 
 	SetTitle("Renegade's datagen utility");
-	std::string filename;
-
-	if (launchMode == DatagenLaunchMode::Ask) {
-		cout << "Filename? " << Console::Yellow;
-		cin >> filename;
-
-		cout << Console::White << "How many threads? " << Console::Yellow;
-		cin >> ThreadCount;
-
-		cout << Console::White << "Do DRFC? " << Console::Yellow;
-		cin >> DFRC;
-		cout << Console::White << endl;
+	if constexpr (ViriformatGame::datagenVersion == 0) {
+		cout << Console::Yellow << "Warning: datagenVersion not set\n" << Console::White << endl;
 	}
-	else {
+	
+	const std::string baseFilename = [&] {
+		// Timestamp:
 		const auto time = std::chrono::system_clock::now().time_since_epoch();
 		const uint64_t timestamp = std::chrono::duration_cast<std::chrono::seconds>(time).count();
-		filename = "datagen_" + std::to_string(timestamp);
+		const std::string timestampStr = std::to_string(timestamp);
+		// Engine version:
+		std::string engineVersionStr(Version);
+		std::erase_if(engineVersionStr, [](char c) {
+			return !std::isdigit(c);
+		});
+		// Datagen version identifier:
+		std::string datagenVersionStr = std::to_string(ViriformatGame::datagenVersion);
+		// Variant:
+		std::string variantStr = datagenLaunchSettings.dfrc ? "dfrc" : "n";
+		// Assembling:
+		return "datagen_" + timestampStr + "_" + engineVersionStr + "_" + variantStr + datagenVersionStr;
+	}();
+
+	ThreadCount = datagenLaunchSettings.threads;
+	if (ThreadCount == 0) {
 		ThreadCount = std::thread::hardware_concurrency();
-		DFRC = launchMode == DatagenLaunchMode::DFRC;
-		
-		cout << "Quick start details:" << endl;
-		cout << " - Filename: " << Console::Yellow << filename << Console::White << endl;
-		cout << " - Thread count: " << Console::Yellow << ThreadCount << Console::White << endl;
-		cout << " - Doing DFRC: " << Console::Yellow << DFRC << Console::White << '\n' << endl;
 	}
+
+	DFRC = datagenLaunchSettings.dfrc;
+		
+	cout << "Launch settings:" << endl;
+	cout << " - Variant: " << Console::Yellow << (DFRC ? "DFRC" : "standard") << Console::White << endl;
+	cout << " - Thread count: " << Console::Yellow << ThreadCount << Console::White << endl;
+	cout << " - Base filename: " << Console::Yellow << baseFilename << Console::White << '\n' << endl;
 
 	// Load opening book - using these seem to improve net strength
 	if (!DFRC) {
-		constexpr std::string_view book = "UHO_Lichess_4852_v1.epd";
+		const std::string book = "UHO_Lichess_4852_v1.epd";
 		std::ifstream bookFile(book);
 		std::string line;
 		while (std::getline(bookFile, line)) Openings.push_back(line);
 
 		if (Openings.size() == 0) {
-			cout << Console::Red << "For non-DFRC datagen it is required to have the " << book << " book." << Console::White << endl;
+			cout << Console::Red << "Error: For non-DFRC datagen it is required to have the " << book << " book" << Console::White << endl;
 			PressEnterToExit();
 			return;
 		}
@@ -93,21 +98,16 @@ void StartDatagen(const DatagenLaunchMode launchMode) {
 	Settings::Threads = 1;
 	StartTime = Clock::now();
 
-	cout << "Datagen settings:" << endl;
-	if (!DFRC) cout << " - After the book exit do " << Console::Yellow << randomPlyBaseNormal << Console::White << " plies of random moves, then play normally" << endl;
-	else cout << " - " << Console::Yellow << randomPlyBaseDFRC << Console::White << " or " << Console::Yellow << randomPlyBaseDFRC + 1
-		<< Console::White << " plies of random rollout, then normal playout" << endl;
+	cout << "Playout settings:" << endl;
 	cout << " - Verification @ softnodes=" << Console::Yellow << verificationParams.softnodes << Console::White
 		<< ", threshold=" << Console::Yellow << startingEvalLimit << Console::White << endl;
 	cout << " - Playing @ softnodes=" << Console::Yellow << playingParams.softnodes << Console::White << endl;
-	cout << " - Using DFRC starting positions: " << Console::Yellow << std::boolalpha << DFRC
-		<< std::noboolalpha << Console::White << endl;
 	if (!DFRC) cout << " - The opening book has " << Console::Yellow << Console::FormatInteger(Openings.size()) << Console::White << " lines" << endl;
 	cout << endl;
 
 	std::vector<std::thread> threads = std::vector<std::thread>();
 	for (int i = 0; i < ThreadCount; i++) {
-		std::string filenameForThread = filename + "_" + std::to_string(i + 1);
+		std::string filenameForThread = baseFilename + "_" + std::to_string(i + 1);
 		threads.emplace_back(&SelfPlay, filenameForThread);
 	}
 	for (std::thread& t : threads) t.join();
@@ -159,7 +159,7 @@ void SelfPlay(const std::string filename) {
 
 		for (int i = 0; i < randomPlies; i++) {
 			MoveList moves{};
-			position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
+			position.GenerateAllLegalMoves(moves);
 			if (moves.size() == 0) {
 				failed = true;
 				break;
@@ -171,7 +171,7 @@ void SelfPlay(const std::string filename) {
 
 		// Rarely, the last move will result in a checkmate position - filter these
 		MoveList moves{};
-		position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
+		position.GenerateAllLegalMoves(moves);
 		if (moves.size() == 0) continue;
 
 		// 3. Verify evaluation if acceptable
@@ -218,11 +218,13 @@ void SelfPlay(const std::string filename) {
 			}
 			else drawAdjudicationCounter = 0;
 
-			if (position.GetPly() > 600) {
+			// Catching potential issues (shouldn't happen, but good to know if it does)
+			if (position.GetPly() > 1000) {
 				failed = true;
+				cout << Console::Yellow << "Extremely long game (pos: " << position.GetFEN() << ", score=" << results.score
+					<< ", bm=" << results.BestMove().ToString(DFRC) << ")" << Console::White << endl;
 				break;
 			}
-
 			if (move.IsNull()) {
 				failed = true;
 				cout << Console::Yellow << "Got null-move for " << position.GetFEN() << " (score=" << results.score

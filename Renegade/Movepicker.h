@@ -9,15 +9,17 @@ class MovePicker {
 public:
 	MovePicker() = default;
 
-	void Initialize(const MoveGen moveGen, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
+	void Initialize(const bool onlyNoisyMoves, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
 		this->ttMove = ttMove;
 		std::tie(killerMove, counterMove, positionalMove) = hist.GetRefutationMoves(pos, level);
 		this->level = level;
-		this->moveGen = moveGen;
+		this->onlyNoisyMoves = onlyNoisyMoves;
 		this->moves.clear();
 		this->index = 0;
 
-		pos.GenerateMoves(moves, moveGen, Legality::Pseudolegal);
+		pos.GenerateNoisyPseudoLegalMoves(moves);
+		if (!onlyNoisyMoves) pos.GenerateQuietPseudoLegalMoves(moves);
+
 		for (auto& m : moves) m.orderScore = GetMoveScore(pos, hist, m.move);
 	}
 
@@ -68,7 +70,7 @@ private:
 		// Captures
 		if (capturedPieceType != PieceType::None) {
 			const bool losingCapture = [&] {
-				if (moveGen == MoveGen::Noisy) return false;
+				if (onlyNoisyMoves) return false;
 				if (pos.IsMoveQuiet(m)) return false;
 				const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
 				return !pos.StaticExchangeEval(m, -captureScore / 28);
@@ -90,5 +92,5 @@ private:
 	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
 	MoveList moves{};
 	int level = 0;
-	MoveGen moveGen = MoveGen::All;
+	bool onlyNoisyMoves = false;
 };

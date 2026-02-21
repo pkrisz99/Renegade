@@ -4,10 +4,37 @@ Engine::Engine(int argc, char* argv[]) {
 	Settings::UseUCI = !PrettySupport;
 	SearchThreads.TranspositionTable.SetSize(Settings::Hash, 1);
 
-	if (argc == 2 && std::string(argv[1]) == "bench") Behavior = EngineBehavior::Bench;
-	else if (argc == 2 && std::string(argv[1]) == "datagen") Behavior = EngineBehavior::DatagenNormal;
-	else if (argc == 2 && std::string(argv[1]) == "dfrcdatagen") Behavior = EngineBehavior::DatagenDFRC;
-	else PrintHeader();
+	// Handling command line parameters
+	if (argc > 1) {
+
+		// Bench:
+		if (std::string(argv[1]) == "bench") Behavior = EngineBehavior::Bench;
+		
+		// Datagen:
+		if (std::string(argv[1]) == "datagen") {
+#ifdef RENEGADE_DATAGEN
+			if (argc != 4) {
+				cout << Console::Red << "Error: incorrect number of parameters" << Console::White << '\n';
+				cout << "Usage: ./Renegade datagen <variant> <thread_count>" << endl;
+				std::terminate();
+			}
+			DatagenSettings.dfrc = [&] {
+				std::string_view variant = argv[2];
+				if (variant == "normal") return false;
+				if (variant == "dfrc") return true;
+				cout << Console::Red << "Error: unrecognized variant (accepted: normal, dfrc)" << Console::White << endl;
+				std::terminate();
+			}();
+			DatagenSettings.threads = [&] {
+				return std::stoi(argv[3]);
+			}();
+			Behavior = EngineBehavior::Datagen;
+#else
+			cout << Console::Red << "Error: engine is not compiled for datagen" << Console::White << endl;
+			std::terminate();
+#endif
+		}
+	}
 }
 
 void Engine::PrintHeader() const {
@@ -28,17 +55,13 @@ void Engine::Start() {
 	}
 
 	// Handle externally receiving datagen
-	if (Behavior == EngineBehavior::DatagenNormal || Behavior == EngineBehavior::DatagenDFRC) {
 #ifdef RENEGADE_DATAGEN
-		const DatagenLaunchMode launchMode = (Behavior == EngineBehavior::DatagenNormal) ? DatagenLaunchMode::Normal : DatagenLaunchMode::DFRC;
-		StartDatagen(launchMode);
+	if (Behavior == EngineBehavior::Datagen) {
+		StartDatagen(DatagenSettings);
 		SearchThreads.StopThreads();
 		return;
-#else
-		cout << Console::Red << "Error: engine is *not* compiled for datagen!" << Console::White << endl;
-		std::terminate();
-#endif
 	}
+#endif
 
 	Position position = Position(FEN::StartPos);
 	std::string cmd;
@@ -48,6 +71,8 @@ void Engine::Start() {
 	
 	// Please be aware that this code is utterly terrible and a rewrite is long overdue
 	// I promise I'll get to this one day
+
+	PrintHeader();
 
 	while (std::getline(cin, cmd)) {
 
@@ -89,13 +114,6 @@ void Engine::Start() {
 			SearchThreads.StopSearch();
 			continue;
 		}
-
-#ifdef RENEGADE_DATAGEN
-		if (cmd == "datagen") {
-			StartDatagen(DatagenLaunchMode::Ask);
-			break;
-		}
-#endif
 
 		if (cmd == "tunetext") {
 			GenerateOpenBenchTuningString();
@@ -163,15 +181,17 @@ void Engine::Start() {
 			if (parts[1] == "attackmap") {
 				DrawBoard(position, position.GetThreats());
 			}
-			if (parts[1] == "pseudolegal") {
-				MoveList pseudoMoves{};
-				position.GenerateMoves(pseudoMoves, MoveGen::All, Legality::Pseudolegal);
-				for (const ScoredMove& m : pseudoMoves) cout << m.move.ToString(Settings::Chess960) << " ";
-				cout << endl;
-			}
-			if (parts[1] == "legal") {
+			if (parts[1] == "moves") {
+				// All legal moves:
 				MoveList moves{};
-				position.GenerateMoves(moves, MoveGen::All, Legality::Legal);
+				position.GenerateAllLegalMoves(moves);
+				cout << "-> Legal moves (" << moves.size() << "): ";
+				for (const ScoredMove& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
+				cout << endl;
+				// Pseudolegal moves:
+				moves.clear();
+				position.GenerateAllPseudoLegalMoves(moves);
+				cout << "-> Pseudolegal moves (" << moves.size() << "): ";
 				for (const ScoredMove& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
 				cout << endl;
 			}
@@ -183,12 +203,6 @@ void Engine::Start() {
 				cout << "Using UCI: " << Settings::UseUCI << endl;
 				cout << std::noboolalpha;
 				for (const auto& [name, param] : TunableParameterList) cout << name << " -> " << param.value << endl;
-			}
-			if (parts[1] == "sizeof") {
-				cout << "sizeof TranspositionEntry: " << sizeof(TranspositionEntry) << endl;
-				cout << "sizeof Position:           " << sizeof(position) << endl;
-				cout << "sizeof Move:               " << sizeof(Move) << endl;
-				cout << "sizeof int:                " << sizeof(int) << endl;
 			}
 			if (parts[1] == "pasthashes") {
 				cout << "Past hashes size: " << position.States.size() << endl;

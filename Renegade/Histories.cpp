@@ -118,7 +118,7 @@ int Histories::GetCaptureHistoryScore(const Position& position, const Move& m) c
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
 	const uint8_t capturedPiece = [&] {
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
-		else return (position.Turn() == Side::White) ? Piece::WhitePawn : Piece::BlackPawn;
+		else return (position.Turn() == Side::White) ? Piece::BlackPawn : Piece::WhitePawn;
 	}();
 	return CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened];
 }
