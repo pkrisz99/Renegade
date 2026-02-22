@@ -148,12 +148,9 @@ private:
 			return TypeOfPiece(pos.GetPieceAt(m.to));
 		}();
 
-		// Queen promotions
-		if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[capturedPieceType];
-
 		const bool losingCapture = [&] {
 			if (skipQuietMoves) return false;
-			const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
+			const int16_t captureScore = hist.GetCaptureHistoryScore(pos, m);
 			return !pos.StaticExchangeEval(m, -captureScore / 28);
 		}();
 		return (!losingCapture ? 600000 : -200000) + values[capturedPieceType] * 18 + hist.GetCaptureHistoryScore(pos, m);
