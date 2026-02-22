@@ -223,6 +223,9 @@ void Search::SearchMoves(ThreadData& t) {
 	t.History.ClearRefutations();
 	t.EvalState.Reset(t.CurrentPosition);
 
+	Move previousBestMove = NullMove;
+	int bestMoveStability = 0;
+
 	// Iterative deepening
 	t.result.ply = t.CurrentPosition.GetPly();
 	int score = NoEval;
@@ -280,18 +283,28 @@ void Search::SearchMoves(ThreadData& t) {
 
 		}
 
+		const Move& bestMove = t.PvTable[0][0];
+		if (previousBestMove == bestMove) {
+			bestMoveStability += 1;
+		}
+		else {
+			previousBestMove = bestMove;
+			bestMoveStability = 0;
+		}
+
 		// Check search limits on the main thread
 		const auto currentTime = Clock::now();
 		const int elapsedMs = static_cast<int>((currentTime - StartSearchTime).count() / 1e6);
 		if (t.IsMainThread() && Constraints.SearchTimeMin != -1) {
 			int softTimeLimit = Constraints.SearchTimeMin;
 			if (Constraints.SearchTimeMin != Constraints.SearchTimeMax) {
-				const Move& bestMove = t.PvTable[0][0];
+				double multiplier = 1.0;
+				// Root node counts:
 				const double bestMoveFraction = t.RootNodeCounts[bestMove.from][bestMove.to] / static_cast<double>(t.Nodes);
-				if (t.RootDepth >= 10) {
-					const double multiplier = 2.5 - 2.0 * bestMoveFraction;
-					softTimeLimit *= multiplier;
-				}
+				multiplier *= 2.5 - 2.0 * bestMoveFraction;
+				// Best move stability:
+				multiplier *= 0.8 + 1.2 * std::pow(0.4, bestMoveStability);
+				softTimeLimit *= multiplier;
 			}
 			if (elapsedMs >= softTimeLimit) finished = true;
 		}
