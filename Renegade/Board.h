@@ -6,6 +6,7 @@
 uint64_t GetBishopAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetRookAttacks(const uint8_t square, const uint64_t occupancy);
 uint64_t GetQueenAttacks(const uint8_t square, const uint64_t occupancy);
+uint64_t GetShortConnectingRay(const uint8_t from, const uint8_t to);
 
 struct CastlingConfiguration {
 	uint8_t WhiteLongCastleRookSquare = 0;
@@ -141,8 +142,17 @@ struct Board {
 			return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 	}
 
+	inline uint8_t WhiteKingSquare() const { 
+		return LsbSquare(WhiteKingBits);
+	}
+
+	inline uint8_t BlackKingSquare() const {
+		return LsbSquare(BlackKingBits);
+	}
+
 	//uint64_t CalculateHash() const;
 	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
+	std::pair<uint64_t, uint64_t> GetPinnedBitboard() const;
 
 	[[maybe_unused]] uint64_t CalculateMaterialHash() const;
 	uint64_t CalculatePawnHash() const;
