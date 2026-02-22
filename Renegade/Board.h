@@ -36,6 +36,9 @@ struct Board {
 	uint64_t BlackKingBits = 0;
 
 	uint64_t Threats = 0;
+	uint64_t WhitePinned = 0;
+	uint64_t BlackPinned = 0;
+
 	uint64_t BoardHash = 0;
 	uint64_t WhiteNonPawnHash = 0;
 	uint64_t BlackNonPawnHash = 0;
@@ -159,4 +162,4 @@ struct Board {
 
 };
 
-static_assert(sizeof(Board) == 208);
+static_assert(sizeof(Board) == 224);

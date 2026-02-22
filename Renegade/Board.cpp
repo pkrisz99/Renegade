@@ -237,8 +237,11 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 	HalfmoveClock += 1;
 	if (capturedPiece != Piece::None || pieceType == PieceType::Pawn) HalfmoveClock = 0;
 	Turn = !Turn;
-	BoardHash ^= Zobrist.SideToMove;
 	if (Turn == Side::White) FullmoveClock += 1;
+
+	// Update other fields
+	BoardHash ^= Zobrist.SideToMove;
+	std::tie(WhitePinned, BlackPinned) = GetPinnedBitboard();
 
 	assert(Popcount(WhiteKingBits) == 1 && Popcount(BlackKingBits) == 1);
 }

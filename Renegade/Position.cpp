@@ -1147,7 +1147,8 @@ bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
 	turn = !turn;
 
 	// Account for pinned pieces
-	const auto [whitePinned, blackPinned] = CurrentState().GetPinnedBitboard();
+	const uint64_t whitePinned = CurrentState().WhitePinned;
+	const uint64_t blackPinned = CurrentState().BlackPinned;
 	const uint64_t whiteAllowedPinned = whitePinned & GetLongConnectingRay(move.to, WhiteKingSquare());
 	const uint64_t blackAllowedPinned = blackPinned & GetLongConnectingRay(move.to, BlackKingSquare());
 	const uint64_t allowed = ~(whitePinned | blackPinned) | whiteAllowedPinned | blackAllowedPinned;
