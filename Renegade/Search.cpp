@@ -496,25 +496,23 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Iterate through legal moves
 	MovePicker& movePicker = t.MovePickerStack[level][singularSearch];
-	movePicker.Init(false, position, t.History, singularSearch ? NullMove : ttMove, level);
+	movePicker.initialize(false, position, t.History, singularSearch ? NullMove : ttMove, level);
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
 	int failLowCount = 0;
 	int failHighCount = 0;
 	Move bestMove = NullMove;
 	int bestScore = NegativeInfinity;
-	bool skipQuietMoves = false;
 
 	StaticVector<Move, MaxMoveCount> quietsTried;
 	StaticVector<Move, MaxMoveCount> capturesTried;
 
 	while (true) {
-		const auto& [m, order] = movePicker.Next(position, t.History);
+		const auto& [m, order] = movePicker.next(position, t.History);
 		if (m == NullMove) break;
 
 		if (m == excludedMove) continue;
 		const bool isQuiet = position.IsMoveQuiet(m);
-		if (isQuiet && skipQuietMoves) continue;
 		legalMoveCount += 1;
 
 		if (isQuiet) quietsTried.push(m);
@@ -532,7 +530,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			// History pruning
 			if (depth <= 4 && isQuiet && !inCheck) {
 				if (order < -8000 * depth) {
-					skipQuietMoves = true;
+					movePicker.skipQuietMoves = true;
 					continue;
 				}
 			}
@@ -748,7 +746,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 	// Generate noisy moves and order them (in check we generate quiets as well)
 	MovePicker& movePicker = t.MovePickerStack[level][false];
-	movePicker.Init(!inCheck, position, t.History, ttMove, level);
+	movePicker.initialize(!inCheck, position, t.History, ttMove, level);
 
 	// Search recursively until the position is quiet
 	int bestScore = staticEval;
@@ -757,7 +755,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	int futilityScore = std::min(staticEval + 267, MateThreshold - 1);
 
 	while (true) {
-		const auto& [m, order] = movePicker.Next(position, t.History);
+		const auto& [m, order] = movePicker.next(position, t.History);
 		if (m == NullMove) break;
 
 		// When in check, no longer search quiet moves once we know we're not getting mated
