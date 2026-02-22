@@ -122,7 +122,7 @@ struct MoveAndPiece {
 
 struct ScoredMove {
 	Move move;
-	int orderScore;
+	int32_t orderScore;
 };
 
 struct MoveList : StaticVector<ScoredMove, MaxMoveCount> {

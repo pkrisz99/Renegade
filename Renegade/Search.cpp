@@ -395,7 +395,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	const Move excludedMove = t.ExcludedMoves[level];
 	const bool singularSearch = !excludedMove.IsNull();
-	MovePicker& movePicker = t.MovePickerStack[level];
 
 	// Probe the transposition table
 	TranspositionEntry ttEntry;
@@ -489,16 +488,15 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		depth -= 1;
 	}
 
-	// Initialize variables, generate and order moves (in singular search we've already done these)
+	// Resetting killers and fail-high cutoff counts (in singular search we've already done these)
 	if (!singularSearch) {
-		movePicker.Initialize(false, position, t.History, ttMove, level);
-
-		// Resetting killers and fail-high cutoff counts
 		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
 		if (level + 1 < MaxDepth) t.CutoffCount[level + 1] = 0;
 	}
 
 	// Iterate through legal moves
+	MovePicker& movePicker = t.MovePickerStack[level][singularSearch];
+	movePicker.Init(false, position, t.History, singularSearch ? NullMove : ttMove, level);
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
 	int failLowCount = 0;
@@ -510,10 +508,11 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	StaticVector<Move, MaxMoveCount> quietsTried;
 	StaticVector<Move, MaxMoveCount> capturesTried;
 
-	while (movePicker.HasNext()) {
-		const auto& [m, order] = movePicker.Get();
+	while (true) {
+		const auto& [m, order] = movePicker.Next(position, t.History);
+		if (m == NullMove) break;
+
 		if (m == excludedMove) continue;
-		if (!position.IsLegalMove(m)) continue;
 		const bool isQuiet = position.IsMoveQuiet(m);
 		if (isQuiet && skipQuietMoves) continue;
 		legalMoveCount += 1;
@@ -562,7 +561,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			const int singularScore = SearchRecursive<false>(t, singularDepth, level, singularBeta - 1, singularBeta, cutNode);
 			const bool onlyMove = singularScore == NoEval;
 			t.ExcludedMoves[level] = NullMove;
-			t.MovePickerStack[level].index = 1;
 
 			if (onlyMove) {
 				// Extend only moves
@@ -749,8 +747,8 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	if (position.IsDrawn(level)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them (in check we generate quiets as well)
-	MovePicker& movePicker = t.MovePickerStack[level];
-	movePicker.Initialize(!inCheck, position, t.History, ttMove, level);
+	MovePicker& movePicker = t.MovePickerStack[level][false];
+	movePicker.Init(!inCheck, position, t.History, ttMove, level);
 
 	// Search recursively until the position is quiet
 	int bestScore = staticEval;
@@ -758,9 +756,9 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	int scoreType = ScoreType::UpperBound;
 	int futilityScore = std::min(staticEval + 267, MateThreshold - 1);
 
-	while (movePicker.HasNext()) {
-		const auto& [m, order] = movePicker.Get();
-		if (!position.IsLegalMove(m)) continue;
+	while (true) {
+		const auto& [m, order] = movePicker.Next(position, t.History);
+		if (m == NullMove) break;
 
 		// When in check, no longer search quiet moves once we know we're not getting mated
 		if (inCheck && bestScore > -MateThreshold && order < MovePicker::MaxRegularQuietOrder) break;
