@@ -88,8 +88,6 @@ private:
 	}
 
 	int GetMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
-		// Transposition move
-		if (m == ttMove) return 900000;
 
 		constexpr std::array<int, 7> values = { 0, 100, 300, 300, 500, 900, 0 };
 		const uint8_t movedPiece = pos.GetPieceAt(m.from);
