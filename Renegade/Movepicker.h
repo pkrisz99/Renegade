@@ -157,7 +157,7 @@ private:
 			return !pos.StaticExchangeEval(m, -captureScore / 28);
 		}();
 
-		return (!losingCapture ? 600000 : -200000) + materialChange * 18 + hist.GetCaptureHistoryScore(pos, m);
+		return (losingCapture ? -600000 : 600000) + materialChange * 18 + hist.GetCaptureHistoryScore(pos, m);
 	}
 
 	size_t noisyMoveIndex = 0, quietMoveIndex = 0;
