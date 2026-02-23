@@ -298,12 +298,15 @@ void Search::SearchMoves(ThreadData& t) {
 		if (t.IsMainThread() && Constraints.SearchTimeMin != -1) {
 			int softTimeLimit = Constraints.SearchTimeMin;
 			if (Constraints.SearchTimeMin != Constraints.SearchTimeMax) {
-				double multiplier = 1.0;
-				// Root node counts:
-				const double bestMoveFraction = t.RootNodeCounts[bestMove.from][bestMove.to] / static_cast<double>(t.Nodes);
-				multiplier *= 2.5 - 2.0 * bestMoveFraction;
-				// Best move stability:
-				multiplier *= 0.8 + 1.2 * std::pow(0.4, bestMoveStability);
+				const double multiplier = [&] {
+					if (t.RootDepth <= 8) return 1.0;
+					// Root node counts:
+					const double bestMoveFraction = t.RootNodeCounts[bestMove.from][bestMove.to] / static_cast<double>(t.Nodes);
+					const double nodeCountMultiplier = 2.5 - 2.0 * bestMoveFraction;
+					// Best move stability:
+					const double stabilityMultiplier = 0.8 + 1.2 * std::pow(0.4, bestMoveStability);
+					return nodeCountMultiplier * stabilityMultiplier;
+				}();
 				softTimeLimit *= multiplier;
 			}
 			if (elapsedMs >= softTimeLimit) finished = true;
