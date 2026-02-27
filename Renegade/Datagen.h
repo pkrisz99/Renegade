@@ -54,7 +54,7 @@ public:
 	// -> highest bit: whether the datagen is DFRC
 	// -> low 7 bits: version identifier
 	// This is 0 by default, but the datagen branch should override this
-	static constexpr uint8_t datagenVersion = 4;
+	static constexpr uint8_t datagenVersion = 5;
 
 private:
 	Board startingBoard;
