@@ -25,6 +25,7 @@ public:
 	void PopMove();
 	bool IsDrawn(const int level) const;
 
+	bool IsPseudoLegalMove(const Move& m) const;
 	bool IsLegalMove(const Move& m) const;
 	bool IsMoveQuiet(const Move& move) const;
 
