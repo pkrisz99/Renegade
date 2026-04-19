@@ -1,5 +1,5 @@
 /// Training parameters used to create Renegade's networks
-/// bullet version used: feab644 (Fix wdl scheduler checkpoint loading (#496)) from March 10, 2026
+/// bullet version used: 571f1a6 (Rewrite backend (#488)) from April 14, 2026
 
 /// Net 36 is trained in 2 stages (keeping the accidental schedule from net 31):
 /// - first 600 sb: cosine decay, wdl 0.4 -> 0.6
@@ -31,7 +31,7 @@ use bullet_lib::{
 #[rustfmt::skip]
 fn main() {
     
-    const NET_ID: &str = "renegade_net_36a";
+    const NET_ID: &str = "renegade_net_36b";
     const HL_SIZE: usize = 1600;
     const NUM_OUTPUT_BUCKETS: usize = 8;
     const BUCKET_LAYOUT: [usize; 32] = [
@@ -117,12 +117,12 @@ fn main() {
 
 	let data_loader = {
         let file_path = "251202_260112_260217_260312_dfrc260126.vf";
-        let buffer_size_mb = 2048;
-        let threads = 4;
+        let buffer_size_mb = 32768;
+        let threads = 8;
 		let filter = viriformat::dataformat::Filter {
             max_eval: 20000,
             random_fen_skipping: true,
-            random_fen_skip_probability: 0.5,
+            random_fen_skip_probability: 0.9,
             ..Default::default()
         };
         ViriBinpackLoader::new(file_path, buffer_size_mb, threads, filter)
