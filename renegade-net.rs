@@ -1,7 +1,7 @@
 /// Training parameters used to create Renegade's networks
-/// bullet version used: e5f65c4 (Measure CPU dataloading throughput utility (#489)) from November 26, 2025
+/// bullet version used: 571f1a6 (Rewrite backend (#488)) from April 14, 2026
 
-/// Net 35 is trained in 2 stages (keeping the accidental schedule from net 31):
+/// Net 36 is trained in 2 stages (keeping the accidental schedule from net 31):
 /// - first 600 sb: cosine decay, wdl 0.4 -> 0.6
 /// - final 200 sb: continue the cosine decay, wdl fixed at 0.6
 
@@ -31,7 +31,7 @@ use bullet_lib::{
 #[rustfmt::skip]
 fn main() {
     
-    const NET_ID: &str = "renegade_net_35a";
+    const NET_ID: &str = "renegade_net_36b";
     const HL_SIZE: usize = 1600;
     const NUM_OUTPUT_BUCKETS: usize = 8;
     const BUCKET_LAYOUT: [usize; 32] = [
@@ -54,7 +54,7 @@ fn main() {
         .save_format(&[
             SavedFormat::id("l0w")
                 .transform(|store, weights| {
-                    let factoriser = store.get("l0f").values.repeat(NUM_INPUT_BUCKETS);
+                    let factoriser = store.get("l0f").values.f32().repeat(NUM_INPUT_BUCKETS);
                     weights.into_iter().zip(factoriser).map(|(a, b)| a + b).collect()
                 })
                 .round()
@@ -115,9 +115,21 @@ fn main() {
 
     let settings = LocalSettings { threads: 4, test_set: None, output_directory: "checkpoints", batch_queue_size: 32 };
 
-    let data_loader = DirectSequentialDataLoader::new(
-        &["../nnue/data/250418_251202_260112_260217_dfrc260126"]
-    );
+	let data_loader = {
+        let file_path = "251202_260112_260217_260312_dfrc260126.vf";
+        let buffer_size_mb = 32768;
+        let threads = 8;
+		let filter = viriformat::dataformat::Filter {
+            max_eval: 20000,
+            random_fen_skipping: true,
+            random_fen_skip_probability: 0.9,
+            ..Default::default()
+        };
+        ViriBinpackLoader::new(file_path, buffer_size_mb, threads, filter)
+    };
+	// let data_loader = DirectSequentialDataLoader::new(
+    //     &["../nnue/data/file_path"]
+    // );
 
     trainer.run(&schedule, &settings, &data_loader);
     
