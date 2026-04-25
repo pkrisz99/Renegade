@@ -470,7 +470,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	if (!pvNode && !inCheck && !singularSearch) {
 
 		// Reverse futility pruning
-		if (depth <= 7 && !IsMateScore(beta)) {
+		if (depth <= 10 && !IsMateScore(beta)) {
 			const int rfpMargin = depth * tune_rfp_margin() - improving * tune_rfp_improving_reduction();
 			if (eval - rfpMargin > beta) return (eval + beta) / 2;
 		}
