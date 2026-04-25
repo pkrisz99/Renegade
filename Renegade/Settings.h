@@ -98,7 +98,15 @@ ADD_TUNABLE(fp_margin_improving, 53, 10, 80, 15)
 
 ADD_TUNABLE(lmr_multiplier, 45, 30, 60, 5)
 ADD_TUNABLE(lmr_base, 76, 50, 100, 6)
+
+ADD_TUNABLE(lmr_nottpv, 256, 64, 512, 64)
+ADD_TUNABLE(lmr_cutoffcnt, 256, 64, 512, 64)
+ADD_TUNABLE(lmr_cutnode, 256, 64, 512, 64)
+ADD_TUNABLE(lmr_improving, 256, 64, 512, 64)
+ADD_TUNABLE(lmr_check, 256, 64, 512, 64)
+
 ADD_TUNABLE(lmr_history_div, 22100, 15000, 30000, 2500)
+ADD_TUNABLE(lmr_history_cap, 512, 256, 768, 96)
 ADD_TUNABLE(lmr_deeper_margin, 30, 23, 45, 5)
 
 ADD_TUNABLE(asp_start, 12, 10, 14, 2)

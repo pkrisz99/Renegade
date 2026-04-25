@@ -611,12 +611,12 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (depth >= 3 && (legalMoveCount >= (3 + pvNode * 2 + rootNode * 2)) && isQuiet) {
 
 			int reduction = static_cast<int>(((tune_lmr_multiplier() / 100.0) * std::log(std::min(depth, 31)) * std::log(std::min(failLowCount, 31)) + (tune_lmr_base() / 100.0)) * 256.0);
-			if (!ttPV) reduction += 256;
-			if (t.CutoffCount[level] < 4) reduction -= 256;
-			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order * 256 / tune_lmr_history_div(), -512, 512);
-			if (cutNode) reduction += 256;
-			if (improving) reduction -= 256;
-			if (givingCheck) reduction -= 256;
+			if (!ttPV) reduction += tune_lmr_nottpv();
+			if (t.CutoffCount[level] < 4) reduction -= tune_lmr_cutoffcnt();
+			if (std::abs(order) < MovePicker::MaxRegularQuietOrder) reduction -= std::clamp(order * 256 / tune_lmr_history_div(), -tune_lmr_history_cap(), tune_lmr_history_cap());
+			if (cutNode) reduction += tune_lmr_cutnode();
+			if (improving) reduction -= tune_lmr_improving();
+			if (givingCheck) reduction -= tune_lmr_check();
 			reduction = std::max(reduction / 256, 0);
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
