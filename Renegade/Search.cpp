@@ -593,6 +593,11 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 		}
 
+		// Low-depth singular extensions
+		else if ((depth < 6) && !inCheck && (staticEval <= alpha - 25) && ttEntry.scoreType == ScoreType::LowerBound && m == ttMove) {
+			extension = 1;
+		}
+
 		// Push move
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
