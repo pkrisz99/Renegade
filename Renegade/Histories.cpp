@@ -59,13 +59,13 @@ template void Histories::UpdateCaptureHistory<Penalty>(const Position&, const Mo
 template <bool bonus>
 void Histories::UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth, const int times) {
 	
-	const int delta = std::min(302 * depth, 3160) * times * (bonus ? 1 : -1);
+	const int delta = std::min(309 * depth, 3245) * times * (bonus ? 1 : -1);
 
 	// Main quiet history
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
-	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened], delta);
+	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened], delta, 15543);
 
 	// Get continuation history total
 	int contHistTotal = 0;
@@ -80,14 +80,14 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 		const auto& [prevMove, prevPiece] = position.GetPreviousMove(ply);
 		if (prevPiece != Piece::None) {
 			int16_t& value = ContinuationHistory[prevPiece][prevMove.to][movedPiece][m.to];
-			UpdateHistoryValueCustomGravity(value, contHistTotal, delta);
+			UpdateHistoryValueCustomGravity(value, contHistTotal, delta, 15543);
 		}
 	}
 }
 
 template <bool bonus>
 void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth, const int times) {
-	const int delta = std::min(302 * depth, 3160) * times * (bonus ? 1 : -1);
+	const int delta = std::min(302 * depth, 2832) * times * (bonus ? 1 : -1);
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
@@ -96,7 +96,7 @@ void Histories::UpdateCaptureHistory(const Position& position, const Move& m, co
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
 		else return (position.Turn() == Side::White) ? Piece::BlackPawn : Piece::WhitePawn;
 	}();
-	UpdateHistoryValue(CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened], delta);
+	UpdateHistoryValue(CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened], delta, 18235);
 }
 
 int Histories::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
@@ -126,8 +126,8 @@ int Histories::GetCaptureHistoryScore(const Position& position, const Move& m) c
 // Static evaluation correction history -----------------------------------------------------------
 
 void Histories::UpdateCorrection(const Position& position, const int16_t refEval, const int16_t score, const int depth) {
-	static constexpr int inertia = 143;
-	static constexpr int cap = 9710;
+	const int inertia = 160;
+	const int cap = 10837;
 	const int diff = (score - refEval) * 256;
 	const int weight = std::min(16, depth + 1);
 

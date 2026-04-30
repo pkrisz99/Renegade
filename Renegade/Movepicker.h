@@ -132,9 +132,11 @@ private:
 		const uint8_t movedPiece = pos.GetPieceAt(m.from);
 		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 
-		if (m == killerMove) historyScore += 17700;
-		else if (m == positionalMove) historyScore += 16300;
-		else if (m == counterMove) historyScore += 14000;
+		int refutScore = 0;
+		if (m == killerMove) refutScore = 16220;
+		if (m == positionalMove) refutScore = std::max(refutScore, 16330);
+		if (m == counterMove) refutScore = std::max(refutScore, 19380);
+		historyScore += refutScore;
 
 		return historyScore;
 	}
@@ -154,7 +156,7 @@ private:
 		const bool losingCapture = [&] {
 			if (skipQuietMoves) return false;
 			const int16_t captureScore = hist.GetCaptureHistoryScore(pos, m);
-			return !pos.StaticExchangeEval(m, -captureScore / 28);
+			return !pos.StaticExchangeEval(m, -captureScore / 31);
 		}();
 
 		return (losingCapture ? -500000 : 500000) + materialChange * 18 + hist.GetCaptureHistoryScore(pos, m);
