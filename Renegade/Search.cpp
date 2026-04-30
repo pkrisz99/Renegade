@@ -248,17 +248,9 @@ void Search::SearchMoves(ThreadData& t) {
 
 			while (true) {
 				if (Aborting.load(std::memory_order_relaxed)) break;
-				int alpha, beta;
-				if (windowSize < 500) {
-					alpha = std::max(score - windowSize, NegativeInfinity);
-					beta = std::min(score + windowSize, PositiveInfinity);
-				}
-				else {
-					alpha = NegativeInfinity;
-					beta = PositiveInfinity;
-				}
 
-				//if (!settings.UciOutput) cout << "[" << alpha << ".." << beta << "] ";
+				int alpha = std::max(score - windowSize, NegativeInfinity);
+				int beta = std::min(score + windowSize, PositiveInfinity);
 
 				score = SearchRecursive<true>(t, searchDepth, 0, alpha, beta, false);
 
