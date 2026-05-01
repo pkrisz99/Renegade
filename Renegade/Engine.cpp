@@ -395,7 +395,7 @@ void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
 	const std::string_view gameStateStr = [&] {
 		if (gameState == GameState::Playing) return "in progress";
 		else if (gameState == GameState::WhiteVictory) return "white won";
-		else if (gameState == GameState::WhiteVictory) return "black won";
+		else if (gameState == GameState::BlackVictory) return "black won";
 		else return "drawn";
 	}();
 
