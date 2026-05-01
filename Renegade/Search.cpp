@@ -456,7 +456,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
-	bool futilityPrunable = false;
 
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
@@ -482,12 +481,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (nmpScore >= beta) {
 				return IsMateScore(nmpScore) ? beta : nmpScore;
 			}
-		}
-
-		// Futility pruning
-		if (depth <= 5 && !IsMateScore(beta)) {
-			const int futilityMargin = 53 + depth * 100 + improving * 52;
-			futilityPrunable = (eval + futilityMargin < alpha);
 		}
 	}
 
@@ -543,10 +536,13 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				}
 			}
 
-			// Performing futility pruning
-			if (futilityPrunable && isQuiet && order < 32768 && alpha < MateThreshold) {
-				bestScore = (bestScore + alpha) / 2;
-				break;
+			// Futility pruning
+			if (depth <= 5 && isQuiet && !IsMateScore(alpha) && !IsLosingMateScore(beta) && order < 32768) {
+				const int futilityMargin = 53 + depth * 100 + improving * 52;
+				if (eval + futilityMargin < alpha) {
+					bestScore = (bestScore + alpha) / 2;
+					break;
+				}
 			}
 
 			// Main search SEE pruning
