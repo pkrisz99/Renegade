@@ -497,9 +497,9 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	// Resetting killers and fail-high cutoff counts (in singular search we've already done these)
-	if (!singularSearch) {
-		if (level + 2 < MaxDepth) t.History.ResetKillerForPly(level + 2);
-		if (level + 1 < MaxDepth) t.CutoffCount[level + 1] = 0;
+	if (!singularSearch && level + 1 < MaxDepth) {
+		t.History.ResetKillerForPly(level + 1);
+		t.CutoffCount[level + 1] = 0;
 	}
 
 	// Iterate through legal moves
