@@ -528,20 +528,20 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				if (legalMoveCount > lmpCount) break;
 			}
 
-			// History pruning
-			if (depth <= 4 && isQuiet && !inCheck) {
-				if (order < -6460 * depth) {
+			// Futility pruning
+			if (depth <= 5 && isQuiet && !IsMateScore(alpha) && order < 32768) {
+				const int futilityMargin = 53 + depth * 100 + improving * 52;
+				if (eval + futilityMargin < alpha) {
 					movePicker.skipQuietMoves = true;
 					continue;
 				}
 			}
 
-			// Futility pruning
-			if (depth <= 5 && isQuiet && !IsMateScore(alpha) && !IsLosingMateScore(beta) && order < 32768) {
-				const int futilityMargin = 53 + depth * 100 + improving * 52;
-				if (eval + futilityMargin < alpha) {
-					bestScore = (bestScore + alpha) / 2;
-					break;
+			// History pruning
+			if (depth <= 4 && isQuiet && !inCheck) {
+				if (order < -6460 * depth) {
+					movePicker.skipQuietMoves = true;
+					continue;
 				}
 			}
 
