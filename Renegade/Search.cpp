@@ -766,6 +766,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	Move bestMove = NullMove;
 	int scoreType = ScoreType::UpperBound;
 	int futilityScore = std::min(staticEval + 278, MateThreshold - 1);
+	int movesSearched = 0;
 
 	while (true) {
 		const auto& [m, order] = movePicker.next(position, t.History);
@@ -784,9 +785,13 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 				if (bestScore < futilityScore) bestScore = futilityScore;
 				continue;
 			}
+
+			// Quiescence search late-move pruning
+			if (movesSearched > 3) break;
 		}
 
 		t.Nodes += 1;
+		movesSearched += 1;
 		const uint8_t movedPiece = position.GetPieceAt(m.from);
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
 		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
