@@ -49,6 +49,7 @@ private:
 	// Refutations:
 	std::array<Move, MaxDepth> KillerMoves;
 	MultiArray<Move, 64, 64> CounterMoves;
+	MultiArray<int16_t, 64, 64> CounterMoveMemory;
 	MultiArray<Move, 2, 8192> PositionalMoves;
 
 	// Move ordering history:

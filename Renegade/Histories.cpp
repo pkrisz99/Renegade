@@ -17,6 +17,7 @@ void Histories::ClearAll() {
 void Histories::ClearRefutations() {
 	std::memset(&KillerMoves, 0, sizeof(KillerMoves));
 	std::memset(&CounterMoves, 0, sizeof(CounterMoves));
+	std::memset(&CounterMoveMemory, 0, sizeof(CounterMoveMemory));
 	std::memset(&PositionalMoves, 0, sizeof(PositionalMoves));
 }
 
@@ -30,7 +31,14 @@ void Histories::SetKillerMove(const Move& move, const int level) {
 }
 
 void Histories::SetCountermove(const Move& previousMove, const Move& thisMove) {
-	if (!previousMove.IsNull()) CounterMoves[previousMove.from][previousMove.to] = thisMove;
+	if (previousMove.IsNull()) return;
+
+	if (CounterMoves[previousMove.from][previousMove.to] == thisMove)
+		CounterMoveMemory[previousMove.from][previousMove.to] += 1;
+	else
+		CounterMoveMemory[previousMove.from][previousMove.to] = 0;
+
+	CounterMoves[previousMove.from][previousMove.to] = thisMove;
 }
 
 void Histories::SetPositionalMove(const Position& pos, const Move& thisMove) {
@@ -40,7 +48,7 @@ void Histories::SetPositionalMove(const Position& pos, const Move& thisMove) {
 std::tuple<Move, Move, Move> Histories::GetRefutationMoves(const Position& pos, const int level) const {
 	const Move previous = (level > 0) ? pos.GetPreviousMove(1).move : NullMove;
 	const Move killer = KillerMoves[level];
-	const Move counter = CounterMoves[previous.from][previous.to];
+	const Move counter = CounterMoveMemory[previous.from][previous.to] >= 1 ? CounterMoves[previous.from][previous.to] : NullMove;
 	const Move positional = PositionalMoves[pos.Turn()][pos.GetPawnHash() % 8192];
 	return { killer, counter, positional };
 }
