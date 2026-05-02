@@ -701,8 +701,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	// Do some weird stuff
-	if (bestScore < alpha && !IsLosingMateScore(bestScore)) {
-		bestScore = (alpha + bestScore) / 2;
+	if (!pvNode && bestScore < alpha && !IsLosingMateScore(bestScore)) {
+		bestScore = (alpha + bestScore * 3) / 4;
 	}
 
 	// Update evaluation correction history
