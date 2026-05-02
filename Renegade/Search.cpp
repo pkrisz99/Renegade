@@ -545,7 +545,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			// Performing futility pruning
 			if (futilityPrunable && isQuiet && order < 32768 && alpha < MateThreshold) {
-				bestScore = (bestScore + alpha) / 2;
+				//bestScore = (bestScore + alpha) / 2;
 				break;
 			}
 
@@ -698,6 +698,11 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		for (const Move& qt : quietsTried) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth, 1);
 		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth, 1);
+	}
+
+	// Do some weird stuff
+	if (bestScore < alpha && !IsLosingMateScore(bestScore)) {
+		bestScore = (alpha + bestScore) / 2;
 	}
 
 	// Update evaluation correction history
