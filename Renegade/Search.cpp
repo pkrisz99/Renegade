@@ -530,7 +530,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			// Futility pruning
 			if (depth <= 5 && isQuiet && !IsMateScore(alpha) && order < 32768) {
-				const int futilityMargin = tune_fp_0() + depth * tune_fp_1() + improving * tune_fp_i();
+				const int futilityMargin = 100 + depth * 50 + improving * 50;
 				if (eval + futilityMargin < alpha) {
 					movePicker.skipQuietMoves = true;
 					continue;

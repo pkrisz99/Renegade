@@ -86,7 +86,3 @@ inline void SetTunableParameter(const std::string name, const int value) {
 // Add tunable parameters here --------------------------------------------------------------------
 // Definition here: ADD_TUNABLE(name, default, min, max, step)
 // Usage in code:   tune_name()
-
-ADD_TUNABLE(fp_0, 50, 0, 300, 40)
-ADD_TUNABLE(fp_1, 100, 20, 200, 40)
-ADD_TUNABLE(fp_i, 50, 20, 200, 40)
