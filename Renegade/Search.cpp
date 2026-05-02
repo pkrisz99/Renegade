@@ -533,6 +533,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				const int futilityMargin = 100 + depth * 50 + improving * 50;
 				if (eval + futilityMargin < alpha) {
 					movePicker.skipQuietMoves = true;
+					bestScore = (bestScore + alpha) / 2;
 					continue;
 				}
 			}
