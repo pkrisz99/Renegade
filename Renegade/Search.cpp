@@ -771,16 +771,19 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 		const auto& [m, order] = movePicker.next(position, t.History);
 		if (m == NullMove) break;
 
-		// When in check, no longer search quiet moves once we know we're not getting mated
-		if (inCheck && bestScore > -MateThreshold && order < MovePicker::MaxRegularQuietOrder) break;
+		if (bestScore > -MateThreshold) {
 
-		// Quiescence search SEE pruning
-		if (bestScore > -MateThreshold && !position.StaticExchangeEval(m, 0)) continue;
+			// When in check, no longer search quiet moves once we know we're not getting mated
+			if (inCheck && order < MovePicker::MaxRegularQuietOrder) break;
 
-		// Quiescence search futility pruning
-		if (!inCheck && alpha >= futilityScore && !position.StaticExchangeEval(m, 1)) {
-			if (bestScore < futilityScore) bestScore = futilityScore;
-			continue;
+			// Quiescence search SEE pruning
+			if (!position.StaticExchangeEval(m, 0)) continue;
+
+			// Quiescence search futility pruning
+			if (!inCheck && alpha >= futilityScore && !position.StaticExchangeEval(m, 1)) {
+				if (bestScore < futilityScore) bestScore = futilityScore;
+				continue;
+			}
 		}
 
 		t.Nodes += 1;
