@@ -10,7 +10,9 @@ void Histories::ClearAll() {
 	std::memset(&CaptureHistory, 0, sizeof(CaptureHistory));
 	std::memset(&ContinuationHistory, 0, sizeof(ContinuationHistory));
 	std::memset(&PawnCorrectionHistory, 0, sizeof(PawnCorrectionHistory));
+	std::memset(&PawnCorrectionHistoryUpperBits, 0, sizeof(PawnCorrectionHistoryUpperBits));
 	std::memset(&NonPawnCorrectionHistory, 0, sizeof(NonPawnCorrectionHistory));
+	std::memset(&NonPawnCorrectionHistoryUpperBits, 0, sizeof(NonPawnCorrectionHistoryUpperBits));
 	std::memset(&FollowUpCorrectionHistory, 0, sizeof(FollowUpCorrectionHistory));
 }
 
@@ -131,19 +133,41 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 	const int diff = (score - refEval) * 256;
 	const int weight = std::min(16, depth + 1);
 
-	const uint64_t pawnKey = position.GetPawnHash() % 16384;
+	// Pawn structure correction history update:
+
+	const uint64_t pawnHash = position.GetPawnHash();
+	const uint64_t pawnKey = pawnHash % 16384;
+	const uint8_t newPawnUpperBits = pawnHash >> 56;
+	uint8_t& oldPawnUpperBits = PawnCorrectionHistoryUpperBits[position.Turn()][pawnKey];
 	int32_t& pawnValue = PawnCorrectionHistory[position.Turn()][pawnKey];
-	pawnValue = ((inertia - weight) * pawnValue + weight * diff) / inertia;
-	pawnValue = std::clamp(pawnValue, -cap, cap);
+
+	if (oldPawnUpperBits == newPawnUpperBits) {
+		pawnValue = ((inertia - weight) * pawnValue + weight * diff) / inertia;
+		pawnValue = std::clamp(pawnValue, -cap, cap);
+	}
+	else {
+		pawnValue = 0;
+	}
+
+	// Non-pawn structure correction history update:
 
 	const auto [whiteNonPawnHash, blackNonPawnHash] = position.GetNonPawnHashes();
 	const uint64_t whiteNonPawnKey = whiteNonPawnHash % 65536, blackNonPawnKey = blackNonPawnHash % 65536;
+	const uint8_t newWhiteNonPawnUpperBits = whiteNonPawnHash >> 56, newBlackNonPawnUpperBits = blackNonPawnHash >> 56;
+
 	int32_t& whiteNonPawnValue = NonPawnCorrectionHistory[position.Turn()][Side::White][whiteNonPawnKey];
-	int32_t& blackNonPawnValue = NonPawnCorrectionHistory[position.Turn()][Side::Black][blackNonPawnKey];
+	uint8_t& oldWhiteNonPawnUpperBits = NonPawnCorrectionHistoryUpperBits[position.Turn()][Side::White][whiteNonPawnKey];
+	if (oldWhiteNonPawnUpperBits == newWhiteNonPawnUpperBits) whiteNonPawnValue = 0;
 	whiteNonPawnValue = ((inertia - weight) * whiteNonPawnValue + weight * diff) / inertia;
-	blackNonPawnValue = ((inertia - weight) * blackNonPawnValue + weight * diff) / inertia;
 	whiteNonPawnValue = std::clamp(whiteNonPawnValue, -cap, cap);
+
+	int32_t& blackNonPawnValue = NonPawnCorrectionHistory[position.Turn()][Side::Black][blackNonPawnKey];
+	uint8_t& oldBlackNonPawnUpperBits = NonPawnCorrectionHistoryUpperBits[position.Turn()][Side::Black][blackNonPawnKey];
+	if (oldBlackNonPawnUpperBits == newBlackNonPawnUpperBits) blackNonPawnValue = 0;
+	blackNonPawnValue = ((inertia - weight) * blackNonPawnValue + weight * diff) / inertia;
 	blackNonPawnValue = std::clamp(blackNonPawnValue, -cap, cap);
+
+	// Continuation correction history update:
 
 	if (position.Moves.size() >= 2) {
 		const MoveAndPiece& prev1 = position.GetPreviousMove(1);
@@ -157,13 +181,35 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEval) const {
 	if (std::abs(rawEval) >= MateThreshold) return rawEval;
 
-	const uint64_t pawnKey = position.GetPawnHash() % 16384;
-	const int pawnCorrection = PawnCorrectionHistory[position.Turn()][pawnKey];
+	// Pawn structure correction history retrieval:
+
+	const uint64_t pawnHash = position.GetPawnHash();
+	const uint64_t pawnKey = pawnHash % 16384;
+	const uint8_t pawnUpperBits = pawnHash >> 56;
+
+	const int pawnCorrection = [&] {
+		if (pawnUpperBits != PawnCorrectionHistoryUpperBits[position.Turn()][pawnKey]) return 0;
+		return PawnCorrectionHistory[position.Turn()][pawnKey];
+	}();
+
+	// Non-pawn structure correction history retrieval:
 
 	const auto [whiteNonPawnHash, blackNonPawnHash] = position.GetNonPawnHashes();
 	const uint64_t whiteNonPawnKey = whiteNonPawnHash % 65536, blackNonPawnKey = blackNonPawnHash % 65536;
-	const int nonPawnCorrection = NonPawnCorrectionHistory[position.Turn()][Side::White][whiteNonPawnKey]
-		+ NonPawnCorrectionHistory[position.Turn()][Side::Black][blackNonPawnKey];
+	const uint8_t whiteNonPawnUpperBits = whiteNonPawnHash >> 56, blackNonPawnUpperBits = blackNonPawnHash >> 56;
+
+	const int whiteNonPawnCorrection = [&] {
+		if (whiteNonPawnUpperBits != NonPawnCorrectionHistoryUpperBits[position.Turn()][Side::White][whiteNonPawnKey]) return 0;
+		return NonPawnCorrectionHistory[position.Turn()][Side::White][whiteNonPawnKey];
+	}();
+	const int blackNonPawnCorrection = [&] {
+		if (blackNonPawnUpperBits != NonPawnCorrectionHistoryUpperBits[position.Turn()][Side::Black][blackNonPawnKey]) return 0;
+		return NonPawnCorrectionHistory[position.Turn()][Side::White][blackNonPawnKey];
+	}();
+
+	const int nonPawnCorrection = whiteNonPawnCorrection + blackNonPawnCorrection;
+
+	// Continuation correction history (contcorr) retrieval:
 
 	const int lastMoveCorrection = [&] {
 		if (position.Moves.size() < 2) return 0;
