@@ -141,13 +141,9 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 	uint8_t& oldPawnUpperBits = PawnCorrectionHistoryUpperBits[position.Turn()][pawnKey];
 	int32_t& pawnValue = PawnCorrectionHistory[position.Turn()][pawnKey];
 
-	if (oldPawnUpperBits == newPawnUpperBits) {
-		pawnValue = ((inertia - weight) * pawnValue + weight * diff) / inertia;
-		pawnValue = std::clamp(pawnValue, -cap, cap);
-	}
-	else {
-		pawnValue = 0;
-	}
+	if (oldPawnUpperBits != newPawnUpperBits) pawnValue = 0;
+	pawnValue = ((inertia - weight) * pawnValue + weight * diff) / inertia;
+	pawnValue = std::clamp(pawnValue, -cap, cap);
 	oldPawnUpperBits = newPawnUpperBits;
 
 	// Non-pawn structure correction history update:
@@ -158,14 +154,14 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 
 	int32_t& whiteNonPawnValue = NonPawnCorrectionHistory[position.Turn()][Side::White][whiteNonPawnKey];
 	uint8_t& oldWhiteNonPawnUpperBits = NonPawnCorrectionHistoryUpperBits[position.Turn()][Side::White][whiteNonPawnKey];
-	if (oldWhiteNonPawnUpperBits == newWhiteNonPawnUpperBits) whiteNonPawnValue = 0;
+	if (oldWhiteNonPawnUpperBits != newWhiteNonPawnUpperBits) whiteNonPawnValue = 0;
 	whiteNonPawnValue = ((inertia - weight) * whiteNonPawnValue + weight * diff) / inertia;
 	whiteNonPawnValue = std::clamp(whiteNonPawnValue, -cap, cap);
 	oldWhiteNonPawnUpperBits = newWhiteNonPawnUpperBits;
 
 	int32_t& blackNonPawnValue = NonPawnCorrectionHistory[position.Turn()][Side::Black][blackNonPawnKey];
 	uint8_t& oldBlackNonPawnUpperBits = NonPawnCorrectionHistoryUpperBits[position.Turn()][Side::Black][blackNonPawnKey];
-	if (oldBlackNonPawnUpperBits == newBlackNonPawnUpperBits) blackNonPawnValue = 0;
+	if (oldBlackNonPawnUpperBits != newBlackNonPawnUpperBits) blackNonPawnValue = 0;
 	blackNonPawnValue = ((inertia - weight) * blackNonPawnValue + weight * diff) / inertia;
 	blackNonPawnValue = std::clamp(blackNonPawnValue, -cap, cap);
 	oldBlackNonPawnUpperBits = newBlackNonPawnUpperBits;
