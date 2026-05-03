@@ -34,14 +34,14 @@ void Histories::SetCountermove(const Move& previousMove, const Move& thisMove) {
 }
 
 void Histories::SetPositionalMove(const Position& pos, const Move& thisMove) {
-	PositionalMoves[pos.Turn()][pos.GetPawnHash() % 8192] = thisMove;
+	PositionalMoves[pos.Turn()][pos.GetPawnHash() % 16384] = thisMove;
 }
 
 std::tuple<Move, Move, Move> Histories::GetRefutationMoves(const Position& pos, const int level) const {
 	const Move previous = (level > 0) ? pos.GetPreviousMove(1).move : NullMove;
 	const Move killer = KillerMoves[level];
 	const Move counter = CounterMoves[previous.from][previous.to];
-	const Move positional = PositionalMoves[pos.Turn()][pos.GetPawnHash() % 8192];
+	const Move positional = PositionalMoves[pos.Turn()][pos.GetPawnHash() % 16384];
 	return { killer, counter, positional };
 }
 
@@ -131,7 +131,7 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 	const int diff = (score - refEval) * 256;
 	const int weight = std::min(16, depth + 1);
 
-	const uint64_t pawnKey = position.GetPawnHash() % 16384;
+	const uint64_t pawnKey = position.GetPawnHash() % 32768;
 	int32_t& pawnValue = PawnCorrectionHistory[position.Turn()][pawnKey];
 	pawnValue = ((inertia - weight) * pawnValue + weight * diff) / inertia;
 	pawnValue = std::clamp(pawnValue, -cap, cap);
@@ -157,7 +157,7 @@ void Histories::UpdateCorrection(const Position& position, const int16_t refEval
 int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEval) const {
 	if (std::abs(rawEval) >= MateThreshold) return rawEval;
 
-	const uint64_t pawnKey = position.GetPawnHash() % 16384;
+	const uint64_t pawnKey = position.GetPawnHash() % 32768;
 	const int pawnCorrection = PawnCorrectionHistory[position.Turn()][pawnKey];
 
 	const auto [whiteNonPawnHash, blackNonPawnHash] = position.GetNonPawnHashes();

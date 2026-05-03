@@ -49,7 +49,7 @@ private:
 	// Refutations:
 	std::array<Move, MaxDepth> KillerMoves;
 	MultiArray<Move, 64, 64> CounterMoves;
-	MultiArray<Move, 2, 8192> PositionalMoves;
+	MultiArray<Move, 2, 16384> PositionalMoves;
 
 	// Move ordering history:
 	MultiArray<int16_t, 15, 64, 2, 2> QuietHistory;
@@ -57,7 +57,7 @@ private:
 	MultiArray<int16_t, 15, 64, 15, 64> ContinuationHistory;
 
 	// Evaluation correction history:
-	MultiArray<int32_t, 2, 16384> PawnCorrectionHistory;
+	MultiArray<int32_t, 2, 32768> PawnCorrectionHistory;
 	MultiArray<int32_t, 2, 2, 65536> NonPawnCorrectionHistory;
 	MultiArray<int32_t, 15, 64, 15, 64> FollowUpCorrectionHistory;
 };
