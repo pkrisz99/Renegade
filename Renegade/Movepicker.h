@@ -26,7 +26,7 @@ public:
 	void initialize(const bool skipQuietMoves, const Position& pos, const Histories& hist, const Move& ttMove, const int level) {
 		this->stage = MovePickerStage::EmitTTMove;
 		this->ttMove = ttMove;
-		std::tie(killerMove, counterMove, positionalMove) = hist.GetRefutationMoves(pos, level);
+		std::tie(killerMove, counterMove, positionalMove, positionalMoveMemory) = hist.GetRefutationMoves(pos, level);
 		this->level = level;
 		this->skipQuietMoves = skipQuietMoves;
 		this->noisyMoveIndex = 0;
@@ -134,7 +134,7 @@ private:
 
 		int refutScore = 0;
 		if (m == killerMove) refutScore = 16220;
-		if (m == positionalMove) refutScore = std::max(refutScore, 16330);
+		if (m == positionalMove) refutScore = std::max(refutScore, 12000 + 2000 * (std::min(positionalMoveMemory, uint16_t{ 5 })));
 		if (m == counterMove) refutScore = std::max(refutScore, 19380);
 		historyScore += refutScore;
 
@@ -164,6 +164,7 @@ private:
 
 	size_t noisyMoveIndex = 0, quietMoveIndex = 0;
 	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
+	uint16_t positionalMoveMemory{};
 	MoveList noisyMoves{}, quietMoves{};
 	int level = 0;
 	MovePickerStage stage = MovePickerStage::EmitTTMove;
