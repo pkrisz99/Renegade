@@ -787,7 +787,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 			}
 
 			// Quiescence search late-move pruning
-			if (movesSearched > 3) break;
+			if (movesSearched > 2) break;
 		}
 
 		t.Nodes += 1;
