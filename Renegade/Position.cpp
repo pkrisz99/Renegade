@@ -1031,6 +1031,54 @@ std::pair<uint64_t, uint64_t> Position::GetPinnedBitboard() const {
 	return { whitePinned, blackPinned };
 }
 
+bool Position::GivesCheck(const Move& move) const {
+	const uint8_t piece = GetPieceAt(move.from);
+	const uint8_t pieceType = (!move.IsPromotion()) ? TypeOfPiece(piece) : move.GetPromotionPieceType();
+	const uint8_t opponentKingSq = (Turn() == Side::White) ? BlackKingSquare() : WhiteKingSquare();
+	const bool turn = Turn();
+	const uint64_t occupancy = GetOccupancy();
+
+	// Castling: rook line of sight calculation based on slightly incorrect occupancies, results are the same
+	if (move.IsCastling()) {
+		const uint8_t rookSqAfterCastling = ((move.flag == MoveFlag::ShortCastle) ? Squares::F1 : Squares::D1) + 56 * (turn == Side::Black);
+		uint64_t rookDirectionExposure = GetRookAttacks(opponentKingSq, occupancy);
+		return rookDirectionExposure & SquareBit(rookSqAfterCastling);
+	}
+
+	const uint64_t newOccupancy = [&] {
+		uint64_t occ = (occupancy & ~SquareBit(move.from)) | SquareBit(move.to);
+		if (move.flag == MoveFlag::EnPassantPerformed) {
+			if (Turn() == Side::White) SetBitFalse(occ, CurrentState().EnPassantSquare - 8);
+			else SetBitFalse(occ, CurrentState().EnPassantSquare + 8);
+		}
+		return occ;
+	}();
+
+	// Revealed checks:
+	uint64_t bishopLikes = (turn == Side::White) ? (WhiteBishopBits() | WhiteQueenBits()) : (BlackBishopBits() | BlackQueenBits());
+	uint64_t rookLikes = (turn == Side::White) ? (WhiteRookBits() | WhiteQueenBits()) : (BlackRookBits() | BlackQueenBits());
+	uint64_t bishopDirectionExposure = GetBishopAttacks(opponentKingSq, newOccupancy);
+	uint64_t rookDirectionExposure = GetRookAttacks(opponentKingSq, newOccupancy);
+	if ((bishopLikes & bishopDirectionExposure) || (rookLikes & rookDirectionExposure)) return true;
+
+	// Direct checks:
+	switch (pieceType) {
+		case PieceType::Pawn:
+			if (turn == Side::White) return CheckBit(WhitePawnAttacks[move.to], opponentKingSq);
+			else return CheckBit(BlackPawnAttacks[move.to], opponentKingSq);
+		case PieceType::Knight:
+			return CheckBit(KnightMoveBits[move.to], opponentKingSq);
+		case PieceType::Bishop:
+			return CheckBit(GetBishopAttacks(move.to, newOccupancy), opponentKingSq);
+		case PieceType::Rook:
+			return CheckBit(GetRookAttacks(move.to, newOccupancy), opponentKingSq);
+		case PieceType::Queen:
+			return CheckBit(GetQueenAttacks(move.to, newOccupancy), opponentKingSq);
+		default:
+			return false; // king can't direct check
+	}
+}
+
 // Getting information ----------------------------------------------------------------------------
 
 bool Position::IsDrawn(const int level) const {
