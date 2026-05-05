@@ -530,7 +530,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (!pvNode && !IsLosingMateScore(bestScore)) {
 
 			// Late-move pruning
-			if (depth <= 4 && isQuiet && !inCheck) {
+			if (depth <= 4 && isQuiet && !inCheck && !position.GivesCheck(m)) {
 				const int lmpCount = 3 + depth * (depth - !improving);
 				if (legalMoveCount > lmpCount) break;
 			}
