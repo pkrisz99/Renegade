@@ -66,8 +66,9 @@ private:
 	void FreeTable();
 
 	inline uint64_t GetClusterIndex(const uint64_t hash) const {
-		assert((TableSize & (TableSize - 1)) == 0);
-		return hash & (TableSize - 1);
+		// Fixed-point fractional multiplication
+		assert(TableSize != 0);
+		return static_cast<uint64_t>((static_cast<uint128_t>(hash) * static_cast<uint128_t>(TableSize)) >> 64);
 	}
 
 	inline uint32_t GetStoredHash(const uint64_t hash) const {

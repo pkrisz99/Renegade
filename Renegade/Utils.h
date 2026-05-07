@@ -20,6 +20,7 @@ using std::cin;
 using std::endl;
 using std::get;
 using Clock = std::chrono::high_resolution_clock;
+using uint128_t = unsigned __int128;
 
 constexpr std::string_view Version = "dev 1.2.48";
 
