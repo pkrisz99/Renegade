@@ -540,7 +540,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (depth <= 5 && !inCheck && isQuiet && !singularSearch && !IsMateScore(beta) && alpha < MateThreshold && order < 32768 && !position.GivesCheck(m)) {
 				const int futilityMargin = 53 + depth * 100 + improving * 52;
 				if (eval + futilityMargin < alpha) {
-					bestScore = (bestScore + alpha) / 2;
 					break;
 				}
 			}
