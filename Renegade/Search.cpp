@@ -456,7 +456,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
-	int correction = (inCheck || IsMateScore(staticEval) || IsMateScore(rawEval)) ? 0 : std::abs(staticEval - rawEval);
+	const int correction = (inCheck || IsMateScore(staticEval) || IsMateScore(rawEval)) ? 0 : std::abs(staticEval - rawEval);
 
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
@@ -611,7 +611,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (cutNode) reduction += 346;
 			if (improving) reduction -= 304;
 			if (givingCheck) reduction -= 205;
-			reduction -= std::min(correction / 2, 128);
+			reduction -= std::min(correction * correction / 64, 128);
 			reduction = std::max(reduction / 256, 0);
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
