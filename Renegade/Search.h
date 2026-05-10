@@ -48,6 +48,7 @@ public:
 	std::array<int, MaxDepth> EvalStack;
 	std::array<int, MaxDepth> CutoffCount;
 	std::array<Move, MaxDepth> ExcludedMoves;
+	std::array<int, MaxDepth> LateMoveReductionResiduals;
 	MultiArray<MovePicker, MaxDepth, 2> MovePickerStack{};
 
 	Position CurrentPosition;

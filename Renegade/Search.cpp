@@ -219,6 +219,7 @@ void Search::SearchMoves(ThreadData& t) {
 	t.ResetPvTable();
 	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), NullMove);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
+	std::fill(t.LateMoveReductionResiduals.begin(), t.LateMoveReductionResiduals.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
 	t.History.ClearRefutations();
 	t.EvalState.Reset(t.CurrentPosition);
@@ -515,6 +516,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (m == excludedMove) continue;
 		const bool isQuiet = position.IsMoveQuiet(m);
 		legalMoveCount += 1;
+		t.LateMoveReductionResiduals[level] = 0;
 
 		if (isQuiet) quietsTried.push(m);
 		else capturesTried.push(m);
@@ -610,7 +612,9 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (cutNode) reduction += 346;
 			if (improving) reduction -= 304;
 			if (givingCheck) reduction -= 205;
+			if (!rootNode) reduction += t.LateMoveReductionResiduals[level - 1] / 4;
 			reduction = std::max(reduction / 256, 0);
+			t.LateMoveReductionResiduals[level] = reduction % 256;
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
 			score = -SearchRecursive<false>(t, reducedDepth, level + 1, -alpha - 1, -alpha, true);
