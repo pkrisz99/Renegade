@@ -525,7 +525,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			// Late-move pruning
 			if (depth <= 4 && isQuiet && !inCheck) {
 				const int lmpCount = 3 + depth * (depth - !improving);
-				if (legalMoveCount > lmpCount) break;
+				if (legalMoveCount >= lmpCount) break;
 			}
 
 			// History pruning
