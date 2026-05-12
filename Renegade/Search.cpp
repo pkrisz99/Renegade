@@ -613,8 +613,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (improving) reduction -= 304;
 			if (givingCheck) reduction -= 205;
 			if (!rootNode) reduction += t.LateMoveReductionResiduals[level - 1] / 4;
-			reduction = std::max(reduction / 256, 0);
 			t.LateMoveReductionResiduals[level] = reduction % 256;
+			reduction = std::max(reduction / 256, 0);
 
 			const int reducedDepth = std::clamp(depth - 1 - reduction, 0, depth - 1);
 			score = -SearchRecursive<false>(t, reducedDepth, level + 1, -alpha - 1, -alpha, true);
