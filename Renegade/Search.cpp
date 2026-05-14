@@ -5,7 +5,7 @@
 
 Search::Search() {
 	constexpr double lmrMultiplier = 0.42;
-	constexpr double lmrBase = 0.74;
+	constexpr double lmrBase = 0.78;
 	for (int i = 0; i < 32; i++) {
 		for (int j = 0; j < 32; j++) {
 			LMRTable[i][j] = static_cast<int>(256.0 * (lmrMultiplier * std::log(std::max(i, 1)) * std::log(std::max(j, 1)) + lmrBase));
@@ -457,6 +457,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	const bool improving = (level >= 2) && !inCheck && (t.StaticEvalStack[level] > t.StaticEvalStack[level - 2]);
+	int correction = (inCheck || IsMateScore(staticEval) || IsMateScore(rawEval)) ? 0 : std::abs(staticEval - rawEval);
 
 	// Whole-node pruning techniques
 	if (!pvNode && !inCheck && !singularSearch) {
@@ -612,7 +613,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (cutNode) reduction += 346;
 			if (improving) reduction -= 304;
 			if (givingCheck) reduction -= 205;
-			if (!rootNode) reduction += t.LateMoveReductionResiduals[level - 1] / 2;
+			reduction -= std::min(correction / 2, 128);
+			if (!rootNode) reduction += t.LateMoveReductionResiduals[level - 1] / 4;
 			t.LateMoveReductionResiduals[level] = reduction % 256;
 			reduction = std::max(reduction / 256, 0);
 
