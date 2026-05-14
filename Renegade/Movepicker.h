@@ -31,6 +31,8 @@ public:
 		this->skipQuietMoves = skipQuietMoves;
 		this->noisyMoveIndex = 0;
 		this->quietMoveIndex = 0;
+		this->opponentOccupancy = pos.GetOccupancy(!pos.Turn());
+		this->threats = pos.GetThreats();
 		this->noisyMoves.clear();
 		this->quietMoves.clear();
 	}
@@ -127,10 +129,18 @@ private:
 	}
 
 	// Score quiet moves: take the history score and potentially apply a bonus for being a refutation
+	// or attacking an opponent piece on a safe square
 	int getQuietMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
 
 		const uint8_t movedPiece = pos.GetPieceAt(m.from);
 		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
+
+		if (movedPiece == Piece::WhitePawn) {
+			if (WhitePawnAttacks[m.to] & opponentOccupancy & ~threats) historyScore += 5000;
+		}
+		else if (movedPiece == Piece::BlackPawn) {
+			if (BlackPawnAttacks[m.to] & opponentOccupancy & ~threats) historyScore += 5000;
+		}
 
 		int refutScore = 0;
 		if (m == killerMove) refutScore = 16220;
@@ -166,5 +176,6 @@ private:
 	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
 	MoveList noisyMoves{}, quietMoves{};
 	int level = 0;
+	uint64_t opponentOccupancy{}, threats{};
 	MovePickerStage stage = MovePickerStage::EmitTTMove;
 };
