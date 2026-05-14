@@ -538,7 +538,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			// Futility pruning
 			if (depth <= 5 && !inCheck && isQuiet && !singularSearch && !IsMateScore(beta) && alpha < MateThreshold && !position.GivesCheck(m)) {
-				const int futilityMargin = 53 + depth * 100 + improving * 52 + (order / 256);
+				const int futilityMargin = 53 + depth * 100 + improving * 52 + (order / 512);
 				if (eval + futilityMargin < alpha) {
 					bestScore = (bestScore + alpha) / 2;
 					break;
