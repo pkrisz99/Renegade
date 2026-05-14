@@ -132,6 +132,8 @@ private:
 		const uint8_t movedPiece = pos.GetPieceAt(m.from);
 		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 
+		if (pos.GivesCheck(m)) historyScore += 10000;
+
 		int refutScore = 0;
 		if (m == killerMove) refutScore = 16220;
 		if (m == positionalMove) refutScore = std::max(refutScore, 16330);
