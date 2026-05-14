@@ -136,10 +136,10 @@ private:
 		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 
 		if (movedPiece == Piece::WhitePawn) {
-			if (WhitePawnAttacks[m.to] & opponentOccupancy & ~threats) historyScore += 5000;
+			if ((WhitePawnAttacks[m.to] & opponentOccupancy & ~threats) == 0ull) historyScore += 5000;
 		}
 		else if (movedPiece == Piece::BlackPawn) {
-			if (BlackPawnAttacks[m.to] & opponentOccupancy & ~threats) historyScore += 5000;
+			if ((BlackPawnAttacks[m.to] & opponentOccupancy & ~threats) == 0ull) historyScore += 5000;
 		}
 
 		int refutScore = 0;
