@@ -31,7 +31,7 @@ public:
 		this->skipQuietMoves = skipQuietMoves;
 		this->noisyMoveIndex = 0;
 		this->quietMoveIndex = 0;
-		this->opponentOccupancy = pos.GetOccupancy(!pos.Turn());
+		this->opponentOccupancy = pos.GetOccupancy(!pos.Turn()) & ~pos.WhitePawnBits() & ~pos.BlackPawnBits();
 		this->threats = pos.GetThreats();
 		this->noisyMoves.clear();
 		this->quietMoves.clear();
@@ -136,10 +136,18 @@ private:
 		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 
 		if (movedPiece == Piece::WhitePawn) {
-			if ((WhitePawnAttacks[m.to] & opponentOccupancy & ~threats) == 0ull) historyScore += 5000;
+			if ((WhitePawnAttacks[m.to] & opponentOccupancy & ~threats) != 0ull) {
+				historyScore += 5000;
+				//cout << "w" << m.ToString(true) << endl;
+				//PrintBitboard(WhitePawnAttacks[m.to] & opponentOccupancy & ~threats);
+			}
 		}
 		else if (movedPiece == Piece::BlackPawn) {
-			if ((BlackPawnAttacks[m.to] & opponentOccupancy & ~threats) == 0ull) historyScore += 5000;
+			if ((BlackPawnAttacks[m.to] & opponentOccupancy & ~threats) != 0ull) {
+				historyScore += 5000;
+				//PrintBitboard(BlackPawnAttacks[m.to] & opponentOccupancy & ~threats);
+				//cout << "b" << m.ToString(true) << endl;
+			}
 		}
 
 		int refutScore = 0;
