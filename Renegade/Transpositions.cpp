@@ -31,8 +31,8 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 			if (entryQuality < currentWorstQuality) {
 				currentWorst = i;
 				currentWorstQuality = entryQuality;
-			};
-		};
+			}
+		}
 		assert(currentWorst != -1);
 		return currentWorst;
 	}();

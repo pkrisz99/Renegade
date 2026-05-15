@@ -19,11 +19,15 @@ class Engine {
 public:
 	Engine(int argc, char* argv[]);
 	void Start();
+
+private:
 	void PrintHeader() const;
-	void DrawBoard(const Position &pos, const uint64_t highlight = 0) const;
+	void DrawBoard(const Position& pos, const uint64_t highlight = 0) const;
 	void HandleBench();
 	void HandleHelp() const;
 	void HandleCompiler() const;
+	void Perft(Position& position, const int depth, const PerftType type) const;
+	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
 
 	Search SearchThreads;
 	EngineBehavior Behavior = EngineBehavior::Normal;

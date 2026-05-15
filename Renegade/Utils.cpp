@@ -1,6 +1,8 @@
 #include "Utils.h"
 
-// https://stackoverflow.com/questions/25829143/trim-whitespace-from-a-string
+// String functions -------------------------------------------------------------------------------
+
+// Trims spaces from the beginning and end of a std::string (in-place)
 std::string Trim(const std::string& str) {
 	const size_t first = str.find_first_not_of(' ');
 	const size_t last = str.find_last_not_of(' ');
@@ -8,6 +10,7 @@ std::string Trim(const std::string& str) {
 	return str.substr(first, (last - first + 1));
 }
 
+// Splits a std::string by whitespaces
 std::vector<std::string> Split(const std::string& cmd) {
 	std::stringstream ss(cmd);
 	std::istream_iterator<std::string> begin(ss);
@@ -15,17 +18,17 @@ std::vector<std::string> Split(const std::string& cmd) {
 	return std::vector<std::string>(begin, end);
 }
 
-// https://stackoverflow.com/questions/8095088/how-to-check-string-start-in-c
-bool StartsWith(const std::string& big, const std::string& small) {
-	return big.compare(0, small.length(), small) == 0;
-}
-
+// Converts an std::string in-place to only contains lowercase variants of letters
 void ConvertToLowercase(std::string& str) {
 	for (size_t x = 0; x < str.length(); x++) str[x] = std::tolower(str[x]);
 }
 
+// Debugging --------------------------------------------------------------------------------------
+
 [[maybe_unused]] void PrintBitboard(const uint64_t bits) {
-	cout << "\n" << bits << '\n';
+	cout << "\n" << "Bitboard: ";
+	cout << std::hex << std::showbase << bits;
+	cout << std::dec << std::noshowbase << " (" << bits << ")\n";
 	for (int r = 7; r >= 0; r--) {
 		for (int f = 0; f < 8; f++) {
 			if (CheckBit(bits, Square(r, f))) cout << " X ";
@@ -48,7 +51,7 @@ std::pair<double, double> ModelWDLForPly(const int ply) {
 }
 
 // Get win, draw and loss probabilities per mil for a given internal score and ply
-std::tuple<int, int, int> GetWDL(const int score, const int ply) {
+static std::tuple<int, int, int> GetWDL(const int score, const int ply) {
 	const auto [a, b] = ModelWDLForPly(ply);
 	const double x = std::clamp(static_cast<double>(score), -4000.0, 4000.0);
 

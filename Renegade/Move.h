@@ -1,17 +1,27 @@
 #pragma once
-
 #include "Utils.h"
 
-/*
-* Move representation.
-* 'from' and 'to' fields in the square on the board (0-63).
-* 'flag' is for additional information, such as for promotions.
-*/
+// Move representation:
+// Renegade relies on 24-bit moves by default, though it can compact down to 16 where needed
+// 'from' and 'to' fields are squares on the board (0-63).
+// 'flag' is for additional information, such as for promotions.
 
-class Move
+// Move representation ----------------------------------------------------------------------------
+
+namespace MoveFlag {
+	constexpr uint8_t None = 0;
+	constexpr uint8_t ShortCastle = 1;
+	constexpr uint8_t LongCastle = 2;
+	constexpr uint8_t PromotionToKnight = 3;
+	constexpr uint8_t PromotionToBishop = 4;
+	constexpr uint8_t PromotionToRook = 5;
+	constexpr uint8_t PromotionToQueen = 6;
+	constexpr uint8_t EnPassantPossible = 7;
+	constexpr uint8_t EnPassantPerformed = 8;
+}
+
+struct Move
 {
-public:
-
 	uint8_t from;
 	uint8_t to;
 	uint8_t flag;
@@ -108,22 +118,23 @@ public:
 	inline bool operator== (const Move& m) const {
 		return from == m.from && to == m.to && flag == m.flag;
 	}
-
 };
 
 static const Move NullMove { 0, 0, MoveFlag::None };
+
+// Derived types ----------------------------------------------------------------------------------
 
 struct MoveAndPiece {
 	Move move{};
 	uint8_t piece = 0;
 };
 
-// Move list --------------------------------------------------------------------------------------
-
 struct ScoredMove {
 	Move move;
 	int32_t orderScore;
 };
+
+// Move list --------------------------------------------------------------------------------------
 
 struct MoveList : StaticVector<ScoredMove, MaxMoveCount> {
 
