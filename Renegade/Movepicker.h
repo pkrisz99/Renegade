@@ -106,6 +106,7 @@ public:
 
 	static constexpr int MaxRegularQuietOrder = 200000;
 	bool skipQuietMoves = false;
+	MovePickerStage stage = MovePickerStage::EmitTTMove;
 
 private:
 
@@ -166,5 +167,4 @@ private:
 	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
 	MoveList noisyMoves{}, quietMoves{};
 	int level = 0;
-	MovePickerStage stage = MovePickerStage::EmitTTMove;
 };
