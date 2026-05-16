@@ -600,7 +600,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Principal variation search & late-move reductions
 		// One ply equals 256 units in reduction calculations
-		if (depth >= 3 && (legalMoveCount >= (3 + rootNode * 2)) && isQuiet) {
+		if (depth >= 3 && legalMoveCount >= 3 && isQuiet) {
 
 			int reduction = LateMoveReductionTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!ttPV) reduction += 313;
