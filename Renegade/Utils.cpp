@@ -51,7 +51,7 @@ std::pair<double, double> ModelWDLForPly(const int ply) {
 }
 
 // Get win, draw and loss probabilities per mil for a given internal score and ply
-static std::tuple<int, int, int> GetWDL(const int score, const int ply) {
+std::tuple<int, int, int> GetWDL(const int score, const int ply) {
 	const auto [a, b] = ModelWDLForPly(ply);
 	const double x = std::clamp(static_cast<double>(score), -4000.0, 4000.0);
 
