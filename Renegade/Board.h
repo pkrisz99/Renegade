@@ -141,7 +141,10 @@ struct Board {
 			return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 	}
 
-	//uint64_t CalculateHash() const;
+	inline uint8_t WhiteKingSquare() const { return LsbSquare(WhiteKingBits); }
+	inline uint8_t BlackKingSquare() const { return LsbSquare(BlackKingBits); }
+
+	[[maybe_unused]] uint64_t CalculateHashFromScratch() const;
 	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
 
 	[[maybe_unused]] uint64_t CalculateMaterialHash() const;

@@ -53,7 +53,7 @@ private:
 
 	// Move ordering history:
 	MultiArray<int16_t, 15, 64, 2, 2> QuietHistory;
-	MultiArray<int16_t, 15, 64, 15, 2, 2> CaptureHistory; // [attacking piece][square to][captured piece][from treat][to threat]
+	MultiArray<int16_t, 15, 64, 15, 2, 2> CaptureHistory; // [attacking piece][square to][captured piece][from threat][to threat]
 	MultiArray<int16_t, 15, 64, 15, 64> ContinuationHistory;
 
 	// Evaluation correction history:
@@ -61,4 +61,3 @@ private:
 	MultiArray<int32_t, 2, 2, 65536> NonPawnCorrectionHistory;
 	MultiArray<int32_t, 15, 64, 15, 64> FollowUpCorrectionHistory;
 };
-

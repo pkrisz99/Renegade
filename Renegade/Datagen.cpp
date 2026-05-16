@@ -10,8 +10,8 @@ static void SetTitle(const std::string title) {
 
 static void PressEnterToExit() {
 	cout << "Press enter to exit." << endl;
-	cin.ignore();
-	cin.get();
+	std::cin.ignore();
+	std::cin.get();
 }
 
 static std::string FormatRuntime(const int seconds) {
