@@ -497,7 +497,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	movePicker.initialize(false, position, t.History, singularSearch ? NullMove : ttMove, level);
 	int scoreType = ScoreType::UpperBound;
 	int legalMoveCount = 0;
-	int failLowCount = 0;
 	int failHighCount = 0;
 	int bestScore = NegativeInfinity;
 	Move bestMove = NullMove;
@@ -603,7 +602,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// One ply equals 256 units in reduction calculations
 		if (depth >= 3 && (legalMoveCount >= 3 + 2 * rootNode) && isQuiet) {
 
-			int reduction = LateMoveReductionTable[std::min(depth, 31)][std::min(failLowCount, 31)];
+			int reduction = LateMoveReductionTable[std::min(depth, 31)][std::min(legalMoveCount, 31)];
 			if (!ttPV) reduction += 313;
 			if (t.CutoffCount[level] < 4) reduction -= 274;
 			if (cutNode) reduction += 346;
@@ -638,8 +637,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Update node count table for the root, this is used for time management
 		if (rootNode) t.RootNodeCounts[m.from][m.to] += t.Nodes - nodesBefore;
-
-		failLowCount += (score <= alpha);
 
 		// If the score beats our previous best, check if it raises alpha or causes a fail-high
 		if (score > bestScore) {
