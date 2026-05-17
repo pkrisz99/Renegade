@@ -589,7 +589,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		const uint64_t nodesBefore = t.Nodes;
 
 		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
-		const int quietHistory = isQuiet ? t.History.GetHistoryScore(position, m, movedPiece, level) : 0;
+		const int history = isQuiet ? t.History.GetHistoryScore(position, m, movedPiece, level) : t.History.GetCaptureHistoryScore(position, m);
 		position.PushMove(m);
 		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
 
@@ -601,7 +601,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Principal variation search & late-move reductions
 		// One ply equals 256 units in reduction calculations
-		if (depth >= 3 && (legalMoveCount >= 3 + 2 * rootNode) && isQuiet) {
+		if (depth >= 3 && (legalMoveCount >= 3 + 2 * rootNode)) {
 
 			int reduction = LateMoveReductionTable[std::min(depth, 31)][std::min(failLowCount, 31)];
 			if (!ttPV) reduction += 313;
@@ -609,7 +609,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (cutNode) reduction += 346;
 			if (improving) reduction -= 304;
 			if (givingCheck) reduction -= 205;
-			reduction -= std::clamp(quietHistory * 256 / 22610, -490, 490);
+			if (!isQuiet) reduction -= 256;
+			reduction -= std::clamp(history * 256 / 22610, -490, 490);
 
 			reduction = std::max(reduction / 256, 0);
 
