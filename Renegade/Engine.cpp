@@ -74,7 +74,7 @@ void Engine::Start() {
 
 	PrintHeader();
 
-	while (std::getline(cin, cmd)) {
+	while (std::getline(std::cin, cmd)) {
 
 		cmd = Trim(cmd);
 		if (cmd.size() == 0) continue;
@@ -211,7 +211,7 @@ void Engine::Start() {
 				}
 			}
 			if (parts[1] == "isdraw") {
-				cout << "Is drawn? " << position.IsDrawn(true) << endl;
+				cout << "Is drawn? " << position.IsDrawn(0) << endl;
 			}
 			continue;
 		}
@@ -231,7 +231,7 @@ void Engine::Start() {
 			continue;
 		}
 		if (parts[0] == "fen") {
-			cout << "Position FEN: " << position.GetFEN() << endl;
+			cout << "-> Position FEN: " << position.GetFEN() << endl;
 			continue;
 		}
 		if (parts[0] == "clear") {
@@ -241,7 +241,7 @@ void Engine::Start() {
 		}
 		if (parts[0] == "ch") {
 			SearchThreads.ResetState(true);
-			cout << "Transposition table cleared." << endl;
+			cout << "-> Transposition and history tables cleared." << endl;
 			continue;
 		}
 		if (parts[0] == "frc") {
@@ -287,7 +287,7 @@ void Engine::Start() {
 				if (parts.size() > 2 && parts[2] == "moves") {
 					for (size_t i = 3; i < parts.size(); i++) {
 						const bool r = position.PushUCI(parts[i]);
-						if (!r) cout << "!!! Error: invalid pushuci move: '" << parts[i] << "' at position '" << position.GetFEN() << "' !!!" << endl;
+						if (!r) cout << "ERROR: invalid UCI move " << parts[i] << " for position " << position.GetFEN() << endl;
 					}
 				}
 			}
@@ -302,7 +302,7 @@ void Engine::Start() {
 				if (parts.size() > 8 && parts[8] == "moves") {
 					for (size_t i = 9; i < parts.size(); i++) {
 						const bool r = position.PushUCI(parts[i]);
-						if (!r) cout << "!!! Error: invalid pushuci move !!!" << endl;
+						if (!r) cout << "ERROR: invalid UCI move " << parts[i] << " for position " << position.GetFEN() << endl;
 					}
 				}
 			}
@@ -318,7 +318,7 @@ void Engine::Start() {
 			if (parts.size() == 3 && (parts[1] == "perft" || parts[1] == "perftdiv")) {
 				const int depth = std::stoi(parts[2]);
 				const PerftType type = (parts[1] == "perftdiv") ? PerftType::PerftDiv : PerftType::Normal;
-				SearchThreads.Perft(position, depth, type);
+				Perft(position, depth, type);
 				continue;
 			}
 
@@ -349,12 +349,6 @@ void Engine::Start() {
 
 		if (parts[0] == "compiler") {
 			HandleCompiler();
-			continue;
-		}
-
-		if (parts[0] == "flip") {
-			cout << "Turn flipped." << endl;
-			position.CurrentState().Turn = !position.CurrentState().Turn;
 			continue;
 		}
 
@@ -500,11 +494,13 @@ void Engine::HandleBench() {
 	const auto startTime = Clock::now();
 
 	for (std::string fen : BenchmarkFENs) {
-		Settings::Chess960 = StartsWith(fen, "[frc]");
-		if (StartsWith(fen, "[frc]")) fen = fen.substr(6, fen.length() - 6);
+		Settings::Chess960 = false;
+		if (fen.starts_with("[frc]")) {
+			Settings::Chess960 = true;
+			fen = fen.substr(6, fen.length() - 6);
+		}
 		SearchThreads.ResetState(false);
 		const Position pos = Position(fen);
-
 		const Results r = SearchThreads.SearchSinglethreaded(pos, params);
 		nodes += r.nodes;
 	}
@@ -531,7 +527,7 @@ void Engine::HandleCompiler() const {
 #elif defined(_MSC_VER)
 	cout << "-> Compiler: MSVC" << endl;
 	cout << "-> Version: " << _MSC_VER << endl;
-#elif
+#else
 	cout << "-> Unknown - Interesting compiler you've got there!" << endl;
 #endif
 }
@@ -545,5 +541,50 @@ void Engine::HandleHelp() const {
 		<< "\n- draw: draws the current board"
 		<< "\n- eval: prints the static evaluation of the position"
 		<< "\n- fen: displays the current position's FEN string"
-		<< "\n- go perft [n] & go perftdiv [n]: retuns the number of possible positions after n plys (incl. duplicates)\n" << endl;
+		<< "\n- go perft [n] & go perftdiv [n]: returns the number of possible positions after n plies (incl. duplicates)\n" << endl;
+}
+
+// Perft methods ----------------------------------------------------------------------------------
+
+void Engine::Perft(Position& position, const int depth, const PerftType type) const {
+	const bool isStartpos = (position.GetFEN() == FEN::StartPos);
+	constexpr std::array<uint64_t, 8> startposPerfts = { 1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860 };
+
+	const auto startTime = Clock::now();
+	const uint64_t r = PerftRecursive(position, depth, depth, type);
+	const auto endTime = Clock::now();
+
+	const float seconds = static_cast<float>((endTime - startTime).count() / 1e9);
+	const float speed = r / seconds / 1000000;
+	cout << "-> Perft(" << depth << ") = " << Console::FormatInteger(r) << " | "
+		<< std::setprecision(2) << std::fixed << seconds << " s | "
+		<< std::setprecision(3) << speed << " mnps (non-bulk)" << endl;
+
+	if (isStartpos && depth < static_cast<int>(startposPerfts.size()) && startposPerfts[depth] != r)
+		cout << "-> Uh-oh. (expected: " << Console::FormatInteger(startposPerfts[depth]) << ")" << endl;
+}
+
+uint64_t Engine::PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const {
+	MoveList moves{};
+	position.GenerateAllPseudoLegalMoves(moves);
+
+	if (type == PerftType::PerftDiv && originalDepth == depth) cout << "-> Legal moves (" << moves.size() << "): " << endl;
+	uint64_t count = 0;
+	for (const auto& m : moves) {
+		if (!position.IsLegalMove(m.move)) continue;
+		uint64_t r;
+		if (depth == 1) {
+			r = 1;
+			count += 1;
+		}
+		else {
+			position.PushMove(m.move);
+			r = PerftRecursive(position, depth - 1, originalDepth, type);
+			position.PopMove();
+			count += r;
+		}
+		if (originalDepth == depth && type == PerftType::PerftDiv)
+			cout << " - " << m.move.ToString(Settings::Chess960) << " : " << r << endl;
+	}
+	return count;
 }

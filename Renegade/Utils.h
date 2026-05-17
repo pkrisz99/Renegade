@@ -16,12 +16,10 @@
 #include <vector>
 
 using std::cout;
-using std::cin;
 using std::endl;
-using std::get;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.2.50";
+constexpr std::string_view Version = "dev 1.2.53";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -60,18 +58,6 @@ static inline int LosingMateScore(const int level) {
 }
 
 // Board constants --------------------------------------------------------------------------------
-
-namespace MoveFlag {
-	constexpr uint8_t None = 0;
-	constexpr uint8_t ShortCastle = 1;
-	constexpr uint8_t LongCastle = 2;
-	constexpr uint8_t PromotionToKnight = 3;
-	constexpr uint8_t PromotionToBishop = 4;
-	constexpr uint8_t PromotionToRook = 5;
-	constexpr uint8_t PromotionToQueen = 6;
-	constexpr uint8_t EnPassantPossible = 7;
-	constexpr uint8_t EnPassantPerformed = 8;
-}
 
 namespace Side {
 	constexpr bool White = true;
@@ -157,6 +143,14 @@ namespace Squares {
 	constexpr uint8_t H8 = 63;
 }
 
+constexpr uint8_t KingSquareAfterCastling(const bool isKingside, const uint8_t pieceColor) {
+	return (isKingside ? Squares::G1 : Squares::C1) + 56 * (pieceColor == PieceColor::Black);
+}
+
+constexpr uint8_t RookSquareAfterCastling(const bool isKingside, const uint8_t pieceColor) {
+	return (isKingside ? Squares::F1 : Squares::D1) + 56 * (pieceColor == PieceColor::Black);
+}
+
 namespace FEN {
 	static const std::string StartPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	// Test position shorthands:
@@ -201,10 +195,10 @@ struct SearchParams {
 
 struct SearchConstraints {
 	int64_t MaxNodes = -1;
+	int64_t SoftNodes = -1;
 	int MaxDepth = -1;
 	int SearchTimeMin = -1;
 	int SearchTimeMax = -1;
-	int64_t SoftNodes = -1;
 };
 
 // Bitwise operations  ----------------------------------------------------------------------------
@@ -217,30 +211,34 @@ constexpr void SetBitFalse(uint64_t& number, const uint8_t place) {
 	number &= ~(1ull << place);
 }
 
-constexpr bool CheckBit(const uint64_t& number, const uint8_t place) {
+constexpr bool CheckBit(const uint64_t number, const uint8_t place) {
 	return (number >> place) & 1ull;
 }
 
-constexpr int Popcount(const uint64_t& number) {
+constexpr int Popcount(const uint64_t number) {
 	return std::popcount(number);
 }
 
-constexpr int Lzcount(const uint64_t& number) {
+constexpr int Lzcount(const uint64_t number) {
+	assert(number != 0);
 	return std::countl_zero(number);
 }
 
-constexpr uint8_t Popsquare(uint64_t& number) {
-	const uint8_t place = static_cast<uint8_t>(std::countr_zero(number));
-	number &= (number - 1);
-	return place;
-}
-
 constexpr int LsbSquare(const uint64_t number) {
-	return static_cast<int>(std::countr_zero(number));
+	assert(number != 0);
+	return std::countr_zero(number);
 }
 
 constexpr int MsbSquare(const uint64_t number) {
-	return static_cast<int>(63 - std::countl_zero(number));
+	assert(number != 0);
+	return 63 - std::countl_zero(number);
+}
+
+constexpr uint8_t Popsquare(uint64_t& number) {
+	assert(number != 0);
+	const uint8_t place = static_cast<uint8_t>(std::countr_zero(number));
+	number &= (number - 1);
+	return place;
 }
 
 // Board helper functions -------------------------------------------------------------------------
@@ -302,7 +300,6 @@ constexpr bool PrettySupport = false;
 
 void ConvertToLowercase(std::string& str);
 std::string Trim(const std::string& str);
-bool StartsWith(const std::string& big, const std::string& small);
 std::vector<std::string> Split(const std::string& cmd);
 void PrintBitboard(const uint64_t bits);
 

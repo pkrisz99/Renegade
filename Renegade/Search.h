@@ -18,10 +18,8 @@
 #include <thread>
 #include <tuple>
 
-/*
-* This is the code responsible for performing move selection.
-* SearchRecursive() is the main alpha-beta search, and SearchQuiescence() is called in leaf nodes.
-*/
+// This is the heart of the engine, the code responsible for searching, move selection and thread orchestration
+// SearchRecursive() is the main alpha-beta search, and SearchQuiescence() is called in leaf nodes
 
 enum class ThreadAction { Sleep, Search, Exit };
 
@@ -82,7 +80,6 @@ public:
 	void Loop(ThreadData& t);
 	Results SearchSinglethreaded(const Position& pos, const SearchParams& params);
 	void WaitUntilReady();
-	void Perft(Position& position, const int depth, const PerftType type) const;
 
 #ifdef RENEGADE_DATAGEN
 	static constexpr bool DatagenMode = true;
@@ -105,7 +102,6 @@ private:
 	template<bool pvNode> int SearchQuiescence(ThreadData& t, const int level, int alpha, int beta);
 
 	int16_t Evaluate(ThreadData& t, const Position& position);
-	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
 	SearchConstraints CalculateConstraints(const SearchParams params, const bool turn) const;
 	bool ShouldAbort(const ThreadData& t);
 	int DrawEvaluation(const ThreadData& t) const;
@@ -113,6 +109,6 @@ private:
 	
 	SearchConstraints Constraints;
 	std::chrono::high_resolution_clock::time_point StartSearchTime;
-	MultiArray<int, 32, 32> LMRTable;
+	MultiArray<int, 32, 32> LateMoveReductionTable;
 
 };

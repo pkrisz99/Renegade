@@ -106,8 +106,8 @@ public:
 		}
 	}
 
-	static constexpr int MaxRegularQuietOrder = 200000;
 	bool skipQuietMoves = false;
+	MovePickerStage stage = MovePickerStage::EmitTTMove;
 
 private:
 
@@ -168,16 +168,17 @@ private:
 			return TypeOfPiece(pos.GetPieceAt(m.to));
 		}();
 
+		const int16_t captureScore = hist.GetCaptureHistoryScore(pos, m);
+
 		const int materialChange = values[capturedPieceType]
 			+ (m.flag == MoveFlag::PromotionToQueen ? values[PieceType::Queen] : 0);
 
 		const bool losingCapture = [&] {
 			if (skipQuietMoves) return false;
-			const int16_t captureScore = hist.GetCaptureHistoryScore(pos, m);
 			return !pos.StaticExchangeEval(m, -captureScore / 31);
 		}();
 
-		return (losingCapture ? -500000 : 500000) + materialChange * 18 + hist.GetCaptureHistoryScore(pos, m);
+		return (losingCapture ? -500000 : 500000) + materialChange * 18 + captureScore;
 	}
 
 	size_t noisyMoveIndex = 0, quietMoveIndex = 0;
@@ -185,5 +186,4 @@ private:
 	MoveList noisyMoves{}, quietMoves{};
 	int level = 0;
 	uint64_t opponentOccupancy{}, threats{};
-	MovePickerStage stage = MovePickerStage::EmitTTMove;
 };
