@@ -31,7 +31,7 @@ public:
 		this->skipQuietMoves = skipQuietMoves;
 		this->noisyMoveIndex = 0;
 		this->quietMoveIndex = 0;
-		this->opponentOccupancy = pos.GetOccupancy(!pos.Turn()) & ~pos.WhitePawnBits() & ~pos.BlackPawnBits();
+		this->opponentNonPawnOccupancy = pos.GetOccupancy(!pos.Turn()) & ~pos.WhitePawnBits() & ~pos.BlackPawnBits();
 		this->threats = pos.GetThreats();
 		this->noisyMoves.clear();
 		this->quietMoves.clear();
@@ -135,19 +135,12 @@ private:
 		const uint8_t movedPiece = pos.GetPieceAt(m.from);
 		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
 
+		// Bonus for pawn attacks targeting opponent's non-pawn pieces
 		if (movedPiece == Piece::WhitePawn) {
-			if ((WhitePawnAttacks[m.to] & opponentOccupancy & ~threats) != 0ull) {
-				historyScore += 5000;
-				//cout << "w" << m.ToString(true) << endl;
-				//PrintBitboard(WhitePawnAttacks[m.to] & opponentOccupancy & ~threats);
-			}
+			if ((WhitePawnAttacks[m.to] & opponentNonPawnOccupancy & ~threats) != 0ull) historyScore += 5000;
 		}
 		else if (movedPiece == Piece::BlackPawn) {
-			if ((BlackPawnAttacks[m.to] & opponentOccupancy & ~threats) != 0ull) {
-				historyScore += 5000;
-				//PrintBitboard(BlackPawnAttacks[m.to] & opponentOccupancy & ~threats);
-				//cout << "b" << m.ToString(true) << endl;
-			}
+			if ((BlackPawnAttacks[m.to] & opponentNonPawnOccupancy & ~threats) != 0ull) historyScore += 5000;
 		}
 
 		int refutScore = 0;
@@ -185,5 +178,5 @@ private:
 	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
 	MoveList noisyMoves{}, quietMoves{};
 	int level = 0;
-	uint64_t opponentOccupancy{}, threats{};
+	uint64_t opponentNonPawnOccupancy{}, threats{};
 };
