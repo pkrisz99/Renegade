@@ -609,7 +609,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			if (cutNode) reduction += 346;
 			if (improving) reduction -= 304;
 			if (givingCheck) reduction -= 205;
-			if (!isQuiet) reduction -= 256;
+			if (!isQuiet) reduction -= 512;
 			reduction -= std::clamp(history * 256 / 22610, -490, 490);
 
 			reduction = std::max(reduction / 256, 0);
