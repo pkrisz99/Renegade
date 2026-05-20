@@ -44,7 +44,7 @@ Position::Position(const std::string& fen) {
 
 	// Castling rights
 
-	CastlingConfig = { 0, 7, 56, 63 }; // Default
+	CastlingConfig = { Squares::A1, Squares::H1, Squares::A8, Squares::H8 }; // Default
 
 	for (const char& f : parts[2]) {
 		if (Settings::Chess960) {

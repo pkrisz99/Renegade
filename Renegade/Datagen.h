@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <optional>
+#include <random>
 #include <thread>
 
 #ifdef __cpp_lib_format
