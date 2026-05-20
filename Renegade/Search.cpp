@@ -589,7 +589,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		const uint64_t nodesBefore = t.Nodes;
 
 		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
-		const int quietHistory = isQuiet ? t.History.GetHistoryScore(position, m, movedPiece, level) : 0;
+		const int quietHistory = isQuiet ? t.History.GetQuietHistoryScore(position, m, movedPiece, level) : 0;
 		position.PushMove(m);
 		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
 

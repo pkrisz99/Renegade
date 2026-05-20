@@ -99,7 +99,7 @@ void Histories::UpdateCaptureHistory(const Position& position, const Move& m, co
 	UpdateHistoryValue(CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened], delta, 18235);
 }
 
-int Histories::GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
+int Histories::GetQuietHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
 	int historyScore = QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened];
