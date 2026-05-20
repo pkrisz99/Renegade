@@ -291,18 +291,12 @@ bool Position::PushUCI(const std::string& str) {
 		}
 	}
 
-	// En passant possibility
+	// En passant handling
 	if (TypeOfPiece(piece) == PieceType::Pawn) {
-		const uint8_t r1 = GetSquareRank(sq1);
-		const uint8_t r2 = GetSquareRank(sq2);
+		const uint8_t r1 = GetSquareRank(sq1), f1 = GetSquareFile(sq1);
+		const uint8_t r2 = GetSquareRank(sq2), f2 = GetSquareFile(sq2);
 		if (std::abs(r2 - r1) == 2) move.flag = MoveFlag::EnPassantPossible;
-	}
-
-	// En passant performed
-	if (TypeOfPiece(piece) == PieceType::Pawn) {
-		if ((TypeOfPiece(capturedPiece) == PieceType::None) && (GetSquareFile(sq1) != GetSquareFile(sq2))) {
-			move.flag = MoveFlag::EnPassantPerformed;
-		}
+		if (f1 != f2 && capturedPiece == Piece::None) move.flag = MoveFlag::EnPassantPerformed;
 	}
 
 	// Generate the list of valid moves
@@ -390,9 +384,9 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		constexpr uint8_t rookTo = (side == Side::White) ? D1 : D8;
 		const uint8_t rookSq = (side == Side::White) ? CastlingConfig.WhiteLongCastleRookSquare : CastlingConfig.BlackLongCastleRookSquare;
 		const uint64_t rayBetweenKingAndC = GetShortConnectingRay(kingSq, kingTo);
-		const uint64_t rayBetweenRookAndF = GetShortConnectingRay(rookSq, rookTo);
+		const uint64_t rayBetweenRookAndD = GetShortConnectingRay(rookSq, rookTo);
 		const uint64_t mockOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
-		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndF) & mockOccupancy);
+		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndD) & mockOccupancy);
 
 		if (empty) {
 			const bool safe = !(b.Threats & rayBetweenKingAndC);
@@ -606,7 +600,6 @@ void Position::GeneratePawnMovesNoisy(MoveList& moves) const {
 			}
 		}
 	}
-
 }
 
 template <bool side>
@@ -674,7 +667,6 @@ void Position::GeneratePawnMovesQuiet(MoveList& moves) const {
 	}
 }
 
-
 // Threats and move legality ----------------------------------------------------------------------
 
 uint64_t Position::CalculateAttackedSquares(const bool attackingSide) const {
@@ -693,32 +685,29 @@ uint64_t Position::CalculateAttackedSquares(const bool attackingSide) const {
 	}
 
 	// King attacks
-	uint8_t kingSquare = 63 - Lzcount((attackingSide == Side::White) ? b.WhiteKingBits : b.BlackKingBits);
+	uint8_t kingSquare = (attackingSide == Side::White) ? b.WhiteKingSquare() : b.BlackKingSquare();
 	map |= KingMoveBits[kingSquare];
 
 	// Sliding pieces
-	// 'parallel' comes from being parallel to the axes, better name suggestions welcome
 	uint64_t occ = GetOccupancy();
-	uint64_t parallelSliders = (attackingSide == Side::White) ? (b.WhiteRookBits | b.WhiteQueenBits) : (b.BlackRookBits | b.BlackQueenBits);
-	uint64_t diagonalSliders = (attackingSide == Side::White) ? (b.WhiteBishopBits | b.WhiteQueenBits) : (b.BlackBishopBits | b.BlackQueenBits);
+	uint64_t rookLikeSliders = (attackingSide == Side::White) ? (b.WhiteRookBits | b.WhiteQueenBits) : (b.BlackRookBits | b.BlackQueenBits);
+	uint64_t bishopLikeSliders = (attackingSide == Side::White) ? (b.WhiteBishopBits | b.WhiteQueenBits) : (b.BlackBishopBits | b.BlackQueenBits);
 
-	while (parallelSliders) {
-		const uint8_t sq = Popsquare(parallelSliders);
+	while (rookLikeSliders) {
+		const uint8_t sq = Popsquare(rookLikeSliders);
 		map |= GetRookAttacks(sq, occ);
 	}
-	while (diagonalSliders) {
-		const uint8_t sq = Popsquare(diagonalSliders);
+	while (bishopLikeSliders) {
+		const uint8_t sq = Popsquare(bishopLikeSliders);
 		map |= GetBishopAttacks(sq, occ);
 	}
 
 	return map;
 }
 
+// Generates attackers setwise, taking advantage of the fact that for non-pawns, if X attacks Y, then Y attacks X
+// If not being used for SEE: occupied = GetOccupancy();
 uint64_t Position::GetAttackersOfSquare(const uint8_t square, const uint64_t occupied) const {
-	// if not being used for SEE: occupied = GetOccupancy();
-
-	// Generate attackers setwise
-	// Taking advantage of the fact that for non-pawns, if X attacks Y, then Y attacks X
 	const Board& b = States.back();
 	const uint64_t pawnAttackers = (WhitePawnAttacks[square] & b.BlackPawnBits) | (BlackPawnAttacks[square] & b.WhitePawnBits);
 	const uint64_t knightAttackers = KnightMoveBits[square] & (b.WhiteKnightBits | b.BlackKnightBits);
@@ -784,9 +773,9 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 			}
 
 			const uint8_t kingSqBeforeCastling = m.from;
-			const uint8_t kingSqAfterCastling = (castleKingside ? Squares::G1 : Squares::C1) + 56 * (pieceColor == PieceColor::Black);
+			const uint8_t kingSqAfterCastling = KingSquareAfterCastling(castleKingside, pieceColor);
 			const uint8_t rookSqBeforeCastling = m.to;
-			const uint8_t rookSqAfterCastling = (castleKingside ? Squares::F1 : Squares::D1) + 56 * (pieceColor == PieceColor::Black);
+			const uint8_t rookSqAfterCastling = RookSquareAfterCastling(castleKingside, pieceColor);
 			const uint64_t rayBetweenKingPositions = GetShortConnectingRay(kingSqBeforeCastling, kingSqAfterCastling);
 			const uint64_t rayBetweenRookPositions = GetShortConnectingRay(rookSqBeforeCastling, rookSqAfterCastling);
 
@@ -896,12 +885,12 @@ bool Position::IsLegalMove(const Move& m) const {
 	const uint64_t occupancy = GetOccupancy();
 
 	if (m.flag == MoveFlag::EnPassantPerformed) {
-		// After the en passant start rays to see if the king is attacked by an appropiate sliding piece
+		// After the en passant start rays to see if the king is attacked by an appropriate sliding piece
 		const uint8_t epVictimSq = (board.Turn == Side::White) ? board.EnPassantSquare - 8 : board.EnPassantSquare + 8;
-		const uint64_t parallelSliders = (board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits);
-		const uint64_t diagonalSliders = (board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits);
+		const uint64_t rookLikeSliders = (board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits);
+		const uint64_t bishopLikeSliders = (board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits);
 		const uint64_t approxOccupancy = (occupancy ^ SquareBit(m.from) ^ SquareBit(epVictimSq)) | SquareBit(m.to);
-		return !(GetRookAttacks(kingSq, approxOccupancy) & parallelSliders) && !(GetBishopAttacks(kingSq, approxOccupancy) & diagonalSliders);
+		return !(GetRookAttacks(kingSq, approxOccupancy) & rookLikeSliders) && !(GetBishopAttacks(kingSq, approxOccupancy) & bishopLikeSliders);
 	}
 
 	// Regular non-king moves
@@ -910,28 +899,28 @@ bool Position::IsLegalMove(const Move& m) const {
 	if (Popcount(checking) > 1) return false; // double checks can only be evaded by a king move
 
 	if (!checking) {
-		const uint64_t parallelSliders = ((board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
-		const uint64_t diagonalSliders = ((board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
+		const uint64_t rookLikeSliders = ((board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
+		const uint64_t bishopLikeSliders = ((board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
 		const uint64_t approxOccupancy = (occupancy ^ SquareBit(kingSq) ^ SquareBit(m.from)) | SquareBit(m.to);
-		return !(GetRookAttacks(kingSq, approxOccupancy) & parallelSliders) && !(GetBishopAttacks(kingSq, approxOccupancy) & diagonalSliders);
+		return !(GetRookAttacks(kingSq, approxOccupancy) & rookLikeSliders) && !(GetBishopAttacks(kingSq, approxOccupancy) & bishopLikeSliders);
 	}
 	else {
 		if (m.to == LsbSquare(checking)) {
-			const uint64_t parallelSliders = ((board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
-			const uint64_t diagonalSliders = ((board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
+			const uint64_t rookLikeSliders = ((board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
+			const uint64_t bishopLikeSliders = ((board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
 			const uint64_t approxOccupancy = (occupancy ^ SquareBit(kingSq) ^ SquareBit(m.from)) | SquareBit(m.to);
-			const uint64_t pin1 = GetRookAttacks(kingSq, approxOccupancy) & parallelSliders;
-			const uint64_t pin2 = GetBishopAttacks(kingSq, approxOccupancy) & diagonalSliders;
+			const uint64_t pin1 = GetRookAttacks(kingSq, approxOccupancy) & rookLikeSliders;
+			const uint64_t pin2 = GetBishopAttacks(kingSq, approxOccupancy) & bishopLikeSliders;
 			const uint64_t pins = pin1 | pin2;
 			return !pins;
 		}
 		else {
 			if (checking & (board.WhiteKnightBits | board.BlackKnightBits | board.WhiteKingBits | board.BlackKingBits | board.WhitePawnBits | board.BlackPawnBits)) return false;
-			const uint64_t parallelSliders = ((board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
-			const uint64_t diagonalSliders = ((board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
+			const uint64_t rookLikeSliders = ((board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
+			const uint64_t bishopLikeSliders = ((board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
 			const uint64_t approxOccupancy = (occupancy ^ SquareBit(kingSq) ^ SquareBit(m.from)) | SquareBit(m.to);
-			const uint64_t pin1 = GetRookAttacks(kingSq, approxOccupancy) & parallelSliders;
-			const uint64_t pin2 = GetBishopAttacks(kingSq, approxOccupancy) & diagonalSliders;
+			const uint64_t pin1 = GetRookAttacks(kingSq, approxOccupancy) & rookLikeSliders;
+			const uint64_t pin2 = GetBishopAttacks(kingSq, approxOccupancy) & bishopLikeSliders;
 			const uint64_t pins = pin1 | pin2;
 			return !pins;
 		}
@@ -1007,9 +996,9 @@ std::pair<uint64_t, uint64_t> Position::GetPinnedBitboard() const {
 	const uint64_t blackOccupancy = GetOccupancy(Side::Black);
 
 	// Calculate pins for white
-	const uint64_t blackPotentialParallelPinners = GetRookAttacks(whiteKingSquare, blackOccupancy) & (BlackRookBits() | BlackQueenBits());
-	const uint64_t blackPotentialDiagonalPinners = GetBishopAttacks(whiteKingSquare, blackOccupancy) & (BlackBishopBits() | BlackQueenBits());
-	uint64_t blackPotentialPinners = blackPotentialParallelPinners | blackPotentialDiagonalPinners;
+	const uint64_t blackPotentialRookLikePinners = GetRookAttacks(whiteKingSquare, blackOccupancy) & (BlackRookBits() | BlackQueenBits());
+	const uint64_t blackPotentialBishopLikePinners = GetBishopAttacks(whiteKingSquare, blackOccupancy) & (BlackBishopBits() | BlackQueenBits());
+	uint64_t blackPotentialPinners = blackPotentialRookLikePinners | blackPotentialBishopLikePinners;
 
 	while (blackPotentialPinners) {
 		const uint8_t sq = Popsquare(blackPotentialPinners);
@@ -1018,9 +1007,9 @@ std::pair<uint64_t, uint64_t> Position::GetPinnedBitboard() const {
 	}
 
 	// Calculate pins for black
-	const uint64_t whitePotentialParallelPinners = GetRookAttacks(blackKingSquare, whiteOccupancy) & (WhiteRookBits() | WhiteQueenBits());
-	const uint64_t whitePotentialDiagonalPinners = GetBishopAttacks(blackKingSquare, whiteOccupancy) & (WhiteBishopBits() | WhiteQueenBits());
-	uint64_t whitePotentialPinners = whitePotentialParallelPinners | whitePotentialDiagonalPinners;
+	const uint64_t whitePotentialRookLikePinners = GetRookAttacks(blackKingSquare, whiteOccupancy) & (WhiteRookBits() | WhiteQueenBits());
+	const uint64_t whitePotentialBishopLikePinners = GetBishopAttacks(blackKingSquare, whiteOccupancy) & (WhiteBishopBits() | WhiteQueenBits());
+	uint64_t whitePotentialPinners = whitePotentialRookLikePinners | whitePotentialBishopLikePinners;
 
 	while (whitePotentialPinners) {
 		const uint8_t sq = Popsquare(whitePotentialPinners);
@@ -1034,13 +1023,14 @@ std::pair<uint64_t, uint64_t> Position::GetPinnedBitboard() const {
 bool Position::GivesCheck(const Move& move) const {
 	const uint8_t piece = GetPieceAt(move.from);
 	const uint8_t pieceType = (!move.IsPromotion()) ? TypeOfPiece(piece) : move.GetPromotionPieceType();
+	const uint8_t pieceColor = ColorOfPiece(piece);
 	const uint8_t opponentKingSq = (Turn() == Side::White) ? BlackKingSquare() : WhiteKingSquare();
 	const bool turn = Turn();
 	const uint64_t occupancy = GetOccupancy();
 
 	// Castling: rook line of sight calculation based on slightly incorrect occupancies, results are the same
 	if (move.IsCastling()) {
-		const uint8_t rookSqAfterCastling = ((move.flag == MoveFlag::ShortCastle) ? Squares::F1 : Squares::D1) + 56 * (turn == Side::Black);
+		const uint8_t rookSqAfterCastling = RookSquareAfterCastling(move.flag == MoveFlag::ShortCastle, pieceColor);
 		uint64_t rookDirectionExposure = GetRookAttacks(opponentKingSq, occupancy);
 		return rookDirectionExposure & SquareBit(rookSqAfterCastling);
 	}
@@ -1191,10 +1181,10 @@ GameState Position::GetGameState() const {
 
 // Static exchange evaluation (SEE) ---------------------------------------------------------------
 
+// Approximates the outcome of all captures targeting the move.to square
+// Highly useful for pruning and for move ordering
+// This iterative approach is the standard way of doing this with some additional code for pinned piece handling
 bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
-	// Approximates the outcome of all captures targeting the move.to square
-	// Highly useful for pruning and for move ordering
-	// This iterative approach is the standard way of doing this with some additional code for pinned piece handling
 
 	constexpr auto seeValues = std::array{ 0, 100, 300, 300, 500, 1000, 999999 };
 
@@ -1218,8 +1208,8 @@ bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
 	// Lookups (should be optimized) 
 	const uint64_t whitePieces = GetOccupancy(Side::White);
 	const uint64_t blackPieces = GetOccupancy(Side::Black);
-	const uint64_t parallels = WhiteRookBits() | BlackRookBits() | WhiteQueenBits() | BlackQueenBits();
-	const uint64_t diagonals = WhiteBishopBits() | BlackBishopBits() | WhiteQueenBits() | BlackQueenBits();
+	const uint64_t rookLikeSliders = WhiteRookBits() | BlackRookBits() | WhiteQueenBits() | BlackQueenBits();
+	const uint64_t bishopLikeSliders = WhiteBishopBits() | BlackBishopBits() | WhiteQueenBits() | BlackQueenBits();
 	uint64_t occupancy = whitePieces | blackPieces;
 	SetBitFalse(occupancy, move.from);
 	SetBitTrue(occupancy, move.to);
@@ -1244,7 +1234,7 @@ bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
 		if (!currentAttackers) break;
 
 		// Retrieve the location of the least valuable attacking piece type
-		int sq = -1;
+		uint8_t sq = 255;
 		if (turn == Side::White) {
 			if (currentAttackers & WhitePawnBits()) sq = LsbSquare(currentAttackers & WhitePawnBits());
 			else if (currentAttackers & WhiteKnightBits()) sq = LsbSquare(currentAttackers & WhiteKnightBits());
@@ -1261,7 +1251,7 @@ bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
 			else if (currentAttackers & BlackQueenBits()) sq = LsbSquare(currentAttackers & BlackQueenBits());
 			else if (currentAttackers & BlackKingBits()) sq = LsbSquare(currentAttackers & BlackKingBits());
 		}
-		assert(sq != -1);
+		assert(sq != 255);
 
 		// Update fields
 		victim = TypeOfPiece(GetPieceAt(sq));
@@ -1269,10 +1259,10 @@ bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
 
 		// Update potentially uncovered sliding pieces
 		if (victim == PieceType::Pawn || victim == PieceType::Bishop || victim == PieceType::Queen) {
-			attackers |= GetBishopAttacks(move.to, occupancy) & diagonals;
+			attackers |= GetBishopAttacks(move.to, occupancy) & bishopLikeSliders;
 		}
 		if (victim == PieceType::Rook || victim == PieceType::Queen) {
-			attackers |= GetRookAttacks(move.to, occupancy) & parallels;
+			attackers |= GetRookAttacks(move.to, occupancy) & rookLikeSliders;
 		}
 
 		attackers &= occupancy;
