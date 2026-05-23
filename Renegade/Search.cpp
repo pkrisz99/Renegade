@@ -536,11 +536,12 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			// Futility pruning
 			if (depth <= 5 && isQuiet && !inCheck && !singularSearch && order < 32768 && !IsMateScore(bestScore) && !position.GivesCheck(m)) {
 				const int futilityMargin = 53 + depth * 100 + improving * 52;
-				if (eval + futilityMargin < alpha) {
-					bestScore = eval + futilityMargin;
-					movePicker.skipQuietMoves = true;
-					continue;
+				const int futilityScore = eval + futilityMargin;
+				if (futilityScore <= alpha && bestScore < futilityScore) {
+					bestScore = futilityScore;
 				}
+				movePicker.skipQuietMoves = true;
+				continue;
 			}
 
 			// Main search SEE pruning
