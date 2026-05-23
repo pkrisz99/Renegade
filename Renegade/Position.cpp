@@ -44,7 +44,7 @@ Position::Position(const std::string& fen) {
 
 	// Castling rights
 
-	CastlingConfig = { 0, 7, 56, 63 }; // Default
+	CastlingConfig = { Squares::A1, Squares::H1, Squares::A8, Squares::H8 }; // Default
 
 	for (const char& f : parts[2]) {
 		if (Settings::Chess960) {
@@ -898,30 +898,23 @@ bool Position::IsLegalMove(const Move& m) const {
 	const uint64_t checking = AttackersOfSquare(!Turn(), kingSq);
 	if (Popcount(checking) > 1) return false; // double checks can only be evaded by a king move
 
+	const uint64_t rookLikeSliders = ((board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
+	const uint64_t bishopLikeSliders = ((board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
+	const uint64_t approxOccupancy = (occupancy ^ SquareBit(kingSq) ^ SquareBit(m.from)) | SquareBit(m.to);
+
 	if (!checking) {
-		const uint64_t rookLikeSliders = ((board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
-		const uint64_t bishopLikeSliders = ((board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
-		const uint64_t approxOccupancy = (occupancy ^ SquareBit(kingSq) ^ SquareBit(m.from)) | SquareBit(m.to);
 		return !(GetRookAttacks(kingSq, approxOccupancy) & rookLikeSliders) && !(GetBishopAttacks(kingSq, approxOccupancy) & bishopLikeSliders);
 	}
 	else {
+		const uint64_t pin1 = GetRookAttacks(kingSq, approxOccupancy) & rookLikeSliders;
+		const uint64_t pin2 = GetBishopAttacks(kingSq, approxOccupancy) & bishopLikeSliders;
+		const uint64_t pins = pin1 | pin2;
+
 		if (m.to == LsbSquare(checking)) {
-			const uint64_t rookLikeSliders = ((board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
-			const uint64_t bishopLikeSliders = ((board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
-			const uint64_t approxOccupancy = (occupancy ^ SquareBit(kingSq) ^ SquareBit(m.from)) | SquareBit(m.to);
-			const uint64_t pin1 = GetRookAttacks(kingSq, approxOccupancy) & rookLikeSliders;
-			const uint64_t pin2 = GetBishopAttacks(kingSq, approxOccupancy) & bishopLikeSliders;
-			const uint64_t pins = pin1 | pin2;
 			return !pins;
 		}
 		else {
 			if (checking & (board.WhiteKnightBits | board.BlackKnightBits | board.WhiteKingBits | board.BlackKingBits | board.WhitePawnBits | board.BlackPawnBits)) return false;
-			const uint64_t rookLikeSliders = ((board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
-			const uint64_t bishopLikeSliders = ((board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
-			const uint64_t approxOccupancy = (occupancy ^ SquareBit(kingSq) ^ SquareBit(m.from)) | SquareBit(m.to);
-			const uint64_t pin1 = GetRookAttacks(kingSq, approxOccupancy) & rookLikeSliders;
-			const uint64_t pin2 = GetBishopAttacks(kingSq, approxOccupancy) & bishopLikeSliders;
-			const uint64_t pins = pin1 | pin2;
 			return !pins;
 		}
 	}

@@ -130,7 +130,7 @@ private:
 	int getQuietMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
 
 		const uint8_t movedPiece = pos.GetPieceAt(m.from);
-		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
+		int historyScore = hist.GetQuietHistoryScore(pos, m, movedPiece, level);
 
 		int refutScore = 0;
 		if (m == killerMove) refutScore = 16220;

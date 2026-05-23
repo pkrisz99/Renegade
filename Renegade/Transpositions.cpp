@@ -139,10 +139,9 @@ void Transpositions::SetSize(const int megabytes, const int threadCount) {
 	Clear(threadCount);
 }
 
+// Clear entries, potentially in parallel, with as many threads as set to do search
+// This speeds up initialization significantly for large hash sizes
 void Transpositions::Clear(const int threadCount) {
-	// Clear entries, potentially in parallel, with as many threads as set to do search
-	// This speeds up initialization significantly for large hash sizes
-
 	const uint64_t chunkSize = (TableSize + threadCount - 1) / threadCount; // ceil division
 	std::vector<std::thread> threads;
 
@@ -159,8 +158,8 @@ void Transpositions::Clear(const int threadCount) {
 	CurrentGeneration = 0;
 }
 
+// Approximate by checking the usage of the first 1000 clusters
 int Transpositions::GetHashfull() const {
-	// Approximate by checking the usage of the first 1000 clusters
 	int hashfull = 0;
 	for (int i = 0; i < 1000; i++) {
 		for (const TranspositionEntry& entry : Table[i].entries) {
