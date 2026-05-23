@@ -534,11 +534,12 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 
 			// Futility pruning
-			if (depth <= 5 && isQuiet && !inCheck && !singularSearch && order < 32768 && !IsMateScore(beta) && alpha < MateThreshold && !position.GivesCheck(m)) {
+			if (depth <= 5 && isQuiet && !inCheck && !singularSearch && order < 32768 && !IsMateScore(bestScore) && !position.GivesCheck(m)) {
 				const int futilityMargin = 53 + depth * 100 + improving * 52;
 				if (eval + futilityMargin < alpha) {
-					bestScore = (bestScore + alpha) / 2;
-					break;
+					bestScore = eval + futilityMargin;
+					movePicker.skipQuietMoves = true;
+					continue;
 				}
 			}
 
@@ -778,7 +779,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 			if (!position.StaticExchangeEval(m, 0)) continue;
 
 			// Quiescence search futility pruning
-			if (!inCheck && alpha >= futilityScore && !position.StaticExchangeEval(m, 1)) {
+			if (!inCheck && futilityScore <= alpha && !position.StaticExchangeEval(m, 1)) {
 				if (bestScore < futilityScore) bestScore = futilityScore;
 				continue;
 			}
