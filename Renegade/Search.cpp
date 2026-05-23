@@ -482,7 +482,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	}
 
 	// Internal iterative reductions
-	if (depth >= 6 && (ttMove.IsNull() || cutNode) && !singularSearch) {
+	if (depth >= 6 && ttMove.IsNull() && cutNode && !singularSearch) {
 		depth -= 1;
 	}
 
