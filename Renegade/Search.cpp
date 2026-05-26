@@ -575,7 +575,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 			else {
 				// Extension check failed
-				if (!pvNode && singularBeta >= beta) return singularBeta;
+				if (!pvNode && singularScore >= beta) return beta;
 				else if (cutNode) extension = -1;
 			}
 		}
