@@ -59,13 +59,13 @@ template void Histories::UpdateCaptureHistory<Penalty>(const Position&, const Mo
 template <bool bonus>
 void Histories::UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth, const int times) {
 	
-	const int delta1 = bonus ? std::min(tune_history_qb() * depth, tune_history_q_clamp()) * times : -std::min(tune_history_qm() * depth, tune_history_q_clamp()) * times;
+	const int delta1 = bonus ? std::min(308 * depth, 3350) * times : -std::min(330 * depth, 3350) * times;
 
 	// Main quiet history
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
-	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened], delta1, tune_history_q_main_cap());
+	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened], delta1, 14500);
 
 	// Get continuation history total
 	int contHistTotal = 0;
@@ -74,7 +74,7 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 		contHistTotal += ContinuationHistory[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
 	}
 
-	const int delta2 = bonus ? std::min(tune_history_qcb() * depth, tune_history_qc_clamp()) * times : -std::min(tune_history_qcm() * depth, tune_history_qc_clamp()) * times;
+	const int delta2 = bonus ? std::min(292 * depth, 3200) * times : -std::min(316 * depth, 3200) * times;
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
@@ -82,14 +82,14 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 		const auto& [prevMove, prevPiece] = position.GetPreviousMove(ply);
 		if (prevPiece != Piece::None) {
 			int16_t& value = ContinuationHistory[prevPiece][prevMove.to][movedPiece][m.to];
-			UpdateHistoryValueCustomGravity(value, contHistTotal, delta2, tune_history_q_conthist_cap());
+			UpdateHistoryValueCustomGravity(value, contHistTotal, delta2, 16230);
 		}
 	}
 }
 
 template <bool bonus>
 void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth, const int times) {
-	const int delta = bonus ? std::min(tune_history_nb() * depth, tune_history_n_clamp()) * times : -std::min(tune_history_nm() * depth, tune_history_n_clamp()) * times;
+	const int delta = bonus ? std::min(303 * depth, 2950) * times : -std::min(274 * depth, 2950) * times;
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
@@ -98,7 +98,7 @@ void Histories::UpdateCaptureHistory(const Position& position, const Move& m, co
 		if (m.flag != MoveFlag::EnPassantPerformed) return position.GetPieceAt(m.to);
 		else return (position.Turn() == Side::White) ? Piece::BlackPawn : Piece::WhitePawn;
 	}();
-	UpdateHistoryValue(CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened], delta, tune_history_n_cap());
+	UpdateHistoryValue(CaptureHistory[attackingPiece][targetSquare][capturedPiece][fromSquareThreatened][toSquareThreatened], delta, 18600);
 }
 
 int Histories::GetQuietHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const {
@@ -128,8 +128,8 @@ int Histories::GetCaptureHistoryScore(const Position& position, const Move& m) c
 // Static evaluation correction history -----------------------------------------------------------
 
 void Histories::UpdateCorrection(const Position& position, const int16_t refEval, const int16_t score, const int depth) {
-	const int inertia = tune_corrhist_inertia();
-	const int cap = tune_corrhist_cap();
+	const int inertia = 151;
+	const int cap = 12000;
 	const int diff = (score - refEval) * 256;
 	const int weight = std::min(16, depth + 1);
 
@@ -174,6 +174,6 @@ int16_t Histories::ApplyCorrection(const Position& position, const int16_t rawEv
 		return FollowUpCorrectionHistory[prev2.piece][prev2.move.to][prev1.piece][prev1.move.to];
 	}();
 
-	const int correctedEval = rawEval + (pawnCorrection * tune_corrhist_p() + lastMoveCorrection * tune_corrhist_lm() + nonPawnCorrection * 256) / 256 / 256;
+	const int correctedEval = rawEval + (pawnCorrection * 231 + lastMoveCorrection * 243 + nonPawnCorrection * 256) / 256 / 256;
 	return std::clamp(correctedEval, -MateThreshold + 1, MateThreshold - 1);
 }

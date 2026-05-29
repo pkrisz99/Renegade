@@ -4,8 +4,8 @@
 // what this engine does under the hood, and I'm happy for that, feel free to try some ideas from here!
 
 Search::Search() {
-	constexpr double lmrMultiplier = 0.42 * 256;
-	constexpr double lmrBase = 0.78 * 256;
+	constexpr double lmrMultiplier = 0.36 * 256;
+	constexpr double lmrBase = 0.79 * 256;
 	for (int i = 0; i < 32; i++) {
 		for (int j = 0; j < 32; j++) {
 			LateMoveReductionTable[i][j] = static_cast<int>(lmrMultiplier * std::log(std::max(i, 1)) * std::log(std::max(j, 1)) + lmrBase);
@@ -459,15 +459,15 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Reverse futility pruning
 		if (depth <= 9 && !IsMateScore(beta)) {
-			const int rfpMargin = depth * tune_rfp_linear() - improving * tune_rfp_improving();
-			if (eval - rfpMargin > beta) return (eval * (tune_rfp_lerp()) + beta * (256 - tune_rfp_lerp())) / 256;
+			const int rfpMargin = depth * 134 - improving * 43;
+			if (eval - rfpMargin > beta) return (eval + beta) / 2;
 		}
 
 		// Null-move pruning
 		if (depth >= 3 && eval >= beta && cutNode && !position.IsPreviousMoveNull() && position.ZugzwangUnlikely()) {
 			TranspositionTable.Prefetch(position.Hash() ^ Zobrist.SideToMove);
 			const int nmpReduction = [&] {
-				const int defaultReduction = 4 + depth / 3 + std::min((eval - beta) / tune_nmp_eval_divider(), 3);
+				const int defaultReduction = 4 + depth / 3 + std::min((eval - beta) / 247, 3);
 				return std::min(defaultReduction, depth);
 			}();
 			position.PushNullMove();
@@ -521,13 +521,13 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			// Late-move pruning
 			if (depth <= 4 && isQuiet && !inCheck) {
-				const int lmpCount = 3 + depth * (depth - !improving) + (order / tune_lmp_histdiv());
+				const int lmpCount = 3 + depth * (depth - !improving) + (order / 7000);
 				if (legalMoveCount > lmpCount) break;
 			}
 
 			// History pruning
 			if (depth <= 4 && isQuiet && !inCheck) {
-				if (order < -tune_hp_linear() * depth) {
+				if (order < -5300 * depth) {
 					movePicker.skipQuietMoves = true;
 					continue;
 				}
@@ -535,7 +535,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			// Futility pruning
 			if (depth <= 5 && isQuiet && !inCheck && !singularSearch && order < 32768 && !IsMateScore(bestScore) && !position.GivesCheck(m)) {
-				const int futilityMargin = tune_fp_const() + depth * tune_fp_linear() + improving * tune_fp_improving();
+				const int futilityMargin = 38 + depth * 85 + improving * 43;
 				const int futilityScore = eval + futilityMargin;
 				if (futilityScore <= alpha) {
 					if (bestScore < futilityScore) bestScore = futilityScore;
@@ -546,7 +546,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			// Main search SEE pruning
 			if (position.IsSquareThreatened(m.to)) {
-				const int seeMargin = isQuiet ? (50 * depth + std::max(order, 0) / tune_see_histdiv()) : (100 * depth);
+				const int seeMargin = isQuiet ? (50 * depth + std::max(order, 0) / 64) : (100 * depth);
 				if (!position.StaticExchangeEval(m, -seeMargin)) continue;
 			}
 		}
@@ -570,7 +570,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			else if (singularScore < singularBeta) {
 				// Successful extension
 				const bool doubleExtend = !pvNode && (singularScore < singularBeta - marginFactor * 23);
-				const bool tripleExtend = !pvNode && position.IsMoveQuiet(m) && (singularScore < singularBeta - marginFactor * (187 + std::abs(ttEval) * tune_ext_triple_adj() / 256));
+				const bool tripleExtend = !pvNode && position.IsMoveQuiet(m) && (singularScore < singularBeta - marginFactor * (170 + std::abs(ttEval) / 8));
 				extension = 1 + doubleExtend + tripleExtend;
 			}
 			else {
@@ -581,7 +581,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		// Low-depth singular extensions
-		else if (depth < 6 && !inCheck && (staticEval <= alpha - tune_ldse_margin()) && ttEntry.scoreType == ScoreType::LowerBound && m == ttMove) {
+		else if (depth < 6 && !inCheck && (staticEval <= alpha - 29) && ttEntry.scoreType == ScoreType::LowerBound && m == ttMove) {
 			extension = 1;
 		}
 
@@ -605,13 +605,13 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		// One ply equals 256 units in reduction calculations
 		if (depth >= 3 && (legalMoveCount >= 3 + 2 * rootNode)) {
 
-			int reduction = static_cast<int>(((tune_lmr_multiplier() / 100.0) * std::log(std::clamp(depth, 1, 31)) * std::log(std::clamp(failLowCount, 1, 31)) + (tune_lmr_base() / 100.0)) * 256.0);
-			if (!ttPV) reduction += tune_lmr_nottpv();
-			if (t.CutoffCount[level] < 4) reduction -= tune_lmr_cutoffcnt();
-			if (cutNode) reduction += tune_lmr_cutnode();
-			if (improving) reduction -= tune_lmr_improving();
-			if (givingCheck) reduction -= tune_lmr_check();
-			reduction -= std::clamp(history * 256 / tune_lmr_history_div(), -tune_lmr_history_cap(), tune_lmr_history_cap());
+			int reduction = LateMoveReductionTable[std::min(depth, 31)][std::min(failLowCount, 31)];
+			if (!ttPV) reduction += 346;
+			if (t.CutoffCount[level] < 4) reduction -= 240;
+			if (cutNode) reduction += 348;
+			if (improving) reduction -= 243;
+			if (givingCheck) reduction -= 219;
+			reduction -= std::clamp(history * 256 / 21700, -450, 450);
 
 			if (!isQuiet) reduction /= 2;
 			reduction = std::max(reduction / 256, 0);
@@ -621,7 +621,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			failHighCount += (score > alpha);
 
 			if (score > alpha && reducedDepth < depth - 1) {
-				deepen = score > (bestScore + tune_lmr_deeper() + depth * 5);
+				deepen = score > (bestScore + 29 + depth * 5);
 				score = -SearchRecursive<false>(t, depth - 1 + deepen, level + 1, -alpha - 1, -alpha, !cutNode);
 				failHighCount += (score > alpha);
 			}
@@ -766,7 +766,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	int bestScore = staticEval;
 	Move bestMove = NullMove;
 	int scoreType = ScoreType::UpperBound;
-	int futilityScore = std::min(staticEval + tune_qsfp_margin(), MateThreshold - 1);
+	int futilityScore = std::min(staticEval + 326, MateThreshold - 1);
 
 	while (true) {
 		const auto& [m, order] = movePicker.next(position, t.History);
