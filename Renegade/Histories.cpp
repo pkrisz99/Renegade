@@ -59,13 +59,13 @@ template void Histories::UpdateCaptureHistory<Penalty>(const Position&, const Mo
 template <bool bonus>
 void Histories::UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth, const int times) {
 	
-	const int delta1 = bonus ? std::min(308 * depth, 3350) * times : -std::min(330 * depth, 3350) * times;
+	const int deltaMain = bonus ? std::min(308 * depth, 3350) * times : -std::min(330 * depth, 3350);
 
 	// Main quiet history
 	const uint8_t movedPiece = position.GetPieceAt(m.from);
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
 	const bool toSquareThreatened = position.IsSquareThreatened(m.to);
-	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened], delta1, 14500);
+	UpdateHistoryValue(QuietHistory[movedPiece][m.to][fromSquareThreatened][toSquareThreatened], deltaMain, 14500);
 
 	// Get continuation history total
 	int contHistTotal = 0;
@@ -74,7 +74,7 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 		contHistTotal += ContinuationHistory[position.GetPreviousMove(ply).piece][position.GetPreviousMove(ply).move.to][movedPiece][m.to];
 	}
 
-	const int delta2 = bonus ? std::min(292 * depth, 3200) * times : -std::min(316 * depth, 3200) * times;
+	const int deltaContHist = bonus ? std::min(292 * depth, 3200) * times : -std::min(316 * depth, 3200);
 
 	// Continuation history
 	for (const int ply : { 1, 2, 4 }) {
@@ -82,14 +82,14 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 		const auto& [prevMove, prevPiece] = position.GetPreviousMove(ply);
 		if (prevPiece != Piece::None) {
 			int16_t& value = ContinuationHistory[prevPiece][prevMove.to][movedPiece][m.to];
-			UpdateHistoryValueCustomGravity(value, contHistTotal, delta2, 16230);
+			UpdateHistoryValueCustomGravity(value, contHistTotal, deltaContHist, 16230);
 		}
 	}
 }
 
 template <bool bonus>
 void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth, const int times) {
-	const int delta = bonus ? std::min(303 * depth, 2950) * times : -std::min(274 * depth, 2950) * times;
+	const int delta = bonus ? std::min(303 * depth, 2950) * times : -std::min(274 * depth, 2950);
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
