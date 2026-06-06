@@ -130,15 +130,15 @@ private:
 	int getQuietMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
 
 		const uint8_t movedPiece = pos.GetPieceAt(m.from);
-		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
+		int orderScore = hist.GetQuietHistoryScore(pos, m, movedPiece, level);
 
-		int refutScore = 0;
-		if (m == killerMove) refutScore = 16220;
-		if (m == positionalMove) refutScore = std::max(refutScore, 16330);
-		if (m == counterMove) refutScore = std::max(refutScore, 19380);
-		historyScore += refutScore;
+		int refutationScore = 0;
+		if (m == counterMove) refutationScore = 18800;
+		else if (m == killerMove) refutationScore = 16600;
+		else if (m == positionalMove) refutationScore = 13600;
+		orderScore += refutationScore;
 
-		return historyScore;
+		return orderScore;
 	}
 
 	// Score noisy moves: take history, piece types and static exchange eval into account
@@ -157,7 +157,7 @@ private:
 
 		const bool losingCapture = [&] {
 			if (skipQuietMoves) return false;
-			return !pos.StaticExchangeEval(m, -captureScore / 31);
+			return !pos.StaticExchangeEval(m, -captureScore / 28);
 		}();
 
 		return (losingCapture ? -500000 : 500000) + materialChange * 18 + captureScore;
