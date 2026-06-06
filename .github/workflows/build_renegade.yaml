@@ -26,7 +26,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Compiling
         run: |
           cd Renegade
@@ -42,7 +42,7 @@ jobs:
         run: ${{ matrix.exe-path }} bench | Select-Object -Last 1
       
       - name: Uploading artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact-name }}
           path: ${{ matrix.exe-path }}
