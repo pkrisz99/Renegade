@@ -129,12 +129,10 @@ void Transpositions::IncreaseAge() {
 
 void Transpositions::SetSize(const int megabytes, const int threadCount) {
 	assert(megabytes > 0);
-	const uint64_t theoreticalClusterCount = static_cast<uint64_t>(megabytes) * 1024 * 1024 / sizeof(TranspositionCluster);
-	const uint64_t actualClusterCount = std::bit_floor(theoreticalClusterCount);
-
-	if (TableSize != actualClusterCount) {
+	const uint64_t clusterCount = static_cast<uint64_t>(megabytes) * 1024 * 1024 / sizeof(TranspositionCluster);
+	if (TableSize != clusterCount) {
 		FreeTable();
-		AllocateTable(actualClusterCount);
+		AllocateTable(clusterCount);
 	}
 	Clear(threadCount);
 }

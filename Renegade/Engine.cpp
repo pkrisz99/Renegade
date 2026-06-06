@@ -264,6 +264,7 @@ void Engine::Start() {
 		if (parts[0] == "hash") {
 			Settings::Hash = std::stoi(parts[1]);
 			SearchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
+			SearchThreads.ResetState(false);
 			cout << "-> Set hash size to " << Settings::Hash << endl;
 			continue;
 		}
