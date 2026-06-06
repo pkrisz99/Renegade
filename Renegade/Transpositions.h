@@ -67,6 +67,7 @@ private:
 
 	inline uint64_t GetClusterIndex(const uint64_t hash) const {
 		// Fixed-point fractional multiplication
+		using uint128_t = unsigned __int128;
 		assert(TableSize != 0);
 		return static_cast<uint64_t>((static_cast<uint128_t>(hash) * static_cast<uint128_t>(TableSize)) >> 64);
 	}
