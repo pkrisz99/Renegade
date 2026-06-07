@@ -471,9 +471,7 @@ void Engine::HandleDraw(const Position& pos, const uint64_t highlight) const {
 					else
 						return (pieceColor == PieceColor::Black) ? blackOnDarkSquare : whiteOnDarkSquare;
 				}();
-
 				cout << cellStyle << ' ' << pieceChar << ' ' << defaultStyle;
-
 			}
 			cout << "|    ";
 		}
