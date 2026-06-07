@@ -308,7 +308,6 @@ void Engine::HandlePosition(const std::string originalInput) {
 
 	else if (basePosition.starts_with("frc")) {
 		const std::vector<std::string> frcIdParts = Split(basePosition.substr(4));
-		cout << basePosition.substr(4) << endl;
 		if (frcIdParts.size() == 1) {
 			Settings::Chess960 = true;
 			const int frcIndex = std::stoi(frcIdParts[0]);
