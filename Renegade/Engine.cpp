@@ -136,17 +136,14 @@ void Engine::Start() {
 		}
 		else if (command == "eval" || command == "e") {
 			const int nnue = NeuralEvaluate(position);
-			cout << "-> Neural network evaluation (scaled): " << ToCentipawns(nnue, position.GetPly()) << " cp  (internal units: " << nnue << ")" << endl;
-			continue;
+			cout << "-> Neural network evaluation (scaled): " << ToCentipawns(nnue, position.GetPly()) << " cp / " << nnue << " internal units" << endl;
 		}
 		else if (command == "fen" || command == "f") {
 			cout << "-> Position FEN: " << position.GetFEN() << endl;
-			continue;
 		}
 		else if (command == "clear") {
 			Console::ClearScreen();
 			PrintHeader();
-			continue;
 		}
 		else if (command == "attackmap") {
 			HandleDraw(position, position.GetThreats());
