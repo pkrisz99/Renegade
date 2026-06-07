@@ -2,13 +2,13 @@
 
 Engine::Engine(int argc, char* argv[]) {
 	Settings::UseUCI = !PrettySupport;
-	SearchThreads.TranspositionTable.SetSize(Settings::Hash, 1);
+	searchThreads.TranspositionTable.SetSize(Settings::Hash, 1);
 
 	// Handling command line parameters
 	if (argc > 1) {
 
 		// Bench:
-		if (std::string(argv[1]) == "bench") Behavior = EngineBehavior::Bench;
+		if (std::string(argv[1]) == "bench") behavior = EngineBehavior::Bench;
 		
 		// Datagen:
 		if (std::string(argv[1]) == "datagen") {
@@ -18,17 +18,17 @@ Engine::Engine(int argc, char* argv[]) {
 				cout << "Usage: ./Renegade datagen <variant> <thread_count>" << endl;
 				std::terminate();
 			}
-			DatagenSettings.dfrc = [&] {
+			datagenSettings.dfrc = [&] {
 				std::string_view variant = argv[2];
 				if (variant == "normal") return false;
 				if (variant == "dfrc") return true;
 				cout << Console::Red << "Error: unrecognized variant (accepted: normal, dfrc)" << Console::White << endl;
 				std::terminate();
 			}();
-			DatagenSettings.threads = [&] {
+			datagenSettings.threads = [&] {
 				return std::stoi(argv[3]);
 			}();
-			Behavior = EngineBehavior::Datagen;
+			behavior = EngineBehavior::Datagen;
 #else
 			cout << Console::Red << "Error: engine is not compiled for datagen" << Console::White << endl;
 			std::terminate();
@@ -44,48 +44,45 @@ void Engine::PrintHeader() const {
 #endif
 }
 
-// Start UCI protocol
 void Engine::Start() {
 
 	// Handle externally receiving bench
-	if (Behavior == EngineBehavior::Bench) {
+	if (behavior == EngineBehavior::Bench) {
 		HandleBench();
-		SearchThreads.StopThreads();
+		searchThreads.StopThreads();
 		return;
 	}
 
 	// Handle externally receiving datagen
 #ifdef RENEGADE_DATAGEN
-	if (Behavior == EngineBehavior::Datagen) {
-		StartDatagen(DatagenSettings);
-		SearchThreads.StopThreads();
+	if (behavior == EngineBehavior::Datagen) {
+		StartDatagen(datagenSettings);
+		searchThreads.StopThreads();
 		return;
 	}
 #endif
 
-	Position position = Position(FEN::StartPos);
-	std::string cmd;
-	SearchParams params;
-
 	// Main program loop
-	
-	// Please be aware that this code is utterly terrible and a rewrite is long overdue
-	// I promise I'll get to this one day
-
+	std::string input;
 	PrintHeader();
 
-	while (std::getline(std::cin, cmd)) {
+	while (std::getline(std::cin, input)) {
 
-		cmd = Trim(cmd);
-		if (cmd.size() == 0) continue;
-		std::vector<std::string> parts = Split(cmd);
+		// Process input
+		input = Trim(input);
+		const std::string originalInput = input;
+		input = ToLowercase(input);
+		if (input.size() == 0) continue;
+		std::vector<std::string> parts = Split(input);
+		std::string command = parts[0];
 
-		if (cmd == "quit" || cmd == "q") {
-			SearchThreads.StopSearch();
+		// Standard UCI commands:
+
+		if (command == "quit" || command == "q") {
+			searchThreads.StopSearch();
 			break;
 		}
-
-		if (cmd == "uci") {
+		else if (command == "uci") {
 			cout << "id name Renegade " << Version << '\n';
 			cout << "id author Krisztian Peocz" << '\n';
 			cout << "option name Clear Hash type button" << '\n';
@@ -96,279 +93,333 @@ void Engine::Start() {
 			if (IsTuningActive()) PrintTunableParameters();
 			cout << "uciok" << endl;
 			Settings::UseUCI = true;
-			continue;
 		}
-
-		if (cmd == "isready") {
+		else if (command == "ucinewgame") {
+			searchThreads.WaitUntilReady();
+			searchThreads.ResetState(true);
+		}
+		else if (command == "isready") {
 			cout << "readyok" << endl;
-			continue;
+		}
+		else if (command == "stop" || command == "s") {
+			searchThreads.StopSearch();
+		}
+		else if (command == "setoption") {
+			HandleSetOption(parts);
+		}
+		else if (command == "position") {
+			HandlePosition(originalInput);
+		}
+		else if (command == "go") {
+			HandleGo(parts);
 		}
 
-		if (cmd == "ucinewgame") {
-			SearchThreads.WaitUntilReady();
-			SearchThreads.ResetState(true);
-			continue;
-		}
+		// Renegade's own extensions and debug commands:
 
-		if (cmd == "stop" || cmd == "s") {
-			SearchThreads.StopSearch();
-			continue;
+		else if (command == "bench" || command == "b") {
+			HandleBench();
 		}
-
-		if (cmd == "tunetext") {
+		else if (command == "draw" || command == "d") {
+			HandleDraw(position);
+		}
+		else if (command == "tunetext") {
 			GenerateOpenBenchTuningString();
-			continue;
 		}
-
-		// Set option
-		if (parts[0] == "setoption") {
-
-			ConvertToLowercase(parts[2]);
-			bool valid = false;
-
-			if (parts[2] == "hash") {
-				Settings::Hash = std::stoi(parts[4]);
-				SearchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
-				valid = true;
-			}
-			else if (parts[2] == "clear") {
-				ConvertToLowercase(parts[3]);
-				if (parts[3] == "hash") {
-					SearchThreads.ResetState(true);
-					valid = true;
-				}
-			}
-			else if (parts[2] == "uci_showwdl") {
-				ConvertToLowercase(parts[4]);
-				if (parts[4] == "true") {
-					Settings::ShowWDL = true;
-					valid = true;
-				}
-				else if (parts[4] == "false") {
-					Settings::ShowWDL = false;
-					valid = true;
-				}
-			}
-			else if (parts[2] == "uci_chess960") {
-				ConvertToLowercase(parts[4]);
-				if (parts[4] == "true") {
-					Settings::Chess960 = true;
-					valid = true;
-				}
-				else if (parts[4] == "false") {
-					Settings::Chess960 = false;
-					valid = true;
-				}
-			}
-			else if (parts[2] == "threads") {
-				Settings::Threads = std::stoi(parts[4]);
-				SearchThreads.SetThreadCount(Settings::Threads);
-				valid = true;
-			}
-			else if (parts.size() >= 5 && IsTuningActive() && HasTunableParameter(parts[2])) {
-				SetTunableParameter(parts[2], std::stoi(parts[4]));
-				valid = true;
-			}
-			
-			if (!valid) cout << "Invalid option: '" << parts[2] << "'" << endl;
-			
-			continue;
-
+		else if (command == "compiler") {
+			HandleCompiler();
 		}
-
-		// Debug commands
-		if (parts[0] == "debug" && parts.size() > 1) {
-			if (parts[1] == "attackmap") {
-				DrawBoard(position, position.GetThreats());
-			}
-			if (parts[1] == "moves") {
-				// All legal moves:
-				MoveList moves{};
-				position.GenerateAllLegalMoves(moves);
-				cout << "-> Legal moves (" << moves.size() << "): ";
-				for (const ScoredMove& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
-				cout << endl;
-				// Pseudolegal moves:
-				moves.clear();
-				position.GenerateAllPseudoLegalMoves(moves);
-				cout << "-> Pseudolegal moves (" << moves.size() << "): ";
-				for (const ScoredMove& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
-				cout << endl;
-			}
-			if (parts[1] == "settings") {
-				cout << std::boolalpha;
-				cout << "Hash:      " << Settings::Hash << endl;
-				cout << "Show WDL:  " << Settings::ShowWDL << endl;
-				cout << "Chess960:  " << Settings::Chess960 << endl;
-				cout << "Using UCI: " << Settings::UseUCI << endl;
-				cout << std::noboolalpha;
-				for (const auto& [name, param] : TunableParameterList) cout << name << " -> " << param.value << endl;
-			}
-			if (parts[1] == "pasthashes") {
-				cout << "Past hashes size: " << position.States.size() << endl;
-				for (size_t i = 0; i < position.States.size(); i++) {
-					cout << "- entry " << i << ": " << std::hex << position.States[i].BoardHash << std::dec << endl;
-				}
-			}
-			if (parts[1] == "isdraw") {
-				cout << "Is drawn? " << position.IsDrawn(0) << endl;
-			}
-			continue;
+		else if (command == "nnue") {
+			HandleNNUE();
 		}
-
-		// Custom commands
-		if (parts[0] == "help") {
+		else if (command == "help") {
 			HandleHelp();
-			continue;
 		}
-		if (parts[0] == "draw" || parts[0] == "d") {
-			DrawBoard(position);
-			continue;
-		}
-		if (parts[0] == "eval" || parts[0] == "e") {
+		else if (command == "eval" || command == "e") {
 			const int nnue = NeuralEvaluate(position);
-			cout << "-> Neural network evaluation: " << ToCentipawns(nnue, position.GetPly()) << " cp  (internal units: " << nnue << ")" << endl;
+			cout << "-> Neural network evaluation (scaled): " << ToCentipawns(nnue, position.GetPly()) << " cp  (internal units: " << nnue << ")" << endl;
 			continue;
 		}
-		if (parts[0] == "fen") {
+		else if (command == "fen" || command == "f") {
 			cout << "-> Position FEN: " << position.GetFEN() << endl;
 			continue;
 		}
-		if (parts[0] == "clear") {
+		else if (command == "clear") {
 			Console::ClearScreen();
 			PrintHeader();
 			continue;
 		}
-		if (parts[0] == "ch") {
-			SearchThreads.ResetState(true);
-			cout << "-> Transposition and history tables cleared." << endl;
-			continue;
+		else if (command == "attackmap") {
+			HandleDraw(position, position.GetThreats());
 		}
-		if (parts[0] == "frc") {
-			if (parts[1] == "on") {
+		else if (command == "movelist") {
+			// All legal moves:
+			MoveList moves{};
+			position.GenerateAllLegalMoves(moves);
+			cout << "-> Legal moves (" << moves.size() << "): ";
+			for (const ScoredMove& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
+			cout << endl;
+			// Pseudolegal moves:
+			moves.clear();
+			position.GenerateAllPseudoLegalMoves(moves);
+			cout << "-> Pseudolegal moves (" << moves.size() << "): ";
+			for (const ScoredMove& m : moves) cout << m.move.ToString(Settings::Chess960) << " ";
+			cout << endl;
+		}
+		else if (command == "settings") {
+			cout << std::boolalpha;
+			cout << "-> Hash:      " << Settings::Hash << endl;
+			cout << "-> Show WDL:  " << Settings::ShowWDL << endl;
+			cout << "-> Chess960:  " << Settings::Chess960 << endl;
+			cout << "-> Using UCI: " << Settings::UseUCI << endl;
+			cout << std::noboolalpha;
+			for (const auto& [name, param] : TunableParameterList) cout << "-> " << name << " : " << param.value << endl;
+		}
+		else if (command == "pasthashes") {
+			cout << "-> Past hashes list size: " << position.States.size() << endl;
+			for (size_t i = 0; i < position.States.size(); i++) {
+				cout << "   entry " << i << ": " << std::hex << position.States[i].BoardHash << std::dec << endl;
+			}
+		}
+		else if (command == "isdraw") {
+			cout << "-> Is drawn: " << position.IsDrawn(0) << endl;
+		}
+
+		// Shorthands for changing settings quickly:
+
+		else if (command == "ch") {
+			searchThreads.ResetState(true);
+			cout << "-> Transposition and history tables cleared" << endl;
+		}
+		else if (command == "frc") {
+			if (parts.size() == 2 && parts[1] == "on") {
 				Settings::Chess960 = true;
 				cout << "-> Chess960 on" << endl;
 			}
-			else if (parts[1] == "off") {
+			else if (parts.size() == 2 && parts[1] == "off") {
 				Settings::Chess960 = false;
 				cout << "-> Chess960 off" << endl;
 			}
-			continue;
 		}
-		if (parts[0] == "th") {
+		else if (command == "th") {
 			Settings::Threads = std::stoi(parts[1]);
-			SearchThreads.SetThreadCount(Settings::Threads);
+			searchThreads.SetThreadCount(Settings::Threads);
 			cout << "-> Set thread count to " << Settings::Threads << endl;
-			continue;
 		}
-		if (parts[0] == "hash") {
+		else if (command == "hash") {
 			Settings::Hash = std::stoi(parts[1]);
-			SearchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
-			SearchThreads.ResetState(false);
+			searchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
+			searchThreads.ResetState(false);
 			cout << "-> Set hash size to " << Settings::Hash << endl;
-			continue;
 		}
 
-		// Position command
-		if (parts[0] == "position") {
-
-			SearchThreads.WaitUntilReady();
-
-			if (parts[1] == "startpos" || parts[1] == "kiwipete" || parts[1] == "lasker" || parts[1] == "frc") {
-				if (parts[1] == "startpos") position = Position(FEN::StartPos);
-				else if (parts[1] == "kiwipete") position = Position(FEN::Kiwipete);
-				else if (parts[1] == "lasker") position = Position(FEN::Lasker);
-				else if (parts[1] == "frc") {
-					Settings::Chess960 = true;
-					position = Position(std::stoi(parts[2]), std::stoi(parts[3]));
-					cout << "-> FEN: " << position.GetFEN() << endl;
-					continue;
-				}
-
-				if (parts.size() > 2 && parts[2] == "moves") {
-					for (size_t i = 3; i < parts.size(); i++) {
-						const bool r = position.PushUCI(parts[i]);
-						if (!r) cout << "ERROR: invalid UCI move " << parts[i] << " for position " << position.GetFEN() << endl;
-					}
-				}
-			}
-
-			if (parts[1] == "fen") {
-				const std::string fen = [&] {
-					if (parts.size() >= 8) return parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " " + parts[6] + " " + parts[7];
-					else return parts[2] + " " + parts[3] + " " + parts[4] + " " + parts[5] + " 0 1";
-				}();
-				position = Position(fen);
-
-				if (parts.size() > 8 && parts[8] == "moves") {
-					for (size_t i = 9; i < parts.size(); i++) {
-						const bool r = position.PushUCI(parts[i]);
-						if (!r) cout << "ERROR: invalid UCI move " << parts[i] << " for position " << position.GetFEN() << endl;
-					}
-				}
-			}
-
-			continue;
+		else {
+			cout << "Error: unrecognized command: '" << command << "'" << endl;
 		}
-
-		// Go command
-		if (parts[0] == "go") {
-
-			SearchThreads.WaitUntilReady();
-
-			if (parts.size() == 3 && (parts[1] == "perft" || parts[1] == "perftdiv")) {
-				const int depth = std::stoi(parts[2]);
-				const PerftType type = (parts[1] == "perftdiv") ? PerftType::PerftDiv : PerftType::Normal;
-				Perft(position, depth, type);
-				continue;
-			}
-
-			params = SearchParams();
-			for (size_t i = 1; i < parts.size(); i++) {
-				if (parts[i] == "wtime") params.wtime = std::max(std::stoi(parts[++i]), 1);
-				if (parts[i] == "btime") params.btime = std::max(std::stoi(parts[++i]), 1);
-				if (parts[i] == "movestogo") params.movestogo = std::stoi(parts[++i]);
-				if (parts[i] == "winc") params.winc = std::stoi(parts[++i]);
-				if (parts[i] == "binc") params.binc = std::stoi(parts[++i]);
-				if (parts[i] == "nodes") params.nodes = std::stoi(parts[++i]);
-				if (parts[i] == "softnodes") params.softnodes = std::stoi(parts[++i]);
-				if (parts[i] == "depth") params.depth = std::stoi(parts[++i]);
-				if (parts[i] == "mate") params.depth = std::stoi(parts[++i]); // To do: search for mates only
-				if (parts[i] == "movetime") params.movetime = std::stoi(parts[++i]);
-				if (parts[i] == "searchmoves") { cout << "info string Searchmoves parameter is not yet implemented!" << endl; }
-			}
-
-			// Starting the search thread
-			SearchThreads.StartSearch(position, params);
-			continue;
-		}
-
-		if (parts[0] == "bench" || parts[0] == "b") {
-			HandleBench();
-			continue;
-		}
-
-		if (parts[0] == "compiler") {
-			HandleCompiler();
-			continue;
-		}
-
-		if (parts[0] == "nnue") {
-			cout << "-> Arch: (" << FeatureSize << "x" << InputBucketCount << "hm -> " << HiddenSize << ")x2" << " -> 1x" << OutputBucketCount
-				<< "  [SCReLU, QA=" << QA << ", QB=" << QB << "]" << endl;
-			cout << "-> Net name: " << NETWORK_NAME << endl;
-			cout << "-> Net size: " << Console::FormatInteger(sizeof(NetworkRepresentation)) << endl;
-			continue;
-		}
-
-		cout << "Unknown command: '" << parts[0] << "'" << endl;
-
 	}
 
-	SearchThreads.StopThreads();
+	searchThreads.StopThreads();
 }
 
-void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
+void Engine::HandleSetOption(const std::vector<std::string>& parts) {
+	if (parts.size() == 1) {
+		cout << "Error: Missing parameters" << endl;
+		return;
+	}
+	if (parts[1] != "name") {
+		cout << "Error: Expected 'name', got something else" << endl;
+		return;
+	}
+
+	// Search for 'value', which divides the command into the name and value parts
+	// This implicit handles if there's no value (e.g. Clear Hash)
+	const auto valueIt = std::ranges::find(parts, "value");
+	const size_t valuePos = valueIt - parts.begin();
+
+	// Extracting the option name and value
+	const std::string optionName = [&] {
+		std::string name = "";
+		for (std::size_t i = 2; i < valuePos; i++) name += parts[i] + " ";
+		return Trim(name);
+	}();
+	const std::string optionValue = [&] {
+		std::string value = "";
+		for (std::size_t i = valuePos + 1; i < parts.size(); i++) value += parts[i] + " ";
+		return Trim(value);
+	}();
+
+	// Various options implemented by the engine
+	if (optionName == "clear hash") {
+		searchThreads.ResetState(true);
+	}
+	else if (optionName == "hash") {
+		Settings::Hash = std::stoi(optionValue);
+		searchThreads.TranspositionTable.SetSize(Settings::Hash, Settings::Threads);
+	}
+	else if (optionName == "threads") {
+		Settings::Threads = std::stoi(optionValue);
+		searchThreads.SetThreadCount(Settings::Threads);
+	}
+	else if (optionName == "uci_chess960") {
+		const std::optional<bool> value = ParseUCIBoolean(optionValue);
+		if (value.has_value()) Settings::Chess960 = value.value();
+	}
+	else if (optionName == "uci_showwdl") {
+		const std::optional<bool> value = ParseUCIBoolean(optionValue);
+		if (value.has_value()) Settings::ShowWDL = value.value();
+	}
+	else if (IsTuningActive() && HasTunableParameter(parts[2])) {
+		SetTunableParameter(optionName, std::stoi(optionValue));
+	}
+	else {
+		cout << "Error: unrecognized option '" << optionName << "'" << endl;
+	}
+}
+
+void Engine::HandlePosition(const std::string originalInput) {
+	searchThreads.WaitUntilReady();
+
+	std::vector<std::string> parts = Split(originalInput);  // FENs are case sensitive
+	if (parts.size() < 2) {
+		cout << "Error: missing parameters" << endl;
+		return;
+	}
+
+	// Get base position: before any additional moves are applied
+	const auto movesIt = std::ranges::find(parts, "moves");
+	const size_t movesPos = movesIt - parts.begin();
+
+	const std::string basePosition = [&] {
+		std::string str = "";
+		for (std::size_t i = 1; i < movesPos; i++) str += parts[i] + " ";
+		return Trim(str);
+	}();
+
+	if (basePosition == "startpos") position = Position(FEN::StartPos);
+	else if (basePosition == "kiwipete") position = Position(FEN::Kiwipete);
+	else if (basePosition == "lasker") position = Position(FEN::Lasker);
+
+	else if (basePosition.starts_with("fen")) {
+		const std::string fen = basePosition.substr(4);
+		const std::vector<std::string> fenParts = Split(fen);
+		if (fenParts.size() == 6) position = Position(fen);
+		else if (fenParts.size() == 4) position = Position(fen + " 0 1");
+		else {
+			cout << "Error: malformed FEN '" << fen << "'" << endl;
+			return;
+		}
+	}
+
+	else if (basePosition.starts_with("frc")) {
+		const std::vector<std::string> frcIdParts = Split(basePosition.substr(4));
+		cout << basePosition.substr(4) << endl;
+		if (frcIdParts.size() == 1) {
+			Settings::Chess960 = true;
+			const int frcIndex = std::stoi(frcIdParts[0]);
+			position = Position(frcIndex, frcIndex);
+			cout << "-> Set board to " << position.GetFEN() << endl;
+		}
+		else if (frcIdParts.size() == 2) {
+			Settings::Chess960 = true;
+			position = Position(std::stoi(frcIdParts[0]), std::stoi(frcIdParts[1]));
+			cout << "-> Set board to " << position.GetFEN() << endl;
+		}
+		else {
+			cout << "Error: too many parameters" << endl;
+			return;
+		}
+	}
+
+	else {
+		cout << "Error: unable to decode position string '" << basePosition << "'" << endl;
+		return;
+	}
+
+	// Apply additional moves
+	for (size_t i = movesPos + 1; i < parts.size(); i++) {
+		const bool success = position.PushUCI(parts[i]);
+		if (!success) cout << "Error: invalid UCI move " << parts[i] << " for position " << position.GetFEN() << endl;
+	}
+}
+
+void Engine::HandleGo(const std::vector<std::string>& parts) {
+	searchThreads.WaitUntilReady();
+
+	// Handle perft commands
+	if (parts.size() == 3 && (parts[1] == "perft" || parts[1] == "perftdiv")) {
+		const int depth = std::stoi(parts[2]);
+		const PerftType type = (parts[1] == "perftdiv") ? PerftType::PerftDiv : PerftType::Normal;
+		Perft(position, depth, type);
+		return;
+	}
+
+	// Handle search parameters
+	SearchParams params = SearchParams();
+	for (size_t i = 1; i < parts.size(); i++) {
+
+		if (parts[i] == "infinite") continue;  // default is to assume an unbounded search
+
+		else if (parts[i] == "wtime") params.wtime = std::max(std::stoi(parts[++i]), 1);
+		else if (parts[i] == "btime") params.btime = std::max(std::stoi(parts[++i]), 1);
+		else if (parts[i] == "winc") params.winc = std::stoi(parts[++i]);
+		else if (parts[i] == "binc") params.binc = std::stoi(parts[++i]);
+		else if (parts[i] == "movetime") params.movetime = std::stoi(parts[++i]);
+		else if (parts[i] == "movestogo") params.movestogo = std::stoi(parts[++i]);
+
+		else if (parts[i] == "depth") params.depth = std::stoi(parts[++i]);
+		else if (parts[i] == "nodes") params.nodes = std::stoull(parts[++i]);
+		else if (parts[i] == "softnodes") params.softnodes = std::stoull(parts[++i]);
+
+		else if (parts[i] == "mate") {
+			cout << "info string Warning: mate parameter is not yet implemented" << endl;
+		}
+		else if (parts[i] == "searchmoves") {
+			cout << "info string Warning: searchmoves parameter is not yet implemented" << endl;
+		}
+	}
+
+	// Starting the search thread
+	searchThreads.StartSearch(position, params);
+}
+
+void Engine::HandleBench() {
+	const int oldHashSize = Settings::Hash;
+	const bool oldChess960Setting = Settings::Chess960;
+	const int oldThreadCount = Settings::Threads;
+	Settings::Threads = 1;
+	Settings::Hash = 16;
+	searchThreads.TranspositionTable.SetSize(16, 1);
+	searchThreads.SetThreadCount(1);
+
+	uint64_t nodes = 0;
+	SearchParams params{};
+	params.depth = 14;
+	const auto startTime = Clock::now();
+
+	for (std::string fen : BenchmarkFENs) {
+		Settings::Chess960 = false;
+		if (fen.starts_with("[frc]")) {
+			Settings::Chess960 = true;
+			fen = fen.substr(6, fen.length() - 6);
+		}
+		searchThreads.ResetState(false);
+		const Position pos = Position(fen);
+		const Results r = searchThreads.SearchSinglethreaded(pos, params);
+		nodes += r.nodes;
+	}
+
+	const auto endTime = Clock::now();
+	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
+	cout << nodes << " nodes " << nps << " nps" << endl;
+
+	searchThreads.ResetState(false);
+	Settings::Threads = oldThreadCount;
+	searchThreads.SetThreadCount(oldThreadCount);
+	Settings::Hash = oldHashSize;
+	searchThreads.TranspositionTable.SetSize(oldHashSize, oldThreadCount); // also clears the transposition table
+	Settings::Chess960 = oldChess960Setting;
+}
+
+void Engine::HandleDraw(const Position& pos, const uint64_t highlight) const {
 
 	constexpr std::string_view whiteOnLightSquare = "\033[31;47m";
 	constexpr std::string_view whiteOnDarkSquare = "\033[31;43m";
@@ -480,42 +531,11 @@ void Engine::DrawBoard(const Position& pos, const uint64_t highlight) const {
 	cout << endl;
 }
 
-void Engine::HandleBench() {
-	const int oldHashSize = Settings::Hash;
-	const bool oldChess960Setting = Settings::Chess960;
-	const int oldThreadCount = Settings::Threads;
-	Settings::Threads = 1;
-	Settings::Hash = 16;
-	SearchThreads.TranspositionTable.SetSize(16, 1);
-	SearchThreads.SetThreadCount(1);
-
-	uint64_t nodes = 0;
-	SearchParams params{};
-	params.depth = 14;
-	const auto startTime = Clock::now();
-
-	for (std::string fen : BenchmarkFENs) {
-		Settings::Chess960 = false;
-		if (fen.starts_with("[frc]")) {
-			Settings::Chess960 = true;
-			fen = fen.substr(6, fen.length() - 6);
-		}
-		SearchThreads.ResetState(false);
-		const Position pos = Position(fen);
-		const Results r = SearchThreads.SearchSinglethreaded(pos, params);
-		nodes += r.nodes;
-	}
-
-	const auto endTime = Clock::now();
-	const int nps = static_cast<int>(nodes / ((endTime - startTime).count() / 1e9));
-	cout << nodes << " nodes " << nps << " nps" << endl;
-
-	SearchThreads.ResetState(false);
-	Settings::Threads = oldThreadCount;
-	SearchThreads.SetThreadCount(oldThreadCount);
-	Settings::Hash = oldHashSize;
-	SearchThreads.TranspositionTable.SetSize(oldHashSize, oldThreadCount); // also clears the transposition table
-	Settings::Chess960 = oldChess960Setting;
+void Engine::HandleNNUE() const {
+	cout << "-> Arch: (" << FeatureSize << "x" << InputBucketCount << "hm -> " << HiddenSize << ")x2" << " -> 1x" << OutputBucketCount
+		<< "  [SCReLU, QA=" << QA << ", QB=" << QB << "]" << endl;
+	cout << "-> Net name: " << NETWORK_NAME << endl;
+	cout << "-> Net size: " << Console::FormatInteger(sizeof(NetworkRepresentation)) << endl;
 }
 
 void Engine::HandleCompiler() const {
