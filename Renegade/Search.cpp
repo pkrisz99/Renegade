@@ -216,7 +216,7 @@ void Search::SearchMoves(ThreadData& t) {
 	// Reset before starting (takes a fraction of a millisecond)
 	t.result = {};
 	t.ResetStatistics();
-	t.ResetPvTable();
+	t.ResetPVTable();
 	std::fill(t.ExcludedMoves.begin(), t.ExcludedMoves.end(), NullMove);
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
@@ -232,7 +232,7 @@ void Search::SearchMoves(ThreadData& t) {
 	bool finished = false;
 
 	while (!finished) {
-		t.ResetPvTable();
+		t.ResetPVTable();
 		t.RootDepth += 1;
 		t.SelDepth = 0;
 
@@ -271,7 +271,7 @@ void Search::SearchMoves(ThreadData& t) {
 
 		}
 
-		const Move& bestMove = t.PvTable[0][0];
+		const Move& bestMove = t.PVTable[0][0];
 		if (previousBestMove == bestMove) {
 			bestMoveStability += 1;
 		}
@@ -317,7 +317,7 @@ void Search::SearchMoves(ThreadData& t) {
 		if (!t.singlethreaded || !aborting) {
 			t.result.score = score;
 			t.result.depth = t.RootDepth;
-			t.result.pv = t.GeneratePvLine();
+			t.result.pv = t.GeneratePVLine();
 		}
 		t.result.seldepth = t.SelDepth;
 		t.result.nodes = t.Nodes;
@@ -334,10 +334,9 @@ void Search::SearchMoves(ThreadData& t) {
 	// Main thread should wait others finishing before displaying the final best move
 	if (t.IsMainThread() && !t.singlethreaded) {
 		Aborting.store(true);
-		while (ActiveThreadCount.load() > 1) {};
+		while (ActiveThreadCount.load() > 1) { std::this_thread::yield(); };
 		PrintInfo(AggregateThreadResults());
 	}
-
 }
 
 Results Search::AggregateThreadResults() const {
@@ -378,7 +377,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Check search limits
 	if (ShouldAbort(t)) return NoEval;
-	t.InitPvLength(level);
+	t.InitPVLength(level);
 	if (level >= MaxDepth) return Evaluate(t, position);
 	if (level > t.SelDepth) t.SelDepth = level;
 	const bool tooDeep = level >= t.RootDepth * 2;
@@ -648,10 +647,10 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		if (score > bestScore) {
 
 			bestScore = score;
-			if (pvNode && !ShouldAbort(t)) t.UpdatePvTable(m, level);
 
 			// Raise alpha
 			if (score > alpha) {
+				if (pvNode && !ShouldAbort(t)) t.UpdatePVTable(m, level);
 				bestMove = m;
 				scoreType = ScoreType::Exact;
 				alpha = score;
@@ -827,31 +826,31 @@ int Search::DrawEvaluation(const ThreadData& t) const {
 
 // PV table ---------------------------------------------------------------------------------------
 
-void ThreadData::InitPvLength(const int level) {
-	PvLength[level] = level;
+void ThreadData::InitPVLength(const int level) {
+	PVLength[level] = level;
 }
 
-void ThreadData::UpdatePvTable(const Move& move, const int level) {
-	PvTable[level][level] = move;
-	for (int nextLevel = level + 1; nextLevel < PvLength[level + 1]; nextLevel++) {
-		PvTable[level][nextLevel] = PvTable[level + 1][nextLevel];
+void ThreadData::UpdatePVTable(const Move& move, const int level) {
+	PVTable[level][level] = move;
+	for (int nextLevel = level + 1; nextLevel < PVLength[level + 1]; nextLevel++) {
+		PVTable[level][nextLevel] = PVTable[level + 1][nextLevel];
 	}
-	PvLength[level] = PvLength[level + 1];
+	PVLength[level] = PVLength[level + 1];
 }
 
-std::vector<Move> ThreadData::GeneratePvLine() const {
+std::vector<Move> ThreadData::GeneratePVLine() const {
 	std::vector<Move> list;
-	list.reserve(PvLength[0]);
+	list.reserve(PVLength[0]);
 
-	for (int i = 0; i < PvLength[0]; i++) {
-		const Move& m = PvTable[0][i];
+	for (int i = 0; i < PVLength[0]; i++) {
+		const Move& m = PVTable[0][i];
 		if (m.IsNull()) break;
 		list.push_back(m);
 	}
 	return list;
 }
 
-void ThreadData::ResetPvTable() {
-	std::memset(&PvTable, 0, sizeof(PvTable));
-	std::fill(PvLength.begin(), PvLength.end(), 0);
+void ThreadData::ResetPVTable() {
+	std::memset(&PVTable, 0, sizeof(PVTable));
+	std::fill(PVLength.begin(), PVLength.end(), 0);
 }

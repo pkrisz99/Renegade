@@ -19,7 +19,7 @@ using std::cout;
 using std::endl;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.2.60";
+constexpr std::string_view Version = "dev 1.2.61";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 
@@ -185,11 +185,10 @@ struct SearchParams {
 	int winc = 0;
 	int binc = 0;
 	int movestogo = 0;
-	int nodes = 0;
+	int64_t nodes = 0;
 	int depth = 0;
-	bool infinite = false;
 	int movetime = 0;
-	int softnodes = 0;
+	int64_t softnodes = 0;
 	// + mate, searchmoves...
 };
 
@@ -298,10 +297,11 @@ constexpr bool PrettySupport = true;
 constexpr bool PrettySupport = false;
 #endif
 
-void ConvertToLowercase(std::string& str);
+std::string ToLowercase(const std::string& original);
 std::string Trim(const std::string& str);
 std::vector<std::string> Split(const std::string& cmd);
 void PrintBitboard(const uint64_t bits);
+std::optional<bool> ParseUCIBoolean(const std::string_view str);
 
 namespace Console {
 	// Console escape strings

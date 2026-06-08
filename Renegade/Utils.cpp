@@ -2,7 +2,7 @@
 
 // String functions -------------------------------------------------------------------------------
 
-// Trims spaces from the beginning and end of a std::string (in-place)
+// Trims spaces from the beginning and end of a std::string
 std::string Trim(const std::string& str) {
 	const size_t first = str.find_first_not_of(' ');
 	const size_t last = str.find_last_not_of(' ');
@@ -18,9 +18,20 @@ std::vector<std::string> Split(const std::string& cmd) {
 	return std::vector<std::string>(begin, end);
 }
 
-// Converts an std::string in-place to only contains lowercase variants of letters
-void ConvertToLowercase(std::string& str) {
-	for (size_t x = 0; x < str.length(); x++) str[x] = std::tolower(str[x]);
+// Recreates an std::string to only contains lowercase variants of letters
+std::string ToLowercase(const std::string& original) {
+	std::string lowercase{};
+	lowercase.reserve(original.length());
+	for (unsigned char c : original) lowercase.push_back(std::tolower(c));
+	return lowercase;
+}
+
+// Converts a string input into bool if possible (assumes lowercase inputs)
+std::optional<bool> ParseUCIBoolean(const std::string_view str) {
+	if (str == "true") return true;
+	if (str == "false") return false;
+	cout << "Error: Unable to parse boolean" << endl;
+	return std::nullopt;
 }
 
 // Debugging --------------------------------------------------------------------------------------

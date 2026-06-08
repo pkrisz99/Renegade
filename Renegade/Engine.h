@@ -21,18 +21,23 @@ public:
 
 private:
 	void PrintHeader() const;
-	void DrawBoard(const Position& pos, const uint64_t highlight = 0) const;
+	void HandleDraw(const Position& pos, const uint64_t highlight = 0) const;
 	void HandleBench();
+	void HandleSetOption(const std::vector<std::string>& parts);
+	void HandlePosition(const std::string originalInput);
+	void HandleGo(const std::vector<std::string>& parts);
 	void HandleHelp() const;
+	void HandleNNUE() const;
 	void HandleCompiler() const;
 	void Perft(Position& position, const int depth, const PerftType type) const;
 	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
 
-	Search SearchThreads;
-	EngineBehavior Behavior = EngineBehavior::Normal;
+	Search searchThreads;
+	EngineBehavior behavior = EngineBehavior::Normal;
+	Position position = Position();
 
 #ifdef RENEGADE_DATAGEN
-	DatagenLaunchSettings DatagenSettings{};
+	DatagenLaunchSettings datagenSettings{};
 #endif
 
 };

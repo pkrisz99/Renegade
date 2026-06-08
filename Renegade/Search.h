@@ -28,16 +28,16 @@ public:
 	int RootDepth = 0, SelDepth = 0;
 	int64_t Nodes = 0;
 	Histories History;
-	MultiArray<Move, MaxDepth + 1, MaxDepth + 1> PvTable;
-	std::array<int, MaxDepth + 1> PvLength;
+	MultiArray<Move, MaxDepth + 1, MaxDepth + 1> PVTable;
+	std::array<int, MaxDepth + 1> PVLength;
 	EvaluationState EvalState;
 	MultiArray<uint64_t, 64, 64> RootNodeCounts;
 
 	// PV table
-	void UpdatePvTable(const Move& move, const int level);
-	void InitPvLength(const int level);
-	std::vector<Move> GeneratePvLine() const;
-	void ResetPvTable();
+	void UpdatePVTable(const Move& move, const int level);
+	void InitPVLength(const int level);
+	std::vector<Move> GeneratePVLine() const;
+	void ResetPVTable();
 
 	// Reused variables / stack
 	std::array<int, MaxDepth> StaticEvalStack;
