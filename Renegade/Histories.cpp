@@ -90,6 +90,7 @@ void Histories::UpdateQuietHistory(const Position& position, const Move& m, cons
 template <bool bonus>
 void Histories::UpdateCaptureHistory(const Position& position, const Move& m, const int depth, const int times) {
 	const int delta = bonus ? std::min(303 * depth, 2950) * times : -std::min(274 * depth, 2950);
+	//if (times == 0) std::cout << bonus << " " << times << std::endl;
 	const uint8_t attackingPiece = position.GetPieceAt(m.from);
 	const uint8_t targetSquare = m.to;
 	const bool fromSquareThreatened = position.IsSquareThreatened(m.from);
