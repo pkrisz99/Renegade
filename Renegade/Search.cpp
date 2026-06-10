@@ -682,7 +682,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 		// Increment history scores for the move causing the cutoff 
 		if (quietBestMove) {
-			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth, failHighCount);
+			t.History.UpdateQuietHistory<Bonus>(position, bestMove, level, depth, std::max(failHighCount, 1));
 			if (bestScore >= beta) {
 				t.History.SetKillerMove(bestMove, level);
 				t.History.SetPositionalMove(position, bestMove);
@@ -690,15 +690,16 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 			}
 		}
 		else {
-			t.History.UpdateCaptureHistory<Bonus>(position, bestMove, depth, failHighCount);
+			t.History.UpdateCaptureHistory<Bonus>(position, bestMove, depth, std::max(failHighCount, 1));
 		}
 
-		// Decrement history scores for all previously tried moves
-		if (quietBestMove) quietsTried.pop(); // don't decrement for the current move
-		else capturesTried.pop();
-
-		for (const Move& qt : quietsTried) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth, 1);
-		for (const Move& ct : capturesTried) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth, 1);
+		// Decrement history scores for all other moves
+		for (const Move& qt : quietsTried) {
+			if (qt != bestMove) t.History.UpdateQuietHistory<Penalty>(position, qt, level, depth, 1);
+		}
+		for (const Move& ct : capturesTried) {
+			if (ct != bestMove) t.History.UpdateCaptureHistory<Penalty>(position, ct, depth, 1);
+		}
 	}
 
 	// Update evaluation correction history
