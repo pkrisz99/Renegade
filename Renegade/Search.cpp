@@ -244,12 +244,11 @@ void Search::SearchMoves(ThreadData& t) {
 			// Aspiration windows for higher depths
 			int windowSize = 12;
 			int searchDepth = t.RootDepth;
+			int alpha = std::max(score - windowSize, NegativeInfinity);
+			int beta = std::min(score + windowSize, PositiveInfinity);
 
 			while (true) {
 				if (Aborting.load(std::memory_order_relaxed)) break;
-
-				int alpha = std::max(score - windowSize, NegativeInfinity);
-				int beta = std::min(score + windowSize, PositiveInfinity);
 
 				score = SearchRecursive<true>(t, searchDepth, 0, alpha, beta, false);
 
