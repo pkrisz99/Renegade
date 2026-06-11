@@ -506,11 +506,14 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 	while (true) {
 		const auto& [m, order] = movePicker.next(position, t.History);
 		if (m == NullMove) break;
-
 		if (m == excludedMove) continue;
-		const bool isQuiet = position.IsMoveQuiet(m);
 		legalMoveCount += 1;
 
+		const uint8_t movedPiece = position.GetPieceAt(m.from);
+		const uint8_t capturedPiece = position.GetPieceAt(m.to);
+		const bool isQuiet = position.IsMoveQuiet(m);
+		const int history = isQuiet ? t.History.GetQuietHistoryScore(position, m, movedPiece, level) : t.History.GetCaptureHistoryScore(position, m);
+		
 		if (isQuiet) quietsTried.push(m);
 		else capturesTried.push(m);
 
@@ -519,20 +522,20 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			// Late-move pruning
 			if (depth <= 4 && isQuiet && !inCheck) {
-				const int lmpCount = 3 + depth * (depth - !improving) + (order / 7000);
+				const int lmpCount = 3 + depth * (depth - !improving) + (history / 7000);
 				if (legalMoveCount > lmpCount) break;
 			}
 
 			// History pruning
 			if (depth <= 4 && isQuiet && !inCheck) {
-				if (order < -5300 * depth) {
+				if (history < -5300 * depth) {
 					movePicker.skipQuietMoves = true;
 					continue;
 				}
 			}
 
 			// Futility pruning
-			if (depth <= 5 && isQuiet && !inCheck && !singularSearch && order < 32768 && !IsMateScore(bestScore) && !position.GivesCheck(m)) {
+			if (depth <= 5 && isQuiet && !inCheck && !singularSearch && history < 32768 && !IsMateScore(bestScore) && !position.GivesCheck(m)) {
 				const int futilityMargin = 38 + depth * 85 + improving * 43;
 				const int futilityScore = eval + futilityMargin;
 				if (futilityScore <= alpha) {
@@ -544,7 +547,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			// Main search SEE pruning
 			if (position.IsSquareThreatened(m.to)) {
-				const int seeMargin = isQuiet ? (50 * depth + std::max(order, 0) / 64) : (100 * depth);
+				const int seeMargin = isQuiet ? (50 * depth + std::max(history, 0) / 64) : (100 * depth);
 				if (!position.StaticExchangeEval(m, -seeMargin)) continue;
 			}
 		}
@@ -584,12 +587,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		// Push move
-		const uint8_t movedPiece = position.GetPieceAt(m.from);
-		const uint8_t capturedPiece = position.GetPieceAt(m.to);
 		const uint64_t nodesBefore = t.Nodes;
-
 		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
-		const int history = isQuiet ? t.History.GetQuietHistoryScore(position, m, movedPiece, level) : t.History.GetCaptureHistoryScore(position, m);
 		position.PushMove(m);
 		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
 
