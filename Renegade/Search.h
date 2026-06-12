@@ -21,6 +21,10 @@
 
 enum class ThreadAction { Sleep, Search, Exit };
 
+struct PrincipalVariation {
+	StaticVector<Move, MaxDepth + 1> pvLine{};
+};
+
 class alignas(64) ThreadData {
 public:
 	void ResetStatistics();
@@ -28,14 +32,12 @@ public:
 	int RootDepth = 0, SelDepth = 0;
 	int64_t Nodes = 0;
 	Histories History;
-	MultiArray<Move, MaxDepth + 1, MaxDepth + 1> PVTable;
+	MultiArray<PrincipalVariation, MaxDepth + 1> PrincipalVariationTable;
 	std::array<int, MaxDepth + 1> PVLength;
 	EvaluationState EvalState;
 	MultiArray<uint64_t, 64, 64> RootNodeCounts;
 
 	// PV table
-	void UpdatePVTable(const Move& move, const int level);
-	void InitPVLength(const int level);
 	std::vector<Move> GeneratePVLine() const;
 	void ResetPVTable();
 
