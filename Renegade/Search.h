@@ -21,10 +21,6 @@
 
 enum class ThreadAction { Sleep, Search, Exit };
 
-struct PrincipalVariation {
-	StaticVector<Move, MaxDepth + 1> pvLine{};
-};
-
 class alignas(64) ThreadData {
 public:
 	void ResetStatistics();

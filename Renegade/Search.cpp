@@ -654,11 +654,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				alpha = score;
 
 				if (pvNode && !ShouldAbort(t)) {
-					t.PrincipalVariationTable[level].pvLine.clear();
-					t.PrincipalVariationTable[level].pvLine.push(m);
-					for (const Move& childMove : t.PrincipalVariationTable[level + 1].pvLine) {
-						t.PrincipalVariationTable[level].pvLine.push(childMove);
-					}
+					t.PrincipalVariationTable[level].set_move_and_child(m, t.PrincipalVariationTable[level + 1]);
 				}
 			}
 
@@ -814,11 +810,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 				bestMove = m;
 
 				if (pvNode && !ShouldAbort(t)) {
-					t.PrincipalVariationTable[level].pvLine.clear();
-					t.PrincipalVariationTable[level].pvLine.push(m);
-					for (const Move& childMove : t.PrincipalVariationTable[level + 1].pvLine) {
-						t.PrincipalVariationTable[level].pvLine.push(childMove);
-					}
+					t.PrincipalVariationTable[level].set_move_and_child(m, t.PrincipalVariationTable[level + 1]);
 				}
 			}
 
