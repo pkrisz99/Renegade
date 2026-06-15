@@ -110,6 +110,12 @@ void Transpositions::AllocateTable(const uint64_t clusterCount) {
 		#endif
 	#endif
 
+	// Check if successful
+	if (Table == nullptr) {
+		cout << "Error: failed to allocate memory for the transposition table" << endl;
+		std::terminate();
+	}
+
 	// Set cluster count
 	TableSize = clusterCount;
 }
