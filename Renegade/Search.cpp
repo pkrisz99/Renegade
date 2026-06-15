@@ -270,7 +270,7 @@ void Search::SearchMoves(ThreadData& t) {
 
 		}
 
-		const Move& bestMove = t.PVTable[0][0];
+		const Move& bestMove = t.PrincipalVariationTable[0].pvLine[0];
 		if (previousBestMove == bestMove) {
 			bestMoveStability += 1;
 		}
@@ -333,7 +333,7 @@ void Search::SearchMoves(ThreadData& t) {
 	// Main thread should wait others finishing before displaying the final best move
 	if (t.IsMainThread() && !t.singlethreaded) {
 		Aborting.store(true);
-		while (ActiveThreadCount.load() > 1) { std::this_thread::yield(); };
+		while (ActiveThreadCount.load() > 1) { std::this_thread::yield(); }
 		PrintInfo(AggregateThreadResults());
 	}
 }
@@ -376,7 +376,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 	// Check search limits
 	if (ShouldAbort(t)) return NoEval;
-	t.InitPVLength(level);
+	if (pvNode) t.PrincipalVariationTable[level].pvLine.clear();
 	if (level >= MaxDepth) return Evaluate(t, position);
 	if (level > t.SelDepth) t.SelDepth = level;
 	const bool tooDeep = level >= t.RootDepth * 2;
@@ -649,10 +649,13 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 
 			// Raise alpha
 			if (score > alpha) {
-				if (pvNode && !ShouldAbort(t)) t.UpdatePVTable(m, level);
 				bestMove = m;
 				scoreType = ScoreType::Exact;
 				alpha = score;
+
+				if (pvNode && !ShouldAbort(t)) {
+					t.PrincipalVariationTable[level].set_move_and_child(m, t.PrincipalVariationTable[level + 1]);
+				}
 			}
 
 			// Fail-high
@@ -732,6 +735,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 	// Check search limits
 	if (ShouldAbort(t)) return NoEval;
+	if (pvNode) t.PrincipalVariationTable[level].pvLine.clear();
 	if (level > t.SelDepth) t.SelDepth = level;
 
 	// Probe the transposition table
@@ -800,14 +804,19 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 
 		if (score > bestScore) {
 			bestScore = score;
-			if (bestScore >= beta) {
-				scoreType = ScoreType::LowerBound;
-				bestMove = m;
-				break;
-			}
+			
 			if (bestScore > alpha) {
 				alpha = bestScore;
 				bestMove = m;
+
+				if (pvNode && !ShouldAbort(t)) {
+					t.PrincipalVariationTable[level].set_move_and_child(m, t.PrincipalVariationTable[level + 1]);
+				}
+			}
+
+			if (bestScore >= beta) {
+				scoreType = ScoreType::LowerBound;
+				break;
 			}
 		}
 	}
@@ -826,31 +835,15 @@ int Search::DrawEvaluation(const ThreadData& t) const {
 
 // PV table ---------------------------------------------------------------------------------------
 
-void ThreadData::InitPVLength(const int level) {
-	PVLength[level] = level;
-}
-
-void ThreadData::UpdatePVTable(const Move& move, const int level) {
-	PVTable[level][level] = move;
-	for (int nextLevel = level + 1; nextLevel < PVLength[level + 1]; nextLevel++) {
-		PVTable[level][nextLevel] = PVTable[level + 1][nextLevel];
-	}
-	PVLength[level] = PVLength[level + 1];
-}
-
 std::vector<Move> ThreadData::GeneratePVLine() const {
 	std::vector<Move> list;
-	list.reserve(PVLength[0]);
-
-	for (int i = 0; i < PVLength[0]; i++) {
-		const Move& m = PVTable[0][i];
-		if (m.IsNull()) break;
+	list.reserve(PrincipalVariationTable[0].pvLine.size());
+	for (const Move& m : PrincipalVariationTable[0].pvLine) {
 		list.push_back(m);
 	}
 	return list;
 }
 
 void ThreadData::ResetPVTable() {
-	std::memset(&PVTable, 0, sizeof(PVTable));
-	std::fill(PVLength.begin(), PVLength.end(), 0);
+	std::memset(&PrincipalVariationTable, 0, sizeof(PrincipalVariationTable));
 }
