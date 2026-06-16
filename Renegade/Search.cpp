@@ -270,7 +270,7 @@ void Search::SearchMoves(ThreadData& t) {
 
 		}
 
-		const Move& bestMove = t.PrincipalVariationTable[0].pvLine[0];
+		const Move& bestMove = (t.PrincipalVariationTable[0].pvLine.size() > 0) ? t.PrincipalVariationTable[0].pvLine[0] : NullMove;
 		if (previousBestMove == bestMove) {
 			bestMoveStability += 1;
 		}
@@ -579,7 +579,7 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		// Low-depth singular extensions
-		else if (depth < 6 && !inCheck && (staticEval <= alpha - 29) && ttEntry.scoreType == ScoreType::LowerBound && m == ttMove) {
+		else if (depth < 6 && !inCheck && (staticEval <= alpha - 29) && found && ttEntry.scoreType == ScoreType::LowerBound && m == ttMove) {
 			extension = 1;
 		}
 
