@@ -1181,6 +1181,9 @@ bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
 
 	constexpr auto seeValues = std::array{ 0, 100, 300, 300, 500, 1000, 999999 };
 
+	// Castling is not handled
+	if (move.IsCastling()) return threshold <= 0;
+
 	// Get the initial piece
 	uint8_t victim = TypeOfPiece(GetPieceAt(move.from));
 	if (move.IsPromotion()) victim = move.GetPromotionPieceType();
@@ -1189,7 +1192,6 @@ bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
 	int estimatedMoveValue = seeValues[TypeOfPiece(GetPieceAt(move.to))];
 	if (move.IsPromotion()) estimatedMoveValue += seeValues[move.GetPromotionPieceType()] - seeValues[PieceType::Pawn];
 	else if (move.flag == MoveFlag::EnPassantPerformed) estimatedMoveValue = seeValues[PieceType::Pawn];
-	else if (move.IsCastling()) estimatedMoveValue = 0;
 
 	// Handle trivial cases (losing the piece for nothing still above / having initial gain below threshold)
 	int score = -threshold;
@@ -1198,7 +1200,7 @@ bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
 	score -= seeValues[victim];
 	if (score >= 0) return true;
 
-	// Lookups (should be optimized) 
+	// Lookups
 	const uint64_t whitePieces = GetOccupancy(Side::White);
 	const uint64_t blackPieces = GetOccupancy(Side::Black);
 	const uint64_t rookLikeSliders = WhiteRookBits() | BlackRookBits() | WhiteQueenBits() | BlackQueenBits();
