@@ -4,7 +4,7 @@
 
 **Renegade is a free and open source chess engine. ♞**  
 
-It is written in C++ from scratch, and values readability and simplicity. As the engine communicates through the UCI protocol, it can be connected to all chess user interfaces.  
+It is written in C++ from scratch, and values readability and simplicity. As the engine communicates through the UCI protocol, it can be connected to almost all chess user interfaces.  
 
 The engine is fairly strong, and regularly competes in various tournaments organized by the engine testing community.  
 
