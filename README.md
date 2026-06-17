@@ -21,7 +21,7 @@ The engine is fairly strong, and regularly competes in various tournaments organ
 
 ### Evaluation
 - Renegade makes use of modern NNUE (efficiently updatable neural network) technology for accurate position evaluation
-- Its neural network was trained entirely on [self-play data](https://www.kaggle.com/datasets/pkrisz/renegade-chess-engine-training-data-viriformat), amounting to over 5.6 billion positions
+- Its neural network was trained entirely on [self-play data](https://www.kaggle.com/datasets/pkrisz/renegade-chess-engine-training-data-viriformat), amounting to over 8.4 billion positions
 - The network architecture is a `(768x14hm -> 1600)x2 -> 1x8` perspective net with input buckets and horizontal mirroring, featuring approximately 17.2 million parameters
 
 ## Usage
