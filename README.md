@@ -1,5 +1,4 @@
 <div align = "center">
-  <img src="logo.png" />
   <h1>Renegade</h1>
 </div>
 
