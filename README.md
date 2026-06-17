@@ -1,6 +1,6 @@
-<div align = "center">
-  <img src="logo.png" />
+<div align="center">
   <h1>Renegade</h1>
+  <img src="logo.png"/>
 </div>
 
 **Renegade is a free and open source chess engine. ♞**  
