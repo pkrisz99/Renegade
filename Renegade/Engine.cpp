@@ -128,15 +128,12 @@ void Engine::Start() {
 		else if (command == "compiler") {
 			HandleCompiler();
 		}
-		else if (command == "nnue") {
-			HandleNNUE();
-		}
 		else if (command == "help") {
 			HandleHelp();
 		}
 		else if (command == "eval" || command == "e") {
-			const int nnue = NeuralEvaluate(position);
-			cout << "-> Neural network evaluation (scaled): " << ToCentipawns(nnue, position.GetPly()) << " cp / " << nnue << " internal units" << endl;
+			const int nnue = ClassicalEvaluate(position);
+			cout << "-> Classical evaluation: " << ToCentipawns(nnue, position.GetPly()) << " cp / " << nnue << " internal units" << endl;
 		}
 		else if (command == "fen" || command == "f") {
 			cout << "-> Position FEN: " << position.GetFEN() << endl;
@@ -441,7 +438,7 @@ void Engine::HandleDraw(const Position& pos, const uint64_t highlight) const {
 		else return "drawn";
 	}();
 
-	const int raw = NeuralEvaluate(pos);
+	const int raw = ClassicalEvaluate(pos);
 	const int cp = ToCentipawns(raw, pos.GetPly());
 
 	cout << '\n';
@@ -523,13 +520,6 @@ void Engine::HandleDraw(const Position& pos, const uint64_t highlight) const {
 		cout << '\n';
 	}
 	cout << endl;
-}
-
-void Engine::HandleNNUE() const {
-	cout << "-> Arch: (" << FeatureSize << "x" << InputBucketCount << "hm -> " << HiddenSize << ")x2" << " -> 1x" << OutputBucketCount
-		<< "  [SCReLU, QA=" << QA << ", QB=" << QB << "]" << endl;
-	cout << "-> Net name: " << NETWORK_NAME << endl;
-	cout << "-> Net size: " << Console::FormatInteger(sizeof(NetworkRepresentation)) << endl;
 }
 
 void Engine::HandleCompiler() const {

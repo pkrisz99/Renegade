@@ -1,6 +1,6 @@
 #pragma once
 #include "Datagen.h"
-#include "Neural.h"
+#include "Classical.h"
 #include "Position.h"
 #include "Reporting.h"
 #include "Search.h"

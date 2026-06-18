@@ -221,7 +221,6 @@ void Search::SearchMoves(ThreadData& t) {
 	std::fill(t.CutoffCount.begin(), t.CutoffCount.end(), 0);
 	std::memset(&t.RootNodeCounts, 0, sizeof(t.RootNodeCounts));
 	t.History.ClearRefutations();
-	t.EvalState.Reset(t.CurrentPosition);
 
 	Move previousBestMove = NullMove;
 	int bestMoveStability = 0;
@@ -469,10 +468,8 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 				return std::min(defaultReduction, depth);
 			}();
 			position.PushNullMove();
-			t.EvalState.PushState(position, NullMove, Piece::None, Piece::None);
 			const int nmpScore = -SearchRecursive<false>(t, depth - nmpReduction, level + 1, -beta, -beta + 1, !cutNode);
 			position.PopMove();
-			t.EvalState.PopState();
 			if (nmpScore >= beta) {
 				return IsMateScore(nmpScore) ? beta : nmpScore;
 			}
@@ -591,7 +588,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
 		const int history = isQuiet ? t.History.GetQuietHistoryScore(position, m, movedPiece, level) : t.History.GetCaptureHistoryScore(position, m);
 		position.PushMove(m);
-		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
 
 		t.Nodes += 1;
 		failHighCount = 0;
@@ -635,7 +631,6 @@ int Search::SearchRecursive(ThreadData& t, int depth, const int level, int alpha
 		}
 
 		position.PopMove();
-		t.EvalState.PopState();
 
 		// Update node count table for the root, this is used for time management
 		if (rootNode) t.RootNodeCounts[m.from][m.to] += t.Nodes - nodesBefore;
@@ -797,10 +792,8 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 		const uint8_t capturedPiece = position.GetPieceAt(m.to);
 		TranspositionTable.Prefetch(position.ApproximateHashAfterMove(m));
 		position.PushMove(m);
-		t.EvalState.PushState(position, m, movedPiece, capturedPiece);
 		const int score = -SearchQuiescence<pvNode>(t, level + 1, -beta, -alpha);
 		position.PopMove();
-		t.EvalState.PopState();
 
 		if (score > bestScore) {
 			bestScore = score;
@@ -825,7 +818,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 }
 
 int16_t Search::Evaluate(ThreadData& t, const Position& position) {
-	return t.EvalState.Evaluate(position);
+	return ClassicalEvaluate(position);
 }
 
 // Returns a small randomized score to avoid search getting stuck in threefold lines

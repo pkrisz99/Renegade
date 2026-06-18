@@ -22,7 +22,6 @@
 
 int main(int argc, char* argv[]) {
 	GenerateMagicTables();
-	LoadDefaultNetwork();
 
 	Engine engine = Engine(argc, argv);
 	engine.Start();
