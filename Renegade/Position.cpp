@@ -363,6 +363,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 
 	const uint64_t kingSq = (side == Side::White) ? WhiteKingSquare() : BlackKingSquare();
 	const uint64_t occupancy = GetOccupancy();
+	const uint64_t opponentRookLikeSliders = (side == Side::White) ? (b.BlackRookBits | b.BlackQueenBits) : (b.WhiteRookBits | b.WhiteQueenBits);
 
 	if (rightToShortCastle) {
 		constexpr uint8_t kingTo = (side == Side::White) ? G1 : G8;
@@ -372,9 +373,8 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const uint64_t rayBetweenRookAndF = GetShortConnectingRay(rookSq, rookTo);
 		const uint64_t mockOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
 		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & mockOccupancy);
-
 		if (empty) {
-			const bool safe = !(b.Threats & rayBetweenKingAndG);
+			const bool safe = !(b.Threats & rayBetweenKingAndG) && !(GetRookAttacks(kingTo, mockOccupancy) & opponentRookLikeSliders);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::ShortCastle));
 		}
 	}
@@ -387,9 +387,8 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const uint64_t rayBetweenRookAndD = GetShortConnectingRay(rookSq, rookTo);
 		const uint64_t mockOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
 		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndD) & mockOccupancy);
-
 		if (empty) {
-			const bool safe = !(b.Threats & rayBetweenKingAndC);
+			const bool safe = !(b.Threats & rayBetweenKingAndC) && !(GetRookAttacks(kingTo, mockOccupancy) & opponentRookLikeSliders);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::LongCastle));
 		}
 	}
@@ -788,6 +787,10 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 			const uint64_t opponentAttacks = b.Threats;
 			const bool safe = !(opponentAttacks & rayBetweenKingPositions);
 			if (!safe) return false;
+
+			// Can't castle when the castling rook protects the king from a backrank check (only possible in FRC)
+			const uint64_t opponentRookLikeSliders = (pieceColor == PieceColor::White) ? (b.BlackRookBits | b.BlackQueenBits) : (b.WhiteRookBits | b.WhiteQueenBits);
+			if ((GetRookAttacks(kingSqAfterCastling, fakeOccupancy)) & opponentRookLikeSliders) return false;
 
 			return true;
 		}
