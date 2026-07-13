@@ -73,7 +73,7 @@ private:
 	}
 
 	inline uint32_t GetStoredHash(const uint64_t hash) const {
-		return static_cast<uint32_t>((hash & 0xFFFFFFFF00000000) >> 32);
+		return static_cast<uint32_t>(hash & 0xFFFFFFFF);
 	}
 
 	inline int RecordingQuality(const int generation, const int depth) const {
