@@ -353,7 +353,7 @@ Results Search::AggregateThreadResults() const {
 
 	// Other data
 	const auto currentTime = Clock::now();
-	const uint64_t elapsedNs = std::max((currentTime - StartSearchTime).count(), int64_t{1});
+	const uint64_t elapsedNs = std::max<int64_t>((currentTime - StartSearchTime).count(), int64_t{1});
 	const uint64_t elapsedMs = elapsedNs / 1'000'000;
 	sumResult.time = elapsedMs;
 	sumResult.nps = static_cast<uint64_t>(sumResult.nodes * 1e9 / elapsedNs);
