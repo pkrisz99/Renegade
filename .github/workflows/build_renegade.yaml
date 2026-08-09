@@ -54,3 +54,20 @@ jobs:
           make build=x86-64-bmi2 CXX=g++
       - name: Running bench
         run: ./Renegade/Renegade bench | tail -n 1
+
+  android:
+    name: Build for Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Compiling for Android
+        run: |
+          cd Renegade
+          echo "ANDROID_NDK_ROOT: ${ANDROID_NDK_ROOT}"
+          TOOLCHAIN=${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin
+          make build=android CXX=${TOOLCHAIN}/clang++
+      - name: Uploading artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: renegade-android-arm64
+          path: ./Renegade/Renegade

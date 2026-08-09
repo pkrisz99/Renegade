@@ -58,6 +58,12 @@ ifeq ($(build), x86-64-bmi2)
 	NATIVE   = -march=haswell -mtune=haswell
 endif
 
+# note: there is a page size transition, the second LDFLAGS line can be dropped for NDK r28 and above
+ifeq ($(build), android)
+	NATIVE   =  --target=aarch64-linux-android28
+	LDFLAGS  += -static-libstdc++
+	LDFLAGS  += -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384
+endif
 
 # Running build commands ------------------------------------------------------
 # (Engine.cpp is always recompiled to include the correct date and time) 
