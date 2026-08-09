@@ -9,6 +9,7 @@ on:
       - main
 
 jobs:
+
   build:
     name: Build on ${{ matrix.name }}
     strategy:
@@ -22,27 +23,34 @@ jobs:
               os: windows-latest
               exe-path: Renegade\Renegade.exe
               artifact-name: renegade-windows-bmi2.exe
-
     runs-on: ${{ matrix.os }}
-    
     steps:
       - uses: actions/checkout@v6
       - name: Compiling
         run: |
           cd Renegade
           make build=x86-64-bmi2
-      
       - name: Running bench (Linux)
         if: runner.os == 'Linux'
         run: ${{ matrix.exe-path }} bench | tail -n 1
-          
       - name: Running bench (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: ${{ matrix.exe-path }} bench | Select-Object -Last 1
-      
       - name: Uploading artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact-name }}
           path: ${{ matrix.exe-path }}
+
+  gcc:
+    name: Check build with g++ on Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Compiling with g++
+        run: |
+          cd Renegade
+          make build=x86-64-bmi2 CXX=g++
+      - name: Running bench
+        run: ./Renegade/Renegade bench | tail -n 1
