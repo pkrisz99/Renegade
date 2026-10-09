@@ -253,8 +253,8 @@ void Search::SearchMoves(ThreadData& t) {
 				score = SearchRecursive<true>(t, searchDepth, 0, alpha, beta, false);
 
 				if (score <= alpha) {
-					alpha = std::max(alpha - windowSize, NegativeInfinity);
 					beta = (alpha + beta) / 2;
+					alpha = std::max(alpha - windowSize, NegativeInfinity);
 					searchDepth = t.RootDepth;
 				}
 				else if (score >= beta) {
