@@ -61,7 +61,7 @@ private:
 	MultiArray<int32_t, 2, 2, 65536> NonPawnCorrectionHistory;
 	MultiArray<int32_t, 15, 64, 15, 64> FollowUpCorrectionHistory;
 
-	MultiArray<uint8_t, 2, 16384> PawnCorrectionHistoryUpperBits;
-	MultiArray<uint8_t, 2, 2, 65536> NonPawnCorrectionHistoryUpperBits;
+	MultiArray<uint16_t, 2, 16384> PawnCorrectionHistoryUpperBits;
+	MultiArray<uint16_t, 2, 2, 65536> NonPawnCorrectionHistoryUpperBits;
 };
 
