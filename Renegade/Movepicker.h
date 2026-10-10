@@ -35,6 +35,14 @@ public:
 		this->quietMoves.clear();
 	}
 
+	// Ordering bonus for refutation moves
+	int getRefutationScore(const Move& m) const {
+		if (m == counterMove) return 18800;
+		if (m == killerMove) return 16600;
+		if (m == positionalMove) return 13600;
+		return 0;
+	}
+
 	// Selects the next move (and also returns the order value)
 	// The order is based on information about the position and prior knowledge the engine keeps track of, from most
 	// to least promising. This logic ensures to lazily do the computations we might not need (known as staged movegen).
@@ -128,17 +136,10 @@ private:
 
 	// Score quiet moves: take the history score and potentially apply a bonus for being a refutation
 	int getQuietMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
-
 		const uint8_t movedPiece = pos.GetPieceAt(m.from);
-		int orderScore = hist.GetQuietHistoryScore(pos, m, movedPiece, level);
-
-		int refutationScore = 0;
-		if (m == counterMove) refutationScore = 18800;
-		else if (m == killerMove) refutationScore = 16600;
-		else if (m == positionalMove) refutationScore = 13600;
-		orderScore += refutationScore;
-
-		return orderScore;
+		const int historyScore = hist.GetQuietHistoryScore(pos, m, movedPiece, level);
+		const int refutationScore = getRefutationScore(m);
+		return historyScore + refutationScore;
 	}
 
 	// Score noisy moves: take history, piece types and static exchange eval into account
