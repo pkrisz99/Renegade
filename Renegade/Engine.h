@@ -7,7 +7,6 @@
 #include "Settings.h"
 #include <fstream>
 #include <iomanip>
-#include <random>
 #include <thread>
 #include <tuple>
 
@@ -19,17 +18,26 @@ class Engine {
 public:
 	Engine(int argc, char* argv[]);
 	void Start();
-	void PrintHeader() const;
-	void DrawBoard(const Position &pos, const uint64_t highlight = 0) const;
-	void HandleBench();
-	void HandleHelp() const;
-	void HandleCompiler() const;
 
-	Search SearchThreads;
-	EngineBehavior Behavior = EngineBehavior::Normal;
+private:
+	void PrintHeader() const;
+	void HandleDraw(const Position& pos, const uint64_t highlight = 0) const;
+	void HandleBench();
+	void HandleSetOption(const std::vector<std::string>& parts);
+	void HandlePosition(const std::string originalInput);
+	void HandleGo(const std::vector<std::string>& parts);
+	void HandleHelp() const;
+	void HandleNNUE() const;
+	void HandleCompiler() const;
+	void Perft(Position& position, const int depth, const PerftType type) const;
+	uint64_t PerftRecursive(Position& position, const int depth, const int originalDepth, const PerftType type) const;
+
+	Search searchThreads;
+	EngineBehavior behavior = EngineBehavior::Normal;
+	Position position = Position();
 
 #ifdef RENEGADE_DATAGEN
-	DatagenLaunchSettings DatagenSettings{};
+	DatagenLaunchSettings datagenSettings{};
 #endif
 
 };

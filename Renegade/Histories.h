@@ -26,7 +26,7 @@ public:
 	// History heuristic:
 	template <bool bonus> void UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth, const int times);
 	template <bool bonus> void UpdateCaptureHistory(const Position& position, const Move& m, const int depth, const int times);
-	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
+	int GetQuietHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
 	int GetCaptureHistoryScore(const Position& position, const Move& m) const;
 
 	// Correction history for position evaluations:
@@ -53,7 +53,7 @@ private:
 
 	// Move ordering history:
 	MultiArray<int16_t, 15, 64, 2, 2> QuietHistory;
-	MultiArray<int16_t, 15, 64, 15, 2, 2> CaptureHistory; // [attacking piece][square to][captured piece][from treat][to threat]
+	MultiArray<int16_t, 15, 64, 15, 2, 2> CaptureHistory; // [attacking piece][square to][captured piece][from threat][to threat]
 	MultiArray<int16_t, 15, 64, 15, 64> ContinuationHistory;
 
 	// Evaluation correction history:
@@ -64,4 +64,3 @@ private:
 	MultiArray<uint16_t, 2, 16384> PawnCorrectionHistoryUpperBits;
 	MultiArray<uint16_t, 2, 2, 65536> NonPawnCorrectionHistoryUpperBits;
 };
-

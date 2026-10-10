@@ -1,9 +1,11 @@
 #include "Classical.h"
 
-int ClassicalEvaluate(const Position& position) {
+// Renegade's classical evaluation function used before version 1.0.0 (January 2024)
+// This was replaced by a significantly stronger NNUE evaluation
 
-	// Renegade's classical evaluation function used before version 1.0.0 (January 2024)
-	// This was replaced by a significantly stronger NNUE evaluation
+// The code here shall stand frozen in time, a monument to simpler times and a bygone era 
+
+int ClassicalEvaluate(const Position& position) {
 
 	const Board& board = position.CurrentState();
 	const EvaluationFeatures& weights = Weights;
@@ -36,12 +38,12 @@ int ClassicalEvaluate(const Position& position) {
 
 	uint64_t piecesOnBoard = occupancy;
 	while (piecesOnBoard != 0) {
-		const int sq = Popsquare(piecesOnBoard);
-		const int piece = board.GetPieceAt(sq);
-		const int pieceType = TypeOfPiece(piece);
-		const int pieceColor = ColorOfPiece(piece);
-		const int file = GetSquareFile(sq);
-		const int rank = GetSquareRank(sq);
+		const uint8_t sq = Popsquare(piecesOnBoard);
+		const uint8_t piece = board.GetPieceAt(sq);
+		const uint8_t pieceType = TypeOfPiece(piece);
+		const uint8_t pieceColor = ColorOfPiece(piece);
+		const uint8_t file = GetSquareFile(sq);
+		const uint8_t rank = GetSquareRank(sq);
 		uint64_t mobility = 0, attacks = 0;
 
 		// Material and piece-square tables
@@ -355,17 +357,17 @@ int ClassicalEvaluate(const Position& position) {
 		cout << "- Threats:        " << LinearTaper(threatScore, phase) << "    <- " << threatScore << '\n';
 		cout << "- Mobility:       " << LinearTaper(mobilityScore, phase) << "    <- " << mobilityScore << '\n';
 		cout << "- King safety:    " << LinearTaper(kingScore, phase) << "    <- " << kingScore << '\n';
-		cout << "- Tempo:          " << (board.Turn == Turn::White ? tempo : -tempo) << "    <- " << weights.GetTempoBonus() << endl;
+		cout << "- Tempo:          " << (board.Turn == Side::White ? tempo : -tempo) << "    <- " << weights.GetTempoBonus() << endl;
 	}*/
 
 	return score;
 }
 
+// Drawish endgame detection
+// To avoid simplifying down to a non-winning endgame with a nominal material advantage
+// This list is not complete, and probably should be expanded even more (e.g. by including pawns)
+// Source: Chess Programming Wiki + https://www.madchess.net/2021/04/08/madchess-3-0-beta-4d22dec-endgame-eval-scaling/
 inline bool IsDrawishEndgame(const Position& position, const uint64_t whitePieces, const uint64_t blackPieces) {
-	// Drawish endgame detection
-	// To avoid simplifying down to a non-winning endgame with a nominal material advantage
-	// This list is not complete, and probably should be expanded even more (e.g. by including pawns)
-	// Source: Chess Programming Wiki + https://www.madchess.net/2021/04/08/madchess-3-0-beta-4d22dec-endgame-eval-scaling/
 	const bool endgame = (Popcount(whitePieces) <= 3) && (Popcount(blackPieces) <= 3);
 	if (!endgame) return false;
 

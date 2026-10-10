@@ -90,9 +90,6 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 		const auto p = _mm256_madd_epi16(v, _mm256_mullo_epi16(v, w));
 		sum = _mm256_add_epi32(sum, p);
 	}
-	output = HorizontalSum(sum);
-
-	sum = _mm256_setzero_si256();
 	for (int i = 0; i < (HiddenSize / chunkSize); i++) {
 		auto v = _mm256_load_si256((__m256i*) &hiddenOpponent[chunkSize * i]);
 		v = _mm256_min_epi16(_mm256_max_epi16(v, min), max);
@@ -100,7 +97,7 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 		const auto p = _mm256_madd_epi16(v, _mm256_mullo_epi16(v, w));
 		sum = _mm256_add_epi32(sum, p);
 	}
-	output += HorizontalSum(sum);
+	output = HorizontalSum(sum);
 #else
 	// Slower fallback
 	// if you end up here... that's bad.
@@ -119,7 +116,7 @@ int16_t NeuralEvaluate(const Position& position, const AccumulatorRepresentation
 	// Scale according to material
 	const int gamePhase = position.GetGamePhase();
 	output = output * (52 + std::min(24, gamePhase)) / 64;
-	// Scale according to a modified halfmove clock (max 80)
+	// Scale according to the halfmove clock
 	output = output * (256 - position.CurrentState().HalfmoveClock) / 256;
 #endif
 
