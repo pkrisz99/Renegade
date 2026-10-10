@@ -96,19 +96,30 @@ void Transpositions::Prefetch(const uint64_t hash) const {
 }
 
 void Transpositions::AllocateTable(const uint64_t clusterCount) {
+	const uint64_t requestedBytes = clusterCount * sizeof(TranspositionCluster);
+
 	#if defined(_MSC_VER) || defined(_WIN32)
 		// Windows: just allocate memory, don't bother with memory tricks
-		Table = static_cast<TranspositionCluster*>(_aligned_malloc(clusterCount * sizeof(TranspositionCluster), 64));
+		Table = static_cast<TranspositionCluster*>(_aligned_malloc(requestedBytes, 64));
+	#elif defined(__linux__) && defined(MADV_HUGEPAGE)
+		// Linux: request transparent huge pages for a possible speed up (if requested size is compatible with that)
+		if (requestedBytes % (2 * 1024 * 1024) == 0) {
+			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(2 * 1024 * 1024, requestedBytes));
+			madvise(Table, requestedBytes, MADV_HUGEPAGE);
+		}
+		else {
+			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, requestedBytes));
+		}
 	#else
-		#if defined(__linux__) && defined(MADV_HUGEPAGE)
-			// Linux: request transparent huge pages for a possible speed up
-			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(2 * 1024 * 1024, clusterCount * sizeof(TranspositionCluster)));
-			madvise(Table, clusterCount * sizeof(TranspositionCluster), MADV_HUGEPAGE);
-		#else
-			// Fall back if system is not compatible
-			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, clusterCount * sizeof(TranspositionCluster)));
-		#endif
+		// Fall back if system is not compatible
+		Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, requestedBytes));
 	#endif
+
+	// Check if successful
+	if (Table == nullptr) {
+		cout << "Error: failed to allocate memory for the transposition table" << endl;
+		std::terminate();
+	}
 
 	// Set cluster count
 	TableSize = clusterCount;

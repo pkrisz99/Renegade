@@ -14,12 +14,13 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <optional>
 
 using std::cout;
 using std::endl;
 using Clock = std::chrono::high_resolution_clock;
 
-constexpr std::string_view Version = "dev 1.2.63";
+constexpr std::string_view Version = "1.3.1";
 
 // Evaluation helpers -----------------------------------------------------------------------------
 

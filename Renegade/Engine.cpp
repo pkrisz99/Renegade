@@ -583,7 +583,7 @@ uint64_t Engine::PerftRecursive(Position& position, const int depth, const int o
 	MoveList moves{};
 	position.GenerateAllPseudoLegalMoves(moves);
 
-	if (type == PerftType::PerftDiv && originalDepth == depth) cout << "-> Legal moves (" << moves.size() << "): " << endl;
+	if (type == PerftType::PerftDiv && originalDepth == depth) cout << "-> Legal moves: " << endl;
 	uint64_t count = 0;
 	for (const auto& m : moves) {
 		if (!position.IsLegalMove(m.move)) continue;

@@ -134,6 +134,16 @@ struct ScoredMove {
 	int32_t orderScore;
 };
 
+struct PrincipalVariation {
+	StaticVector<Move, MaxDepth + 1> pvLine{};
+
+	void set_move_and_child(const Move& move, const PrincipalVariation& childList) {
+		pvLine.clear();
+		pvLine.push(move);
+		for (const Move& childMove : childList.pvLine) pvLine.push(childMove);
+	}
+};
+
 // Move list --------------------------------------------------------------------------------------
 
 struct MoveList : StaticVector<ScoredMove, MaxMoveCount> {
