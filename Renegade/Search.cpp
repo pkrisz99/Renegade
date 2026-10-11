@@ -755,12 +755,19 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 		return static_cast<int16_t>(Evaluate(t, position));
 	}();
 	const int staticEval = (!inCheck) ? t.History.ApplyCorrection(position, rawEval) : LosingMateScore(level);
+	int eval = staticEval;
+
+	if (!inCheck && found && ttEntry.score != NoEval) {
+		if (ttEntry.scoreType == ScoreType::Exact
+			|| (ttEntry.scoreType == ScoreType::LowerBound && staticEval < ttEntry.score)
+			|| (ttEntry.scoreType == ScoreType::UpperBound && staticEval > ttEntry.score)) eval = ttEntry.score;
+	}
 
 	// Check alpha-beta bounds
-	if (staticEval >= beta) return staticEval;
-	if (staticEval > alpha) alpha = staticEval;
+	if (eval >= beta) return eval;
+	if (eval > alpha) alpha = eval;
 
-	if (level >= MaxDepth) return inCheck ? DrawEvaluation(t) : staticEval;
+	if (level >= MaxDepth) return inCheck ? DrawEvaluation(t) : eval;
 	if (position.IsDrawn(level)) return DrawEvaluation(t);
 
 	// Generate noisy moves and order them (in check we generate quiets as well)
@@ -768,10 +775,10 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	movePicker.initialize(!inCheck, position, t.History, ttMove, level);
 
 	// Search recursively until the position is quiet
-	int bestScore = staticEval;
+	int bestScore = eval;
 	Move bestMove = NullMove;
 	int scoreType = ScoreType::UpperBound;
-	int futilityScore = std::min(staticEval + 326, MateThreshold - 1);
+	int futilityScore = std::min(eval + 326, MateThreshold - 1);
 
 	while (true) {
 		const auto& [m, order] = movePicker.next(position, t.History);
