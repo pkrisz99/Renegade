@@ -130,8 +130,8 @@ int Histories::GetCaptureHistoryScore(const Position& position, const Move& m) c
 		return 2;
 	}();
 	const int toSquareThreatened = [&] {
-		if (!position.IsSquareThreatened(m.from)) return 0;
-		if (position.IsSquareThreatenedByPawn(m.from)) return 1;
+		if (!position.IsSquareThreatened(m.to)) return 0;
+		if (position.IsSquareThreatenedByPawn(m.to)) return 1;
 		return 2;
 	}();
 	const uint8_t capturedPiece = [&] {
