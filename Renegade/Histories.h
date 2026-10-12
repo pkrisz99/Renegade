@@ -26,7 +26,7 @@ public:
 	// History heuristic:
 	template <bool bonus> void UpdateQuietHistory(const Position& position, const Move& m, const int level, const int depth, const int times);
 	template <bool bonus> void UpdateCaptureHistory(const Position& position, const Move& m, const int depth, const int times);
-	int GetHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
+	int GetQuietHistoryScore(const Position& position, const Move& m, const uint8_t movedPiece, const int level) const;
 	int GetCaptureHistoryScore(const Position& position, const Move& m) const;
 
 	// Correction history for position evaluations:
@@ -35,9 +35,15 @@ public:
 
 private:
 
-	inline void UpdateHistoryValue(int16_t& value, const int amount) {
-		const int gravity = value * std::abs(amount) / 16600;
+	inline void UpdateHistoryValue(int16_t& value, const int amount, const int cap) {
+		const int gravity = value * std::abs(amount) / cap;
 		value += amount - gravity;
+	}
+
+	inline void UpdateHistoryValueCustomGravity(int16_t& value, int16_t gravityBase, const int amount, const int cap) {
+		const int gravity = gravityBase * std::abs(amount) / cap;
+		const int newValue = std::clamp(value + amount - gravity, -cap, cap);
+		value = static_cast<int16_t>(newValue);
 	}
 
 	// Refutations:
@@ -47,7 +53,7 @@ private:
 
 	// Move ordering history:
 	MultiArray<int16_t, 15, 64, 2, 2> QuietHistory;
-	MultiArray<int16_t, 15, 64, 15, 3, 3> CaptureHistory; // [attacking piece][square to][captured piece][from treat][to threat]
+	MultiArray<int16_t, 15, 64, 15, 2, 2> CaptureHistory; // [attacking piece][square to][captured piece][from threat][to threat]
 	MultiArray<int16_t, 15, 64, 15, 64> ContinuationHistory;
 
 	// Evaluation correction history:
@@ -55,4 +61,3 @@ private:
 	MultiArray<int32_t, 2, 2, 65536> NonPawnCorrectionHistory;
 	MultiArray<int32_t, 15, 64, 15, 64> FollowUpCorrectionHistory;
 };
-

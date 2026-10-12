@@ -31,8 +31,8 @@ void Transpositions::Store(const uint64_t hash, const int depth, const int16_t s
 			if (entryQuality < currentWorstQuality) {
 				currentWorst = i;
 				currentWorstQuality = entryQuality;
-			};
-		};
+			}
+		}
 		assert(currentWorst != -1);
 		return currentWorst;
 	}();
@@ -96,19 +96,30 @@ void Transpositions::Prefetch(const uint64_t hash) const {
 }
 
 void Transpositions::AllocateTable(const uint64_t clusterCount) {
+	const uint64_t requestedBytes = clusterCount * sizeof(TranspositionCluster);
+
 	#if defined(_MSC_VER) || defined(_WIN32)
 		// Windows: just allocate memory, don't bother with memory tricks
-		Table = static_cast<TranspositionCluster*>(_aligned_malloc(clusterCount * sizeof(TranspositionCluster), 64));
+		Table = static_cast<TranspositionCluster*>(_aligned_malloc(requestedBytes, 64));
+	#elif defined(__linux__) && defined(MADV_HUGEPAGE)
+		// Linux: request transparent huge pages for a possible speed up (if requested size is compatible with that)
+		if (requestedBytes % (2 * 1024 * 1024) == 0) {
+			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(2 * 1024 * 1024, requestedBytes));
+			madvise(Table, requestedBytes, MADV_HUGEPAGE);
+		}
+		else {
+			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, requestedBytes));
+		}
 	#else
-		#if defined(__linux__) && defined(MADV_HUGEPAGE)
-			// Linux: request transparent huge pages for a possible speed up
-			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(2 * 1024 * 1024, clusterCount * sizeof(TranspositionCluster)));
-			madvise(Table, clusterCount * sizeof(TranspositionCluster), MADV_HUGEPAGE);
-		#else
-			// Fall back if system is not compatible
-			Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, clusterCount * sizeof(TranspositionCluster)));
-		#endif
+		// Fall back if system is not compatible
+		Table = static_cast<TranspositionCluster*>(std::aligned_alloc(64, requestedBytes));
 	#endif
+
+	// Check if successful
+	if (Table == nullptr) {
+		cout << "Error: failed to allocate memory for the transposition table" << endl;
+		std::terminate();
+	}
 
 	// Set cluster count
 	TableSize = clusterCount;
@@ -129,20 +140,17 @@ void Transpositions::IncreaseAge() {
 
 void Transpositions::SetSize(const int megabytes, const int threadCount) {
 	assert(megabytes > 0);
-	const uint64_t theoreticalClusterCount = static_cast<uint64_t>(megabytes) * 1024 * 1024 / sizeof(TranspositionCluster);
-	const uint64_t actualClusterCount = std::bit_floor(theoreticalClusterCount);
-
-	if (TableSize != actualClusterCount) {
+	const uint64_t clusterCount = static_cast<uint64_t>(megabytes) * 1024 * 1024 / sizeof(TranspositionCluster);
+	if (TableSize != clusterCount) {
 		FreeTable();
-		AllocateTable(actualClusterCount);
+		AllocateTable(clusterCount);
 	}
 	Clear(threadCount);
 }
 
+// Clear entries, potentially in parallel, with as many threads as set to do search
+// This speeds up initialization significantly for large hash sizes
 void Transpositions::Clear(const int threadCount) {
-	// Clear entries, potentially in parallel, with as many threads as set to do search
-	// This speeds up initialization significantly for large hash sizes
-
 	const uint64_t chunkSize = (TableSize + threadCount - 1) / threadCount; // ceil division
 	std::vector<std::thread> threads;
 
@@ -159,8 +167,8 @@ void Transpositions::Clear(const int threadCount) {
 	CurrentGeneration = 0;
 }
 
+// Approximate by checking the usage of the first 1000 clusters
 int Transpositions::GetHashfull() const {
-	// Approximate by checking the usage of the first 1000 clusters
 	int hashfull = 0;
 	for (int i = 0; i < 1000; i++) {
 		for (const TranspositionEntry& entry : Table[i].entries) {
