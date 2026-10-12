@@ -40,7 +40,7 @@ private:
 		value += amount - gravity;
 	}
 
-	inline void UpdateHistoryValueCustomGravity(int16_t& value, int16_t gravityBase, const int amount, const int cap) {
+	inline void UpdateHistoryValueCustomGravity(int16_t& value, const int gravityBase, const int amount, const int cap) {
 		const int gravity = gravityBase * std::abs(amount) / cap;
 		const int newValue = std::clamp(value + amount - gravity, -cap, cap);
 		value = static_cast<int16_t>(newValue);
