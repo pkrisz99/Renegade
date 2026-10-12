@@ -778,7 +778,7 @@ int Search::SearchQuiescence(ThreadData& t, const int level, int alpha, int beta
 	int bestScore = eval;
 	Move bestMove = NullMove;
 	int scoreType = ScoreType::UpperBound;
-	int futilityScore = std::min(eval + 326, MateThreshold - 1);
+	int futilityScore = std::min(staticEval + 326, MateThreshold - 1);
 
 	while (true) {
 		const auto& [m, order] = movePicker.next(position, t.History);
