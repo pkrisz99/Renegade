@@ -136,10 +136,9 @@ public:
 		return { States.back().WhiteNonPawnHash, States.back().BlackNonPawnHash };
 	}
 
+	// Calculate the approximate hash after a move on the current board - this is to make prefetching more efficient
+	// It doesn't need to be perfect, just good enough, it handles most quiet moves and captures
 	inline uint64_t ApproximateHashAfterMove(const Move& move) const {
-		// Calculate the approximate hash after a move on the current board
-		// This is to make prefetching more efficient
-		// It doesn't need to be perfect, just good enough, it handles most quiet moves and captures
 		uint64_t hash = States.back().BoardHash ^ Zobrist.SideToMove;
 		const uint8_t movedPiece = GetPieceAt(move.from);
 		const uint8_t capturedPiece = GetPieceAt(move.to);
@@ -150,6 +149,8 @@ public:
 	}
 
 	uint64_t AttackersOfSquare(const bool attackingSide, const uint8_t square) const;
+	std::pair<uint64_t, uint64_t> GetPinnedBitboard() const;
+	bool GivesCheck(const Move& move) const;
 
 	inline uint64_t WhitePawnBits() const { return States.back().WhitePawnBits; }
 	inline uint64_t WhiteKnightBits() const { return States.back().WhiteKnightBits; }

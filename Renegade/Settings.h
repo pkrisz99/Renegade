@@ -44,7 +44,7 @@ inline std::unordered_map<std::string_view, Tunable&> TunableParameterList;
 			RegisterTunable_##NAME() { TunableParameterList.emplace(NAME.name, NAME); }    \
 		};                                                                                 \
 		inline RegisterTunable_##NAME registerTunable_##NAME;                              \
-	};                                                                                     \
+	}                                                                                      \
 	inline int tune_##NAME() { return NAME.value; }
 
 

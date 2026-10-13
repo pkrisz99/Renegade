@@ -104,8 +104,8 @@ public:
 		}
 	}
 
-	static constexpr int MaxRegularQuietOrder = 200000;
 	bool skipQuietMoves = false;
+	MovePickerStage stage = MovePickerStage::EmitTTMove;
 
 private:
 
@@ -130,13 +130,15 @@ private:
 	int getQuietMoveScore(const Position& pos, const Histories& hist, const Move& m) const {
 
 		const uint8_t movedPiece = pos.GetPieceAt(m.from);
-		int historyScore = hist.GetHistoryScore(pos, m, movedPiece, level);
+		int orderScore = hist.GetQuietHistoryScore(pos, m, movedPiece, level);
 
-		if (m == killerMove) historyScore += 17700;
-		else if (m == positionalMove) historyScore += 16300;
-		else if (m == counterMove) historyScore += 14000;
+		int refutationScore = 0;
+		if (m == counterMove) refutationScore = 18800;
+		else if (m == killerMove) refutationScore = 16600;
+		else if (m == positionalMove) refutationScore = 13600;
+		orderScore += refutationScore;
 
-		return historyScore;
+		return orderScore;
 	}
 
 	// Score noisy moves: take history, piece types and static exchange eval into account
@@ -148,20 +150,21 @@ private:
 			return TypeOfPiece(pos.GetPieceAt(m.to));
 		}();
 
-		// Queen promotions
-		if (m.flag == MoveFlag::PromotionToQueen) return 700000 + values[capturedPieceType];
+		const int16_t captureScore = hist.GetCaptureHistoryScore(pos, m);
+
+		const int materialChange = values[capturedPieceType]
+			+ (m.flag == MoveFlag::PromotionToQueen ? values[PieceType::Queen] : 0);
 
 		const bool losingCapture = [&] {
 			if (skipQuietMoves) return false;
-			const int16_t captureScore = (m.IsPromotion()) ? 0 : hist.GetCaptureHistoryScore(pos, m);
 			return !pos.StaticExchangeEval(m, -captureScore / 28);
 		}();
-		return (!losingCapture ? 600000 : -200000) + values[capturedPieceType] * 18 + hist.GetCaptureHistoryScore(pos, m);
+
+		return (losingCapture ? -500000 : 500000) + materialChange * 18 + captureScore;
 	}
 
 	size_t noisyMoveIndex = 0, quietMoveIndex = 0;
 	Move ttMove{}, killerMove{}, counterMove{}, positionalMove{};
 	MoveList noisyMoves{}, quietMoves{};
 	int level = 0;
-	MovePickerStage stage = MovePickerStage::EmitTTMove;
 };
