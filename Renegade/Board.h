@@ -145,20 +145,15 @@ struct Board {
 			return BlackPawnBits | BlackKnightBits | BlackBishopBits | BlackRookBits | BlackQueenBits | BlackKingBits;
 	}
 
-	inline uint8_t WhiteKingSquare() const { 
-		return LsbSquare(WhiteKingBits);
-	}
+	inline uint8_t WhiteKingSquare() const { return LsbSquare(WhiteKingBits); }
+	inline uint8_t BlackKingSquare() const { return LsbSquare(BlackKingBits); }
 
-	inline uint8_t BlackKingSquare() const {
-		return LsbSquare(BlackKingBits);
-	}
+	[[maybe_unused]] uint64_t CalculateMaterialHash() const;
+	[[maybe_unused]] uint64_t CalculateHashFromScratch() const;
 
 	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
-	std::pair<uint64_t, uint64_t> GetPinnedBitboard() const;
-
-	[[maybe_unused]] uint64_t CalculateHashFromScratch() const;
-	[[maybe_unused]] uint64_t CalculateMaterialHash() const;
 	uint64_t CalculatePawnHash() const;
+	std::pair<uint64_t, uint64_t> GetPinnedBitboard() const;
 
 };
 
