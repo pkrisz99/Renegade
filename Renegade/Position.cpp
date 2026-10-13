@@ -113,6 +113,7 @@ Position::Position(const std::string& fen) {
 	board.HalfmoveClock = std::stoi(parts[4]);
 	board.FullmoveClock = std::stoi(parts[5]);
 	board.Threats = CalculateAttackedSquares(!Turn());
+	std::tie(board.WhitePinned, board.BlackPinned) = board.GetPinnedBitboard();
 }
 
 Position::Position(const int frcWhite, const int frcBlack) {
