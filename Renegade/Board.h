@@ -153,10 +153,10 @@ struct Board {
 		return LsbSquare(BlackKingBits);
 	}
 
-	//uint64_t CalculateHash() const;
 	void ApplyMove(const Move& move, const CastlingConfiguration& castling);
 	std::pair<uint64_t, uint64_t> GetPinnedBitboard() const;
 
+	[[maybe_unused]] uint64_t CalculateHashFromScratch() const;
 	[[maybe_unused]] uint64_t CalculateMaterialHash() const;
 	uint64_t CalculatePawnHash() const;
 
