@@ -166,10 +166,48 @@ void Board::ApplyMove(const Move& move, const CastlingConfiguration& castling) {
 	HalfmoveClock += 1;
 	if (capturedPiece != Piece::None || pieceType == PieceType::Pawn) HalfmoveClock = 0;
 	Turn = !Turn;
-	BoardHash ^= Zobrist.SideToMove;
 	if (Turn == Side::White) FullmoveClock += 1;
 
+	// Update other fields
+	BoardHash ^= Zobrist.SideToMove;
+	std::tie(WhitePinned, BlackPinned) = GetPinnedBitboard();
+
 	assert(Popcount(WhiteKingBits) == 1 && Popcount(BlackKingBits) == 1);
+}
+
+// Returns a bitboard of the pinned pieces for each side
+std::pair<uint64_t, uint64_t> Board::GetPinnedBitboard() const {
+
+	uint64_t whitePinned{}, blackPinned{};
+
+	const uint8_t whiteKingSquare = WhiteKingSquare();
+	const uint8_t blackKingSquare = BlackKingSquare();
+	const uint64_t whiteOccupancy = GetOccupancyForSide(Side::White);
+	const uint64_t blackOccupancy = GetOccupancyForSide(Side::Black);
+
+	// Calculate pins for white
+	const uint64_t blackPotentialParallelPinners = GetRookAttacks(whiteKingSquare, blackOccupancy) & (BlackRookBits | BlackQueenBits);
+	const uint64_t blackPotentialDiagonalPinners = GetBishopAttacks(whiteKingSquare, blackOccupancy) & (BlackBishopBits | BlackQueenBits);
+	uint64_t blackPotentialPinners = blackPotentialParallelPinners | blackPotentialDiagonalPinners;
+
+	while (blackPotentialPinners) {
+		const uint8_t sq = Popsquare(blackPotentialPinners);
+		const uint64_t whitePiecesBetween = (GetShortConnectingRay(sq, whiteKingSquare) & ~SquareBit(sq) & ~SquareBit(whiteKingSquare)) & GetOccupancyForSide(Side::White);
+		if (Popcount(whitePiecesBetween) == 1) whitePinned |= whitePiecesBetween;
+	}
+
+	// Calculate pins for black
+	const uint64_t whitePotentialParallelPinners = GetRookAttacks(blackKingSquare, whiteOccupancy) & (WhiteRookBits | WhiteQueenBits);
+	const uint64_t whitePotentialDiagonalPinners = GetBishopAttacks(blackKingSquare, whiteOccupancy) & (WhiteBishopBits | WhiteQueenBits);
+	uint64_t whitePotentialPinners = whitePotentialParallelPinners | whitePotentialDiagonalPinners;
+
+	while (whitePotentialPinners) {
+		const uint8_t sq = Popsquare(whitePotentialPinners);
+		const uint64_t blackPiecesBetween = (GetShortConnectingRay(sq, blackKingSquare) & ~SquareBit(sq) & ~SquareBit(blackKingSquare)) & GetOccupancyForSide(Side::Black);
+		if (Popcount(blackPiecesBetween) == 1) blackPinned |= blackPiecesBetween;
+	}
+
+	return { whitePinned, blackPinned };
 }
 
 uint64_t Board::CalculateMaterialHash() const {
