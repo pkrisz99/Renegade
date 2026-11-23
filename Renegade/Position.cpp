@@ -1159,17 +1159,18 @@ bool Position::StaticExchangeEval(const Move& move, const int threshold) const {
 	turn = !turn;
 
 	// Account for pinned pieces
-	const uint64_t whitePinned = CurrentState().WhitePinned;
-	const uint64_t blackPinned = CurrentState().BlackPinned;
-	const uint64_t whiteAllowedPinned = whitePinned & GetLongConnectingRay(move.to, WhiteKingSquare());
-	const uint64_t blackAllowedPinned = blackPinned & GetLongConnectingRay(move.to, BlackKingSquare());
-	const uint64_t allowed = ~(whitePinned | blackPinned) | whiteAllowedPinned | blackAllowedPinned;
-
-	uint64_t attackers = GetAttackersOfSquare(move.to, occupancy) & occupancy & allowed;
+	// this is done lazily to reduce spamming lookups
+	const Board& board = CurrentState();
+	uint64_t attackers = GetAttackersOfSquare(move.to, occupancy) & occupancy;
+	if (attackers & board.WhitePinned) {
+		attackers &= ~board.WhitePinned | GetLongConnectingRay(move.to, WhiteKingSquare());
+	}
+	if (attackers & board.BlackPinned) {
+		attackers &= ~board.BlackPinned | GetLongConnectingRay(move.to, BlackKingSquare());
+	}
 
 	// Pseudo-generating steps
 	while (true) {
-
 		uint64_t currentAttackers = attackers & ((turn == Side::White) ? whitePieces : blackPieces);
 		if (!currentAttackers) break;
 
