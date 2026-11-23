@@ -130,29 +130,39 @@ struct alignas(64) AccumulatorRepresentation {
 		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] += Network->FeatureWeights[bucket][feature][i];
 	}
 
-	// Fused NNUE updates are generally a speedup, however it seems to depend on the exact machine:
-	// failed to gain when tested on cloud workers, even though there was around a ~5% nps increase
-	// locally. For this reason this code stays for now, but it requires further investigation. Is
-	// it possible, that this optimization no longer gains due to better compilers getting better?
+	// Fused NNUE updates: do all update operations in one pass
 
-	void SubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const bool side) {
+	void SubAddFeature(const std::array<int16_t, HiddenSize>& previous, const PieceAndSquare& f1, const PieceAndSquare& f2, const bool side) {
 		const auto features1 = FeatureIndex(side, f1.piece, f1.square);
 		const auto features2 = FeatureIndex(side, f2.piece, f2.square);
 		const int bucket = ActiveBucket[side];
-		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] +=
+		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] = previous[i]
 			- Network->FeatureWeights[bucket][features1][i]
 			+ Network->FeatureWeights[bucket][features2][i];
 	}
 
-	void SubSubAddFeature(const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3, const bool side) {
+	void SubSubAddFeature(const std::array<int16_t, HiddenSize>& previous, const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3, const bool side) {
 		const int bucket = ActiveBucket[side];
 		const auto features1 = FeatureIndex(side, f1.piece, f1.square);
 		const auto features2 = FeatureIndex(side, f2.piece, f2.square);
 		const auto features3 = FeatureIndex(side, f3.piece, f3.square);
-		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] +=
+		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] = previous[i]
 			- Network->FeatureWeights[bucket][features1][i]
 			- Network->FeatureWeights[bucket][features2][i]
 			+ Network->FeatureWeights[bucket][features3][i];
+	}
+
+	void SubSubAddAddFeature(const std::array<int16_t, HiddenSize>& previous, const PieceAndSquare& f1, const PieceAndSquare& f2, const PieceAndSquare& f3, const PieceAndSquare& f4, const bool side) {
+		const int bucket = ActiveBucket[side];
+		const auto features1 = FeatureIndex(side, f1.piece, f1.square);
+		const auto features2 = FeatureIndex(side, f2.piece, f2.square);
+		const auto features3 = FeatureIndex(side, f3.piece, f3.square);
+		const auto features4 = FeatureIndex(side, f4.piece, f4.square);
+		for (int i = 0; i < HiddenSize; i++) Accumulator[side][i] = previous[i]
+			- Network->FeatureWeights[bucket][features1][i]
+			- Network->FeatureWeights[bucket][features2][i]
+			+ Network->FeatureWeights[bucket][features3][i]
+			+ Network->FeatureWeights[bucket][features4][i];
 	}
 
 	inline int FeatureIndex(const bool perspective, const uint8_t piece, const uint8_t sq) const {

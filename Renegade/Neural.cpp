@@ -180,29 +180,32 @@ void EvaluationState::UpdateIncrementally(const bool side, const int accIndex) {
 
 	const AccumulatorRepresentation& o = AccumulatorStack[accIndex - 1];  // o -> old
 	AccumulatorRepresentation& c = AccumulatorStack[accIndex];            // c -> current
+	const std::array<int16_t, HiddenSize>& previous = o.Accumulator[side];
 	const Move& m = c.move;
 
-	// Ensure the base accumulator is already up to date, and copy over the previous state
-	// (possible future optimization by deferring this and adding the accumulator change?)
+	// Ensure the base accumulator is already up to date
+	// A copy is avoided here to avoid multiple passes
 	assert(o.Correct[side]);
-	c.Accumulator[side] = o.Accumulator[side];
 
 	// After completing the following, it's guaranteed that the accumulator will be up to date for the given side
 	c.Correct[side] = true;
 	
-	// For null-moves nothing changes, we're done here
-	if (m.IsNull()) return;
+	// For null-moves nothing changes, just copy over the previous state
+	if (m.IsNull()) {
+		c.Accumulator[side] = previous;
+		return;
+	}
 
 	// Handle various cases of incremental updating
 	// (a) regular non-capture move
 	if (c.capturedPiece == Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed) {
-		c.SubAddFeature({ c.movedPiece, m.from }, { c.movedPiece, m.to }, side);
+		c.SubAddFeature(previous, { c.movedPiece, m.from }, { c.movedPiece, m.to }, side);
 		return;
 	}
 
 	// (b) regular capture move
 	if (c.capturedPiece != Piece::None && !m.IsPromotion() && m.flag != MoveFlag::EnPassantPerformed && !m.IsCastling()) {
-		c.SubSubAddFeature({ c.movedPiece, m.from }, { c.capturedPiece, m.to }, { c.movedPiece, m.to }, side);
+		c.SubSubAddFeature(previous, { c.movedPiece, m.from }, { c.capturedPiece, m.to }, { c.movedPiece, m.to }, side);
 		return;
 	}
 
@@ -210,21 +213,22 @@ void EvaluationState::UpdateIncrementally(const bool side, const int accIndex) {
 	if (m.IsCastling()) {
 		const bool castlingSide = ColorOfPiece(c.movedPiece) == PieceColor::White;
 		const bool shortCastle = m.flag == MoveFlag::ShortCastle;
+		const uint8_t oldKingSquare = m.from;
+		const uint8_t oldRookSquare = m.to;
 		const uint8_t rookPiece = castlingSide == Side::White ? Piece::WhiteRook : Piece::BlackRook;
 		const uint8_t newKingFile = shortCastle ? 6 : 2;
 		const uint8_t newRookFile = shortCastle ? 5 : 3;
 		const uint8_t newKingSquare = newKingFile + (castlingSide == Side::Black) * 56;
 		const uint8_t newRookSquare = newRookFile + (castlingSide == Side::Black) * 56;
-		c.SubAddFeature({ c.movedPiece, m.from }, { c.movedPiece, newKingSquare }, side);
-		c.SubAddFeature({ rookPiece, m.to }, { rookPiece, newRookSquare }, side);
+		c.SubSubAddAddFeature(previous, { c.movedPiece, oldKingSquare }, { rookPiece, oldRookSquare }, { c.movedPiece, newKingSquare }, { rookPiece, newRookSquare }, side);
 		return;
 	}
 
 	// (d) promotion - with optional capture
 	if (m.IsPromotion()) {
 		const uint8_t promotionPiece = m.GetPromotionPieceType() + (ColorOfPiece(c.movedPiece) == PieceColor::Black ? Piece::BlackPieceOffset : 0);
-		if (c.capturedPiece == Piece::None) c.SubAddFeature({ c.movedPiece, m.from }, { promotionPiece, m.to }, side);
-		else c.SubSubAddFeature({ c.movedPiece, m.from }, { c.capturedPiece, m.to }, { promotionPiece, m.to }, side);
+		if (c.capturedPiece == Piece::None) c.SubAddFeature(previous, { c.movedPiece, m.from }, { promotionPiece, m.to }, side);
+		else c.SubSubAddFeature(previous, { c.movedPiece, m.from }, { c.capturedPiece, m.to }, { promotionPiece, m.to }, side);
 		return;
 	}
 
@@ -232,7 +236,7 @@ void EvaluationState::UpdateIncrementally(const bool side, const int accIndex) {
 	if (c.move.flag == MoveFlag::EnPassantPerformed) {
 		const uint8_t victimPiece = c.movedPiece == Piece::WhitePawn ? Piece::BlackPawn : Piece::WhitePawn;
 		const uint8_t victimSquare = c.movedPiece == Piece::WhitePawn ? (m.to - 8) : (m.to + 8);
-		c.SubSubAddFeature({ c.movedPiece, m.from }, { victimPiece, victimSquare }, { c.movedPiece, m.to }, side);
+		c.SubSubAddFeature(previous, { c.movedPiece, m.from }, { victimPiece, victimSquare }, { c.movedPiece, m.to }, side);
 		return;
 	}
 }
