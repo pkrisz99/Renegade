@@ -364,7 +364,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 
 	const uint64_t kingSq = (side == Side::White) ? WhiteKingSquare() : BlackKingSquare();
 	const uint64_t occupancy = GetOccupancy();
-	const uint64_t opponentRookLikeSliders = (side == Side::White) ? (b.BlackRookBits | b.BlackQueenBits) : (b.WhiteRookBits | b.WhiteQueenBits);
+	const uint64_t friendlyPinned = (side == Side::White) ? b.WhitePinned : b.BlackPinned;
 
 	if (rightToShortCastle) {
 		constexpr uint8_t kingTo = (side == Side::White) ? G1 : G8;
@@ -375,7 +375,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const uint64_t mockOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
 		const bool empty = !((rayBetweenKingAndG | rayBetweenRookAndF) & mockOccupancy);
 		if (empty) {
-			const bool safe = !(b.Threats & rayBetweenKingAndG) && !(GetRookAttacks(kingTo, mockOccupancy) & opponentRookLikeSliders);
+			const bool safe = !(b.Threats & rayBetweenKingAndG) && !CheckBit(friendlyPinned, rookSq);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::ShortCastle));
 		}
 	}
@@ -389,7 +389,7 @@ void Position::GenerateCastlingMoves(MoveList& moves) const {
 		const uint64_t mockOccupancy = occupancy ^ (SquareBit(kingSq) | SquareBit(rookSq));
 		const bool empty = !((rayBetweenKingAndC | rayBetweenRookAndD) & mockOccupancy);
 		if (empty) {
-			const bool safe = !(b.Threats & rayBetweenKingAndC) && !(GetRookAttacks(kingTo, mockOccupancy) & opponentRookLikeSliders);
+			const bool safe = !(b.Threats & rayBetweenKingAndC) && !CheckBit(friendlyPinned, rookSq);
 			if (safe) moves.pushUnscored(Move(kingSq, rookSq, MoveFlag::LongCastle));
 		}
 	}
@@ -790,8 +790,8 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 			if (!safe) return false;
 
 			// Can't castle when the castling rook protects the king from a backrank check (only possible in FRC)
-			const uint64_t opponentRookLikeSliders = (pieceColor == PieceColor::White) ? (b.BlackRookBits | b.BlackQueenBits) : (b.WhiteRookBits | b.WhiteQueenBits);
-			if ((GetRookAttacks(kingSqAfterCastling, fakeOccupancy)) & opponentRookLikeSliders) return false;
+			const uint64_t friendlyPinned = (b.Turn == Side::White) ? b.WhitePinned : b.BlackPinned;
+			if (CheckBit(friendlyPinned, rookSqBeforeCastling)) return false;
 
 			return true;
 		}
@@ -868,61 +868,36 @@ bool Position::IsPseudoLegalMove(const Move& m) const {
 	}
 }
 
-// This function assumes that the move is at least pseudolegal
-// This is terrible currently, but it was pain to get right, and I don't want to touch it with a 10 ft pole
+
+// Checks whether a pseudolegal move is actually legal
 bool Position::IsLegalMove(const Move& m) const {
-	
 	assert(!m.IsNull());
 	if (m.IsCastling()) return true; // Castling is guaranteed to be legal from movegen
 
 	const Board& board = CurrentState();
-	const uint8_t movedPiece = GetPieceAt(m.from);
-
-	if (TypeOfPiece(movedPiece) == PieceType::King) {
-		// Destination square must not be attacked by the opponent
-		const uint8_t kingSq = (board.Turn == Side::White) ? LsbSquare(board.WhiteKingBits) : LsbSquare(board.BlackKingBits);
-		const uint64_t occupancy = GetOccupancy() ^ SquareBit(kingSq);
-		return !IsSquareAttacked(!board.Turn, m.to, occupancy);
-	}
-
 	const uint8_t kingSq = (board.Turn == Side::White) ? LsbSquare(board.WhiteKingBits) : LsbSquare(board.BlackKingBits);
-	const uint64_t occupancy = GetOccupancy();
 
-	if (m.flag == MoveFlag::EnPassantPerformed) {
-		// After the en passant start rays to see if the king is attacked by an appropriate sliding piece
-		const uint8_t epVictimSq = (board.Turn == Side::White) ? board.EnPassantSquare - 8 : board.EnPassantSquare + 8;
-		const uint64_t rookLikeSliders = (board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits);
-		const uint64_t bishopLikeSliders = (board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits);
-		const uint64_t approxOccupancy = (occupancy ^ SquareBit(m.from) ^ SquareBit(epVictimSq)) | SquareBit(m.to);
-		return !(GetRookAttacks(kingSq, approxOccupancy) & rookLikeSliders) && !(GetBishopAttacks(kingSq, approxOccupancy) & bishopLikeSliders);
+	// 1) King moves: destination square must not be attacked by any opponent piece
+	if (m.from == kingSq) {
+		return !IsSquareAttacked(!board.Turn, m.to, GetOccupancy() ^ SquareBit(m.from));
 	}
 
-	// Regular non-king moves
-
-	const uint64_t checking = AttackersOfSquare(!Turn(), kingSq);
-	if (Popcount(checking) > 1) return false; // double checks can only be evaded by a king move
-
-	const uint64_t rookLikeSliders = ((board.Turn == Side::White) ? (board.BlackRookBits | board.BlackQueenBits) : (board.WhiteRookBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
-	const uint64_t bishopLikeSliders = ((board.Turn == Side::White) ? (board.BlackBishopBits | board.BlackQueenBits) : (board.WhiteBishopBits | board.WhiteQueenBits)) & ~SquareBit(m.to);
-	const uint64_t approxOccupancy = (occupancy ^ SquareBit(kingSq) ^ SquareBit(m.from)) | SquareBit(m.to);
-
-	if (!checking) {
-		return !(GetRookAttacks(kingSq, approxOccupancy) & rookLikeSliders) && !(GetBishopAttacks(kingSq, approxOccupancy) & bishopLikeSliders);
-	}
-	else {
-		const uint64_t pin1 = GetRookAttacks(kingSq, approxOccupancy) & rookLikeSliders;
-		const uint64_t pin2 = GetBishopAttacks(kingSq, approxOccupancy) & bishopLikeSliders;
-		const uint64_t pins = pin1 | pin2;
-
-		if (m.to == LsbSquare(checking)) {
-			return !pins;
-		}
-		else {
-			if (checking & (board.WhiteKnightBits | board.BlackKnightBits | board.WhiteKingBits | board.BlackKingBits | board.WhitePawnBits | board.BlackPawnBits)) return false;
-			return !pins;
-		}
+	// 2) Regular boring moves: moving piece is not pinned, or it just moves on the line of it is pinned on
+	const bool isEnPassant = m.flag == MoveFlag::EnPassantPerformed;
+	if (!IsSquareThreatened(kingSq) && !isEnPassant) {
+		const uint64_t pinned = (board.Turn == Side::White) ? board.WhitePinned : board.BlackPinned;
+        return !CheckBit(pinned, m.from) || CheckBit(GetLongConnectingRay(kingSq, m.from), m.to);
 	}
 
+	// 3) More complicated cases: king in check or en passant
+	// rebuild occupancy for this
+	const uint8_t captureSq = isEnPassant ? m.to + (board.Turn == Side::White ? -8 : 8) : m.to;
+    const uint64_t captured = SquareBit(captureSq);
+    uint64_t occupied = GetOccupancy() ^ SquareBit(m.from);
+	if (isEnPassant) occupied ^= captured;
+	occupied |= SquareBit(m.to);
+    const uint64_t opponents = GetOccupancy(!board.Turn) & ~captured;
+    return !(GetAttackersOfSquare(kingSq, occupied) & opponents);
 }
 
 bool Position::IsSquareAttacked(const bool attackingSide, const uint8_t square, const uint64_t occupancy) const {
