@@ -184,7 +184,6 @@ void EvaluationState::UpdateIncrementally(const bool side, const int accIndex) {
 	const Move& m = c.move;
 
 	// Ensure the base accumulator is already up to date
-	// A copy is avoided here to avoid multiple passes
 	assert(o.Correct[side]);
 
 	// After completing the following, it's guaranteed that the accumulator will be up to date for the given side
